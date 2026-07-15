@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Пользователь платформы. В МВП вход через Telegram → это психолог.
+model User {
+  id         Int      @id @default(autoincrement())
+  telegramId BigInt   @unique
+  username   String?
+  firstName  String?
+  role       String   @default("psychologist") // psychologist | client
+  createdAt  DateTime @default(now())
+
+  clients      Client[]
+  appointments Appointment[]
+  subscription Subscription?
+}
+
+// Карточка клиента, которую ведёт психолог. Не обязательно юзер платформы.
+model Client {
+  id             Int      @id @default(autoincrement())
+  psychologist   User     @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId Int
+  name           String
+  contact        String? // телефон / телеграм / email
+  note           String   @default("") @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([psychologistId])
+}
+
+// Запись на приём.
+model Appointment {
+  id             Int      @id @default(autoincrement())
+  psychologist   User     @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId Int
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId       Int
+  startsAt       DateTime
+  durationMin    Int      @default(60)
+  status         String   @default("scheduled") // scheduled | done | cancelled
+  note           String   @default("") @db.Text
+  reminderSent   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([psychologistId, startsAt])
+  @@index([clientId])
+}
+
+// Подписка психолога (оплата через ЮKassa).
+model Subscription {
+  id                Int       @id @default(autoincrement())
+  psychologist      User      @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId    Int       @unique
+  plan              String    @default("free") // free | pro
+  status            String    @default("inactive") // inactive | pending | active
+  yookassaPaymentId String?
+  paymentMethodId   String? // сохранённый способ оплаты для рекуррента
+  currentPeriodEnd  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}

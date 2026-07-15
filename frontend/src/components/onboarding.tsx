@@ -1,0 +1,227 @@
+"use client";
+
+import { AnimatePresence, motion } from "motion/react";
+import { useState, type ReactNode } from "react";
+
+import { Icon, type IconName } from "@/components/icons";
+import { Button, Input, Textarea } from "@/components/ui";
+import { APP_NAME } from "@/lib/brand";
+import { select, success, tap } from "@/lib/haptics";
+import { completeOnboarding, savePsyProfile, tgUser } from "@/lib/profile";
+import { setRole, type Role } from "@/lib/role";
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+type Step = "role" | "value" | "psy-form" | "psy-review";
+
+// УТП под каждую роль: сплошные блоки, иконка + суть.
+const VALUE: Record<Role, { title: string; lead: string; blocks: { icon: IconName; title: string; desc: string; fill: string }[] }> = {
+  psychologist: {
+    title: "Ведите практику\nбез хаоса",
+    lead: "Записи, клиенты и прогресс — в одном месте вместо пяти чатов и таблиц.",
+    blocks: [
+      { icon: "calendar", title: "Управление записью", desc: "Задайте рабочие окна — клиенты записываются в свободные сами", fill: "sage" },
+      { icon: "chart", title: "Прогресс клиента", desc: "Видно, как человек живёт между сессиями: настроение, задания, заметки", fill: "iris" },
+      { icon: "bell", title: "Напоминания", desc: "Клиенту приходит уведомление накануне — меньше неявок", fill: "ink" },
+    ],
+  },
+  client: {
+    title: "Работа над собой\nпо шагам",
+    lead: "Записывайтесь к специалисту, выполняйте задания и видьте свой прогресс.",
+    blocks: [
+      { icon: "compass", title: "Свой специалист", desc: "Каталог психологов с подходами и свободными окнами", fill: "sage" },
+      { icon: "note", title: "Задания и настроение", desc: "Отмечайте состояние между сессиями — психолог видит динамику", fill: "iris" },
+      { icon: "bell", title: "Не забудете", desc: "Напоминание о сессии придёт накануне", fill: "ink" },
+    ],
+  },
+  guest: {
+    title: "Осмотритесь\nспокойно",
+    lead: "Загляните в каталог и инструменты. Роль всегда можно выбрать позже.",
+    blocks: [
+      { icon: "compass", title: "Каталог специалистов", desc: "Подходы, темы, цены и рейтинг", fill: "sage" },
+      { icon: "heart", title: "Инструменты самопомощи", desc: "Практики и дневники — скоро", fill: "iris" },
+      { icon: "user", title: "Роль по желанию", desc: "Станьте клиентом или психологом в кабинете", fill: "ink" },
+    ],
+  },
+};
+
+export function Onboarding() {
+  const [step, setStep] = useState<Step>("role");
+  const [role, setLocalRole] = useState<Role>("client");
+  const tg = tgUser();
+
+  const finish = () => { success(); completeOnboarding(); };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--bg)" }} data-accent="iris">
+      <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-6 py-9">
+        {/* Прогресс */}
+        <div className="mb-8 flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[15px] font-black text-white" style={{ background: "var(--iris)" }}>
+            {APP_NAME.charAt(0)}
+          </span>
+          <div className="flex flex-1 gap-1.5">
+            {["role", "value", step === "psy-form" || step === "psy-review" ? "psy" : null].filter(Boolean).map((s, i) => {
+              const idx = ["role", "value", "psy"].indexOf(String(step === "psy-form" || step === "psy-review" ? "psy" : step));
+              return <span key={i} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: i <= idx ? "var(--iris)" : "var(--hairline)" }} />;
+            })}
+          </div>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 22, filter: "blur(2px)" }}
+            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, x: -22, filter: "blur(2px)" }}
+            transition={{ duration: 0.28, ease: EASE }}
+            className="flex flex-1 flex-col"
+          >
+            {step === "role" && (
+              <RoleStep
+                firstName={tg?.first_name}
+                onPick={(r) => { select(); setLocalRole(r); setRole(r); setStep("value"); }}
+              />
+            )}
+
+            {step === "value" && (
+              <ValueStep
+                role={role}
+                onNext={() => { tap(); role === "psychologist" ? setStep("psy-form") : finish(); }}
+                onBack={() => { tap(); setStep("role"); }}
+              />
+            )}
+
+            {step === "psy-form" && <PsyForm defaultName={[tg?.first_name, tg?.last_name].filter(Boolean).join(" ")} onDone={() => { tap(); setStep("psy-review"); }} />}
+
+            {step === "psy-review" && <ReviewStep onDone={finish} />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function RoleStep({ firstName, onPick }: { firstName?: string; onPick: (r: Role) => void }) {
+  const roles: { role: Role; title: string; desc: string; icon: IconName }[] = [
+    { role: "psychologist", title: "Я психолог", desc: "Веду практику: клиенты, записи, задания", icon: "users" },
+    { role: "client", title: "Я клиент", desc: "Работаю с психологом или ищу своего", icon: "heart" },
+    { role: "guest", title: "Просто смотрю", desc: "Осмотрюсь, роль выберу позже", icon: "compass" },
+  ];
+  return (
+    <div className="flex flex-1 flex-col">
+      <h1 className="font-tight text-[34px] font-extrabold leading-[1.05]">
+        {firstName ? `${firstName}, добро` : "Добро"} пожаловать<br />в <span style={{ color: "var(--iris)" }}>{APP_NAME}</span>
+      </h1>
+      <p className="mt-3 text-[15px] leading-snug text-[var(--muted)]">Кто вы здесь? От этого зависит, что вы увидите.</p>
+      <div className="mt-7 space-y-3">
+        {roles.map((r, i) => (
+          <motion.button
+            key={r.role}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 + i * 0.08, duration: 0.4, ease: EASE }}
+            onClick={() => onPick(r.role)}
+            className="flex w-full items-center gap-3.5 p-4 text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] active:scale-[0.98]"
+            style={{ borderRadius: "var(--r-block)", background: "var(--surface)", boxShadow: "var(--shadow)" }}
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ background: "var(--iris-tint)" }}>
+              <Icon name={r.icon} width={22} color="var(--iris)" />
+            </span>
+            <span className="flex-1">
+              <p className="text-[15px] font-bold">{r.title}</p>
+              <p className="text-[12.5px] text-[var(--muted)]">{r.desc}</p>
+            </span>
+            <Icon name="plus" width={16} className="rotate-45 text-[var(--muted-2)]" />
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ValueStep({ role, onNext, onBack }: { role: Role; onNext: () => void; onBack: () => void }) {
+  const v = VALUE[role];
+  return (
+    <div className="flex flex-1 flex-col">
+      <button onClick={onBack} className="mb-3 self-start text-[13px] font-semibold text-[var(--muted)]">← Назад</button>
+      <h2 className="font-tight whitespace-pre-line text-[30px] font-extrabold leading-[1.05]">{v.title}</h2>
+      <p className="mt-2.5 text-[14px] leading-snug text-[var(--muted)]">{v.lead}</p>
+      <div className="mt-6 space-y-3">
+        {v.blocks.map((b, i) => (
+          <motion.div
+            key={b.title}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.08 + i * 0.09, duration: 0.45, ease: EASE }}
+            className={`flex items-center gap-3.5 p-4 fill-${b.fill}`}
+            style={{ borderRadius: "var(--r-block)" }}
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(255,255,255,0.18)" }}>
+              <Icon name={b.icon} width={22} weight="fill" color="#fff" />
+            </span>
+            <span>
+              <p className="text-[15px] font-bold text-white">{b.title}</p>
+              <p className="text-[12.5px] leading-snug text-white/80">{b.desc}</p>
+            </span>
+          </motion.div>
+        ))}
+      </div>
+      <div className="mt-8">
+        <Button arrow className="w-full" onClick={onNext}>{role === "psychologist" ? "Заполнить профиль" : "Начать"}</Button>
+      </div>
+    </div>
+  );
+}
+
+function PsyForm({ defaultName, onDone }: { defaultName: string; onDone: () => void }) {
+  const [name, setName] = useState(defaultName);
+  const [approach, setApproach] = useState("");
+  const [years, setYears] = useState("");
+  const [about, setAbout] = useState("");
+  const valid = name.trim() && approach.trim();
+  return (
+    <div className="flex flex-1 flex-col">
+      <h2 className="font-tight text-[28px] font-extrabold leading-tight">Мини-профиль</h2>
+      <p className="mt-2 text-[13.5px] leading-snug text-[var(--muted)]">Имя взяли из Telegram. Анкета уйдёт на проверку — после подтверждения профиль появится в каталоге.</p>
+      <form
+        className="mt-5 space-y-3"
+        onSubmit={(e) => { e.preventDefault(); if (!valid) return; savePsyProfile({ name: name.trim(), approach: approach.trim(), experienceYears: years.trim(), about: about.trim() }); onDone(); }}
+      >
+        <Field label="Имя и фамилия"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Как к вам обращаться" /></Field>
+        <Field label="Подход"><Input value={approach} onChange={(e) => setApproach(e.target.value)} placeholder="КПТ, ACT, гештальт…" /></Field>
+        <Field label="Опыт, лет"><Input value={years} onChange={(e) => setYears(e.target.value)} inputMode="numeric" placeholder="5" /></Field>
+        <Field label="О себе"><Textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="Пара предложений о практике" /></Field>
+        <Button type="submit" arrow disabled={!valid} className="w-full">Отправить на проверку</Button>
+      </form>
+    </div>
+  );
+}
+
+function ReviewStep({ onDone }: { onDone: () => void }) {
+  return (
+    <div className="flex flex-1 flex-col justify-center text-center">
+      <motion.span
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.4, ease: [0.34, 1.4, 0.5, 1] }}
+        className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+        style={{ background: "var(--good-tint)" }}
+      >
+        <Icon name="check" width={44} weight="fill" color="var(--good)" />
+      </motion.span>
+      <h2 className="font-tight mt-6 text-[26px] font-extrabold">Анкета на проверке</h2>
+      <p className="mx-auto mt-3 max-w-xs text-[14px] leading-snug text-[var(--muted)]">Подтвердим профиль обычно за один рабочий день. Кабинет уже доступен — можно настроить рабочие окна.</p>
+      <div className="mt-9"><Button arrow className="w-full" onClick={onDone}>В кабинет</Button></div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[12px] font-bold text-[var(--muted)]">{label}</span>
+      {children}
+    </label>
+  );
+}
