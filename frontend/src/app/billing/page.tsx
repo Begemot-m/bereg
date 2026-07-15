@@ -1,6 +1,10 @@
-import { redirect } from "next/navigation";
+"use client";
 
-// Управление подпиской переехало в личный кабинет.
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 export default function BillingRedirect() {
-  redirect("/cabinet");
+  const r = useRouter();
+  useEffect(() => { r.replace("/cabinet"); }, [r]);
+  return null;
 }

@@ -1,6 +1,10 @@
-import { redirect } from "next/navigation";
+"use client";
 
-// Раздел переехал в «Мои сессии».
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 export default function ScheduleRedirect() {
-  redirect("/sessions");
+  const r = useRouter();
+  useEffect(() => { r.replace("/sessions"); }, [r]);
+  return null;
 }

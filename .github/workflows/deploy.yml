@@ -1,0 +1,48 @@
+name: Deploy demo to GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      # В статическом демо серверный API не нужен — убираем, чтобы export не падал.
+      - run: rm -rf src/app/api
+      - name: Build static demo
+        env:
+          NEXT_PUBLIC_DEMO: "1"
+          STATIC_EXPORT: "1"
+          PAGES_BASE_PATH: bereg
+        run: bunx next build
+      - run: touch out/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
