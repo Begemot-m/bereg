@@ -78,7 +78,7 @@ function PsySessions() {
       <Reveal delay={0.03}>
         <div className="mb-4 flex gap-2">
           <button onClick={() => { tap(); setPanel(panel === "add" ? null : "add"); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-extrabold text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
-            <Icon name="plus" width={16} weight="bold" color="#fff" /> Записать
+            <Icon name="plus" width={16} weight="regular" color="#fff" /> Записать
           </button>
           <button onClick={() => { tap(); setPanel(panel === "hours" ? null : "hours"); }} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13px] font-extrabold text-[var(--ink)] stroke">
             <Icon name="clock" width={16} /> Окна

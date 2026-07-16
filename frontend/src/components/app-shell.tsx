@@ -82,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
                   style={active ? { background: "var(--head)", border: "var(--bw) solid var(--stroke)" } : { color: "var(--muted)" }}
                 >
-                  <Icon name={it.icon} width={19} weight={active ? "fill" : "regular"} />
+                  <Icon name={it.icon} width={19} weight="regular" />
                   {it.label}
                 </Link>
               );
@@ -105,11 +105,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      {/* Мобайл: верхняя панель */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--bg)", borderBottom: "var(--bw) solid var(--stroke)" }}>
+      {/* Мобайл: верхняя панель — в цвете раздела, сливается с заголовком */}
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--head)" }}>
         <Wordmark small />
-        <Link href="/cabinet" onClick={select} className="flex h-9 w-9 items-center justify-center rounded-full stroke" style={{ background: "#fff" }}>
-          <Icon name="user" width={17} />
+        <Link href="/cabinet" onClick={select} className="flex h-9 w-9 items-center justify-center rounded-full stroke" style={{ background: "rgba(255,255,255,.55)" }}>
+          <Icon name="user" width={17} weight="regular" />
         </Link>
       </header>
 
@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className="flex h-11 w-11 items-center justify-center rounded-[15px] transition-transform duration-150 active:scale-90"
                   style={active ? { background: "var(--ink)", border: "var(--bw) solid var(--stroke)" } : undefined}
                 >
-                  <Icon name={it.icon} width={23} weight={active ? "fill" : "bold"} color={active ? "#fff" : "var(--ink)"} />
+                  <Icon name={it.icon} width={22} weight="regular" color={active ? "#fff" : "var(--ink)"} />
                 </span>
               </Link>
             );

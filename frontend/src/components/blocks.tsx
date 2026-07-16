@@ -10,11 +10,14 @@ const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
 export function PageHead({ title, sub, right, children }: { title: string; sub?: string; right?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="chunk mb-5 p-4" style={{ background: "var(--head)" }}>
+    <div
+      className="mb-5 -mx-4 -mt-5 rounded-b-[28px] px-5 pb-5 pt-3 @md:mx-0 @md:mt-0 @md:rounded-[22px] @md:border-[1.5px] @md:border-[var(--stroke)] @md:px-5 @md:pt-4"
+      style={{ background: "var(--head)" }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-tight text-[24px] font-extrabold leading-tight @md:text-3xl">{title}</h1>
-          {sub && <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.62)" }}>{sub}</p>}
+          {sub && <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>}
         </div>
         {right}
       </div>
@@ -86,7 +89,7 @@ export function ModuleCard({ title, desc, icon, fill = "cream", href, onClick }:
       style={{ background: bg, color: dark ? "#fff" : undefined, transitionTimingFunction: EASE }}
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-[14px] stroke" style={{ background: "#fff" }}>
-        <Icon name={icon} width={21} weight="bold" color="var(--ink)" />
+        <Icon name={icon} width={21} weight="regular" color="var(--ink)" />
       </span>
       <div className="mt-6">
         <p className="text-[15px] font-extrabold">{title}</p>

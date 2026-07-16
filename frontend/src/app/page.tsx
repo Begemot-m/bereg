@@ -50,7 +50,7 @@ function Reminder({ who, iso }: { who: string; iso: string }) {
       <Link href="/sessions" className="mb-5 block">
         <div className="chunk flex items-center gap-3 p-4" style={{ background: "var(--purple)" }}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] stroke" style={{ background: "#fff" }}>
-            <Icon name="bell" width={20} weight="fill" color="var(--ink)" />
+            <Icon name="bell" width={20} weight="regular" color="var(--ink)" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-extrabold">Напоминание · {when} в {timeF.format(new Date(iso))}</p>
@@ -89,7 +89,7 @@ function PsyHome() {
           <Link href="/sessions" className="group block"><Card interactive>
             <div className="flex items-center justify-between gap-3">
               <div><p className="text-lg font-extrabold">{next.client.name}</p><p className="mt-0.5 text-[13px] font-semibold capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="bold" /></span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="regular" /></span>
             </div>
           </Card></Link>
         ) : (
@@ -131,7 +131,7 @@ function PersonHome({ guest }: { guest: boolean }) {
           <Link href="/sessions" className="group block"><Card interactive>
             <div className="flex items-center justify-between gap-3">
               <div><p className="text-lg font-extrabold">{next.psyName}</p><p className="mt-0.5 text-[13px] font-semibold capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="bold" /></span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="regular" /></span>
             </div>
           </Card></Link>
         ) : (

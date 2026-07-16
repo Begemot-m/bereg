@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Manrope } from "next/font/google";
+import { Nunito } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
@@ -11,8 +11,8 @@ import { APP_NAME } from "@/lib/brand";
 
 const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
-const sans = Manrope({ subsets: ["latin", "cyrillic"], variable: "--font-sans", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin", "cyrillic"], variable: "--font-mono", display: "swap" });
+// Единый скруглённый шрифт для всего интерфейса (как в рефе), с кириллицей.
+const sans = Nunito({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700", "800", "900"], variable: "--font-sans", display: "swap" });
 
 export const metadata: Metadata = {
   title: `${APP_NAME} — среда для психологической помощи`,
@@ -29,7 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="ru" className={sans.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
         {/* afterInteractive: скрипт Telegram навешивает стили на <html> ПОСЛЕ гидрации,
             иначе получаем hydration mismatch и падение при переходах. */}

@@ -13,22 +13,22 @@
   --muted: rgba(32, 28, 24, 0.62);
   --muted-2: rgba(32, 28, 24, 0.4);
 
-  /* Палитра блоков */
-  --amber: #f5c14e;
-  --amber-soft: #fbe6ad;
-  --coral: #ef8f6b;
-  --coral-soft: #f7c3ac;
-  --green: #8fc9a3;
-  --green-soft: #cfe8d6;
-  --purple: #bda6e6;
-  --purple-soft: #e2d7f5;
-  --salmon: #eb8d7e;
-  --salmon-soft: #f6c6bd;
-  --pink: #f2a9a0;
-  --sky: #92c9e0;
+  /* Палитра блоков — мягкие, приглушённые тона (олива, персик, пыльная лаванда) */
+  --amber: #f3ce77;
+  --amber-soft: #f9e8bc;
+  --coral: #f0a794;
+  --coral-soft: #f7cec2;
+  --green: #a7c79e;
+  --green-soft: #d3e2cb;
+  --purple: #c9b8e4;
+  --purple-soft: #e7ddf3;
+  --salmon: #ef9f8d;
+  --salmon-soft: #f6cabf;
+  --pink: #f1b3aa;
+  --sky: #a7cfdf;
 
   /* Толщина обводки и радиусы */
-  --bw: 2px;
+  --bw: 1.5px;
   --r-block: 22px;
   --r-sm: 14px;
 
@@ -74,15 +74,15 @@ body {
 
 body {
   color: var(--ink);
-  font-family: var(--font-sans), "Manrope", system-ui, sans-serif;
+  font-family: var(--font-sans), "Nunito", system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.4;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.004em;
   -webkit-font-smoothing: antialiased;
 }
 
-.font-mono { font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace; }
-.font-tight { letter-spacing: -0.035em; }
+.font-mono { font-family: var(--font-sans), "Nunito", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.font-tight { letter-spacing: -0.02em; }
 .tnum { font-variant-numeric: tabular-nums; }
 
 /* Обводка-штрих */
