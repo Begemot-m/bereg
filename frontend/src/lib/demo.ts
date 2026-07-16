@@ -31,8 +31,8 @@ type Mood = { date: string; mood: number }; // 1..5
 type Support = { id: number; kind: string; text: string; createdAt: string };
 
 type WorkHours = {
-  // По дням недели (0=Пн..6=Вс): интервалы доступности
-  ranges: Record<number, { start: string; end: string }[]>;
+  // По дням недели (0=Пн..6=Вс): конкретные часы начала приёма ("10:00", "11:00"…)
+  hours: Record<number, string[]>;
   sessionMinutes: number;
 };
 
@@ -102,12 +102,12 @@ function seed(): DB {
     moods,
     myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60 }],
     work: {
-      ranges: {
-        0: [{ start: "10:00", end: "18:00" }],
-        1: [{ start: "10:00", end: "18:00" }],
-        2: [{ start: "10:00", end: "18:00" }],
-        3: [{ start: "12:00", end: "20:00" }],
-        4: [{ start: "10:00", end: "16:00" }],
+      hours: {
+        0: ["10:00", "11:00", "15:00", "16:00", "17:00"],
+        1: ["10:00", "11:00", "12:00", "16:00", "17:00"],
+        2: ["11:00", "12:00", "15:00", "16:00"],
+        3: ["13:00", "14:00", "18:00", "19:00"],
+        4: ["10:00", "11:00", "12:00"],
         5: [],
         6: [],
       },
@@ -159,24 +159,20 @@ function withStats(db: DB, c: Client) {
   };
 }
 
-// Вычислить свободные слоты на дату из рабочих окон минус занятые времена.
+// Вычислить свободные слоты на дату из выбранных часов минус занятые времена.
 function slotsFor(work: WorkHours, dateStr: string, takenISO: string[]): { start: string; taken: boolean }[] {
   const d = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return [];
   const wd = (d.getDay() + 6) % 7;
-  const ranges = work.ranges[wd] ?? [];
-  const dur = work.sessionMinutes;
+  const hours = [...(work.hours[wd] ?? [])].sort();
   const taken = new Set(takenISO.map((t) => new Date(t).getTime()));
   const now = Date.now();
   const out: { start: string; taken: boolean }[] = [];
-  for (const r of ranges) {
-    const [sh, sm] = r.start.split(":").map(Number);
-    const [eh, em] = r.end.split(":").map(Number);
-    const start = new Date(d); start.setHours(sh, sm, 0, 0);
-    const end = new Date(d); end.setHours(eh, em, 0, 0);
-    for (let t = start.getTime(); t + dur * 60000 <= end.getTime(); t += dur * 60000) {
-      if (t < now) continue;
-      out.push({ start: new Date(t).toISOString(), taken: taken.has(t) });
-    }
+  for (const h of hours) {
+    const [hh, mm] = h.split(":").map(Number);
+    const t = new Date(d); t.setHours(hh, mm, 0, 0);
+    if (t.getTime() < now) continue;
+    out.push({ start: t.toISOString(), taken: taken.has(t.getTime()) });
   }
   return out;
 }
@@ -317,7 +313,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // рабочие окна психолога
   if (clean === "/work-hours" && method === "GET") return delay(db.work as T);
   if (clean === "/work-hours" && method === "PATCH") {
-    if (body.ranges) db.work.ranges = body.ranges as WorkHours["ranges"];
+    if (body.hours) db.work.hours = body.hours as WorkHours["hours"];
     if (body.sessionMinutes) db.work.sessionMinutes = Number(body.sessionMinutes);
     save(db);
     return delay(db.work as T);

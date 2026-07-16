@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { Reveal } from "@/components/motion";
-import { Badge, Button, Card, Input, Textarea } from "@/components/ui";
+import { ProfileEditor } from "@/components/profile-editor";
+import { Badge, Button, Card, Disclosure, Textarea } from "@/components/ui";
 import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
 import { select, tap } from "@/lib/haptics";
-import { displayName, getPsyProfile, resetOnboarding, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, resetOnboarding, useProfile } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
 import { getSubscription, startSubscription } from "@/lib/subscription";
 import { sendSupport } from "@/lib/support";
@@ -18,13 +19,15 @@ const ROLES: Role[] = ["guest", "client", "psychologist"];
 export default function CabinetPage() {
   const [role, switchRole] = useRole();
   const [name, setName] = useState("");
-  const [profile, setProfile] = useState<PsyProfile | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [editProfile, setEditProfile] = useState(false);
+  const profile = useProfile();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
 
   useEffect(() => {
     setName(displayName());
-    setProfile(getPsyProfile());
-  }, [role]);
+    setPhoto(displayPhoto());
+  }, [role, profile]);
 
   const subscribe = useMutation({
     mutationFn: startSubscription,
@@ -38,22 +41,52 @@ export default function CabinetPage() {
       {/* Профиль */}
       <Reveal delay={0.03}>
         <Card className="mb-6 flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-extrabold" style={{ background: "var(--a-tint)", color: "var(--a1)" }}>
-            {(name || ROLE_LABEL[role]).charAt(0).toUpperCase()}
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl" style={{ background: "var(--a-tint)" }}>
+            {photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photo} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-xl font-extrabold" style={{ color: "var(--a1)" }}>{(name || ROLE_LABEL[role]).charAt(0).toUpperCase()}</span>
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{name || ROLE_LABEL[role]}</p>
-            <p className="text-[13px] text-[var(--muted)]">
-              {ROLE_LABEL[role]} · привязка к Telegram
-            </p>
+            <p className="text-[13px] text-[var(--muted)]">{ROLE_LABEL[role]} · привязка к Telegram</p>
           </div>
           {role === "psychologist" && profile && (
             profile.status === "approved"
-              ? <Badge tone="active">профиль подтверждён</Badge>
-              : <Badge tone="planned">анкета на проверке</Badge>
+              ? <Badge tone="active">подтверждён</Badge>
+              : <Badge tone="planned">на проверке</Badge>
           )}
         </Card>
       </Reveal>
+
+      {/* Профиль специалиста (только психолог) */}
+      {role === "psychologist" && (
+        <div className="mb-6">
+          <SectionTitle action={<button onClick={() => { tap(); setEditProfile(!editProfile); }} className="text-[13px] font-semibold" style={{ color: "var(--a1)" }}>{editProfile ? "Свернуть" : "Редактировать"}</button>}>
+            Профиль специалиста
+          </SectionTitle>
+          {!editProfile && (
+            <Card className="space-y-2">
+              {profile?.approach && <Row label="Подход" value={profile.approach} />}
+              {profile?.topics && profile.topics.length > 0 && (
+                <div>
+                  <p className="mb-1 text-[11px] font-bold text-[var(--muted-2)]">Запросы</p>
+                  <div className="flex flex-wrap gap-1">
+                    {profile.topics.map((t) => <span key={t} className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--muted)]">{t}</span>)}
+                  </div>
+                </div>
+              )}
+              {profile?.about && <Row label="О себе" value={profile.about} />}
+              {(!profile?.approach && !profile?.topics?.length) && <p className="text-[13px] text-[var(--muted-2)]">Профиль пока не заполнен. Нажмите «Редактировать».</p>}
+            </Card>
+          )}
+          <Disclosure open={editProfile}>
+            <Card><ProfileEditor onSaved={() => setEditProfile(false)} /></Card>
+          </Disclosure>
+        </div>
+      )}
 
       {/* Роль */}
       <div className="mb-6">
@@ -127,6 +160,15 @@ export default function CabinetPage() {
           <p className="mt-2 text-[13px] text-[var(--muted)]">{TAGLINE}. {APP_NAME} — инструмент центра для качественной помощи и самопомощи.</p>
         </div>
       </Reveal>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-bold text-[var(--muted-2)]">{label}</p>
+      <p className="text-[13px]">{value}</p>
     </div>
   );
 }

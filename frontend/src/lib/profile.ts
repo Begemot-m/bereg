@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 // --- Пользователь из Telegram (initDataUnsafe достаточно для прототипа) ---
 
-type TgUser = { first_name?: string; last_name?: string; username?: string; id?: number };
+type TgUser = { first_name?: string; last_name?: string; username?: string; id?: number; photo_url?: string };
 
 export function tgUser(): TgUser | null {
   if (typeof window === "undefined") return null;
@@ -21,13 +21,21 @@ export function displayName(): string {
   return "коллега";
 }
 
-// --- Онбординг и мини-профиль психолога (localStorage, демо) ---
+/** Фото: загруженное вручную важнее, иначе из Telegram, иначе null. */
+export function displayPhoto(): string | null {
+  return getPsyProfile()?.photo || tgUser()?.photo_url || null;
+}
+
+// --- Онбординг и профиль психолога (localStorage, демо) ---
 
 export type PsyProfile = {
   name: string;
   approach: string;
   experienceYears: string;
   about: string;
+  education: string;
+  topics: string[];
+  photo: string | null;
   status: "review" | "approved";
 };
 
@@ -61,10 +69,25 @@ export function getPsyProfile(): PsyProfile | null {
   }
 }
 
-export function savePsyProfile(p: Omit<PsyProfile, "status">) {
-  const profile: PsyProfile = { ...p, status: "review" };
+const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: "", topics: [], photo: null, status: "review" };
+
+// Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
+export function savePsyProfile(patch: Partial<Omit<PsyProfile, "status">>) {
+  const cur = getPsyProfile();
+  const profile: PsyProfile = { ...EMPTY, ...cur, ...patch, status: cur?.status ?? "review" };
   localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
   window.dispatchEvent(new CustomEvent(EVENT));
+}
+
+export function useProfile(): PsyProfile | null {
+  const [p, setP] = useState<PsyProfile | null>(null);
+  useEffect(() => {
+    setP(getPsyProfile());
+    const onChange = () => setP(getPsyProfile());
+    window.addEventListener(EVENT, onChange);
+    return () => window.removeEventListener(EVENT, onChange);
+  }, []);
+  return p;
 }
 
 export function useOnboarded(): [boolean | null, () => void] {

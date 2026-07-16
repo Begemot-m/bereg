@@ -29,9 +29,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className={`${sans.variable} ${mono.variable}`}>
-      <body>
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+    <html lang="ru" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        {/* afterInteractive: скрипт Telegram навешивает стили на <html> ПОСЛЕ гидрации,
+            иначе получаем hydration mismatch и падение при переходах. */}
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
         <Providers>
           {DEMO ? (
             <DemoFrame>
