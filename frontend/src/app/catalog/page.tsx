@@ -90,8 +90,8 @@ function BookFlow({ psyName, onDone }: { psyName: string; onDone: () => void }) 
   }
   return (
     <>
-      <p className="mb-2 text-[13px] font-bold">Свободное окно</p>
-      <SlotPicker forClient onPick={(iso) => book.mutate(iso)} />
+      <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Выберите день и окно</p>
+      <SlotPicker forClient variant="calendar" showAvail onPick={(iso) => book.mutate(iso)} />
     </>
   );
 }

@@ -33,7 +33,7 @@ export type PsyProfile = {
   approach: string;
   experienceYears: string;
   about: string;
-  education: string;
+  education: string[];
   topics: string[];
   photo: string | null;
   status: "review" | "approved";
@@ -63,13 +63,21 @@ export function getPsyProfile(): PsyProfile | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(KEY_PROFILE);
-    return raw ? (JSON.parse(raw) as PsyProfile) : null;
+    if (!raw) return null;
+    const p = JSON.parse(raw) as PsyProfile;
+    // миграция: образование могло быть строкой
+    if (typeof (p as unknown as { education: unknown }).education === "string") {
+      const s = (p as unknown as { education: string }).education.trim();
+      p.education = s ? [s] : [];
+    }
+    if (!Array.isArray(p.education)) p.education = [];
+    return p;
   } catch {
     return null;
   }
 }
 
-const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: "", topics: [], photo: null, status: "review" };
+const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, status: "review" };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
 export function savePsyProfile(patch: Partial<Omit<PsyProfile, "status">>) {

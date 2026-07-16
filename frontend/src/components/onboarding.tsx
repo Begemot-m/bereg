@@ -53,17 +53,17 @@ export function Onboarding() {
   const finish = () => { success(); completeOnboarding(); };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--bg)" }} data-accent="iris">
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--page)" }} data-accent="purple">
       <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-6 py-9">
         {/* Прогресс */}
         <div className="mb-8 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[15px] font-black text-white" style={{ background: "var(--iris)" }}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[15px] font-black text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
             {APP_NAME.charAt(0)}
           </span>
           <div className="flex flex-1 gap-1.5">
             {["role", "value", step === "psy-form" || step === "psy-review" ? "psy" : null].filter(Boolean).map((s, i) => {
               const idx = ["role", "value", "psy"].indexOf(String(step === "psy-form" || step === "psy-review" ? "psy" : step));
-              return <span key={i} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: i <= idx ? "var(--iris)" : "var(--hairline)" }} />;
+              return <span key={i} className="h-2 flex-1 rounded-full stroke transition-colors duration-300" style={{ background: i <= idx ? "var(--purple)" : "#fff" }} />;
             })}
           </div>
         </div>
@@ -92,7 +92,7 @@ export function Onboarding() {
               />
             )}
 
-            {step === "psy-form" && <PsyForm defaultName={[tg?.first_name, tg?.last_name].filter(Boolean).join(" ")} onDone={() => { tap(); setStep("psy-review"); }} />}
+            {step === "psy-form" && <PsyForm defaultName={[tg?.first_name, tg?.last_name].filter(Boolean).join(" ")} onBack={() => { tap(); setStep("value"); }} onDone={() => { tap(); setStep("psy-review"); }} />}
 
             {step === "psy-review" && <ReviewStep onDone={finish} />}
           </motion.div>
@@ -111,30 +111,32 @@ function RoleStep({ firstName, onPick }: { firstName?: string; onPick: (r: Role)
   return (
     <div className="flex flex-1 flex-col">
       <h1 className="font-tight text-[34px] font-extrabold leading-[1.05]">
-        {firstName ? `${firstName}, добро` : "Добро"} пожаловать<br />в <span style={{ color: "var(--iris)" }}>{APP_NAME}</span>
+        {firstName ? `${firstName}, добро` : "Добро"} пожаловать<br />в {APP_NAME}
       </h1>
-      <p className="mt-3 text-[15px] leading-snug text-[var(--muted)]">Кто вы здесь? От этого зависит, что вы увидите.</p>
+      <p className="mt-3 text-[15px] font-semibold leading-snug text-[var(--muted)]">Кто вы здесь? От этого зависит, что вы увидите.</p>
       <div className="mt-7 space-y-3">
-        {roles.map((r, i) => (
+        {roles.map((r, i) => {
+          const bgs = ["fill-green", "fill-purple", "fill-amber"];
+          return (
           <motion.button
             key={r.role}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06 + i * 0.08, duration: 0.4, ease: EASE }}
             onClick={() => onPick(r.role)}
-            className="flex w-full items-center gap-3.5 p-4 text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] active:scale-[0.98]"
-            style={{ borderRadius: "var(--r-block)", background: "var(--surface)", boxShadow: "var(--shadow)" }}
+            className={`chunk ${bgs[i]} flex w-full items-center gap-3.5 p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]`}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ background: "var(--iris-tint)" }}>
-              <Icon name={r.icon} width={22} color="var(--iris)" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] stroke" style={{ background: "#fff" }}>
+              <Icon name={r.icon} width={22} weight="regular" color="var(--ink)" />
             </span>
             <span className="flex-1">
-              <p className="text-[15px] font-bold">{r.title}</p>
-              <p className="text-[12.5px] text-[var(--muted)]">{r.desc}</p>
+              <p className="text-[15px] font-extrabold">{r.title}</p>
+              <p className="text-[12.5px] font-semibold" style={{ color: "rgba(32,28,24,.62)" }}>{r.desc}</p>
             </span>
-            <Icon name="plus" width={16} className="rotate-45 text-[var(--muted-2)]" />
+            <span className="text-[20px] font-bold leading-none">›</span>
           </motion.button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -144,28 +146,31 @@ function ValueStep({ role, onNext, onBack }: { role: Role; onNext: () => void; o
   const v = VALUE[role];
   return (
     <div className="flex flex-1 flex-col">
-      <button onClick={onBack} className="mb-3 self-start text-[13px] font-semibold text-[var(--muted)]">← Назад</button>
+      <BackButton onClick={onBack} />
       <h2 className="font-tight whitespace-pre-line text-[30px] font-extrabold leading-[1.05]">{v.title}</h2>
-      <p className="mt-2.5 text-[14px] leading-snug text-[var(--muted)]">{v.lead}</p>
+      <p className="mt-2.5 text-[14px] font-semibold leading-snug text-[var(--muted)]">{v.lead}</p>
       <div className="mt-6 space-y-3">
-        {v.blocks.map((b, i) => (
+        {v.blocks.map((b, i) => {
+          const dark = b.fill === "ink";
+          return (
           <motion.div
             key={b.title}
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: 0.08 + i * 0.09, duration: 0.45, ease: EASE }}
-            className={`flex items-center gap-3.5 p-4 fill-${b.fill}`}
-            style={{ borderRadius: "var(--r-block)" }}
+            className={`chunk fill-${b.fill} flex items-center gap-3.5 p-4`}
+            style={dark ? { color: "#fff" } : undefined}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(255,255,255,0.18)" }}>
-              <Icon name={b.icon} width={22} weight="fill" color="#fff" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] stroke" style={{ background: "#fff" }}>
+              <Icon name={b.icon} width={22} weight="regular" color="var(--ink)" />
             </span>
             <span>
-              <p className="text-[15px] font-bold text-white">{b.title}</p>
-              <p className="text-[12.5px] leading-snug text-white/80">{b.desc}</p>
+              <p className="text-[15px] font-extrabold">{b.title}</p>
+              <p className={`text-[12.5px] font-semibold leading-snug ${dark ? "text-white/75" : ""}`} style={dark ? undefined : { color: "rgba(32,28,24,.62)" }}>{b.desc}</p>
             </span>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
       <div className="mt-8">
         <Button arrow className="w-full" onClick={onNext}>{role === "psychologist" ? "Заполнить профиль" : "Начать"}</Button>
@@ -174,7 +179,7 @@ function ValueStep({ role, onNext, onBack }: { role: Role; onNext: () => void; o
   );
 }
 
-function PsyForm({ defaultName, onDone }: { defaultName: string; onDone: () => void }) {
+function PsyForm({ defaultName, onBack, onDone }: { defaultName: string; onBack: () => void; onDone: () => void }) {
   const [name, setName] = useState(defaultName);
   const [approach, setApproach] = useState("");
   const [years, setYears] = useState("");
@@ -182,6 +187,7 @@ function PsyForm({ defaultName, onDone }: { defaultName: string; onDone: () => v
   const valid = name.trim() && approach.trim();
   return (
     <div className="flex flex-1 flex-col">
+      <BackButton onClick={onBack} />
       <h2 className="font-tight text-[28px] font-extrabold leading-tight">Мини-профиль</h2>
       <p className="mt-2 text-[13.5px] leading-snug text-[var(--muted)]">Имя взяли из Telegram. Анкета уйдёт на проверку — после подтверждения профиль появится в каталоге.</p>
       <form
@@ -220,8 +226,14 @@ function ReviewStep({ onDone }: { onDone: () => void }) {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[12px] font-bold text-[var(--muted)]">{label}</span>
+      <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">{label}</span>
       {children}
     </label>
+  );
+}
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="mb-3 flex h-9 w-9 items-center justify-center self-start rounded-full stroke bg-white text-[16px] font-bold active:scale-90 transition-transform">‹</button>
   );
 }

@@ -9,26 +9,37 @@
   --bg: #faf5ea;
   --surface: #ffffff;
   --ink: #201c18;
-  --stroke: #201c18;
   --muted: rgba(32, 28, 24, 0.62);
   --muted-2: rgba(32, 28, 24, 0.4);
 
   /* Палитра блоков — мягкие, приглушённые тона (олива, персик, пыльная лаванда) */
   --amber: #f3ce77;
   --amber-soft: #f9e8bc;
+  --amber-edge: #ca9c3c;
   --coral: #f0a794;
   --coral-soft: #f7cec2;
+  --coral-edge: #cd7a60;
   --green: #a7c79e;
   --green-soft: #d3e2cb;
+  --green-edge: #6f9a67;
   --purple: #c9b8e4;
   --purple-soft: #e7ddf3;
+  --purple-edge: #9077bd;
   --salmon: #ef9f8d;
   --salmon-soft: #f6cabf;
+  --salmon-edge: #d1725b;
   --pink: #f1b3aa;
   --sky: #a7cfdf;
 
+  /* Спектр настроения: плохое → красноватое, хорошее → зелёное (в наших тонах) */
+  --mood-1: #e08a76;
+  --mood-2: #eeb079;
+  --mood-3: #f0d284;
+  --mood-4: #c3cf8e;
+  --mood-5: #8ec295;
+
   /* Толщина обводки и радиусы */
-  --bw: 1.5px;
+  --bw: 2px;
   --r-block: 22px;
   --r-sm: 14px;
 
@@ -36,13 +47,14 @@
   --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
 }
 
-/* Тема раздела: --head — цвет шапки, --accent — акцент/кольца */
-[data-accent="amber"] { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); }
-[data-accent="green"] { --head: var(--green); --head-soft: var(--green-soft); --accent: var(--green); }
-[data-accent="purple"] { --head: var(--purple); --head-soft: var(--purple-soft); --accent: var(--purple); }
-[data-accent="coral"] { --head: var(--coral); --head-soft: var(--coral-soft); --accent: var(--coral); }
-[data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); }
-:root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); }
+/* Тема раздела: --head — цвет шапки/фона, --page — тон страницы (=шапке),
+   --stroke — обводка (цвет блока, только темнее), --accent — акцент/кольца */
+[data-accent="amber"]  { --head: var(--amber);  --head-soft: var(--amber-soft);  --accent: var(--amber);  --stroke: var(--amber-edge);  --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
+[data-accent="green"]  { --head: var(--green);  --head-soft: var(--green-soft);  --accent: var(--green);  --stroke: var(--green-edge);  --page: color-mix(in srgb, var(--green) 44%, #fbf8ef); }
+[data-accent="purple"] { --head: var(--purple); --head-soft: var(--purple-soft); --accent: var(--purple); --stroke: var(--purple-edge); --page: color-mix(in srgb, var(--purple) 46%, #fbf8ef); }
+[data-accent="coral"]  { --head: var(--coral);  --head-soft: var(--coral-soft);  --accent: var(--coral);  --stroke: var(--coral-edge);  --page: color-mix(in srgb, var(--coral) 44%, #fbf7ee); }
+[data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); --stroke: var(--salmon-edge); --page: color-mix(in srgb, var(--salmon) 44%, #fbf7ee); }
+:root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --stroke: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
 
 /* Совместимость со старыми токенами — плоский bold-стиль */
 :root {
@@ -58,7 +70,8 @@
   --tint: var(--head-soft);
   --iris: var(--purple);
   --sage: var(--green);
-  --good: #4f9d69;
+  --good: #5a9d6b;
+  --good-tint: #d7e7d3;
   --warn: #d98324;
   --danger: #c14b3a;
 }
@@ -97,16 +110,20 @@ body {
   border-radius: var(--r-block);
 }
 
-/* Заливки */
-.fill-amber { background: var(--amber); }
-.fill-coral { background: var(--coral); }
-.fill-green { background: var(--green); }
-.fill-purple { background: var(--purple); }
-.fill-salmon { background: var(--salmon); }
-.fill-iris { background: var(--purple); }
-.fill-sage { background: var(--green); }
-.fill-cream { background: var(--surface); }
-.fill-ink { background: var(--ink); color: #fff; }
+/* Заливки — обводка того же цвета, но темнее */
+.fill-amber  { background: var(--amber);  border-color: var(--amber-edge); }
+.fill-coral  { background: var(--coral);  border-color: var(--coral-edge); }
+.fill-green  { background: var(--green);  border-color: var(--green-edge); }
+.fill-purple { background: var(--purple); border-color: var(--purple-edge); }
+.fill-salmon { background: var(--salmon); border-color: var(--salmon-edge); }
+.fill-accent { background: var(--accent); border-color: var(--stroke); }
+.fill-iris   { background: var(--purple); border-color: var(--purple-edge); }
+.fill-sage   { background: var(--green);  border-color: var(--green-edge); }
+.fill-cream  { background: var(--surface); }
+.fill-ink    { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* Кольцо-обвод вокруг выбранной даты */
+.oval-ring { box-shadow: 0 0 0 var(--bw) var(--stroke); }
 
 @keyframes pulse-soft { 0%,100%{opacity:.5} 50%{opacity:1} }
 

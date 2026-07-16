@@ -91,7 +91,7 @@ function PsySessions() {
 
       <Disclosure open={panel === "add"}><div className="mb-4"><QuickAdd onDone={() => { setPanel(null); inv(); }} /></div></Disclosure>
       <Disclosure open={panel === "hours"}><Card className="mb-4"><WorkHoursEditor onSaved={() => setPanel(null)} /></Card></Disclosure>
-      <Disclosure open={showCal}><div className="mb-4"><MonthCalendar appts={appts} selected={selDay} onSelectDay={setSelDay} /></div></Disclosure>
+      <Disclosure open={showCal}><div className="mb-4"><MonthCalendar appts={appts} selected={selDay} onSelectDay={setSelDay} tone="blend" /></div></Disclosure>
 
       {isLoading ? (
         <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
@@ -218,7 +218,7 @@ function QuickAdd({ onDone }: { onDone: () => void }) {
       {clientId ? (
         <>
           <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Выберите день и окно</p>
-          <SlotPicker variant="calendar" onPick={(iso) => add.mutate(iso)} />
+          <SlotPicker variant="calendar" showAvail onPick={(iso) => add.mutate(iso)} />
         </>
       ) : (
         <p className="text-[12px] font-semibold text-[var(--muted-2)]">Выберите клиента — откроется календарь со свободными окнами.</p>

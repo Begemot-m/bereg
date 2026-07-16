@@ -337,6 +337,25 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     return delay(slotsFor(db.work, date, taken) as T);
   }
 
+  // доступность по дням на ближайшие ~2 месяца: free (есть окна) / full (все заняты)
+  if (clean === "/month-availability" && method === "GET") {
+    const isClient = q.get("psy") != null;
+    const taken = isClient
+      ? db.myBookings.map((b) => b.startsAt)
+      : db.appts.filter((a) => a.status !== "cancelled").map((a) => a.startsAt);
+    const out: Record<string, "free" | "full"> = {};
+    const base = new Date(); base.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(base); d.setDate(d.getDate() + i);
+      const p = (n: number) => String(n).padStart(2, "0");
+      const ymd = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+      const slots = slotsFor(db.work, ymd, taken);
+      if (slots.length === 0) continue;
+      out[ymd] = slots.some((s) => !s.taken) ? "free" : "full";
+    }
+    return delay(out as T);
+  }
+
   // записи клиента-пользователя (его сессии у специалистов)
   if (clean === "/my/appointments" && method === "GET") {
     return delay([...db.myBookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)) as T);

@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!onboarded) return <Onboarding />;
 
   return (
-    <div data-accent={accent} className="@container min-h-[100dvh]">
+    <div data-accent={accent} className="@container min-h-[100dvh]" style={{ background: "var(--page)" }}>
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>
@@ -105,10 +105,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      {/* Мобайл: верхняя панель — в цвете раздела, сливается с заголовком */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--head)" }}>
+      {/* Мобайл: верхняя панель — в цвет фона раздела, сливается с заголовком */}
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)" }}>
         <Wordmark small />
-        <Link href="/cabinet" onClick={select} className="flex h-9 w-9 items-center justify-center rounded-full stroke" style={{ background: "rgba(255,255,255,.55)" }}>
+        <Link href="/cabinet" onClick={select} className="flex h-9 w-9 items-center justify-center rounded-full stroke" style={{ background: "#fff" }}>
           <Icon name="user" width={17} weight="regular" />
         </Link>
       </header>
@@ -120,7 +120,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Мобайл: нижние табы — жёлтая пилюля с обводкой, активная иконка в чёрном квадрате */}
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-1 @md:hidden">
-        <nav className="mx-auto flex max-w-md items-center justify-around rounded-[26px] px-2 py-2 stroke" style={{ background: "var(--amber)" }}>
+        <nav className="mx-auto flex max-w-md items-center justify-around rounded-[26px] px-2 py-2" style={{ background: "var(--amber)", border: "var(--bw) solid var(--amber-edge)" }}>
           {tabs.map((it) => {
             const active = isActive(pathname, it.href);
             return (

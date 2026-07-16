@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { ModuleCard, PageHead, SectionTitle } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
-import { WeekStrip } from "@/components/week-strip";
 import { Button, Card } from "@/components/ui";
 import { APP_NAME, TAGLINE } from "@/lib/brand";
 import { listAppointments } from "@/lib/appointments";
@@ -48,7 +47,7 @@ function Reminder({ who, iso }: { who: string; iso: string }) {
   return (
     <Reveal>
       <Link href="/sessions" className="mb-5 block">
-        <div className="chunk flex items-center gap-3 p-4" style={{ background: "var(--purple)" }}>
+        <div className="chunk fill-purple flex items-center gap-3 p-4">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] stroke" style={{ background: "#fff" }}>
             <Icon name="bell" width={20} weight="regular" color="var(--ink)" />
           </span>
@@ -76,9 +75,7 @@ function PsyHome() {
   return (
     <div>
       <Reveal>
-        <PageHead title={`${greeting()}${name ? `, ${name}` : ""}`} sub="Ваш день в «Тепле»">
-          <WeekStrip />
-        </PageHead>
+        <PageHead title={`${greeting()}${name ? `, ${name}` : ""}`} sub="Ваш день в «Тепле»" />
       </Reveal>
 
       {next && <Reminder who={`Сессия с ${next.client.name}`} iso={next.startsAt} />}
@@ -89,7 +86,7 @@ function PsyHome() {
           <Link href="/sessions" className="group block"><Card interactive>
             <div className="flex items-center justify-between gap-3">
               <div><p className="text-lg font-extrabold">{next.client.name}</p><p className="mt-0.5 text-[13px] font-semibold capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="regular" /></span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke fill-green"><Icon name="calendar" width={20} weight="regular" /></span>
             </div>
           </Card></Link>
         ) : (
@@ -118,9 +115,7 @@ function PersonHome({ guest }: { guest: boolean }) {
   return (
     <div>
       <Reveal>
-        <PageHead title={`${greeting()}${name && !guest ? `, ${name}` : ""}`} sub={TAGLINE}>
-          <WeekStrip />
-        </PageHead>
+        <PageHead title={`${greeting()}${name && !guest ? `, ${name}` : ""}`} sub={TAGLINE} />
       </Reveal>
 
       {next && <Reminder who={`Сессия · ${next.psyName}`} iso={next.startsAt} />}
@@ -131,7 +126,7 @@ function PersonHome({ guest }: { guest: boolean }) {
           <Link href="/sessions" className="group block"><Card interactive>
             <div className="flex items-center justify-between gap-3">
               <div><p className="text-lg font-extrabold">{next.psyName}</p><p className="mt-0.5 text-[13px] font-semibold capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="regular" /></span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke fill-green"><Icon name="calendar" width={20} weight="regular" /></span>
             </div>
           </Card></Link>
         ) : (

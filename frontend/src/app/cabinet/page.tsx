@@ -22,7 +22,6 @@ export default function CabinetPage() {
   const [role, switchRole] = useRole();
   const [name, setName] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
-  const [editProfile, setEditProfile] = useState(false);
   const [editHours, setEditHours] = useState(false);
   const profile = useProfile();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
@@ -43,36 +42,32 @@ export default function CabinetPage() {
 
       {/* Профиль */}
       <Reveal delay={0.03}>
-        <Card className="mb-6 flex items-center gap-3">
-          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl" style={{ background: "var(--a-tint)" }}>
-            {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photo} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-xl font-extrabold" style={{ color: "var(--a1)" }}>{(name || ROLE_LABEL[role]).charAt(0).toUpperCase()}</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-bold">{name || ROLE_LABEL[role]}</p>
-            <p className="text-[13px] text-[var(--muted)]">{ROLE_LABEL[role]} · привязка к Telegram</p>
-          </div>
-          {role === "psychologist" && profile && (
-            profile.status === "approved"
-              ? <Badge tone="active">подтверждён</Badge>
-              : <Badge tone="planned">на проверке</Badge>
+        <div className="mb-6">
+          {role === "psychologist" ? (
+            <ProfileEditor />
+          ) : (
+            <Card className="flex items-center gap-3">
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[16px] stroke" style={{ background: "var(--head-soft)" }}>
+                {photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photo} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-xl font-extrabold">{(name || ROLE_LABEL[role]).charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-extrabold">{name || ROLE_LABEL[role]}</p>
+                <p className="text-[13px] font-semibold text-[var(--muted)]">{ROLE_LABEL[role]} · привязка к Telegram</p>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       </Reveal>
 
-      {/* Профиль специалиста и рабочие окна (только психолог) */}
+      {/* Рабочие окна (только психолог) */}
       {role === "psychologist" && (
         <div className="mb-6 space-y-3">
-          <SettingRow icon="note" title="Профиль специалиста" hint="Запросы, подход, образование, фото" open={editProfile} onClick={() => { tap(); setEditProfile(!editProfile); setEditHours(false); }} />
-          <Disclosure open={editProfile} zoom>
-            <Card><ProfileEditor onSaved={() => setEditProfile(false)} /></Card>
-          </Disclosure>
-
-          <SettingRow icon="clock" title="Свободные окна" hint="Часы приёма по дням недели" open={editHours} onClick={() => { tap(); setEditHours(!editHours); setEditProfile(false); }} />
+          <SettingRow icon="clock" title="Свободные окна" hint="Часы приёма по дням недели" open={editHours} onClick={() => { tap(); setEditHours(!editHours); }} />
           <Disclosure open={editHours} zoom>
             <Card>
               <p className="mb-3 text-[12px] text-[var(--muted)]">Это шаблон на каждую неделю: в отмеченные часы клиенты видят свободные окна и записываются. Можно менять в любой момент.</p>

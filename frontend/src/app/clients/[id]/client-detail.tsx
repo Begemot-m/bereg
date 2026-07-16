@@ -64,62 +64,77 @@ export function ClientDetail() {
         ← Клиенты
       </Link>
 
-      {/* Шапка-«персонаж» */}
+      {/* Шапка клиента */}
       <Reveal>
-        <Card className="!p-5">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-extrabold" style={{ background: "var(--a-tint)", color: "var(--a1)" }}>
-              {client.name.charAt(0)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="font-tight truncate text-2xl font-extrabold">{client.name}</h1>
-              <p className="text-[13px] text-[var(--muted)]">{client.contact || "контакт не указан"}</p>
-            </div>
+        <Card className="flex items-center gap-3.5">
+          <div className="flex h-14 w-14 items-center justify-center rounded-[16px] text-xl font-extrabold stroke fill-purple">
+            {client.name.charAt(0)}
           </div>
-
-          {/* Статы */}
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <Stat label="Встреч" value={String(client.sessionsDone)} />
-            <Stat label="Задания" value={client.hwTotal ? `${client.hwDone}/${client.hwTotal}` : "—"} good={hwPct === 100 && client.hwTotal > 0} />
-            <Stat label="Настроение" value={moods.length ? moodWord(moods[moods.length - 1].mood) : "—"} />
-          </div>
-
-          {/* Прогресс выполнения заданий */}
-          {client.hwTotal > 0 && (
-            <div className="mt-3">
-              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
-                <div
-                  className="h-full rounded-full transition-[width] duration-700"
-                  style={{ width: `${hwPct}%`, background: "var(--good)", transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)" }}
-                />
-              </div>
-              <p className="mt-1 text-[11px] text-[var(--muted-2)]">Выполнение заданий · {hwPct}%</p>
-            </div>
-          )}
-
-          {/* Статус */}
-          <div className="mt-4 flex flex-wrap gap-1">
-            {STATUSES.map((s) => (
-              <button
-                key={s}
-                onClick={() => { select(); patch.mutate({ status: s }); }}
-                className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors duration-200 ${client.status === s ? "bg-[var(--ink)] text-[var(--bg)]" : "bg-[var(--surface-2)] text-[var(--muted)]"}`}
-              >
-                {STATUS_LABEL[s]}
-              </button>
-            ))}
+          <div className="min-w-0 flex-1">
+            <h1 className="font-tight truncate text-2xl font-extrabold">{client.name}</h1>
+            <p className="text-[13px] font-semibold text-[var(--muted)]">{client.contact || "контакт не указан"}</p>
           </div>
         </Card>
       </Reveal>
 
-      {/* Между сессиями: настроение за неделю */}
+      {/* Статус */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {STATUSES.map((s) => (
+          <button
+            key={s}
+            onClick={() => { select(); patch.mutate({ status: s }); }}
+            className="rounded-full px-3 py-1.5 text-[12px] font-extrabold transition-transform active:scale-95 stroke"
+            style={client.status === s ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--muted)" }}
+          >
+            {STATUS_LABEL[s]}
+          </button>
+        ))}
+      </div>
+
+      {/* Статистика в духе трекера (карточка 2) */}
+      <Reveal delay={0.05}>
+        <div className="mt-4">
+          <Card className="!p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-tight text-[32px] font-extrabold leading-none tnum">{client.sessionsDone}</p>
+                <p className="mt-1 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Встреч<br />проведено</p>
+              </div>
+              <span className="rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>{STATUS_LABEL[client.status]}</span>
+            </div>
+
+            {/* Прогресс заданий */}
+            <div className="mt-4">
+              <div className="h-3.5 overflow-hidden rounded-full stroke" style={{ background: "#fff" }}>
+                <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(4, hwPct)}%`, background: "var(--green)", borderRight: "var(--bw) solid var(--green-edge)", transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)" }} />
+              </div>
+            </div>
+
+            {/* 3 плитки */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <Tile value={client.hwTotal ? `${client.hwDone}/${client.hwTotal}` : "—"} label="Задания" />
+              <Tile value={`${hwPct}%`} label="Выполнено" />
+              <Tile value={moods.length ? moodWord(moods[moods.length - 1].mood) : "—"} label="Настроение" />
+            </div>
+          </Card>
+        </div>
+      </Reveal>
+
+      {/* Настроение за неделю — цветные столбики */}
       {moods.length > 0 && (
-        <Reveal delay={0.05}>
-          <div className="mt-6">
-            <SectionTitle>Между сессиями</SectionTitle>
+        <Reveal delay={0.08}>
+          <div className="mt-4">
             <Card className="!p-4">
-              <MoodSpark moods={moods} />
-              <p className="mt-2 text-[11px] text-[var(--muted-2)]">Отметки настроения клиента за 7 дней (1 — тяжело, 5 — хорошо)</p>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[13px] font-extrabold">Настроение</p>
+                <div className="flex gap-1 rounded-full p-0.5 stroke" style={{ background: "#fff" }}>
+                  {["Неделя", "Месяц"].map((t, i) => (
+                    <span key={t} className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={i === 0 ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted-2)" }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+              <MoodBars moods={moods} />
+              <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">Отметки клиента за 7 дней · тёплое — тяжело, зелёное — хорошо</p>
             </Card>
           </div>
         </Reveal>
@@ -186,11 +201,11 @@ export function ClientDetail() {
   );
 }
 
-function Stat({ label, value, good }: { label: string; value: string; good?: boolean }) {
+function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl px-3 py-2.5" style={{ background: good ? "var(--good-tint)" : "var(--surface-2)" }}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--muted-2)]">{label}</p>
-      <p className={`tnum text-[17px] font-extrabold ${good ? "text-[var(--good)]" : ""}`}>{value}</p>
+    <div className="chunk px-2.5 py-2.5 text-center">
+      <p className="tnum font-tight text-[18px] font-extrabold leading-none">{value}</p>
+      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
     </div>
   );
 }
@@ -198,26 +213,30 @@ function Stat({ label, value, good }: { label: string; value: string; good?: boo
 function moodWord(m: number): string {
   return ["тяжело", "непросто", "ровно", "неплохо", "хорошо"][Math.min(4, Math.max(0, m - 1))];
 }
+const moodColor = (m: number) => `var(--mood-${Math.min(5, Math.max(1, m))})`;
+const moodEdge = "rgba(32,28,24,.28)";
 
-/* Спарклайн настроения: столбики по дням, высота = настроение */
-function MoodSpark({ moods }: { moods: Mood[] }) {
+/* Столбики настроения: цвет по значению (тёплое — тяжело, зелёное — хорошо) */
+function MoodBars({ moods }: { moods: Mood[] }) {
   const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "short" });
   return (
-    <div className="flex items-end justify-between gap-1.5">
+    <div className="flex items-end justify-between gap-2">
       {moods.map((m, i) => (
-        <div key={i} className="flex flex-1 flex-col items-center gap-1">
-          <div className="flex h-14 w-full items-end">
+        <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+          <span className="text-[10px] font-extrabold text-[var(--muted)]">{m.mood}</span>
+          <div className="flex h-24 w-full items-end">
             <div
-              className="w-full rounded-md transition-[height] duration-500"
+              className="w-full rounded-t-[10px] transition-[height] duration-500"
               style={{
-                height: `${(m.mood / 5) * 100}%`,
-                background: m.mood >= 4 ? "var(--good)" : m.mood === 3 ? "var(--a2)" : "#c9a13d",
-                opacity: 0.85,
+                height: `${20 + (m.mood / 5) * 80}%`,
+                background: moodColor(m.mood),
+                border: `var(--bw) solid ${moodEdge}`,
+                borderBottom: "none",
                 transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)",
               }}
             />
           </div>
-          <span className="text-[9px] font-semibold uppercase text-[var(--muted-2)]">{dayF.format(new Date(m.date))}</span>
+          <span className="text-[9px] font-bold uppercase text-[var(--muted-2)]">{dayF.format(new Date(m.date))}</span>
         </div>
       ))}
     </div>

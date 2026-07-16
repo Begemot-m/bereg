@@ -27,10 +27,11 @@ export function WeekStrip({ selected, onSelect, from = -3, days = 24 }: { select
             key={key}
             ref={active ? selRef : undefined}
             onClick={onSelect ? () => { select(); onSelect(key); } : undefined}
-            className="flex w-11 shrink-0 flex-col items-center gap-1.5"
+            className="flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-full py-1.5"
+            style={active ? { border: "var(--bw) solid var(--stroke)" } : undefined}
           >
             <span className="text-[10px] font-bold uppercase" style={{ color: "rgba(32,28,24,.55)" }}>{WEEKDAYS[wd]}</span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-extrabold" style={active ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--stroke)" } : { color: "var(--ink)" }}>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-extrabold" style={active ? { background: "var(--ink)", color: "#fff" } : { color: "var(--ink)" }}>
               {d.getDate()}
             </span>
           </button>

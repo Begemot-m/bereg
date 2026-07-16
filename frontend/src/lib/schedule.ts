@@ -15,6 +15,10 @@ export const saveWorkHours = (patch: Partial<WorkHours>) =>
 export const getSlots = (dateStr: string, forClient = false) =>
   apiFetch<Slot[]>(`/slots?date=${dateStr}${forClient ? "&psy=1" : ""}`);
 
+export type DayAvail = "free" | "full";
+export const getMonthAvailability = (forClient = false) =>
+  apiFetch<Record<string, DayAvail>>(`/month-availability${forClient ? "?psy=1" : ""}`);
+
 export function ymdLocal(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;

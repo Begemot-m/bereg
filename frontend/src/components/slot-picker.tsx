@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { MonthCalendar } from "@/components/calendar";
 import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
-import { getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
+import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
 
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const monShort = new Intl.DateTimeFormat("ru-RU", { month: "short" });
@@ -16,11 +16,13 @@ export function SlotPicker({
   forClient = false,
   daysAhead = 21,
   variant = "strip",
+  showAvail = false,
   onPick,
 }: {
   forClient?: boolean;
   daysAhead?: number;
   variant?: "strip" | "calendar";
+  showAvail?: boolean;
   onPick: (iso: string) => void;
 }) {
   const days = useMemo(() => {
@@ -40,12 +42,18 @@ export function SlotPicker({
     queryFn: () => getSlots(active, forClient),
   });
 
+  const { data: avail } = useQuery({
+    queryKey: ["month-avail", forClient],
+    queryFn: () => getMonthAvailability(forClient),
+    enabled: variant === "calendar" && showAvail,
+  });
+
   const free = slots.filter((s) => !s.taken);
 
   return (
     <div>
       {variant === "calendar" ? (
-        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => y && setActive(y)} />
+        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => y && setActive(y)} avail={showAvail ? avail : undefined} />
       ) : (
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((d) => {

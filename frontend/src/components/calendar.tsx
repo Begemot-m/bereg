@@ -16,8 +16,22 @@ function startOfWeek(d: Date) {
 }
 const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 
-// Компактный месяц: точки на днях с записями, выбор дня фильтрует список.
-export function MonthCalendar({ appts, selected, onSelectDay }: { appts: Appointment[]; selected: string | null; onSelectDay: (ymd: string | null) => void }) {
+type Avail = "free" | "full" | "none";
+
+// Компактный месяц. avail — режим доступности окон (зелёное свободно / красное занято).
+export function MonthCalendar({
+  appts,
+  selected,
+  onSelectDay,
+  avail,
+  tone = "card",
+}: {
+  appts: Appointment[];
+  selected: string | null;
+  onSelectDay: (ymd: string | null) => void;
+  avail?: Record<string, Avail>;
+  tone?: "card" | "blend";
+}) {
   const [cursor, setCursor] = useState(new Date());
   const has = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
   const todayY = ymdLocal(new Date());
@@ -28,7 +42,7 @@ export function MonthCalendar({ appts, selected, onSelectDay }: { appts: Appoint
 
   const navBtn = "flex h-8 w-8 items-center justify-center rounded-full stroke bg-white text-[16px] font-bold active:scale-90 transition-transform";
   return (
-    <div className="chunk p-4">
+    <div className={tone === "blend" ? "px-1" : "chunk p-4"} style={tone === "blend" ? { background: "var(--page)" } : undefined}>
       <div className="mb-3 flex items-center justify-between">
         <p className="font-tight text-[16px] font-extrabold">{MON[cursor.getMonth()]} {cursor.getFullYear()}</p>
         <div className="flex items-center gap-1.5">
@@ -44,19 +58,39 @@ export function MonthCalendar({ appts, selected, onSelectDay }: { appts: Appoint
           const inMonth = d.getMonth() === cursor.getMonth();
           const isSel = selected === y;
           const isToday = y === todayY;
+          const a: Avail | undefined = avail?.[y];
+
+          let bg: string | undefined;
+          let fg = "var(--ink)";
+          if (!isSel && a === "free") { bg = "var(--green-soft)"; }
+          else if (!isSel && a === "full") { bg = "var(--salmon-soft)"; fg = "rgba(32,28,24,.5)"; }
+
+          const disabled = avail ? a !== "free" && !isSel : false;
+
           return (
             <button
               key={i}
+              disabled={disabled}
               onClick={() => { select(); onSelectDay(isSel ? null : y); }}
-              className={`relative flex aspect-square items-center justify-center rounded-full text-[13px] font-extrabold transition-transform duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"}`}
-              style={isSel ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--stroke)" } : isToday ? { border: "var(--bw) solid var(--stroke)" } : undefined}
+              className={`relative flex aspect-square items-center justify-center rounded-full text-[13px] font-extrabold transition-transform duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
+              style={
+                isSel
+                  ? { background: "var(--ink)", color: "#fff", boxShadow: "0 0 0 var(--bw) var(--stroke)" }
+                  : { background: bg, color: fg, border: (isToday && !bg) ? "var(--bw) solid var(--stroke)" : bg ? "var(--bw) solid var(--stroke)" : undefined }
+              }
             >
               {d.getDate()}
-              {has.has(y) && !isSel && <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)", border: "1px solid var(--stroke)" }} />}
+              {!avail && has.has(y) && !isSel && <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)", border: "1px solid var(--stroke)" }} />}
             </button>
           );
         })}
       </div>
+      {avail && (
+        <div className="mt-3 flex items-center justify-center gap-4 text-[11px] font-bold text-[var(--muted)]">
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full stroke" style={{ background: "var(--green-soft)" }} /> свободно</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full stroke" style={{ background: "var(--salmon-soft)" }} /> занято</span>
+        </div>
+      )}
     </div>
   );
 }

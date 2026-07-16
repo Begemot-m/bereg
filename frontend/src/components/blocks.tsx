@@ -11,8 +11,8 @@ const EASE = "cubic-bezier(0.16,1,0.3,1)";
 export function PageHead({ title, sub, right, children }: { title: string; sub?: string; right?: ReactNode; children?: ReactNode }) {
   return (
     <div
-      className="mb-5 -mx-4 -mt-5 rounded-b-[28px] px-5 pb-5 pt-3 @md:mx-0 @md:mt-0 @md:rounded-[22px] @md:border-[1.5px] @md:border-[var(--stroke)] @md:px-5 @md:pt-4"
-      style={{ background: "var(--head)" }}
+      className="mb-5 -mx-4 -mt-5 px-5 pb-3 pt-3 @md:mx-0 @md:mt-0 @md:px-1 @md:pt-4"
+      style={{ background: "var(--page)" }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
