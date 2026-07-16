@@ -71,9 +71,9 @@ export function Onboarding() {
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            initial={{ opacity: 0, x: 22, filter: "blur(2px)" }}
-            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, x: -22, filter: "blur(2px)" }}
+            initial={{ opacity: 0, x: 22 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -22 }}
             transition={{ duration: 0.28, ease: EASE }}
             className="flex flex-1 flex-col"
           >

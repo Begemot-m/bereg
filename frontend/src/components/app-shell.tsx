@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -35,7 +34,6 @@ const NAV: Record<Role, NavItem[]> = {
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 const accentFor = (pathname: string) => (pathname.startsWith("/sessions") || pathname.startsWith("/catalog") ? "sage" : "iris");
-const SPRING = { type: "spring", stiffness: 460, damping: 36 } as const;
 
 function Wordmark({ small }: { small?: boolean }) {
   return (
@@ -79,7 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className="relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-colors duration-200"
                   style={{ color: active ? "#fff" : "var(--muted)" }}
                 >
-                  {active && <motion.span layoutId="side-pill" className="absolute inset-0 rounded-2xl" style={{ background: "var(--a1)" }} transition={SPRING} />}
+                  {active && <span className="absolute inset-0 rounded-2xl" style={{ background: "var(--a1)" }} />}
                   <span className="relative flex items-center gap-3">
                     <Icon name={it.icon} width={19} weight={active ? "fill" : "regular"} />
                     {it.label}
@@ -131,7 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           return (
             <Link key={it.href} href={it.href} onClick={select} className="flex flex-1 flex-col items-center gap-1 py-0.5">
               <span className="relative flex h-8 w-14 items-center justify-center">
-                {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-full" style={{ background: "var(--a1)" }} transition={SPRING} />}
+                {active && <span className="absolute inset-0 rounded-full transition-colors" style={{ background: "var(--a1)" }} />}
                 <span className="relative">
                   <Icon name={it.icon} width={21} weight={active ? "fill" : "regular"} color={active ? "#fff" : "var(--muted-2)"} />
                 </span>
