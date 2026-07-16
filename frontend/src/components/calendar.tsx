@@ -26,18 +26,19 @@ export function MonthCalendar({ appts, selected, onSelectDay }: { appts: Appoint
   const start = startOfWeek(first);
   const cells = Array.from({ length: 42 }, (_, i) => addDays(start, i));
 
+  const navBtn = "flex h-8 w-8 items-center justify-center rounded-full stroke bg-white text-[16px] font-bold active:scale-90 transition-transform";
   return (
-    <div className="p-4" style={{ borderRadius: "var(--r-block)", background: "var(--surface)", boxShadow: "var(--shadow)" }}>
+    <div className="chunk p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-[14px] font-bold">{MON[cursor.getMonth()]} {cursor.getFullYear()}</p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-[var(--surface-2)]">‹</button>
-          <button onClick={() => { setCursor(new Date()); onSelectDay(null); }} className="rounded-full px-2 py-1 text-[12px] font-semibold text-[var(--muted)] hover:bg-[var(--surface-2)]">Сегодня</button>
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-[var(--surface-2)]">›</button>
+        <p className="font-tight text-[16px] font-extrabold">{MON[cursor.getMonth()]} {cursor.getFullYear()}</p>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className={navBtn}>‹</button>
+          <button onClick={() => { setCursor(new Date()); onSelectDay(null); }} className="rounded-full px-3 py-1 text-[12px] font-bold stroke bg-white active:scale-95 transition-transform">Сегодня</button>
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className={navBtn}>›</button>
         </div>
       </div>
       <div className="grid grid-cols-7 gap-1">
-        {WEEKDAYS.map((d) => <div key={d} className="pb-1 text-center text-[10px] font-bold text-[var(--muted-2)]">{d}</div>)}
+        {WEEKDAYS.map((d) => <div key={d} className="pb-1 text-center text-[10px] font-extrabold uppercase text-[var(--muted-2)]">{d}</div>)}
         {cells.map((d, i) => {
           const y = ymdLocal(d);
           const inMonth = d.getMonth() === cursor.getMonth();
@@ -47,11 +48,11 @@ export function MonthCalendar({ appts, selected, onSelectDay }: { appts: Appoint
             <button
               key={i}
               onClick={() => { select(); onSelectDay(isSel ? null : y); }}
-              className={`relative flex aspect-square items-center justify-center rounded-xl text-[13px] font-semibold transition-colors duration-150 ${inMonth ? "" : "opacity-30"}`}
-              style={{ background: isSel ? "var(--a1)" : "transparent", color: isSel ? "#fff" : isToday ? "var(--a1-ink)" : "var(--ink)" }}
+              className={`relative flex aspect-square items-center justify-center rounded-full text-[13px] font-extrabold transition-transform duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"}`}
+              style={isSel ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--stroke)" } : isToday ? { border: "var(--bw) solid var(--stroke)" } : undefined}
             >
               {d.getDate()}
-              {has.has(y) && !isSel && <span className="absolute bottom-1 h-1 w-1 rounded-full" style={{ background: "var(--a1)" }} />}
+              {has.has(y) && !isSel && <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)", border: "1px solid var(--stroke)" }} />}
             </button>
           );
         })}

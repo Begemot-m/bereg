@@ -4,9 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { ModuleCard, SectionTitle } from "@/components/blocks";
+import { ModuleCard, PageHead, SectionTitle } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
+import { WeekStrip } from "@/components/week-strip";
 import { Button, Card } from "@/components/ui";
 import { APP_NAME, TAGLINE } from "@/lib/brand";
 import { listAppointments } from "@/lib/appointments";
@@ -46,16 +47,16 @@ function Reminder({ who, iso }: { who: string; iso: string }) {
   if (!when) return null;
   return (
     <Reveal>
-      <Link href="/sessions" className="mb-6 block">
-        <div className="flex items-center gap-3 p-4 fill-iris" style={{ borderRadius: "var(--r-block)" }}>
-          <span className="float-y flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(255,255,255,0.18)" }}>
-            <Icon name="bell" width={20} weight="fill" color="#fff" />
+      <Link href="/sessions" className="mb-5 block">
+        <div className="chunk flex items-center gap-3 p-4" style={{ background: "var(--purple)" }}>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] stroke" style={{ background: "#fff" }}>
+            <Icon name="bell" width={20} weight="fill" color="var(--ink)" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-bold text-white">Напоминание · {when} в {timeF.format(new Date(iso))}</p>
-            <p className="truncate text-[12px] text-white/80">{who}</p>
+            <p className="text-[13px] font-extrabold">Напоминание · {when} в {timeF.format(new Date(iso))}</p>
+            <p className="truncate text-[12px] font-semibold" style={{ color: "rgba(32,28,24,.66)" }}>{who}</p>
           </div>
-          <span className="rounded-full bg-white/20 px-3 py-1 text-[12px] font-bold text-white">Изменить</span>
+          <span className="rounded-full px-3 py-1 text-[12px] font-bold stroke" style={{ background: "#fff" }}>Изменить</span>
         </div>
       </Link>
     </Reveal>
@@ -75,18 +76,20 @@ function PsyHome() {
   return (
     <div>
       <Reveal>
-        <h1 className="font-tight mb-6 text-[28px] font-extrabold leading-none @md:text-4xl">{greeting()}{name ? `, ${name}` : ""}</h1>
+        <PageHead title={`${greeting()}${name ? `, ${name}` : ""}`} sub="Ваш день в «Тепле»">
+          <WeekStrip />
+        </PageHead>
       </Reveal>
 
       {next && <Reminder who={`Сессия с ${next.client.name}`} iso={next.startsAt} />}
 
-      <SectionTitle action={<Link href="/sessions" className="text-[13px] font-semibold text-[var(--muted)]">Все →</Link>}>Ближайшая сессия</SectionTitle>
+      <SectionTitle action={<Link href="/sessions" className="text-[13px] font-bold text-[var(--muted)]">Все →</Link>}>Ближайшая сессия</SectionTitle>
       <Reveal delay={0.05}>
         {next ? (
           <Link href="/sessions" className="group block"><Card interactive>
             <div className="flex items-center justify-between gap-3">
-              <div><p className="text-lg font-bold">{next.client.name}</p><p className="mt-0.5 text-[13px] capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
-              <span className="h-10 w-1 rounded-full" style={{ background: "var(--a1)" }} />
+              <div><p className="text-lg font-extrabold">{next.client.name}</p><p className="mt-0.5 text-[13px] font-semibold capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="bold" /></span>
             </div>
           </Card></Link>
         ) : (
@@ -115,19 +118,20 @@ function PersonHome({ guest }: { guest: boolean }) {
   return (
     <div>
       <Reveal>
-        <h1 className="font-tight text-[28px] font-extrabold leading-none @md:text-4xl">{greeting()}{name && !guest ? `, ${name}` : ""}</h1>
-        <p className="mb-6 mt-1.5 text-sm text-[var(--muted)]">{TAGLINE}</p>
+        <PageHead title={`${greeting()}${name && !guest ? `, ${name}` : ""}`} sub={TAGLINE}>
+          <WeekStrip />
+        </PageHead>
       </Reveal>
 
       {next && <Reminder who={`Сессия · ${next.psyName}`} iso={next.startsAt} />}
 
-      <SectionTitle action={<Link href="/sessions" className="text-[13px] font-semibold text-[var(--muted)]">Все →</Link>}>Ваша ближайшая сессия</SectionTitle>
+      <SectionTitle action={<Link href="/sessions" className="text-[13px] font-bold text-[var(--muted)]">Все →</Link>}>Ваша ближайшая сессия</SectionTitle>
       <Reveal delay={0.05}>
         {next ? (
           <Link href="/sessions" className="group block"><Card interactive>
             <div className="flex items-center justify-between gap-3">
-              <div><p className="text-lg font-bold">{next.psyName}</p><p className="mt-0.5 text-[13px] capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
-              <span className="h-10 w-1 rounded-full" style={{ background: "var(--a1)" }} />
+              <div><p className="text-lg font-extrabold">{next.psyName}</p><p className="mt-0.5 text-[13px] font-semibold capitalize text-[var(--muted)]">{dtf.format(new Date(next.startsAt))}</p></div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--green)" }}><Icon name="calendar" width={20} weight="bold" /></span>
             </div>
           </Card></Link>
         ) : (

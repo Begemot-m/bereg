@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
+import { MonthCalendar } from "@/components/calendar";
 import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
@@ -10,14 +11,16 @@ import { getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const monShort = new Intl.DateTimeFormat("ru-RU", { month: "short" });
 
-// Лента ближайших дней + сетка свободных времён. Без dd/mm/сс-пикера.
+// Лента ближайших дней (или мини-календарик) + сетка свободных времён.
 export function SlotPicker({
   forClient = false,
   daysAhead = 21,
+  variant = "strip",
   onPick,
 }: {
   forClient?: boolean;
   daysAhead?: number;
+  variant?: "strip" | "calendar";
   onPick: (iso: string) => void;
 }) {
   const days = useMemo(() => {
@@ -41,44 +44,47 @@ export function SlotPicker({
 
   return (
     <div>
-      {/* Лента дней */}
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        {days.map((d) => {
-          const key = ymdLocal(d);
-          const isActive = key === active;
-          const wd = (d.getDay() + 6) % 7;
-          const today = ymdLocal(new Date()) === key;
-          return (
-            <button
-              key={key}
-              onClick={() => { select(); setActive(key); }}
-              className="flex h-16 w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl transition-colors duration-200"
-              style={{ background: isActive ? "var(--a1)" : "var(--surface-2)", color: isActive ? "#fff" : "var(--ink)" }}
-            >
-              <span className={`text-[10px] font-bold ${isActive ? "opacity-90" : "text-[var(--muted-2)]"}`}>{WEEKDAYS[wd]}</span>
-              <span className="text-[18px] font-extrabold leading-none">{d.getDate()}</span>
-              <span className={`text-[9px] font-semibold ${isActive ? "opacity-80" : "text-[var(--muted-2)]"}`}>
-                {today ? "сегодня" : monShort.format(d).replace(".", "")}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {variant === "calendar" ? (
+        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => y && setActive(y)} />
+      ) : (
+        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {days.map((d) => {
+            const key = ymdLocal(d);
+            const isActive = key === active;
+            const wd = (d.getDay() + 6) % 7;
+            const today = ymdLocal(new Date()) === key;
+            return (
+              <button
+                key={key}
+                onClick={() => { select(); setActive(key); }}
+                className="flex h-[68px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[16px] transition-transform duration-150 active:scale-95"
+                style={isActive ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--stroke)" } : { background: "#fff", color: "var(--ink)", border: "var(--bw) solid var(--stroke)" }}
+              >
+                <span className={`text-[10px] font-extrabold uppercase ${isActive ? "opacity-90" : "text-[var(--muted-2)]"}`}>{WEEKDAYS[wd]}</span>
+                <span className="text-[18px] font-extrabold leading-none">{d.getDate()}</span>
+                <span className={`text-[9px] font-bold ${isActive ? "opacity-80" : "text-[var(--muted-2)]"}`}>
+                  {today ? "сегодня" : monShort.format(d).replace(".", "")}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Времена */}
       <div className="mt-4 min-h-[64px]">
         {isLoading ? (
           <Spinner label="Свободные окна" />
         ) : free.length === 0 ? (
-          <p className="py-3 text-[13px] text-[var(--muted-2)]">На этот день свободных окон нет.</p>
+          <p className="py-3 text-[13px] font-semibold text-[var(--muted-2)]">На этот день свободных окон нет.</p>
         ) : (
           <div className="grid grid-cols-4 gap-2">
             {free.map((s: Slot) => (
               <button
                 key={s.start}
                 onClick={() => { tap(); onPick(s.start); }}
-                className="rounded-xl py-2.5 text-[13px] font-bold transition-[transform,background-color] duration-150 hover:bg-[var(--a-tint)] active:scale-[0.96]"
-                style={{ background: "var(--surface-2)", color: "var(--a1-ink)" }}
+                className="rounded-[12px] py-2.5 text-[13px] font-extrabold transition-transform duration-150 active:scale-95"
+                style={{ background: "#fff", color: "var(--ink)", border: "var(--bw) solid var(--stroke)" }}
               >
                 {timeF.format(new Date(s.start))}
               </button>

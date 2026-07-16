@@ -8,11 +8,17 @@ import { tap } from "@/lib/haptics";
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
-export function PageHead({ title, sub }: { title: string; sub?: string }) {
+export function PageHead({ title, sub, right, children }: { title: string; sub?: string; right?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="mb-6">
-      <h1 className="font-tight text-[28px] font-extrabold leading-none @md:text-4xl">{title}</h1>
-      {sub && <p className="mt-1.5 text-sm text-[var(--muted)]">{sub}</p>}
+    <div className="chunk mb-5 p-4" style={{ background: "var(--head)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-tight text-[24px] font-extrabold leading-tight @md:text-3xl">{title}</h1>
+          {sub && <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.62)" }}>{sub}</p>}
+        </div>
+        {right}
+      </div>
+      {children && <div className="mt-4">{children}</div>}
     </div>
   );
 }
@@ -20,7 +26,7 @@ export function PageHead({ title, sub }: { title: string; sub?: string }) {
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-[13px] font-bold text-[var(--muted)]">{children}</h2>
+      <h2 className="text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">{children}</h2>
       {action}
     </div>
   );
@@ -50,30 +56,41 @@ export function StatTile({ label, value, accent }: { label: string; value: strin
   const numeric = /^\d+$/.test(value);
   const animated = useCountUp(numeric ? Number(value) : 0);
   return (
-    <div className="p-4" style={{ borderRadius: "var(--r-block)", background: accent ? "var(--a1)" : "var(--surface)", color: accent ? "#fff" : undefined, boxShadow: accent ? "none" : "var(--shadow)" }}>
-      <p className="tnum font-tight text-[30px] font-extrabold leading-none">{numeric ? animated : value}</p>
-      <p className={`mt-1 text-[12px] font-semibold ${accent ? "opacity-85" : "text-[var(--muted)]"}`}>{label}</p>
+    <div className="chunk p-4" style={accent ? { background: "var(--accent)" } : undefined}>
+      <p className="tnum font-tight text-[28px] font-extrabold leading-none">{numeric ? animated : value}</p>
+      <p className="mt-1 text-[12px] font-bold text-[var(--muted)]">{label}</p>
     </div>
   );
 }
 
-type Fill = "cream" | "iris" | "sage" | "ink";
+type Fill = "cream" | "iris" | "sage" | "ink" | "amber" | "green" | "purple" | "coral" | "salmon";
+
+const FILL_VAR: Record<string, string | undefined> = {
+  cream: undefined,
+  ink: "var(--ink)",
+  iris: "var(--purple)",
+  sage: "var(--green)",
+  amber: "var(--amber)",
+  green: "var(--green)",
+  purple: "var(--purple)",
+  coral: "var(--coral)",
+  salmon: "var(--salmon)",
+};
 
 export function ModuleCard({ title, desc, icon, fill = "cream", href, onClick }: { title: string; desc: string; icon: IconName; fill?: Fill; href?: string; onClick?: () => void }) {
-  const solid = fill !== "cream";
+  const bg = FILL_VAR[fill];
+  const dark = fill === "ink";
   const inner = (
     <div
-      className={`group flex h-full flex-col justify-between p-4 transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] active:scale-[0.98] fill-${fill}`}
-      style={{ borderRadius: "var(--r-block)", boxShadow: solid ? "none" : "var(--shadow)", transitionTimingFunction: EASE }}
+      className="chunk group flex h-full flex-col justify-between p-4 transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
+      style={{ background: bg, color: dark ? "#fff" : undefined, transitionTimingFunction: EASE }}
     >
-      <div className="flex items-start justify-between">
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: solid ? "rgba(255,255,255,0.18)" : "var(--a-tint)" }}>
-          <Icon name={icon} width={20} weight={solid ? "fill" : "regular"} color={solid ? "#fff" : "var(--a1)"} />
-        </span>
-      </div>
+      <span className="flex h-11 w-11 items-center justify-center rounded-[14px] stroke" style={{ background: "#fff" }}>
+        <Icon name={icon} width={21} weight="bold" color="var(--ink)" />
+      </span>
       <div className="mt-6">
-        <p className="text-[15px] font-bold">{title}</p>
-        <p className={`mt-0.5 text-[12.5px] ${solid ? "opacity-80" : "text-[var(--muted)]"}`}>{desc}</p>
+        <p className="text-[15px] font-extrabold">{title}</p>
+        <p className={`mt-0.5 text-[12.5px] font-semibold ${dark ? "opacity-80" : "text-[var(--muted)]"}`}>{desc}</p>
       </div>
     </div>
   );

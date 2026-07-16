@@ -48,7 +48,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
         <span className="text-[13px] font-semibold text-[var(--muted)]">Длительность сессии</span>
         <div className="flex gap-1">
           {DURATIONS.map((d) => (
-            <button key={d} onClick={() => { select(); setDraft({ ...draft, sessionMinutes: d }); }} className="rounded-full px-3 py-1 text-[12px] font-bold transition-colors duration-150" style={{ background: draft.sessionMinutes === d ? "var(--a1)" : "var(--surface-2)", color: draft.sessionMinutes === d ? "#fff" : "var(--muted)" }}>{d}м</button>
+            <button key={d} onClick={() => { select(); setDraft({ ...draft, sessionMinutes: d }); }} className="rounded-full px-3 py-1 text-[12px] font-extrabold transition-transform duration-150 active:scale-95 stroke" style={draft.sessionMinutes === d ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--muted)" }}>{d}м</button>
           ))}
         </div>
       </div>
@@ -59,9 +59,9 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
           const cnt = (draft.hours[wd] ?? []).length;
           const isSel = day === wd;
           return (
-            <button key={wd} onClick={() => { select(); setDay(wd); }} className="relative flex-1 rounded-xl py-2 text-[12px] font-bold transition-colors duration-150" style={{ background: isSel ? "var(--a1)" : "var(--surface-2)", color: isSel ? "#fff" : cnt ? "var(--ink)" : "var(--muted-2)" }}>
+            <button key={wd} onClick={() => { select(); setDay(wd); }} className="relative flex-1 rounded-[12px] py-2 text-[12px] font-extrabold transition-transform duration-150 active:scale-95 stroke" style={isSel ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: cnt ? "var(--ink)" : "var(--muted-2)" }}>
               {label}
-              {cnt > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-black" style={{ background: isSel ? "#fff" : "var(--a1)", color: isSel ? "var(--a1-ink)" : "#fff" }}>{cnt}</span>}
+              {cnt > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-black stroke" style={{ background: "var(--amber)", color: "var(--ink)" }}>{cnt}</span>}
             </button>
           );
         })}
@@ -77,7 +77,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
           {HOURS.map((h) => {
             const on = dayHours.includes(h);
             return (
-              <button key={h} onClick={() => toggle(h)} className="rounded-lg py-2 text-[12px] font-bold transition-[transform,background-color] duration-150 active:scale-[0.94]" style={{ background: on ? "var(--a1)" : "var(--surface-2)", color: on ? "#fff" : "var(--muted)" }}>{h}</button>
+              <button key={h} onClick={() => toggle(h)} className="rounded-[10px] py-2 text-[12px] font-extrabold transition-transform duration-150 active:scale-90 stroke" style={on ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--muted)" }}>{h}</button>
             );
           })}
         </div>

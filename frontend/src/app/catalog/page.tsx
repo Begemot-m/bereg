@@ -43,11 +43,11 @@ export default function CatalogPage() {
           <StaggerItem key={p.id}>
             <Card>
               <div className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-extrabold text-white" style={{ background: "var(--a1)" }}>{p.name.charAt(0)}</div>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] text-lg font-extrabold stroke" style={{ background: "var(--salmon)" }}>{p.name.charAt(0)}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2"><p className="truncate font-bold">{p.name}</p>{p.pro && <Badge tone="accent">TOP</Badge>}</div>
-                  <p className="mt-0.5 text-[13px] text-[var(--muted)]">{p.method} · ★ {p.rating}</p>
-                  <div className="mt-2 flex flex-wrap gap-1">{p.topics.map((t) => <span key={t} className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--muted)]">{t}</span>)}</div>
+                  <div className="flex items-center gap-2"><p className="truncate font-extrabold">{p.name}</p>{p.pro && <Badge tone="accent">TOP</Badge>}</div>
+                  <p className="mt-0.5 text-[13px] font-semibold text-[var(--muted)]">{p.method} · ★ {p.rating}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">{p.topics.map((t) => <span key={t} className="rounded-full px-2 py-0.5 text-[11px] font-bold stroke" style={{ background: "#fff" }}>{t}</span>)}</div>
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between">

@@ -10,6 +10,7 @@ import { PageHead } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
+import { WeekStrip } from "@/components/week-strip";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { WorkHoursEditor } from "@/components/work-hours";
 import { createAppointment, deleteAppointment, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
@@ -68,17 +69,21 @@ function PsySessions() {
 
   return (
     <div>
-      <Reveal><PageHead title="Сессии" /></Reveal>
+      <Reveal>
+        <PageHead title="Сессии" sub={selDay ? dateHeader(selDay) : "Ближайшие встречи"}>
+          <WeekStrip selected={selDay ?? todayY} onSelect={(y) => setSelDay(y === selDay ? null : y)} />
+        </PageHead>
+      </Reveal>
 
       <Reveal delay={0.03}>
         <div className="mb-4 flex gap-2">
-          <button onClick={() => { tap(); setPanel(panel === "add" ? null : "add"); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-bold text-white" style={{ background: "var(--a1)" }}>
-            <Icon name="plus" width={16} weight="bold" /> Записать
+          <button onClick={() => { tap(); setPanel(panel === "add" ? null : "add"); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-extrabold text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
+            <Icon name="plus" width={16} weight="bold" color="#fff" /> Записать
           </button>
-          <button onClick={() => { tap(); setPanel(panel === "hours" ? null : "hours"); }} className="flex items-center justify-center gap-1.5 rounded-full bg-[var(--surface-2)] px-4 py-2.5 text-[13px] font-bold text-[var(--ink)]">
+          <button onClick={() => { tap(); setPanel(panel === "hours" ? null : "hours"); }} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13px] font-extrabold text-[var(--ink)] stroke">
             <Icon name="clock" width={16} /> Окна
           </button>
-          <button onClick={() => { tap(); setShowCal(!showCal); setSelDay(null); }} className="flex items-center justify-center rounded-full px-3.5 py-2.5" style={{ background: showCal ? "var(--a1)" : "var(--surface-2)" }}>
+          <button onClick={() => { tap(); setShowCal(!showCal); setSelDay(null); }} className="flex items-center justify-center rounded-full px-3.5 py-2.5 stroke" style={{ background: showCal ? "var(--ink)" : "#fff" }}>
             <Icon name="calendar" width={17} weight={showCal ? "fill" : "regular"} color={showCal ? "#fff" : undefined} />
           </button>
         </div>
@@ -194,18 +199,29 @@ function QuickAdd({ onDone }: { onDone: () => void }) {
 
   return (
     <Card>
-      <p className="mb-2 text-[13px] font-bold">Клиент</p>
-      <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="mb-4 w-full rounded-xl bg-[var(--surface-2)] px-3.5 py-2.5 text-sm outline-none" style={{ border: "1.5px solid transparent" }} autoFocus>
-        <option value="">Выберите клиента</option>
-        {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-      </select>
+      <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Клиент</p>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {clients.map((c) => {
+          const on = String(c.id) === clientId;
+          return (
+            <button
+              key={c.id}
+              onClick={() => { tap(); setClientId(String(c.id)); }}
+              className="rounded-full px-3.5 py-1.5 text-[13px] font-bold transition-transform active:scale-95 stroke"
+              style={on ? { background: "var(--ink)", color: "#fff" } : { background: "#fff" }}
+            >
+              {c.name}
+            </button>
+          );
+        })}
+      </div>
       {clientId ? (
         <>
-          <p className="mb-2 text-[13px] font-bold">Свободное окно</p>
-          <SlotPicker onPick={(iso) => add.mutate(iso)} />
+          <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Выберите день и окно</p>
+          <SlotPicker variant="calendar" onPick={(iso) => add.mutate(iso)} />
         </>
       ) : (
-        <p className="text-[12px] text-[var(--muted-2)]">Выберите клиента, затем свободное окно из вашего графика.</p>
+        <p className="text-[12px] font-semibold text-[var(--muted-2)]">Выберите клиента — откроется календарь со свободными окнами.</p>
       )}
     </Card>
   );
