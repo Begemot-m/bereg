@@ -4,8 +4,10 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
+import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
+import { WorkHoursEditor } from "@/components/work-hours";
 import { Badge, Button, Card, Disclosure, Textarea } from "@/components/ui";
 import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
 import { select, tap } from "@/lib/haptics";
@@ -21,6 +23,7 @@ export default function CabinetPage() {
   const [name, setName] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [editProfile, setEditProfile] = useState(false);
+  const [editHours, setEditHours] = useState(false);
   const profile = useProfile();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
 
@@ -61,29 +64,20 @@ export default function CabinetPage() {
         </Card>
       </Reveal>
 
-      {/* Профиль специалиста (только психолог) */}
+      {/* Профиль специалиста и рабочие окна (только психолог) */}
       {role === "psychologist" && (
-        <div className="mb-6">
-          <SectionTitle action={<button onClick={() => { tap(); setEditProfile(!editProfile); }} className="text-[13px] font-semibold" style={{ color: "var(--a1)" }}>{editProfile ? "Свернуть" : "Редактировать"}</button>}>
-            Профиль специалиста
-          </SectionTitle>
-          {!editProfile && (
-            <Card className="space-y-2">
-              {profile?.approach && <Row label="Подход" value={profile.approach} />}
-              {profile?.topics && profile.topics.length > 0 && (
-                <div>
-                  <p className="mb-1 text-[11px] font-bold text-[var(--muted-2)]">Запросы</p>
-                  <div className="flex flex-wrap gap-1">
-                    {profile.topics.map((t) => <span key={t} className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--muted)]">{t}</span>)}
-                  </div>
-                </div>
-              )}
-              {profile?.about && <Row label="О себе" value={profile.about} />}
-              {(!profile?.approach && !profile?.topics?.length) && <p className="text-[13px] text-[var(--muted-2)]">Профиль пока не заполнен. Нажмите «Редактировать».</p>}
-            </Card>
-          )}
-          <Disclosure open={editProfile}>
+        <div className="mb-6 space-y-3">
+          <SettingRow icon="note" title="Профиль специалиста" hint="Запросы, подход, образование, фото" open={editProfile} onClick={() => { tap(); setEditProfile(!editProfile); setEditHours(false); }} />
+          <Disclosure open={editProfile} zoom>
             <Card><ProfileEditor onSaved={() => setEditProfile(false)} /></Card>
+          </Disclosure>
+
+          <SettingRow icon="clock" title="Свободные окна" hint="Часы приёма по дням недели" open={editHours} onClick={() => { tap(); setEditHours(!editHours); setEditProfile(false); }} />
+          <Disclosure open={editHours} zoom>
+            <Card>
+              <p className="mb-3 text-[12px] text-[var(--muted)]">Это шаблон на каждую неделю: в отмеченные часы клиенты видят свободные окна и записываются. Можно менять в любой момент.</p>
+              <WorkHoursEditor onSaved={() => setEditHours(false)} />
+            </Card>
           </Disclosure>
         </div>
       )}
@@ -164,12 +158,18 @@ export default function CabinetPage() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function SettingRow({ icon, title, hint, open, onClick }: { icon: "note" | "clock"; title: string; hint: string; open: boolean; onClick: () => void }) {
   return (
-    <div>
-      <p className="text-[11px] font-bold text-[var(--muted-2)]">{label}</p>
-      <p className="text-[13px]">{value}</p>
-    </div>
+    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3.5 text-left transition-[transform,box-shadow] duration-200 active:scale-[0.99]" style={{ boxShadow: "var(--shadow)" }}>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--a-tint)" }}>
+        <Icon name={icon} width={18} color="var(--a1)" />
+      </span>
+      <span className="flex-1">
+        <span className="block text-[14px] font-bold">{title}</span>
+        <span className="block text-[12px] text-[var(--muted)]">{hint}</span>
+      </span>
+      <span className="text-[var(--muted-2)] transition-transform duration-300" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
+    </button>
   );
 }
 

@@ -117,16 +117,18 @@ export function SkeletonRow() {
   return <div className="skeleton h-16" style={{ borderRadius: "var(--r-block)" }} />;
 }
 
-/* Раскрывающийся блок: доп. опции прячутся, а не навалены на экран */
-export function Disclosure({ open, children }: { open: boolean; children: ReactNode }) {
+/* Раскрывающийся блок: доп. опции прячутся, а не навалены на экран.
+   zoom — плавное появление с наплывом и лёгким зумаутом. */
+export function Disclosure({ open, children, zoom }: { open: boolean; children: ReactNode; zoom?: boolean }) {
   return (
     <AnimatePresence initial={false}>
       {open && (
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ height: 0, opacity: 0, ...(zoom ? { scale: 1.03 } : {}) }}
+          animate={{ height: "auto", opacity: 1, ...(zoom ? { scale: 1 } : {}) }}
+          exit={{ height: 0, opacity: 0, ...(zoom ? { scale: 0.98 } : {}) }}
+          transition={{ duration: zoom ? 0.42 : 0.28, ease: [0.16, 1, 0.3, 1] }}
+          style={zoom ? { transformOrigin: "top center" } : undefined}
           className="overflow-hidden"
         >
           {children}

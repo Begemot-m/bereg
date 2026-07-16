@@ -53,7 +53,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v3";
+const KEY = "psy_demo_db_v4";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -122,7 +122,15 @@ function load(): DB {
   if (typeof window === "undefined") return seed();
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as DB;
+    if (raw) {
+      const db = JSON.parse(raw) as DB;
+      // Страховка от неполных/старых данных.
+      const s = seed();
+      if (!db.work?.hours) db.work = s.work;
+      if (!db.myBookings) db.myBookings = s.myBookings;
+      if (!db.moods) db.moods = s.moods;
+      return db;
+    }
   } catch {
     /* ignore */
   }
@@ -164,7 +172,7 @@ function slotsFor(work: WorkHours, dateStr: string, takenISO: string[]): { start
   const d = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(d.getTime())) return [];
   const wd = (d.getDay() + 6) % 7;
-  const hours = [...(work.hours[wd] ?? [])].sort();
+  const hours = [...((work.hours ?? {})[wd] ?? [])].sort();
   const taken = new Set(takenISO.map((t) => new Date(t).getTime()));
   const now = Date.now();
   const out: { start: string; taken: boolean }[] = [];
