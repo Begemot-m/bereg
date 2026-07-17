@@ -314,6 +314,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       if (body.status !== undefined) a.status = body.status as Appointment["status"];
       if (body.startsAt !== undefined) a.startsAt = new Date(String(body.startsAt)).toISOString();
       if (body.durationMin !== undefined) a.durationMin = Number(body.durationMin);
+      if (body.format !== undefined) a.format = body.format as ApptFormat;
       save(db);
       return delay(a as T);
     }

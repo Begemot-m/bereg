@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
+import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { Disclosure } from "@/components/ui";
 import { createAppointment, listAppointments, updateAppointment, type ApptFormat } from "@/lib/appointments";
@@ -26,6 +27,7 @@ export function DaySlots({ date }: { date: Date }) {
   const inv = () => { qc.invalidateQueries({ queryKey: ["appointments"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); };
   const book = useMutation({ mutationFn: ({ clientId, iso, format }: { clientId: number; iso: string; format: ApptFormat }) => createAppointment({ clientId, startsAt: iso, format }), onSuccess: () => { success(); setPick(null); inv(); } });
   const cancel = useMutation({ mutationFn: (id: number) => updateAppointment(id, { status: "cancelled" }), onSuccess: () => { select(); inv(); } });
+  const setFmt = useMutation({ mutationFn: ({ id, format }: { id: number; format: ApptFormat }) => updateAppointment(id, { format }), onSuccess: inv });
   const sortedClients = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
 
   const wd = (date.getDay() + 6) % 7;
@@ -45,10 +47,10 @@ export function DaySlots({ date }: { date: Date }) {
         const picking = pick === s.iso;
         if (s.appt) {
           return (
-            <motion.div key={s.iso} layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "var(--salmon-soft)", borderColor: "var(--salmon-edge)" }}>
+            <motion.div key={s.iso} layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "var(--purple-soft)", borderColor: "var(--purple-edge)" }}>
               <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
               <span className="min-w-0 flex-1 truncate text-[13px] font-bold">{s.appt.client.name}</span>
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: "#fff" }}>{s.appt.format === "online" ? "онлайн" : "очно"}</span>
+              <FmtSwitch fmt={s.appt.format} onToggle={() => setFmt.mutate({ id: s.appt!.id, format: s.appt!.format === "online" ? "offline" : "online" })} />
               <button onClick={() => cancel.mutate(s.appt!.id)} className="rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff" }}>Отменить</button>
             </motion.div>
           );

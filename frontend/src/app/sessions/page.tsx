@@ -9,6 +9,7 @@ import { MonthCalendar } from "@/components/calendar";
 import { PageHead } from "@/components/blocks";
 import { ClientSelect } from "@/components/client-select";
 import { DaySlots } from "@/components/day-slots";
+import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
@@ -200,6 +201,7 @@ function SessionRow({ a, onChange }: { a: Appointment; onChange: () => void }) {
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(a.id, { startsAt: iso }), onSuccess: () => { setReschedule(false); setOpen(false); onChange(); } });
   const cancel = useMutation({ mutationFn: () => updateAppointment(a.id, { status: "cancelled" }), onSuccess: () => { setOpen(false); onChange(); } });
   const remove = useMutation({ mutationFn: () => deleteAppointment(a.id), onSuccess: () => { setOpen(false); onChange(); } });
+  const setFmt = useMutation({ mutationFn: (format: ApptFormat) => updateAppointment(a.id, { format }), onSuccess: onChange });
 
   return (
     <div className="border-b" style={{ borderColor: "var(--edge-neutral)" }}>
@@ -209,7 +211,7 @@ function SessionRow({ a, onChange }: { a: Appointment; onChange: () => void }) {
         </button>
         <button onClick={() => { tap(); setOpen(!open); }} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <span className={`min-w-0 flex-1 truncate text-[14px] font-semibold ${done || cancelled ? "text-[var(--muted-2)] line-through" : ""}`}>{a.client.name}</span>
-          <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: a.format === "online" ? "var(--head-soft)" : "#fff", color: "var(--muted)" }}>{a.format === "online" ? "онлайн" : "очно"}</span>
+          <FmtSwitch fmt={a.format} onToggle={() => setFmt.mutate(a.format === "online" ? "offline" : "online")} />
           <span className="shrink-0 rounded-md px-2 py-0.5 text-[12px] font-bold stroke" style={{ background: "#fff", color: cancelled ? "var(--muted-2)" : "var(--ink)" }}>{timeF.format(d)}</span>
           <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="shrink-0 text-[var(--muted-2)]">›</motion.span>
         </button>

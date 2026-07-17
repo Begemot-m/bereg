@@ -24,7 +24,7 @@ export const createAppointment = (input: {
 
 export const updateAppointment = (
   id: number,
-  patch: Partial<{ status: Appointment["status"]; startsAt: string; durationMin: number; note: string }>,
+  patch: Partial<{ status: Appointment["status"]; startsAt: string; durationMin: number; note: string; format: ApptFormat }>,
 ) => apiFetch<Appointment>(`/appointments/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 
 export const deleteAppointment = (id: number) =>

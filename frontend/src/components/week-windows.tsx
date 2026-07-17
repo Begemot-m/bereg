@@ -53,7 +53,7 @@ export function WeekWindows() {
               <span className="text-[15px] font-extrabold leading-none">{d.getDate()}</span>
               <span className="flex gap-0.5">
                 {free > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--green)", border: "1px solid var(--green-edge)" }} />}
-                {busy > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--salmon)", border: "1px solid var(--salmon-edge)" }} />}
+                {busy > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--purple)", border: "1px solid var(--purple-edge)" }} />}
                 {free + busy === 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge-neutral)" }} />}
               </span>
             </button>
