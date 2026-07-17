@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
+import { memo, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 
 import { Button, Spinner } from "@/components/ui";
 import { select, success } from "@/lib/haptics";
@@ -12,12 +12,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-const PXH = 40;   // высота часа
-const STEP = 10;  // базовая сетка, мин
-const MAGNET = 13; // сила притяжения к ровному часу, мин
+const PXH = 40;
+const STEP = 10;
+const MAGNET = 13;
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 26 };
 
-// Магнитная привязка: близко к ровному часу — прилипает к :00, иначе шаг 10 мин.
 function snapMin(raw: number): number {
   const hour = Math.round(raw / 60) * 60;
   if (Math.abs(raw - hour) <= MAGNET) return hour;
@@ -31,8 +30,6 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const [day, setDay] = useState(0);
   const [from, setFrom] = useState(9);
   const [to, setTo] = useState(21);
-  const [drag, setDrag] = useState<{ t: string; base: number; dy: number; moved: boolean } | null>(null);
-  const lastHaptic = useRef(0);
   const railRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (data) setDraft(structuredClone(data)); }, [data]);
 
@@ -49,8 +46,6 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const railH = Math.max(1, to - from) * PXH;
   const slots = [...(draft.hours[day] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
   const setSlots = (arr: WorkSlot[]) => setDraft({ ...draft, hours: { ...draft.hours, [day]: [...arr].sort((a, b) => a.t.localeCompare(b.t)) } });
-
-  const setLen = (v: number) => { setDraft({ ...draft, sessionMinutes: v }); const now = Date.now(); if (now - lastHaptic.current > 55) { lastHaptic.current = now; select(); } };
   const fits = (mins: number, dur: number, ignoreT?: string) => !slots.some((s) => s.t !== ignoreT && mins < toMin(s.t) + s.d && toMin(s.t) < mins + dur);
 
   const placeAt = (clientY: number) => {
@@ -63,20 +58,13 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
     setSlots([...slots, { t: hhmm(mins), d: len }]);
   };
   const removeAt = (t: string) => { select(); setSlots(slots.filter((s) => s.t !== t)); };
-  const copyTo = (n: number) => { select(); const next = { ...draft.hours }; for (let d = 0; d < n; d++) next[d] = slots.map((s) => ({ ...s })); setDraft({ ...draft, hours: next }); };
-
-  // Перетаскивание блока по вертикали
-  const onDown = (s: WorkSlot, e: RPointerEvent) => { e.stopPropagation(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); setDrag({ t: s.t, base: e.clientY, dy: 0, moved: false }); };
-  const onMove = (e: RPointerEvent) => { if (!drag) return; const dy = e.clientY - drag.base; const moved = drag.moved || Math.abs(dy) > 4; if (moved && !drag.moved) select(); setDrag({ ...drag, dy, moved }); };
-  const onUp = (s: WorkSlot) => {
-    if (!drag) return;
-    if (!drag.moved) { removeAt(s.t); setDrag(null); return; }
-    const raw = toMin(s.t) + (drag.dy / PXH) * 60;
-    const ns = clamp(snapMin(raw), start, end - s.d);
+  const commitMove = (s: WorkSlot, dyPx: number) => {
+    const ns = clamp(snapMin(toMin(s.t) + (dyPx / PXH) * 60), start, end - s.d);
+    if (ns === toMin(s.t)) return;
     if (fits(ns, s.d, s.t)) { success(); setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(ns) } : x))); }
     else select();
-    setDrag(null);
   };
+  const copyTo = (n: number) => { select(); const next = { ...draft.hours }; for (let d = 0; d < n; d++) next[d] = slots.map((x) => ({ ...x })); setDraft({ ...draft, hours: next }); };
 
   return (
     <div className="space-y-3.5">
@@ -87,13 +75,10 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
         <TimeNum label="до" value={to} onChange={(v) => setTo(Math.max(v, from + 1))} />
       </div>
 
-      {/* Длина сессии ползунком */}
+      {/* Длина сессии — ползунок с минутами на бегунке */}
       <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[12px] font-bold text-[var(--muted)]">Длина новой сессии</span>
-          <motion.span key={len} initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={SPRING} className="rounded-full px-3 py-0.5 text-[13px] font-extrabold stroke" style={{ background: "var(--head)", borderColor: "var(--edge)" }}>{len} мин</motion.span>
-        </div>
-        <input type="range" min={30} max={120} step={5} value={len} onChange={(e) => setLen(Number(e.target.value))} className="h-2.5 w-full cursor-pointer appearance-none rounded-full" style={{ accentColor: "var(--ink)", background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }} />
+        <span className="text-[12px] font-bold text-[var(--muted)]">Длина новой сессии</span>
+        <MinuteSlider value={len} onChange={(v) => setDraft({ ...draft, sessionMinutes: v })} />
       </div>
 
       {/* Дни недели */}
@@ -124,36 +109,24 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
               <div key={i} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
             ))}
             <AnimatePresence>
-              {slots.map((s) => {
-                const dy = drag?.t === s.t ? drag.dy : 0;
-                return (
-                  <motion.div
-                    key={s.t}
-                    initial={{ scale: 0.7, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.7, opacity: 0 }}
-                    transition={SPRING}
-                    onPointerDown={(e) => onDown(s, e)}
-                    onPointerMove={onMove}
-                    onPointerUp={() => onUp(s)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
-                    style={{ top: ((toMin(s.t) - start) / 60) * PXH + dy, height: (s.d / 60) * PXH - 3, background: "var(--head)", borderColor: "var(--edge)", color: "var(--ink)", zIndex: drag?.t === s.t ? 5 : 1, cursor: "grab" }}
-                  >
-                    {s.t}–{hhmm(toMin(s.t) + s.d)}
-                  </motion.div>
-                );
-              })}
+              {slots.map((s) => (
+                <SlotBlock
+                  key={s.t}
+                  label={`${s.t}–${hhmm(toMin(s.t) + s.d)}`}
+                  top={((toMin(s.t) - start) / 60) * PXH}
+                  height={(s.d / 60) * PXH - 3}
+                  onRemove={() => removeAt(s.t)}
+                  onCommit={(dy) => commitMove(s, dy)}
+                />
+              ))}
             </AnimatePresence>
             {slots.length === 0 && <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-[12px] font-semibold text-[var(--muted-2)]">Пусто — тапни по времени</span>}
           </div>
         </div>
       </div>
 
-      {/* Мини-график недели */}
       <WeekMini hours={draft.hours} from={from} to={to} day={day} onPick={(d) => { select(); setDay(d); }} />
 
-      {/* Перенос и сохранение */}
       <div className="flex flex-wrap gap-2">
         <Button variant="soft" size="sm" onClick={() => copyTo(5)}>На будни</Button>
         <Button variant="soft" size="sm" onClick={() => copyTo(7)}>На все дни</Button>
@@ -163,7 +136,59 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   );
 }
 
-function WeekMini({ hours, from, to, day, onPick }: { hours: Record<number, WorkSlot[]>; from: number; to: number; day: number; onPick: (d: number) => void }) {
+// Блок сам управляет своим сдвигом при драге — не перерисовывает весь редактор.
+function SlotBlock({ label, top, height, onRemove, onCommit }: { label: string; top: number; height: number; onRemove: () => void; onCommit: (dyPx: number) => void }) {
+  const [dy, setDy] = useState(0);
+  const drag = useRef<{ base: number; moved: boolean } | null>(null);
+  const down = (e: RPointerEvent) => { e.stopPropagation(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); drag.current = { base: e.clientY, moved: false }; };
+  const move = (e: RPointerEvent) => {
+    const d = drag.current; if (!d) return;
+    const off = e.clientY - d.base;
+    if (!d.moved && Math.abs(off) > 4) { d.moved = true; select(); }
+    if (d.moved) setDy(off);
+  };
+  const up = () => { const d = drag.current; drag.current = null; if (!d) return; if (!d.moved) { onRemove(); return; } onCommit(dy); setDy(0); };
+  return (
+    <motion.div
+      initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
+      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
+      style={{ top: top + dy, height, background: "var(--head)", borderColor: "var(--edge)", color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
+    >
+      {label}
+    </motion.div>
+  );
+}
+
+// Ползунок с минутами прямо на бегунке.
+function MinuteSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const MIN = 30, MAX = 120, S = 5;
+  const ref = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const last = useRef(0);
+  const set = (clientX: number) => {
+    const r = ref.current?.getBoundingClientRect(); if (!r) return;
+    let p = (clientX - r.left) / r.width; p = clamp(p, 0, 1);
+    const v = Math.round((MIN + p * (MAX - MIN)) / S) * S;
+    if (v !== value) { const now = Date.now(); if (now - last.current > 35) { last.current = now; select(); } onChange(v); }
+  };
+  const pct = (value - MIN) / (MAX - MIN);
+  return (
+    <div
+      ref={ref}
+      onPointerDown={(e) => { dragging.current = true; (e.currentTarget as Element).setPointerCapture?.(e.pointerId); set(e.clientX); }}
+      onPointerMove={(e) => { if (dragging.current) set(e.clientX); }}
+      onPointerUp={() => { dragging.current = false; }}
+      className="relative mt-2 h-9 w-full cursor-pointer touch-none select-none"
+    >
+      <div className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-full stroke" style={{ background: "var(--head-soft)" }} />
+      <div className="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full" style={{ left: 0, width: `${pct * 100}%`, background: "var(--head)" }} />
+      <div className="absolute top-1/2 flex h-9 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[12px] font-extrabold" style={{ left: `${pct * 100}%`, background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }}>{value}м</div>
+    </div>
+  );
+}
+
+const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hours: Record<number, WorkSlot[]>; from: number; to: number; day: number; onPick: (d: number) => void }) {
   const H = 60;
   const span = Math.max(1, to - from) * 60;
   return (
@@ -189,7 +214,7 @@ function WeekMini({ hours, from, to, day, onPick }: { hours: Record<number, Work
       </div>
     </div>
   );
-}
+});
 
 function TimeNum({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (

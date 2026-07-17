@@ -22,7 +22,7 @@ export function DemoFrame({ children }: { children: ReactNode }) {
         </span>
         <button
           onClick={() => {
-            localStorage.removeItem("psy_demo_db_v6");
+            localStorage.removeItem("psy_demo_db_v7");
             localStorage.removeItem("psy_demo_role");
             localStorage.removeItem("bereg_onboarded");
             localStorage.removeItem("bereg_psy_profile");

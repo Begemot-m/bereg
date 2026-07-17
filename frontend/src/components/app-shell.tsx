@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -77,6 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
+  const activeIndex = tabs.findIndex((t) => isActive(pathname, t.href));
 
   if (onboarded === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
   if (!onboarded) return <Onboarding />;
@@ -134,20 +136,31 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Мобайл: нижние табы — жёлтая пилюля с обводкой, активная иконка в чёрном квадрате */}
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-1 @md:hidden">
-        <nav className="mx-auto flex max-w-md items-center justify-around rounded-[26px] px-2 py-2" style={{ background: "var(--amber)", border: "var(--bw) solid var(--amber-edge)" }}>
-          {tabs.map((it) => {
-            const active = isActive(pathname, it.href);
-            return (
-              <Link key={it.href} href={it.href} onClick={select} className="flex flex-1 items-center justify-center py-0.5">
-                <span
-                  className="flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
-                  style={active ? { background: "var(--page)", transition: "background-color .5s ease, transform .15s" } : undefined}
-                >
-                  <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color="var(--ink)" />
-                </span>
-              </Link>
-            );
-          })}
+        <nav className="mx-auto max-w-md rounded-[26px] px-2 py-2" style={{ background: "var(--amber)", border: "var(--bw) solid var(--amber-edge)" }}>
+          <div className="relative flex">
+            {activeIndex >= 0 && (
+              <motion.div
+                aria-hidden
+                className="pointer-events-none absolute top-0 flex h-full items-center justify-center"
+                style={{ width: `${100 / tabs.length}%` }}
+                initial={false}
+                animate={{ left: `${(activeIndex * 100) / tabs.length}%` }}
+                transition={{ type: "spring", stiffness: 520, damping: 30 }}
+              >
+                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--amber-edge)", transition: "background-color .5s ease" }} />
+              </motion.div>
+            )}
+            {tabs.map((it) => {
+              const active = isActive(pathname, it.href);
+              return (
+                <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 items-center justify-center py-0.5">
+                  <span className="flex h-11 w-11 items-center justify-center transition-transform duration-150 active:scale-90">
+                    <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color="var(--ink)" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
       </div>
     </div>

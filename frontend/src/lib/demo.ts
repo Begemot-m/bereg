@@ -57,7 +57,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v6";
+const KEY = "psy_demo_db_v7";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -107,7 +107,7 @@ function seed(): DB {
     myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60, format: "online" }],
     work: {
       hours: {},
-      sessionMinutes: 60,
+      sessionMinutes: 50,
     },
     support: [],
     sub: { plan: "free", status: "inactive", currentPeriodEnd: null, pendingSince: null },
