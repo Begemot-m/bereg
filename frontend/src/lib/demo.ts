@@ -32,9 +32,11 @@ type Homework = { id: number; clientId: number; text: string; status: HwStatus; 
 type Mood = { date: string; mood: number }; // 1..5
 type Support = { id: number; kind: string; text: string; createdAt: string };
 
+// Окно приёма: время начала + собственная длительность (мин)
+type WorkSlot = { t: string; d: number };
 type WorkHours = {
-  // По дням недели (0=Пн..6=Вс): конкретные часы начала приёма ("10:00", "11:00"…)
-  hours: Record<number, string[]>;
+  // По дням недели (0=Пн..6=Вс)
+  hours: Record<number, WorkSlot[]>;
   sessionMinutes: number;
 };
 
@@ -55,7 +57,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v5";
+const KEY = "psy_demo_db_v6";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -104,15 +106,7 @@ function seed(): DB {
     moods,
     myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60, format: "online" }],
     work: {
-      hours: {
-        0: ["10:00", "11:00", "15:00", "16:00", "17:00"],
-        1: ["10:00", "11:00", "12:00", "16:00", "17:00"],
-        2: ["11:00", "12:00", "15:00", "16:00"],
-        3: ["13:00", "14:00", "18:00", "19:00"],
-        4: ["10:00", "11:00", "12:00"],
-        5: [],
-        6: [],
-      },
+      hours: {},
       sessionMinutes: 60,
     },
     support: [],
@@ -129,6 +123,13 @@ function load(): DB {
       // Страховка от неполных/старых данных.
       const s = seed();
       if (!db.work?.hours) db.work = s.work;
+      // миграция окон: старый формат — массив строк времени
+      for (const k of Object.keys(db.work.hours)) {
+        const arr = db.work.hours[Number(k)] as unknown[];
+        if (Array.isArray(arr) && typeof arr[0] === "string") {
+          db.work.hours[Number(k)] = (arr as unknown as string[]).map((t) => ({ t, d: db.work.sessionMinutes }));
+        }
+      }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
       return db;
@@ -174,12 +175,12 @@ function slotsFor(work: WorkHours, dateStr: string, takenISO: string[]): { start
   const d = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(d.getTime())) return [];
   const wd = (d.getDay() + 6) % 7;
-  const hours = [...((work.hours ?? {})[wd] ?? [])].sort();
+  const slots = [...((work.hours ?? {})[wd] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
   const taken = new Set(takenISO.map((t) => new Date(t).getTime()));
   const now = Date.now();
   const out: { start: string; taken: boolean }[] = [];
-  for (const h of hours) {
-    const [hh, mm] = h.split(":").map(Number);
+  for (const s of slots) {
+    const [hh, mm] = s.t.split(":").map(Number);
     const t = new Date(d); t.setHours(hh, mm, 0, 0);
     if (t.getTime() < now) continue;
     out.push({ start: t.toISOString(), taken: taken.has(t.getTime()) });

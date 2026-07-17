@@ -1,7 +1,8 @@
 import { apiFetch } from "@/lib/api";
 
+export type WorkSlot = { t: string; d: number };
 export type WorkHours = {
-  hours: Record<number, string[]>;
+  hours: Record<number, WorkSlot[]>;
   sessionMinutes: number;
 };
 
