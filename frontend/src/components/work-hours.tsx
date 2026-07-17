@@ -23,6 +23,28 @@ function snapMin(raw: number): number {
   return Math.round(raw / STEP) * STEP;
 }
 
+const EDGE = 9; // мин — магнит к краю соседнего окна (чтобы липли вплотную)
+type Span = { s: number; e: number };
+// Притянуть к краям соседей и вытолкнуть из пересечений — окна встают впритык.
+function resolveTouch(mins: number, dur: number, others: Span[]): number {
+  for (const o of others) {
+    if (Math.abs(mins - o.e) <= EDGE) mins = o.e;
+    if (Math.abs(mins + dur - o.s) <= EDGE) mins = o.s - dur;
+  }
+  for (let i = 0; i < 4; i++) {
+    let moved = false;
+    for (const o of others) {
+      if (mins < o.e && o.s < mins + dur) {
+        const after = o.e, before = o.s - dur;
+        mins = Math.abs(after - mins) <= Math.abs(before - mins) ? after : before;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return mins;
+}
+
 export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
@@ -46,23 +68,26 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const railH = Math.max(1, to - from) * PXH;
   const slots = [...(draft.hours[day] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
   const setSlots = (arr: WorkSlot[]) => setDraft({ ...draft, hours: { ...draft.hours, [day]: [...arr].sort((a, b) => a.t.localeCompare(b.t)) } });
-  const fits = (mins: number, dur: number, ignoreT?: string) => !slots.some((s) => s.t !== ignoreT && mins < toMin(s.t) + s.d && toMin(s.t) < mins + dur);
+  const overlaps = (mins: number, dur: number, others: Span[]) => others.some((o) => mins < o.e && o.s < mins + dur);
 
   const placeAt = (clientY: number) => {
     const rail = railRef.current; if (!rail) return;
     const rect = rail.getBoundingClientRect();
+    const others = slots.map((s) => ({ s: toMin(s.t), e: toMin(s.t) + s.d }));
     let mins = snapMin(start + ((clientY - rect.top) / PXH) * 60);
-    mins = clamp(mins, start, end - len);
-    if (!fits(mins, len)) { select(); return; }
+    mins = clamp(resolveTouch(mins, len, others), start, end - len);
+    if (overlaps(mins, len, others)) { select(); return; }
     success();
     setSlots([...slots, { t: hhmm(mins), d: len }]);
   };
   const removeAt = (t: string) => { select(); setSlots(slots.filter((s) => s.t !== t)); };
   const commitMove = (s: WorkSlot, dyPx: number) => {
-    const ns = clamp(snapMin(toMin(s.t) + (dyPx / PXH) * 60), start, end - s.d);
-    if (ns === toMin(s.t)) return;
-    if (fits(ns, s.d, s.t)) { success(); setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(ns) } : x))); }
-    else select();
+    const others = slots.filter((x) => x.t !== s.t).map((x) => ({ s: toMin(x.t), e: toMin(x.t) + x.d }));
+    let mins = snapMin(toMin(s.t) + (dyPx / PXH) * 60);
+    mins = clamp(resolveTouch(mins, s.d, others), start, end - s.d);
+    if (overlaps(mins, s.d, others) || mins === toMin(s.t)) { if (mins !== toMin(s.t)) select(); return; }
+    success();
+    setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(mins) } : x)));
   };
   const copyTo = (n: number) => { select(); const next = { ...draft.hours }; for (let d = 0; d < n; d++) next[d] = slots.map((x) => ({ ...x })); setDraft({ ...draft, hours: next }); };
 
@@ -97,7 +122,6 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 
       {/* График дня */}
       <div>
-        <p className="mb-2 text-[12px] font-semibold text-[var(--muted)]">Тап — поставить · тяни блок — сдвинуть · тап по блоку — убрать</p>
         <div className="flex gap-2">
           <div className="relative w-9 shrink-0" style={{ height: railH }}>
             {Array.from({ length: to - from + 1 }, (_, i) => (
@@ -120,7 +144,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
                 />
               ))}
             </AnimatePresence>
-            {slots.length === 0 && <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-[12px] font-semibold text-[var(--muted-2)]">Пусто — тапни по времени</span>}
+            {slots.length === 0 && <span className="pointer-events-none absolute inset-x-0 px-4 text-center text-[12px] font-semibold text-[var(--muted-2)]" style={{ top: PXH * 0.5 - 8 }}>Нажми, чтобы добавить сессию</span>}
           </div>
         </div>
       </div>

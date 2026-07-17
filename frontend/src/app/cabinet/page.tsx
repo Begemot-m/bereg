@@ -66,14 +66,23 @@ export default function CabinetPage() {
         </div>
       </Reveal>
 
-      {/* Расписание (только психолог) — открывается окном */}
+      {/* Расписание (только психолог) — разворачивается вниз */}
       {role === "psychologist" && (
-        <div className="mb-6">
-          <SettingRow icon="clock" title="Моё расписание" hint="Настроить часы работы" open={false} onClick={() => { tap(); setEditHours(true); }} />
+        <div className="mb-6 space-y-3">
+          <SettingRow icon="clock" title="Моё расписание" hint="Настроить часы работы" open={editHours} onClick={() => { tap(); setEditHours(!editHours); }} />
+          <Disclosure open={editHours} zoom>
+            <Card>
+              <div className="mb-3 flex justify-end">
+                <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
+                  <Icon name="spark" width={14} /> Как настроить?
+                </button>
+              </div>
+              <WorkHoursEditor onSaved={() => setEditHours(false)} />
+            </Card>
+          </Disclosure>
         </div>
       )}
 
-      {editHours && <ScheduleModal onClose={() => setEditHours(false)} onHelp={() => setHelp(true)} />}
       {help && <HelpModal onClose={() => setHelp(false)} />}
 
       {/* Роль */}
@@ -190,27 +199,6 @@ const HELP_STEPS: { t: string; d: string }[] = [
   { t: "Скопируйте на другие дни", d: "«На будни» повторит текущий день на Пн–Пт, «На все дни» — на всю неделю. Потом можно поправить каждый день вручную." },
   { t: "Сохраните", d: "Нажмите «Сохранить». В эти окна клиенты видят свободное время и записываются к вам." },
 ];
-
-function ScheduleModal({ onClose, onHelp }: { onClose: () => void; onHelp: () => void }) {
-  return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-50 flex items-end justify-center p-3 @md:items-center" style={{ background: "rgba(32,28,24,.4)", backdropFilter: "blur(2px)" }}>
-        <motion.div initial={{ y: 30, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[86vh] w-full max-w-md overflow-y-auto p-4" style={{ background: "var(--surface)" }}>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="font-tight text-[19px] font-extrabold">Моё расписание</h3>
-            <div className="flex items-center gap-2">
-              <button onClick={() => { tap(); onHelp(); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
-                <Icon name="spark" width={14} /> Как настроить?
-              </button>
-              <button onClick={onClose} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full stroke text-[15px] font-bold" style={{ background: "#fff" }}>✕</button>
-            </div>
-          </div>
-          <WorkHoursEditor onSaved={onClose} />
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  );
-}
 
 function HelpModal({ onClose }: { onClose: () => void }) {
   return (
