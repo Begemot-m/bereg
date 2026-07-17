@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
+import { Icon } from "@/components/icons";
 import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
@@ -12,20 +13,18 @@ import type { ApptFormat } from "@/lib/appointments";
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const monShort = new Intl.DateTimeFormat("ru-RU", { month: "short" });
 
-// Лента дней (или мини-календарик) + сетка свободных времён + выбор формата.
+// Лента дней (или мини-календарик) + сетка свободных времён. Формат берётся из окна.
 export function SlotPicker({
   forClient = false,
   daysAhead = 21,
   variant = "strip",
   showAvail = false,
-  withFormat = false,
   onPick,
 }: {
   forClient?: boolean;
   daysAhead?: number;
   variant?: "strip" | "calendar";
   showAvail?: boolean;
-  withFormat?: boolean;
   onPick: (iso: string, format: ApptFormat) => void;
 }) {
   const days = useMemo(() => {
@@ -39,7 +38,6 @@ export function SlotPicker({
   }, [daysAhead]);
 
   const [active, setActive] = useState(() => ymdLocal(days[0]));
-  const [format, setFormat] = useState<ApptFormat>("online");
 
   const { data: slots = [], isLoading } = useQuery({
     queryKey: ["slots", active, forClient],
@@ -56,21 +54,6 @@ export function SlotPicker({
 
   return (
     <div>
-      {withFormat && (
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          {(["online", "offline"] as ApptFormat[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => { select(); setFormat(f); }}
-              className="rounded-full py-2 text-[13px] font-extrabold transition-transform active:scale-95 stroke"
-              style={format === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}
-            >
-              {f === "online" ? "Онлайн" : "Очно"}
-            </button>
-          ))}
-        </div>
-      )}
-
       {variant === "calendar" ? (
         <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => y && setActive(y)} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} />
       ) : (
@@ -105,15 +88,15 @@ export function SlotPicker({
         ) : free.length === 0 ? (
           <p className="py-3 text-[13px] font-semibold text-[var(--muted-2)]">На этот день свободных окон нет.</p>
         ) : (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {free.map((s: Slot) => (
               <button
                 key={s.start}
-                onClick={() => { tap(); onPick(s.start, format); }}
-                className="rounded-[12px] py-2.5 text-[13px] font-extrabold transition-transform duration-150 active:scale-95 stroke"
+                onClick={() => { tap(); onPick(s.start, s.fmt); }}
+                className="flex items-center justify-center gap-1 rounded-[12px] py-2.5 text-[13px] font-extrabold transition-transform duration-150 active:scale-95 stroke"
                 style={{ background: "#fff", color: "var(--ink)" }}
               >
-                {timeF.format(new Date(s.start))}
+                <Icon name={s.fmt === "online" ? "video" : "pin"} width={12} />{timeF.format(new Date(s.start))}
               </button>
             ))}
           </div>

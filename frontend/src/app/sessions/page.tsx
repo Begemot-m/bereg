@@ -131,29 +131,23 @@ function Segmented({ value, onChange }: { value: View; onChange: (v: View) => vo
   );
 }
 
-// Быстрая запись на конкретную дату: выбор клиента + формат + свободные окна.
+// Быстрая запись на конкретную дату: выбор клиента + свободные окна (формат — из окна).
 function DayBooking({ ymd, onDone }: { ymd: string; onDone: () => void }) {
   const [clientId, setClientId] = useState<number | null>(null);
-  const [fmt, setFmt] = useState<ApptFormat>("online");
   const { data: slots = [] } = useQuery({ queryKey: ["slots", ymd, false], queryFn: () => getSlots(ymd) });
-  const book = useMutation({ mutationFn: (iso: string) => createAppointment({ clientId: clientId!, startsAt: iso, format: fmt }), onSuccess: () => { setClientId(null); onDone(); } });
+  const book = useMutation({ mutationFn: ({ iso, fmt }: { iso: string; fmt: ApptFormat }) => createAppointment({ clientId: clientId!, startsAt: iso, format: fmt }), onSuccess: () => { setClientId(null); onDone(); } });
   const free = slots.filter((s) => !s.taken);
 
   return (
     <div className="space-y-2.5">
       <ClientSelect value={clientId} onChange={setClientId} />
-      <div className="flex gap-1.5">
-        {(["online", "offline"] as ApptFormat[]).map((f) => (
-          <button key={f} onClick={() => setFmt(f)} className="flex-1 rounded-full py-1 text-[12px] font-extrabold stroke" style={fmt === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}>{f === "online" ? "Онлайн" : "Очно"}</button>
-        ))}
-      </div>
       {free.length === 0 ? (
         <p className="py-2 text-center text-[12px] font-semibold text-[var(--muted-2)]">Свободных окон на эту дату нет.</p>
       ) : (
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5">
           {free.map((s) => (
-            <button key={s.start} disabled={!clientId} onClick={() => { tap(); book.mutate(s.start); }} className="rounded-[10px] py-2 text-[12px] font-extrabold stroke disabled:opacity-40" style={{ background: clientId ? "var(--green-soft)" : "#fff", borderColor: clientId ? "var(--green-edge)" : undefined }}>
-              {timeF.format(new Date(s.start))}
+            <button key={s.start} disabled={!clientId} onClick={() => { tap(); book.mutate({ iso: s.start, fmt: s.fmt }); }} className="flex items-center justify-center gap-1 rounded-[10px] py-2 text-[12px] font-extrabold stroke disabled:opacity-40" style={{ background: clientId ? "var(--green-soft)" : "#fff", borderColor: clientId ? "var(--green-edge)" : undefined }}>
+              <Icon name={s.fmt === "online" ? "video" : "pin"} width={11} />{timeF.format(new Date(s.start))}
             </button>
           ))}
         </div>

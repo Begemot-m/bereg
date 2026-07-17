@@ -1,12 +1,13 @@
 import { apiFetch } from "@/lib/api";
 
-export type WorkSlot = { t: string; d: number };
+export type SlotFormat = "online" | "offline";
+export type WorkSlot = { t: string; d: number; fmt: SlotFormat };
 export type WorkHours = {
   hours: Record<number, WorkSlot[]>;
   sessionMinutes: number;
 };
 
-export type Slot = { start: string; taken: boolean };
+export type Slot = { start: string; taken: boolean; fmt: SlotFormat };
 
 export const getWorkHours = () => apiFetch<WorkHours>("/work-hours");
 export const saveWorkHours = (patch: Partial<WorkHours>) =>

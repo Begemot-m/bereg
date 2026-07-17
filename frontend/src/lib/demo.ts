@@ -32,8 +32,8 @@ type Homework = { id: number; clientId: number; text: string; status: HwStatus; 
 type Mood = { date: string; mood: number }; // 1..5
 type Support = { id: number; kind: string; text: string; createdAt: string };
 
-// Окно приёма: время начала + собственная длительность (мин)
-type WorkSlot = { t: string; d: number };
+// Окно приёма: время начала + длительность (мин) + формат (онлайн/очно)
+type WorkSlot = { t: string; d: number; fmt: ApptFormat };
 type WorkHours = {
   // По дням недели (0=Пн..6=Вс)
   hours: Record<number, WorkSlot[]>;
@@ -123,11 +123,13 @@ function load(): DB {
       // Страховка от неполных/старых данных.
       const s = seed();
       if (!db.work?.hours) db.work = s.work;
-      // миграция окон: старый формат — массив строк времени
+      // миграция окон: старый формат — массив строк времени; добавляем fmt
       for (const k of Object.keys(db.work.hours)) {
         const arr = db.work.hours[Number(k)] as unknown[];
         if (Array.isArray(arr) && typeof arr[0] === "string") {
-          db.work.hours[Number(k)] = (arr as unknown as string[]).map((t) => ({ t, d: db.work.sessionMinutes }));
+          db.work.hours[Number(k)] = (arr as unknown as string[]).map((t) => ({ t, d: db.work.sessionMinutes, fmt: "online" as ApptFormat }));
+        } else if (Array.isArray(arr)) {
+          db.work.hours[Number(k)] = (arr as WorkSlot[]).map((s) => ({ ...s, fmt: s.fmt ?? ("online" as ApptFormat) }));
         }
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
@@ -171,19 +173,19 @@ function withStats(db: DB, c: Client) {
 }
 
 // Вычислить свободные слоты на дату из выбранных часов минус занятые времена.
-function slotsFor(work: WorkHours, dateStr: string, takenISO: string[]): { start: string; taken: boolean }[] {
+function slotsFor(work: WorkHours, dateStr: string, takenISO: string[]): { start: string; taken: boolean; fmt: ApptFormat }[] {
   const d = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(d.getTime())) return [];
   const wd = (d.getDay() + 6) % 7;
   const slots = [...((work.hours ?? {})[wd] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
   const taken = new Set(takenISO.map((t) => new Date(t).getTime()));
   const now = Date.now();
-  const out: { start: string; taken: boolean }[] = [];
+  const out: { start: string; taken: boolean; fmt: ApptFormat }[] = [];
   for (const s of slots) {
     const [hh, mm] = s.t.split(":").map(Number);
     const t = new Date(d); t.setHours(hh, mm, 0, 0);
     if (t.getTime() < now) continue;
-    out.push({ start: t.toISOString(), taken: taken.has(t.getTime()) });
+    out.push({ start: t.toISOString(), taken: taken.has(t.getTime()), fmt: s.fmt ?? "online" });
   }
   return out;
 }

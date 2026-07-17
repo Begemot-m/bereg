@@ -75,12 +75,14 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
     const rail = railRef.current; if (!rail) return;
     const rect = rail.getBoundingClientRect();
     const others = slots.map((s) => ({ s: toMin(s.t), e: toMin(s.t) + s.d }));
-    let mins = snapMin(start + ((clientY - rect.top) / PXH) * 60);
+    // Новая сессия магнитится к ровному часу (:00)
+    let mins = Math.round((start + ((clientY - rect.top) / PXH) * 60) / 60) * 60;
     mins = clamp(resolveTouch(mins, len, others), start, end - len);
     if (overlaps(mins, len, others)) { select(); return; }
     success();
-    setSlots([...slots, { t: hhmm(mins), d: len }]);
+    setSlots([...slots, { t: hhmm(mins), d: len, fmt: "online" }]);
   };
+  const toggleFmt = (t: string) => { select(); setSlots(slots.map((s) => (s.t === t ? { ...s, fmt: s.fmt === "online" ? "offline" : "online" } : s))); };
   const removeAt = (t: string) => { select(); setSlots(slots.filter((s) => s.t !== t)); };
   const commitMove = (s: WorkSlot, dyPx: number) => {
     const others = slots.filter((x) => x.t !== s.t).map((x) => ({ s: toMin(x.t), e: toMin(x.t) + x.d }));
@@ -139,9 +141,11 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
                   key={s.t}
                   label={`${s.t}–${hhmm(toMin(s.t) + s.d)}`}
                   evening={toMin(s.t) >= 18 * 60}
+                  fmt={s.fmt}
                   top={((toMin(s.t) - start) / 60) * PXH}
                   height={(s.d / 60) * PXH - 3}
                   onRemove={() => removeAt(s.t)}
+                  onToggleFmt={() => toggleFmt(s.t)}
                   onCommit={(dy) => commitMove(s, dy)}
                 />
               ))}
@@ -164,7 +168,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 
 // Блок сам управляет своим сдвигом при драге — не перерисовывает весь редактор.
 // Дневные окна светлее + солнце, вечерние (с 18:00) темнее + луна.
-function SlotBlock({ label, evening, top, height, onRemove, onCommit }: { label: string; evening: boolean; top: number; height: number; onRemove: () => void; onCommit: (dyPx: number) => void }) {
+function SlotBlock({ label, evening, fmt, top, height, onRemove, onToggleFmt, onCommit }: { label: string; evening: boolean; fmt: "online" | "offline"; top: number; height: number; onRemove: () => void; onToggleFmt: () => void; onCommit: (dyPx: number) => void }) {
   const [dy, setDy] = useState(0);
   const drag = useRef<{ base: number; moved: boolean } | null>(null);
   const down = (e: RPointerEvent) => { e.stopPropagation(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); drag.current = { base: e.clientY, moved: false }; };
@@ -184,6 +188,16 @@ function SlotBlock({ label, evening, top, height, onRemove, onCommit }: { label:
       className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
       style={{ top: top + dy, height, background: bg, borderColor: bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
+      {/* Мини-переключатель формата: тап переключает онлайн/очно */}
+      <button
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); onToggleFmt(); }}
+        className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full stroke"
+        style={{ background: "#fff" }}
+        title={fmt === "online" ? "Онлайн" : "Очно"}
+      >
+        <Icon name={fmt === "online" ? "video" : "pin"} width={13} />
+      </button>
       {label}
       <span className="pointer-events-none absolute right-1 top-1">
         <Icon name={evening ? "moon" : "sun"} width={12} weight="fill" color={evening ? "var(--purple-edge)" : "var(--amber-edge)"} />

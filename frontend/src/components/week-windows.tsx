@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { Icon } from "@/components/icons";
 import { Disclosure } from "@/components/ui";
 import { createAppointment, listAppointments, updateAppointment, type ApptFormat } from "@/lib/appointments";
 import { listClients } from "@/lib/clients";
@@ -24,7 +25,6 @@ export function WeekWindows() {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }), []);
   const [sel, setSel] = useState(0);
   const [pick, setPick] = useState<string | null>(null);
-  const [fmt, setFmt] = useState<ApptFormat>("online");
 
   const inv = () => { qc.invalidateQueries({ queryKey: ["appointments"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); };
   const book = useMutation({ mutationFn: ({ clientId, iso, format }: { clientId: number; iso: string; format: ApptFormat }) => createAppointment({ clientId, startsAt: iso, format }), onSuccess: () => { success(); setPick(null); inv(); } });
@@ -39,7 +39,7 @@ export function WeekWindows() {
       const [hh, mm] = s.t.split(":").map(Number);
       const dt = new Date(d); dt.setHours(hh, mm, 0, 0);
       const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
-      return { t: s.t, dur: s.d, iso: dt.toISOString(), past: dt.getTime() < now, appt };
+      return { t: s.t, dur: s.d, fmt: s.fmt, iso: dt.toISOString(), past: dt.getTime() < now, appt };
     });
   };
 
@@ -105,21 +105,16 @@ export function WeekWindows() {
                   style={{ background: picking ? "var(--head)" : "var(--green-soft)", borderColor: "var(--green-edge)" }}
                 >
                   <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
-                  <span className="flex-1 text-[13px] font-bold text-[var(--muted)]">{s.past ? "прошло" : "свободно"}</span>
+                  <span className="flex flex-1 items-center gap-1 text-[13px] font-bold text-[var(--muted)]"><Icon name={s.fmt === "online" ? "video" : "pin"} width={12} />{s.past ? "прошло" : s.fmt === "online" ? "онлайн" : "очно"}</span>
                   {!s.past && <span className="text-[16px] font-bold leading-none">{picking ? "×" : "＋"}</span>}
                 </button>
                 <Disclosure open={picking}>
                   <div className="mt-1.5 rounded-[12px] p-2.5 stroke" style={{ background: "#fff" }}>
-                    <div className="mb-2 flex gap-1.5">
-                      {(["online", "offline"] as ApptFormat[]).map((f) => (
-                        <button key={f} onClick={() => { select(); setFmt(f); }} className="flex-1 rounded-full py-1 text-[12px] font-extrabold stroke" style={fmt === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}>{f === "online" ? "Онлайн" : "Очно"}</button>
-                      ))}
-                    </div>
                     <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Клиент · сначала в терапии</p>
                     <div className="no-scrollbar flex max-h-40 flex-col gap-1 overflow-y-auto">
                       <AnimatePresence>
                         {sortedClients.map((c) => (
-                          <motion.button key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={SPRING} onClick={() => book.mutate({ clientId: c.id, iso: s.iso, format: fmt })} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-left active:scale-[0.99]">
+                          <motion.button key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={SPRING} onClick={() => book.mutate({ clientId: c.id, iso: s.iso, format: s.fmt })} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-left active:scale-[0.99]">
                             <span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
                             <span className="flex-1 text-[13px] font-bold">{c.name}</span>
                             {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--green-edge)]">терапия</span>}
