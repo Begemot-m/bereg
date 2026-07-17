@@ -1,4 +1,5 @@
 import {
+  ArrowsLeftRight,
   BellRinging,
   BookOpen,
   CalendarDots,
@@ -41,7 +42,8 @@ export type IconName =
   | "sun"
   | "moon"
   | "video"
-  | "pin";
+  | "pin"
+  | "swap";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -63,6 +65,7 @@ const MAP: Record<IconName, PhIcon> = {
   moon: MoonStars,
   video: VideoCamera,
   pin: MapPin,
+  swap: ArrowsLeftRight,
 };
 
 export function Icon({

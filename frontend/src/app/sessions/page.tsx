@@ -8,6 +8,7 @@ import { useState } from "react";
 import { MonthCalendar } from "@/components/calendar";
 import { PageHead } from "@/components/blocks";
 import { ClientSelect } from "@/components/client-select";
+import { DaySlots } from "@/components/day-slots";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
@@ -106,12 +107,12 @@ function PsySessions() {
           <div>
             <MonthCalendar appts={appts} selected={calDay} onSelectDay={setCalDay} avail={avail} tone="blend" />
             {calDay ? (
-              <Card className="mt-3">
+              <div className="mt-3">
                 <p className="mb-2.5 text-[13px] font-extrabold capitalize">{dateHeader(calDay)}</p>
-                <DayBooking ymd={calDay} onDone={inv} />
-              </Card>
+                <DaySlots date={new Date(calDay + "T00:00:00")} />
+              </div>
             ) : (
-              <p className="mt-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">Выберите день в календаре — покажу свободные окна для записи.</p>
+              <p className="mt-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">Выберите день в календаре — покажу свободные окна и записи.</p>
             )}
           </div>
         )}

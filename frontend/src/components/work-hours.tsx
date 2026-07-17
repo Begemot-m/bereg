@@ -188,19 +188,18 @@ function SlotBlock({ label, evening, fmt, top, height, onRemove, onToggleFmt, on
       className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
       style={{ top: top + dy, height, background: bg, borderColor: bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
-      {/* Мини-переключатель формата: тап переключает онлайн/очно */}
+      {/* Переключатель формата: слово + стрелка, тап меняет. Онлайн — лавандовый, очно — зелёный */}
       <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onToggleFmt(); }}
-        className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full stroke"
-        style={{ background: "#fff" }}
-        title={fmt === "online" ? "Онлайн" : "Очно"}
+        className="absolute left-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase stroke"
+        style={fmt === "online" ? { background: "var(--purple-soft)", borderColor: "var(--purple-edge)", color: "var(--ink)" } : { background: "var(--green-soft)", borderColor: "var(--green-edge)", color: "var(--ink)" }}
       >
-        <Icon name={fmt === "online" ? "video" : "pin"} width={13} />
+        {fmt === "online" ? "онлайн" : "очно"}<Icon name="swap" width={9} weight="bold" />
       </button>
       {label}
-      <span className="pointer-events-none absolute right-1 top-1">
-        <Icon name={evening ? "moon" : "sun"} width={12} weight="fill" color={evening ? "var(--purple-edge)" : "var(--amber-edge)"} />
+      <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2">
+        <Icon name={evening ? "moon" : "sun"} width={13} weight="fill" color={evening ? "var(--purple-edge)" : "var(--amber-edge)"} />
       </span>
     </motion.div>
   );
