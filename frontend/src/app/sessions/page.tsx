@@ -11,13 +11,13 @@ import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
+import { WeekWindows } from "@/components/week-windows";
 import { Button, Card, Disclosure, Input, SkeletonRow } from "@/components/ui";
-import { WorkHoursEditor } from "@/components/work-hours";
-import { createAppointment, deleteAppointment, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
+import { createAppointment, deleteAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { listClients, listMyBookings, type MyBooking } from "@/lib/clients";
-import { tap } from "@/lib/haptics";
+import { select, tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
-import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
+import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
 import { cancelMyBooking, rescheduleMyBooking } from "@/lib/mybookings";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -92,7 +92,7 @@ function PsySessions() {
         </div>
 
         <Panel open={panel === "add"} title="Новая запись" onClose={() => setPanel(null)}><QuickAdd onDone={() => { setPanel(null); inv(); }} /></Panel>
-        <Panel open={panel === "hours"} title="Свободные окна" onClose={() => setPanel(null)}><WorkHoursEditor onSaved={() => setPanel(null)} /></Panel>
+        <Panel open={panel === "hours"} title="График окон" onClose={() => setPanel(null)}><WeekWindows /></Panel>
         <Panel open={showCal} title="Календарь занятости" onClose={() => setShowCal(false)}>
           <MonthCalendar appts={appts} selected={selDay} onSelectDay={setSelDay} avail={avail} tone="blend" />
         </Panel>
@@ -110,7 +110,7 @@ function PsySessions() {
                 </div>
                 <div>
                   {(byDate.get(ymd) ?? []).map((a) => <SessionRow key={a.id} a={a} onChange={inv} />)}
-                  <AddRow onOpen={() => setPanel("add")} />
+                  <QuickBookRow ymd={ymd} onDone={inv} />
                 </div>
               </div>
             ))}
@@ -149,11 +149,58 @@ function EmptyState({ onAdd, selDay }: { onAdd: () => void; selDay: string | nul
   );
 }
 
-function AddRow({ onOpen }: { onOpen: () => void }) {
+// Быстрая запись: доступные окна этой даты по графику + выбор клиента (терапия в приоритете).
+function QuickBookRow({ ymd, onDone }: { ymd: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [clientId, setClientId] = useState<number | null>(null);
+  const [fmt, setFmt] = useState<ApptFormat>("online");
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: slots = [] } = useQuery({ queryKey: ["slots", ymd, false], queryFn: () => getSlots(ymd), enabled: open });
+  const book = useMutation({ mutationFn: (iso: string) => createAppointment({ clientId: clientId!, startsAt: iso, format: fmt }), onSuccess: () => { setOpen(false); setClientId(null); onDone(); } });
+
+  const free = slots.filter((s) => !s.taken);
+  const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
+
   return (
-    <button onClick={() => { tap(); onOpen(); }} className="flex w-full items-center gap-2 py-2.5 text-left text-[13px] font-semibold text-[var(--muted-2)] transition-colors hover:text-[var(--a1)]">
-      <Icon name="plus" width={16} /> Записать
-    </button>
+    <div className="py-1.5">
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2 py-1 text-left text-[13px] font-bold text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]">
+        <Icon name="plus" width={16} /> Записать
+      </button>
+      <Disclosure open={open} zoom>
+        <div className="mt-2 rounded-[14px] p-3 stroke" style={{ background: "#fff" }}>
+          {/* Клиент */}
+          <div className="no-scrollbar mb-2.5 flex gap-1.5 overflow-x-auto pb-0.5">
+            {sorted.map((c) => {
+              const on = clientId === c.id;
+              return (
+                <button key={c.id} onClick={() => { select(); setClientId(c.id); }} className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold stroke" style={on ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: c.status === "therapy" ? "var(--green-soft)" : "#fff" }}>
+                  {c.name}{c.status === "therapy" && !on && <span className="text-[9px] font-extrabold uppercase" style={{ color: "var(--green-edge)" }}>•</span>}
+                </button>
+              );
+            })}
+          </div>
+          {/* Формат */}
+          <div className="mb-2.5 flex gap-1.5">
+            {(["online", "offline"] as ApptFormat[]).map((f) => (
+              <button key={f} onClick={() => { select(); setFmt(f); }} className="flex-1 rounded-full py-1 text-[12px] font-extrabold stroke" style={fmt === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}>{f === "online" ? "Онлайн" : "Очно"}</button>
+            ))}
+          </div>
+          {/* Окна */}
+          {free.length === 0 ? (
+            <p className="py-2 text-center text-[12px] font-semibold text-[var(--muted-2)]">Свободных окон на эту дату нет.</p>
+          ) : (
+            <div className="grid grid-cols-4 gap-1.5">
+              {free.map((s) => (
+                <button key={s.start} disabled={!clientId} onClick={() => { tap(); book.mutate(s.start); }} className="rounded-[10px] py-2 text-[12px] font-extrabold stroke disabled:opacity-40" style={{ background: clientId ? "var(--green-soft)" : "#fff", borderColor: clientId ? "var(--green-edge)" : undefined }}>
+                  {new Date(s.start).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                </button>
+              ))}
+            </div>
+          )}
+          {!clientId && <p className="mt-2 text-[11px] font-semibold text-[var(--muted-2)]">Выберите клиента, затем окно.</p>}
+        </div>
+      </Disclosure>
+    </div>
   );
 }
 
