@@ -28,8 +28,6 @@ export function displayPhoto(): string | null {
 
 // --- Онбординг и профиль психолога (localStorage, демо) ---
 
-export type AcceptFormat = "online" | "offline" | "both";
-
 export type PsyProfile = {
   name: string;
   approach: string;
@@ -39,12 +37,7 @@ export type PsyProfile = {
   topics: string[];
   photo: string | null;
   status: "review" | "approved";
-  accept: AcceptFormat;
 };
-
-export function getAccept(): AcceptFormat {
-  return getPsyProfile()?.accept ?? "both";
-}
 
 const KEY_ONBOARDED = "bereg_onboarded";
 const KEY_PROFILE = "bereg_psy_profile";
@@ -78,14 +71,13 @@ export function getPsyProfile(): PsyProfile | null {
       p.education = s ? [s] : [];
     }
     if (!Array.isArray(p.education)) p.education = [];
-    if (!p.accept) p.accept = "both";
     return p;
   } catch {
     return null;
   }
 }
 
-const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, status: "review", accept: "both" };
+const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, status: "review" };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
 export function savePsyProfile(patch: Partial<Omit<PsyProfile, "status">>) {

@@ -41,9 +41,6 @@ export function ProfileEditor() {
           </div>
           <p className="text-[12px] font-semibold text-[var(--muted)]">{nick}</p>
           {profile?.approach && <p className="mt-0.5 text-[12px] font-bold" style={{ color: "var(--stroke)" }}>{profile.approach}{profile.experienceYears ? ` · ${profile.experienceYears} лет` : ""}</p>}
-          <p className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-[var(--muted)]">
-            {(profile?.accept ?? "both") === "both" ? <><Icon name="video" width={11} /><Icon name="pin" width={11} /> онлайн и очно</> : (profile?.accept === "offline" ? <><Icon name="pin" width={11} /> только очно</> : <><Icon name="video" width={11} /> только онлайн</>)}
-          </p>
         </div>
       </div>
 

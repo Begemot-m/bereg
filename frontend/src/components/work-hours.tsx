@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { memo, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 
+import { Icon } from "@/components/icons";
 import { Button, Spinner } from "@/components/ui";
 import { select, success } from "@/lib/haptics";
 import { getWorkHours, saveWorkHours, WEEKDAYS, type WorkHours, type WorkSlot } from "@/lib/schedule";
@@ -137,6 +138,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
                 <SlotBlock
                   key={s.t}
                   label={`${s.t}–${hhmm(toMin(s.t) + s.d)}`}
+                  evening={toMin(s.t) >= 18 * 60}
                   top={((toMin(s.t) - start) / 60) * PXH}
                   height={(s.d / 60) * PXH - 3}
                   onRemove={() => removeAt(s.t)}
@@ -161,7 +163,8 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 }
 
 // Блок сам управляет своим сдвигом при драге — не перерисовывает весь редактор.
-function SlotBlock({ label, top, height, onRemove, onCommit }: { label: string; top: number; height: number; onRemove: () => void; onCommit: (dyPx: number) => void }) {
+// Дневные окна светлее + солнце, вечерние (с 18:00) темнее + луна.
+function SlotBlock({ label, evening, top, height, onRemove, onCommit }: { label: string; evening: boolean; top: number; height: number; onRemove: () => void; onCommit: (dyPx: number) => void }) {
   const [dy, setDy] = useState(0);
   const drag = useRef<{ base: number; moved: boolean } | null>(null);
   const down = (e: RPointerEvent) => { e.stopPropagation(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); drag.current = { base: e.clientY, moved: false }; };
@@ -172,14 +175,19 @@ function SlotBlock({ label, top, height, onRemove, onCommit }: { label: string; 
     if (d.moved) setDy(off);
   };
   const up = () => { const d = drag.current; drag.current = null; if (!d) return; if (!d.moved) { onRemove(); return; } onCommit(dy); setDy(0); };
+  const bg = evening ? "var(--purple)" : "var(--head)";
+  const bd = evening ? "var(--purple-edge)" : "var(--edge)";
   return (
     <motion.div
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
       className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
-      style={{ top: top + dy, height, background: "var(--head)", borderColor: "var(--edge)", color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
+      style={{ top: top + dy, height, background: bg, borderColor: bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       {label}
+      <span className="pointer-events-none absolute right-1 top-1">
+        <Icon name={evening ? "moon" : "sun"} width={12} weight="fill" color={evening ? "var(--purple-edge)" : "var(--amber-edge)"} />
+      </span>
     </motion.div>
   );
 }
@@ -228,7 +236,8 @@ const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hour
                 {list.map((s) => {
                   const top = clamp(((toMin(s.t) - from * 60) / span) * H, 0, H);
                   const h = Math.max(3, (s.d / span) * H);
-                  return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: "var(--head)", border: "1px solid var(--edge)" }} />;
+                  const ev = toMin(s.t) >= 18 * 60;
+                  return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: ev ? "var(--purple)" : "var(--head)", border: `1px solid ${ev ? "var(--purple-edge)" : "var(--edge)"}` }} />;
                 })}
               </div>
               <span className="text-[10px] font-extrabold uppercase" style={{ color: isSel ? "var(--ink)" : "var(--muted-2)" }}>{label}</span>
