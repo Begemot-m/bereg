@@ -132,6 +132,11 @@ body {
 
 @keyframes pulse-soft { 0%,100%{opacity:.5} 50%{opacity:1} }
 
+/* Ненавязчивая подсказка «листай вбок» */
+@keyframes hint-slide { 0%,100%{transform:translateX(0);opacity:.45} 50%{transform:translateX(3px);opacity:.85} }
+.hint-slide { animation: hint-slide 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .hint-slide { animation: none; opacity: .5; } }
+
 .skeleton {
   background: linear-gradient(90deg, rgba(32,28,24,.06) 25%, rgba(32,28,24,.12) 37%, rgba(32,28,24,.06) 63%);
   background-size: 400% 100%;

@@ -12,7 +12,7 @@ export function PageHead({ title, sub, right, children }: { title: string; sub?:
   return (
     <div
       className="mb-5 -mx-4 -mt-5 px-5 pb-3 pt-3 @md:mx-0 @md:mt-0 @md:px-1 @md:pt-4"
-      style={{ background: "var(--page)" }}
+      style={{ background: "var(--page)", transition: "background-color .5s ease" }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

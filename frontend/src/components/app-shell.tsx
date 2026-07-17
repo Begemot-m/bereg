@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!onboarded) return <Onboarding />;
 
   return (
-    <div data-accent={accent} className="@container min-h-[100dvh]" style={{ background: "var(--page)" }}>
+    <div data-accent={accent} className="@container min-h-[100dvh]" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>
@@ -106,9 +106,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Мобайл: верхняя панель — в цвет фона раздела, сливается с заголовком */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)" }}>
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
         <Wordmark small />
-        <Link href="/cabinet" onClick={select} className="flex h-9 w-9 items-center justify-center rounded-full stroke" style={{ background: "#fff" }}>
+        <Link href="/cabinet" onClick={select} className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "var(--head)", transition: "background-color .5s ease" }}>
           <Icon name="user" width={17} weight="regular" />
         </Link>
       </header>

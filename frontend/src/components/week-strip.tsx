@@ -24,7 +24,8 @@ export function WeekStrip({ selected, onSelect, from = -3, days = 24 }: { select
   };
 
   return (
-    <div className="no-scrollbar flex gap-1 overflow-x-auto pb-1" onScroll={onScroll} style={{ scrollSnapType: "x proximity" }}>
+    <div className="relative">
+      <div className="no-scrollbar flex gap-1 overflow-x-auto pb-1" onScroll={onScroll} style={{ scrollSnapType: "x proximity" }}>
       {list.map((d) => {
         const key = ymdLocal(d);
         const active = key === sel;
@@ -48,6 +49,12 @@ export function WeekStrip({ selected, onSelect, from = -3, days = 24 }: { select
           </button>
         );
       })}
+      </div>
+      {/* Аккуратная подсказка: края тают + еле заметный шеврон «листай» */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-5" style={{ background: "linear-gradient(to left, transparent, var(--page))" }} />
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex w-9 items-center justify-end pb-1 pr-0.5" style={{ background: "linear-gradient(to right, transparent, var(--page))" }}>
+        <span className="hint-slide text-[15px] font-bold" style={{ color: "var(--edge)" }}>›</span>
+      </div>
     </div>
   );
 }
