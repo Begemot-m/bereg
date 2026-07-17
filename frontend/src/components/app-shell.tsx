@@ -2,14 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { Onboarding } from "@/components/onboarding";
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
-import { useOnboarded } from "@/lib/profile";
+import { displayPhoto, useOnboarded } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
+
+// Круглая кнопка кабинета с аватаркой из Telegram (если есть).
+function AvatarLink({ size = 36 }: { size?: number }) {
+  const [photo, setPhoto] = useState<string | null>(null);
+  useEffect(() => setPhoto(displayPhoto()), []);
+  return (
+    <Link href="/cabinet" onClick={select} className="flex shrink-0 items-center justify-center overflow-hidden rounded-full stroke" style={{ width: size, height: size, background: "var(--head-soft)", transition: "background-color .5s ease" }}>
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <Icon name="user" width={Math.round(size * 0.48)} weight="regular" />
+      )}
+    </Link>
+  );
+}
 
 type NavItem = { href: string; label: string; icon: IconName };
 
@@ -108,9 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Мобайл: верхняя панель — в цвет фона раздела, сливается с заголовком */}
       <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
         <Wordmark small />
-        <Link href="/cabinet" onClick={select} className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "var(--head)", transition: "background-color .5s ease" }}>
-          <Icon name="user" width={17} weight="regular" />
-        </Link>
+        <AvatarLink />
       </header>
 
       {/* Контент */}
@@ -126,10 +140,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             return (
               <Link key={it.href} href={it.href} onClick={select} className="flex flex-1 items-center justify-center py-0.5">
                 <span
-                  className="flex h-11 w-11 items-center justify-center rounded-[15px] transition-transform duration-150 active:scale-90"
-                  style={active ? { background: "var(--ink)", border: "var(--bw) solid var(--stroke)" } : undefined}
+                  className="flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
+                  style={active ? { background: "var(--page)", transition: "background-color .5s ease, transform .15s" } : undefined}
                 >
-                  <Icon name={it.icon} width={22} weight="regular" color={active ? "#fff" : "var(--ink)"} />
+                  <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color="var(--ink)" />
                 </span>
               </Link>
             );

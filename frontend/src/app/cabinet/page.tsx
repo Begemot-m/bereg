@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
@@ -23,6 +24,7 @@ export default function CabinetPage() {
   const [name, setName] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [editHours, setEditHours] = useState(false);
+  const [help, setHelp] = useState(false);
   const profile = useProfile();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
 
@@ -64,18 +66,24 @@ export default function CabinetPage() {
         </div>
       </Reveal>
 
-      {/* Рабочие окна (только психолог) */}
+      {/* Расписание (только психолог) */}
       {role === "psychologist" && (
         <div className="mb-6 space-y-3">
-          <SettingRow icon="clock" title="Свободные окна" hint="Часы приёма по дням недели" open={editHours} onClick={() => { tap(); setEditHours(!editHours); }} />
+          <SettingRow icon="clock" title="Моё расписание" hint="Настроить часы работы" open={editHours} onClick={() => { tap(); setEditHours(!editHours); }} />
           <Disclosure open={editHours} zoom>
             <Card>
-              <p className="mb-3 text-[12px] text-[var(--muted)]">Это шаблон на каждую неделю: в отмеченные часы клиенты видят свободные окна и записываются. Можно менять в любой момент.</p>
+              <div className="mb-3 flex justify-end">
+                <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
+                  <Icon name="spark" width={14} /> Как настроить?
+                </button>
+              </div>
               <WorkHoursEditor onSaved={() => setEditHours(false)} />
             </Card>
           </Disclosure>
         </div>
       )}
+
+      {help && <HelpModal onClose={() => setHelp(false)} />}
 
       {/* Роль */}
       <div className="mb-6">
@@ -180,6 +188,45 @@ function ToggleRow({ label, defaultOn }: { label: string; defaultOn?: boolean })
         />
       </span>
     </button>
+  );
+}
+
+const HELP_STEPS: { t: string; d: string }[] = [
+  { t: "Задайте интервал работы", d: "Вверху выберите «с» и «до» — границы дня, внутри которых ставите окна." },
+  { t: "Выберите длину сессии", d: "Ползунком по минутам. Она задаёт размер новых окон и не меняет уже поставленные." },
+  { t: "Поставьте окно", d: "Тапните по времени на графике дня — появится блок нужной длины. Он магнитом прилипает к ровному часу, иначе шаг 10 минут." },
+  { t: "Двигайте и удаляйте", d: "Потяните блок вверх/вниз, чтобы сдвинуть время. Тап по блоку — удалить его." },
+  { t: "Скопируйте на другие дни", d: "«На будни» повторит текущий день на Пн–Пт, «На все дни» — на всю неделю. Потом можно поправить каждый день вручную." },
+  { t: "Сохраните", d: "Нажмите «Сохранить». В эти окна клиенты видят свободное время и записываются к вам." },
+];
+
+function HelpModal({ onClose }: { onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-50 flex items-end justify-center p-3 @md:items-center" style={{ background: "rgba(32,28,24,.4)", backdropFilter: "blur(2px)" }}>
+        <motion.div initial={{ y: 30, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[82vh] w-full max-w-md overflow-y-auto p-5" style={{ background: "var(--surface)" }}>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-tight text-[20px] font-extrabold">Как настроить расписание</h3>
+              <p className="mt-0.5 text-[12px] font-semibold text-[var(--muted)]">Шесть шагов — и график готов</p>
+            </div>
+            <button onClick={onClose} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full stroke text-[15px] font-bold" style={{ background: "#fff" }}>✕</button>
+          </div>
+          <ol className="space-y-2.5">
+            {HELP_STEPS.map((s, i) => (
+              <li key={i} className="flex gap-3 rounded-[14px] p-3 stroke" style={{ background: "#fff" }}>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full stroke text-[13px] font-black" style={{ background: "var(--head)" }}>{i + 1}</span>
+                <span className="min-w-0">
+                  <p className="text-[14px] font-extrabold leading-tight">{s.t}</p>
+                  <p className="mt-0.5 text-[12.5px] leading-snug text-[var(--muted)]">{s.d}</p>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <Button className="mt-4 w-full" onClick={onClose}>Понятно</Button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
