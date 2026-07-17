@@ -5,20 +5,28 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
+import { Icon } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
 import { Badge, Button, Card, Disclosure } from "@/components/ui";
 import { select, success } from "@/lib/haptics";
 import { bookSlot } from "@/lib/mybookings";
+import type { ApptFormat } from "@/lib/appointments";
+import type { AcceptFormat } from "@/lib/profile";
 
-type Psy = { id: number; name: string; method: string; topics: string[]; price: number; rating: number; pro: boolean };
+type Psy = { id: number; name: string; method: string; topics: string[]; price: number; rating: number; pro: boolean; accept: AcceptFormat };
 
 const PSYS: Psy[] = [
-  { id: 1, name: "Ирина Верещагина", method: "КПТ", topics: ["тревога", "границы"], price: 3500, rating: 4.9, pro: true },
-  { id: 2, name: "Сергей Домбровский", method: "ACT", topics: ["выгорание", "самооценка"], price: 4000, rating: 4.8, pro: true },
-  { id: 3, name: "Наталья Юсупова", method: "Гештальт", topics: ["отношения", "утрата"], price: 3000, rating: 4.7, pro: false },
-  { id: 4, name: "Артём Белов", method: "Схема-терапия", topics: ["травма", "тревога"], price: 4500, rating: 4.9, pro: false },
+  { id: 1, name: "Ирина Верещагина", method: "КПТ", topics: ["тревога", "границы"], price: 3500, rating: 4.9, pro: true, accept: "both" },
+  { id: 2, name: "Сергей Домбровский", method: "ACT", topics: ["выгорание", "самооценка"], price: 4000, rating: 4.8, pro: true, accept: "online" },
+  { id: 3, name: "Наталья Юсупова", method: "Гештальт", topics: ["отношения", "утрата"], price: 3000, rating: 4.7, pro: false, accept: "offline" },
+  { id: 4, name: "Артём Белов", method: "Схема-терапия", topics: ["травма", "тревога"], price: 4500, rating: 4.9, pro: false, accept: "both" },
 ];
+
+function AcceptLabel({ accept }: { accept: AcceptFormat }) {
+  if (accept === "both") return <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--muted)]"><Icon name="video" width={12} /><Icon name="pin" width={12} /> онлайн и очно</span>;
+  return <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--muted)]"><Icon name={accept === "online" ? "video" : "pin"} width={12} /> {accept === "online" ? "только онлайн" : "только очно"}</span>;
+}
 const FILTERS = ["Все", "тревога", "выгорание", "отношения", "самооценка"];
 
 export default function CatalogPage() {
@@ -47,6 +55,7 @@ export default function CatalogPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2"><p className="truncate font-extrabold">{p.name}</p>{p.pro && <Badge tone="accent">TOP</Badge>}</div>
                   <p className="mt-0.5 text-[13px] font-semibold text-[var(--muted)]">{p.method} · ★ {p.rating}</p>
+                  <div className="mt-1"><AcceptLabel accept={p.accept} /></div>
                   <div className="mt-2 flex flex-wrap gap-1">{p.topics.map((t) => <span key={t} className="rounded-full px-2 py-0.5 text-[11px] font-bold stroke" style={{ background: "#fff" }}>{t}</span>)}</div>
                 </div>
               </div>
@@ -57,7 +66,7 @@ export default function CatalogPage() {
                 </Button>
               </div>
               <Disclosure open={openId === p.id}>
-                <div className="pt-4"><BookFlow psyName={p.name} onDone={() => setOpenId(null)} /></div>
+                <div className="pt-4"><BookFlow psyName={p.name} accept={p.accept} onDone={() => setOpenId(null)} /></div>
               </Disclosure>
             </Card>
           </StaggerItem>
@@ -67,7 +76,7 @@ export default function CatalogPage() {
   );
 }
 
-function BookFlow({ psyName, onDone }: { psyName: string; onDone: () => void }) {
+function BookFlow({ psyName, accept, onDone }: { psyName: string; accept: AcceptFormat; onDone: () => void }) {
   const qc = useQueryClient();
   const [done, setDone] = useState<{ at: string; format: string } | null>(null);
   const book = useMutation({
@@ -91,7 +100,7 @@ function BookFlow({ psyName, onDone }: { psyName: string; onDone: () => void }) 
   return (
     <>
       <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Формат, день и окно</p>
-      <SlotPicker forClient variant="calendar" showAvail withFormat onPick={(iso, format) => book.mutate({ iso, format })} />
+      <SlotPicker forClient variant="calendar" showAvail withFormat lockFormat={accept === "both" ? undefined : (accept as ApptFormat)} onPick={(iso, format) => book.mutate({ iso, format })} />
     </>
   );
 }

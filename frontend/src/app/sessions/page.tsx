@@ -8,7 +8,7 @@ import { useState } from "react";
 import { MonthCalendar } from "@/components/calendar";
 import { PageHead } from "@/components/blocks";
 import { ClientSelect } from "@/components/client-select";
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
@@ -16,7 +16,8 @@ import { WeekWindows } from "@/components/week-windows";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, deleteAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { listMyBookings, type MyBooking } from "@/lib/clients";
-import { tap } from "@/lib/haptics";
+import { select, tap } from "@/lib/haptics";
+import { savePsyProfile, useProfile, type AcceptFormat } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
 import { cancelMyBooking, rescheduleMyBooking } from "@/lib/mybookings";
@@ -78,6 +79,7 @@ function PsySessions() {
       </Reveal>
 
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw) solid var(--edge-neutral)" }}>
+        <AcceptSwitch />
         <Segmented value={view} onChange={(v) => { tap(); setView(v); }} />
 
         {view === "soon" && (
@@ -120,6 +122,28 @@ function PsySessions() {
   );
 }
 
+// Мини-рубильник: онлайн / очно / оба — что психолог принимает.
+function AcceptSwitch() {
+  const accept = useProfile()?.accept ?? "both";
+  const opts: { v: AcceptFormat; label: string; icon: IconName }[] = [
+    { v: "online", label: "Онлайн", icon: "video" },
+    { v: "offline", label: "Очно", icon: "pin" },
+    { v: "both", label: "Оба", icon: "check" },
+  ];
+  return (
+    <div className="mb-3 flex items-center gap-1.5 rounded-full p-1 stroke" style={{ background: "#fff" }}>
+      <span className="pl-2 text-[10px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Приём</span>
+      <div className="flex flex-1 gap-1">
+        {opts.map((o) => (
+          <button key={o.v} onClick={() => { select(); savePsyProfile({ accept: o.v }); }} className="flex flex-1 items-center justify-center gap-1 rounded-full py-1.5 text-[12px] font-extrabold transition-colors" style={accept === o.v ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>
+            <Icon name={o.icon} width={12} color={accept === o.v ? "#fff" : undefined} />{o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Segmented({ value, onChange }: { value: View; onChange: (v: View) => void }) {
   const opts: { v: View; label: string }[] = [{ v: "soon", label: "Ближайшие" }, { v: "week", label: "Неделя" }, { v: "cal", label: "Календарь" }];
   return (
@@ -133,20 +157,26 @@ function Segmented({ value, onChange }: { value: View; onChange: (v: View) => vo
 
 // Быстрая запись на конкретную дату: выбор клиента + формат + свободные окна.
 function DayBooking({ ymd, onDone }: { ymd: string; onDone: () => void }) {
+  const accept = useProfile()?.accept ?? "both";
   const [clientId, setClientId] = useState<number | null>(null);
   const [fmt, setFmt] = useState<ApptFormat>("online");
+  const effFmt: ApptFormat = accept === "both" ? fmt : (accept as ApptFormat);
   const { data: slots = [] } = useQuery({ queryKey: ["slots", ymd, false], queryFn: () => getSlots(ymd) });
-  const book = useMutation({ mutationFn: (iso: string) => createAppointment({ clientId: clientId!, startsAt: iso, format: fmt }), onSuccess: () => { setClientId(null); onDone(); } });
+  const book = useMutation({ mutationFn: (iso: string) => createAppointment({ clientId: clientId!, startsAt: iso, format: effFmt }), onSuccess: () => { setClientId(null); onDone(); } });
   const free = slots.filter((s) => !s.taken);
 
   return (
     <div className="space-y-2.5">
       <ClientSelect value={clientId} onChange={setClientId} />
-      <div className="flex gap-1.5">
-        {(["online", "offline"] as ApptFormat[]).map((f) => (
-          <button key={f} onClick={() => setFmt(f)} className="flex-1 rounded-full py-1 text-[12px] font-extrabold stroke" style={fmt === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}>{f === "online" ? "Онлайн" : "Очно"}</button>
-        ))}
-      </div>
+      {accept === "both" ? (
+        <div className="flex gap-1.5">
+          {(["online", "offline"] as ApptFormat[]).map((f) => (
+            <button key={f} onClick={() => setFmt(f)} className="flex flex-1 items-center justify-center gap-1 rounded-full py-1 text-[12px] font-extrabold stroke" style={fmt === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}><Icon name={f === "online" ? "video" : "pin"} width={12} color={fmt === f ? "#fff" : undefined} />{f === "online" ? "Онлайн" : "Очно"}</button>
+          ))}
+        </div>
+      ) : (
+        <p className="flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name={accept === "online" ? "video" : "pin"} width={13} /> Приём только {accept === "online" ? "онлайн" : "очно"}</p>
+      )}
       {free.length === 0 ? (
         <p className="py-2 text-center text-[12px] font-semibold text-[var(--muted-2)]">Свободных окон на эту дату нет.</p>
       ) : (
@@ -214,7 +244,7 @@ function SessionRow({ a, onChange }: { a: Appointment; onChange: () => void }) {
         </button>
         <button onClick={() => { tap(); setOpen(!open); }} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <span className={`min-w-0 flex-1 truncate text-[14px] font-semibold ${done || cancelled ? "text-[var(--muted-2)] line-through" : ""}`}>{a.client.name}</span>
-          <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: a.format === "online" ? "var(--head-soft)" : "#fff", color: "var(--muted)" }}>{a.format === "online" ? "онлайн" : "очно"}</span>
+          <span className="flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: a.format === "online" ? "var(--head-soft)" : "#fff", color: "var(--muted)" }}><Icon name={a.format === "online" ? "video" : "pin"} width={10} />{a.format === "online" ? "онлайн" : "очно"}</span>
           <span className="shrink-0 rounded-md px-2 py-0.5 text-[12px] font-bold stroke" style={{ background: "#fff", color: cancelled ? "var(--muted-2)" : "var(--ink)" }}>{timeF.format(d)}</span>
           <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="shrink-0 text-[var(--muted-2)]">›</motion.span>
         </button>
@@ -288,7 +318,7 @@ function MyRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-bold">{b.psyName}</span>
-          <span className="block text-[12px] text-[var(--muted)]">{timeF.format(d)} · {b.format === "online" ? "онлайн" : "очно"} {past && "· прошла"}</span>
+          <span className="flex items-center gap-1 text-[12px] text-[var(--muted)]">{timeF.format(d)} · <Icon name={b.format === "online" ? "video" : "pin"} width={11} />{b.format === "online" ? "онлайн" : "очно"} {past && "· прошла"}</span>
         </span>
         {!past && <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="text-[var(--muted-2)]">›</motion.span>}
       </button>

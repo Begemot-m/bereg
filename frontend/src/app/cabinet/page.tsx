@@ -66,19 +66,26 @@ export default function CabinetPage() {
         </div>
       </Reveal>
 
-      {/* Расписание (только психолог) — разворачивается вниз */}
+      {/* Расписание (только психолог) — единый блок, разворачивается вниз */}
       {role === "psychologist" && (
-        <div className="mb-6 space-y-3">
-          <SettingRow icon="clock" title="Моё расписание" hint="Настроить часы работы" open={editHours} onClick={() => { tap(); setEditHours(!editHours); }} />
-          <Disclosure open={editHours} zoom>
-            <Card>
-              <div className="mb-3 flex justify-end">
+        <div className="chunk mb-6 overflow-hidden">
+          <button onClick={() => { tap(); setEditHours(!editHours); }} className="flex w-full items-center gap-3 p-4 text-left">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl stroke" style={{ background: "var(--head-soft)" }}><Icon name="clock" width={18} /></span>
+            <span className="flex-1">
+              <span className="block text-[14px] font-bold">Моё расписание</span>
+              <span className="block text-[12px] text-[var(--muted)]">Настроить часы работы</span>
+            </span>
+            <span className="text-[var(--muted-2)] transition-transform duration-300" style={{ transform: editHours ? "rotate(90deg)" : "none" }}>›</span>
+          </button>
+          <Disclosure open={editHours}>
+            <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
+              <div className="mb-3 flex justify-start">
                 <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
                   <Icon name="spark" width={14} /> Как настроить?
                 </button>
               </div>
               <WorkHoursEditor onSaved={() => setEditHours(false)} />
-            </Card>
+            </div>
           </Disclosure>
         </div>
       )}
@@ -158,21 +165,6 @@ export default function CabinetPage() {
         </div>
       </Reveal>
     </div>
-  );
-}
-
-function SettingRow({ icon, title, hint, open, onClick }: { icon: "note" | "clock"; title: string; hint: string; open: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3.5 text-left transition-[transform,box-shadow] duration-200 active:scale-[0.99]" style={{ boxShadow: "var(--shadow)" }}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--a-tint)" }}>
-        <Icon name={icon} width={18} color="var(--a1)" />
-      </span>
-      <span className="flex-1">
-        <span className="block text-[14px] font-bold">{title}</span>
-        <span className="block text-[12px] text-[var(--muted)]">{hint}</span>
-      </span>
-      <span className="text-[var(--muted-2)] transition-transform duration-300" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
-    </button>
   );
 }
 

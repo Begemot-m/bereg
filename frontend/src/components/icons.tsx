@@ -8,12 +8,16 @@ import {
   Compass,
   Heart,
   House,
+  MoonStars,
   NotePencil,
   Plus,
   Sparkle,
   SquaresFour,
+  Sun,
   User,
   UsersThree,
+  VideoCamera,
+  MapPin,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -33,7 +37,11 @@ export type IconName =
   | "bell"
   | "clock"
   | "check"
-  | "note";
+  | "note"
+  | "sun"
+  | "moon"
+  | "video"
+  | "pin";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -51,6 +59,10 @@ const MAP: Record<IconName, PhIcon> = {
   clock: Clock,
   check: CheckCircle,
   note: NotePencil,
+  sun: Sun,
+  moon: MoonStars,
+  video: VideoCamera,
+  pin: MapPin,
 };
 
 export function Icon({

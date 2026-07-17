@@ -5,11 +5,13 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { Icon } from "@/components/icons";
 import { Disclosure } from "@/components/ui";
 import { createAppointment, listAppointments, updateAppointment, type ApptFormat } from "@/lib/appointments";
 import { listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
-import { getWorkHours, ymdLocal, WEEKDAYS } from "@/lib/schedule";
+import { useProfile } from "@/lib/profile";
+import { getWorkHours, WEEKDAYS } from "@/lib/schedule";
 
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const SPRING = { type: "spring" as const, stiffness: 460, damping: 26 };
@@ -21,13 +23,14 @@ export function WeekWindows() {
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
 
+  const accept = useProfile()?.accept ?? "both";
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }), []);
   const [sel, setSel] = useState(0);
   const [pick, setPick] = useState<string | null>(null);
   const [fmt, setFmt] = useState<ApptFormat>("online");
 
   const inv = () => { qc.invalidateQueries({ queryKey: ["appointments"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); };
-  const book = useMutation({ mutationFn: ({ clientId, iso }: { clientId: number; iso: string }) => createAppointment({ clientId, startsAt: iso, format: fmt }), onSuccess: () => { success(); setPick(null); inv(); } });
+  const book = useMutation({ mutationFn: ({ clientId, iso, format }: { clientId: number; iso: string; format: ApptFormat }) => createAppointment({ clientId, startsAt: iso, format }), onSuccess: () => { success(); setPick(null); inv(); } });
   const cancel = useMutation({ mutationFn: (id: number) => updateAppointment(id, { status: "cancelled" }), onSuccess: () => { select(); inv(); } });
 
   const sortedClients = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
@@ -71,7 +74,7 @@ export function WeekWindows() {
               <span className="text-[15px] font-extrabold leading-none">{d.getDate()}</span>
               <span className="flex gap-0.5">
                 {free > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--green)", border: "1px solid var(--green-edge)" }} />}
-                {busy > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--salmon)", border: "1px solid var(--salmon-edge)" }} />}
+                {busy > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--purple)", border: "1px solid var(--purple-edge)" }} />}
                 {free + busy === 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge-neutral)" }} />}
               </span>
             </button>
@@ -86,40 +89,51 @@ export function WeekWindows() {
         <div className="space-y-1.5">
           {curSlots.map((s) => {
             const picking = pick === s.iso;
+            const evening = new Date(s.iso).getHours() >= 18;
+            const dayIcon = <Icon name={evening ? "moon" : "sun"} width={15} weight="fill" color={evening ? "var(--purple-edge)" : "var(--amber-edge)"} />;
             if (s.appt) {
               return (
-                <div key={s.iso} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "var(--salmon-soft)", borderColor: "var(--salmon-edge)" }}>
+                <div key={s.iso} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: evening ? "var(--purple)" : "var(--purple-soft)", borderColor: "var(--purple-edge)" }}>
                   <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
                   <span className="min-w-0 flex-1 truncate text-[13px] font-bold">{s.appt.client.name}</span>
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: "#fff" }}>{s.appt.format === "online" ? "онлайн" : "очно"}</span>
+                  <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: "#fff" }}>
+                    <Icon name={s.appt.format === "online" ? "video" : "pin"} width={11} />{s.appt.format === "online" ? "онлайн" : "очно"}
+                  </span>
+                  {dayIcon}
                   <button onClick={() => cancel.mutate(s.appt!.id)} className="rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff" }}>Отменить</button>
                 </div>
               );
             }
+            const effFmt: ApptFormat = accept === "both" ? fmt : (accept as ApptFormat);
             return (
               <div key={s.iso}>
                 <button
                   disabled={s.past}
                   onClick={() => { tap(); setPick(picking ? null : s.iso); }}
                   className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left stroke disabled:opacity-45"
-                  style={{ background: picking ? "var(--head)" : "var(--green-soft)", borderColor: "var(--green-edge)" }}
+                  style={{ background: picking ? "var(--head)" : evening ? "var(--green)" : "var(--green-soft)", borderColor: "var(--green-edge)" }}
                 >
                   <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
                   <span className="flex-1 text-[13px] font-bold text-[var(--muted)]">{s.past ? "прошло" : "свободно"}</span>
+                  {dayIcon}
                   {!s.past && <span className="text-[16px] font-bold leading-none">{picking ? "×" : "＋"}</span>}
                 </button>
                 <Disclosure open={picking}>
                   <div className="mt-1.5 rounded-[12px] p-2.5 stroke" style={{ background: "#fff" }}>
-                    <div className="mb-2 flex gap-1.5">
-                      {(["online", "offline"] as ApptFormat[]).map((f) => (
-                        <button key={f} onClick={() => { select(); setFmt(f); }} className="flex-1 rounded-full py-1 text-[12px] font-extrabold stroke" style={fmt === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}>{f === "online" ? "Онлайн" : "Очно"}</button>
-                      ))}
-                    </div>
+                    {accept === "both" ? (
+                      <div className="mb-2 flex gap-1.5">
+                        {(["online", "offline"] as ApptFormat[]).map((f) => (
+                          <button key={f} onClick={() => { select(); setFmt(f); }} className="flex flex-1 items-center justify-center gap-1 rounded-full py-1 text-[12px] font-extrabold stroke" style={fmt === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}><Icon name={f === "online" ? "video" : "pin"} width={12} color={fmt === f ? "#fff" : undefined} />{f === "online" ? "Онлайн" : "Очно"}</button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mb-2 flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name={accept === "online" ? "video" : "pin"} width={13} /> Приём только {accept === "online" ? "онлайн" : "очно"}</p>
+                    )}
                     <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Клиент · сначала в терапии</p>
                     <div className="no-scrollbar flex max-h-40 flex-col gap-1 overflow-y-auto">
                       <AnimatePresence>
                         {sortedClients.map((c) => (
-                          <motion.button key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={SPRING} onClick={() => book.mutate({ clientId: c.id, iso: s.iso })} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-left active:scale-[0.99]">
+                          <motion.button key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={SPRING} onClick={() => book.mutate({ clientId: c.id, iso: s.iso, format: effFmt })} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-left active:scale-[0.99]">
                             <span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
                             <span className="flex-1 text-[13px] font-bold">{c.name}</span>
                             {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--green-edge)]">терапия</span>}

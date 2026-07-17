@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
+import { Icon } from "@/components/icons";
 import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
@@ -19,6 +20,7 @@ export function SlotPicker({
   variant = "strip",
   showAvail = false,
   withFormat = false,
+  lockFormat,
   onPick,
 }: {
   forClient?: boolean;
@@ -26,6 +28,7 @@ export function SlotPicker({
   variant?: "strip" | "calendar";
   showAvail?: boolean;
   withFormat?: boolean;
+  lockFormat?: ApptFormat;
   onPick: (iso: string, format: ApptFormat) => void;
 }) {
   const days = useMemo(() => {
@@ -39,7 +42,8 @@ export function SlotPicker({
   }, [daysAhead]);
 
   const [active, setActive] = useState(() => ymdLocal(days[0]));
-  const [format, setFormat] = useState<ApptFormat>("online");
+  const [format, setFormat] = useState<ApptFormat>(lockFormat ?? "online");
+  const effFormat = lockFormat ?? format;
 
   const { data: slots = [], isLoading } = useQuery({
     queryKey: ["slots", active, forClient],
@@ -56,7 +60,7 @@ export function SlotPicker({
 
   return (
     <div>
-      {withFormat && (
+      {withFormat && !lockFormat && (
         <div className="mb-3 grid grid-cols-2 gap-2">
           {(["online", "offline"] as ApptFormat[]).map((f) => (
             <button
@@ -69,6 +73,9 @@ export function SlotPicker({
             </button>
           ))}
         </div>
+      )}
+      {withFormat && lockFormat && (
+        <p className="mb-3 flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name={lockFormat === "online" ? "video" : "pin"} width={13} /> Приём только {lockFormat === "online" ? "онлайн" : "очно"}</p>
       )}
 
       {variant === "calendar" ? (
@@ -109,7 +116,7 @@ export function SlotPicker({
             {free.map((s: Slot) => (
               <button
                 key={s.start}
-                onClick={() => { tap(); onPick(s.start, format); }}
+                onClick={() => { tap(); onPick(s.start, effFormat); }}
                 className="rounded-[12px] py-2.5 text-[13px] font-extrabold transition-transform duration-150 active:scale-95 stroke"
                 style={{ background: "#fff", color: "var(--ink)" }}
               >
