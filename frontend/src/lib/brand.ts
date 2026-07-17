@@ -1,4 +1,4 @@
 // Название платформы — меняется в одну строку.
-export const APP_NAME = "Тепло";
+export const APP_NAME = "Лад";
 export const CENTER = "Амур и Психея";
-export const TAGLINE = "Пространство, где о вас заботятся";
+export const TAGLINE = "Каждый день — в ладу с собой";

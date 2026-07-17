@@ -55,5 +55,5 @@ export const updateHomework = (id: number, patch: Partial<Pick<Homework, "text" 
 
 export const listMoods = (clientId: number) => apiFetch<Mood[]>(`/clients/${clientId}/moods`);
 
-export type MyBooking = { id: number; psyName: string; startsAt: string; durationMin: number };
+export type MyBooking = { id: number; psyName: string; startsAt: string; durationMin: number; format: "online" | "offline" };
 export const listMyBookings = () => apiFetch<MyBooking[]>("/my/appointments");

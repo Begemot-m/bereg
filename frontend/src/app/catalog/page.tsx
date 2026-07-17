@@ -69,18 +69,18 @@ export default function CatalogPage() {
 
 function BookFlow({ psyName, onDone }: { psyName: string; onDone: () => void }) {
   const qc = useQueryClient();
-  const [done, setDone] = useState<string | null>(null);
+  const [done, setDone] = useState<{ at: string; format: string } | null>(null);
   const book = useMutation({
-    mutationFn: (iso: string) => bookSlot(psyName, iso),
-    onSuccess: (b) => { success(); setDone(b.startsAt); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); },
+    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psyName, iso, format),
+    onSuccess: (b) => { success(); setDone({ at: b.startsAt, format: b.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); },
   });
 
   if (done) {
-    const d = new Date(done);
+    const d = new Date(done.at);
     return (
-      <div className="rounded-2xl p-4 text-center fill-sage">
-        <p className="text-[14px] font-bold text-white">Вы записаны к {psyName}</p>
-        <p className="mt-0.5 text-[12px] text-white/80">{d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</p>
+      <div className="chunk fill-green p-4 text-center">
+        <p className="text-[14px] font-extrabold">Вы записаны к {psyName}</p>
+        <p className="mt-0.5 text-[12px] font-semibold" style={{ color: "rgba(32,28,24,.68)" }}>{d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {done.format === "online" ? "онлайн" : "очно"}</p>
         <div className="mt-3 flex justify-center gap-2">
           <Link href="/sessions"><Button size="sm" variant="soft">Мои сессии</Button></Link>
           <Button size="sm" variant="ghost" onClick={onDone}>Готово</Button>
@@ -90,8 +90,8 @@ function BookFlow({ psyName, onDone }: { psyName: string; onDone: () => void }) 
   }
   return (
     <>
-      <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Выберите день и окно</p>
-      <SlotPicker forClient variant="calendar" showAvail onPick={(iso) => book.mutate(iso)} />
+      <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Формат, день и окно</p>
+      <SlotPicker forClient variant="calendar" showAvail withFormat onPick={(iso, format) => book.mutate({ iso, format })} />
     </>
   );
 }

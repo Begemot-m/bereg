@@ -16,6 +16,7 @@ type Client = {
   updatedAt: string;
 };
 
+type ApptFormat = "online" | "offline";
 type Appointment = {
   id: number;
   clientId: number;
@@ -23,6 +24,7 @@ type Appointment = {
   durationMin: number;
   status: "scheduled" | "done" | "cancelled";
   note: string;
+  format: ApptFormat;
   client: { id: number; name: string };
 };
 
@@ -42,7 +44,7 @@ type DB = {
   appts: Appointment[];
   homework: Homework[];
   moods: Record<number, Mood[]>;
-  myBookings: { id: number; psyName: string; startsAt: string; durationMin: number }[];
+  myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
   work: WorkHours;
   support: Support[];
   sub: {
@@ -53,7 +55,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v4";
+const KEY = "psy_demo_db_v5";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -78,12 +80,12 @@ function seed(): DB {
     { id: 4, name: "Пётр Ланской", contact: "@plansky", note: "Пауза до осени по его инициативе.", status: "paused", createdAt: now, updatedAt: now },
   ];
   const appts: Appointment[] = [
-    { id: 11, clientId: 1, startsAt: iso(0, 18, 0), durationMin: 60, status: "scheduled", note: "", client: { id: 1, name: "Марина Соколова" } },
-    { id: 12, clientId: 3, startsAt: iso(1, 11, 30), durationMin: 50, status: "scheduled", note: "", client: { id: 3, name: "Алёна Ким" } },
-    { id: 13, clientId: 1, startsAt: iso(-7, 18, 0), durationMin: 60, status: "done", note: "", client: { id: 1, name: "Марина Соколова" } },
-    { id: 14, clientId: 1, startsAt: iso(-14, 18, 0), durationMin: 60, status: "done", note: "", client: { id: 1, name: "Марина Соколова" } },
-    { id: 15, clientId: 3, startsAt: iso(-6, 11, 30), durationMin: 50, status: "done", note: "", client: { id: 3, name: "Алёна Ким" } },
-    { id: 16, clientId: 2, startsAt: iso(3, 13, 0), durationMin: 60, status: "scheduled", note: "", client: { id: 2, name: "Дмитрий Орлов" } },
+    { id: 11, clientId: 1, startsAt: iso(0, 18, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
+    { id: 12, clientId: 3, startsAt: iso(1, 11, 30), durationMin: 50, status: "scheduled", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
+    { id: 13, clientId: 1, startsAt: iso(-7, 18, 0), durationMin: 60, status: "done", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
+    { id: 14, clientId: 1, startsAt: iso(-14, 18, 0), durationMin: 60, status: "done", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
+    { id: 15, clientId: 3, startsAt: iso(-6, 11, 30), durationMin: 50, status: "done", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
+    { id: 16, clientId: 2, startsAt: iso(3, 13, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 2, name: "Дмитрий Орлов" } },
   ];
   const homework: Homework[] = [
     { id: 51, clientId: 1, text: "Дневник тревоги: 3 записи за неделю.", status: "done", sentAt: iso(-6, 19, 0) },
@@ -100,7 +102,7 @@ function seed(): DB {
     appts,
     homework,
     moods,
-    myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60 }],
+    myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60, format: "online" }],
     work: {
       hours: {
         0: ["10:00", "11:00", "15:00", "16:00", "17:00"],
@@ -290,9 +292,10 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       id: ++db.seq,
       clientId: cl.id,
       startsAt: new Date(String(body.startsAt)).toISOString(),
-      durationMin: Number(body.durationMin ?? 60),
+      durationMin: Number(body.durationMin ?? db.work.sessionMinutes ?? 60),
       status: "scheduled",
       note: "",
+      format: (body.format as ApptFormat) ?? "online",
       client: { id: cl.id, name: cl.name },
     };
     db.appts.push(a);
@@ -361,7 +364,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     return delay([...db.myBookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)) as T);
   }
   if (clean === "/my/appointments" && method === "POST") {
-    const b = { id: ++db.seq, psyName: String(body.psyName ?? "Специалист"), startsAt: new Date(String(body.startsAt)).toISOString(), durationMin: Number(body.durationMin ?? db.work.sessionMinutes) };
+    const b = { id: ++db.seq, psyName: String(body.psyName ?? "Специалист"), startsAt: new Date(String(body.startsAt)).toISOString(), durationMin: Number(body.durationMin ?? db.work.sessionMinutes), format: (body.format as ApptFormat) ?? "online" };
     db.myBookings.push(b);
     save(db);
     return delay(b as T);

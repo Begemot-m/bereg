@@ -7,23 +7,26 @@ import { MonthCalendar } from "@/components/calendar";
 import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
+import type { ApptFormat } from "@/lib/appointments";
 
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const monShort = new Intl.DateTimeFormat("ru-RU", { month: "short" });
 
-// Лента ближайших дней (или мини-календарик) + сетка свободных времён.
+// Лента дней (или мини-календарик) + сетка свободных времён + выбор формата.
 export function SlotPicker({
   forClient = false,
   daysAhead = 21,
   variant = "strip",
   showAvail = false,
+  withFormat = false,
   onPick,
 }: {
   forClient?: boolean;
   daysAhead?: number;
   variant?: "strip" | "calendar";
   showAvail?: boolean;
-  onPick: (iso: string) => void;
+  withFormat?: boolean;
+  onPick: (iso: string, format: ApptFormat) => void;
 }) {
   const days = useMemo(() => {
     const base = new Date();
@@ -36,6 +39,7 @@ export function SlotPicker({
   }, [daysAhead]);
 
   const [active, setActive] = useState(() => ymdLocal(days[0]));
+  const [format, setFormat] = useState<ApptFormat>("online");
 
   const { data: slots = [], isLoading } = useQuery({
     queryKey: ["slots", active, forClient],
@@ -52,8 +56,23 @@ export function SlotPicker({
 
   return (
     <div>
+      {withFormat && (
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          {(["online", "offline"] as ApptFormat[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => { select(); setFormat(f); }}
+              className="rounded-full py-2 text-[13px] font-extrabold transition-transform active:scale-95 stroke"
+              style={format === f ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}
+            >
+              {f === "online" ? "Онлайн" : "Очно"}
+            </button>
+          ))}
+        </div>
+      )}
+
       {variant === "calendar" ? (
-        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => y && setActive(y)} avail={showAvail ? avail : undefined} />
+        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => y && setActive(y)} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} />
       ) : (
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((d) => {
@@ -65,8 +84,8 @@ export function SlotPicker({
               <button
                 key={key}
                 onClick={() => { select(); setActive(key); }}
-                className="flex h-[68px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[16px] transition-transform duration-150 active:scale-95"
-                style={isActive ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--stroke)" } : { background: "#fff", color: "var(--ink)", border: "var(--bw) solid var(--stroke)" }}
+                className="flex h-[68px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[16px] transition-transform duration-150 active:scale-95 stroke"
+                style={isActive ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--ink)" }}
               >
                 <span className={`text-[10px] font-extrabold uppercase ${isActive ? "opacity-90" : "text-[var(--muted-2)]"}`}>{WEEKDAYS[wd]}</span>
                 <span className="text-[18px] font-extrabold leading-none">{d.getDate()}</span>
@@ -90,9 +109,9 @@ export function SlotPicker({
             {free.map((s: Slot) => (
               <button
                 key={s.start}
-                onClick={() => { tap(); onPick(s.start); }}
-                className="rounded-[12px] py-2.5 text-[13px] font-extrabold transition-transform duration-150 active:scale-95"
-                style={{ background: "#fff", color: "var(--ink)", border: "var(--bw) solid var(--stroke)" }}
+                onClick={() => { tap(); onPick(s.start, format); }}
+                className="rounded-[12px] py-2.5 text-[13px] font-extrabold transition-transform duration-150 active:scale-95 stroke"
+                style={{ background: "#fff", color: "var(--ink)" }}
               >
                 {timeF.format(new Date(s.start))}
               </button>

@@ -11,13 +11,13 @@ import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
-import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
+import { Button, Card, Disclosure, Input, SkeletonRow } from "@/components/ui";
 import { WorkHoursEditor } from "@/components/work-hours";
 import { createAppointment, deleteAppointment, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
 import { listClients, listMyBookings, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
-import { ymdLocal } from "@/lib/schedule";
+import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { cancelMyBooking, rescheduleMyBooking } from "@/lib/mybookings";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -67,6 +67,8 @@ function PsySessions() {
   }
   const dates = [...byDate.keys()];
 
+  const { data: avail } = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
+
   return (
     <div>
       <Reveal>
@@ -75,44 +77,62 @@ function PsySessions() {
         </PageHead>
       </Reveal>
 
-      <Reveal delay={0.03}>
+      {/* Светлый скруглённый блок поверх цветного фона */}
+      <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw) solid var(--edge-neutral)" }}>
         <div className="mb-4 flex gap-2">
-          <button onClick={() => { tap(); setPanel(panel === "add" ? null : "add"); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-extrabold text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
+          <button onClick={() => { tap(); setShowCal(false); setPanel(panel === "add" ? null : "add"); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-extrabold text-[var(--bg)]" style={{ background: "var(--ink)", border: "var(--bw) solid var(--ink)" }}>
             <Icon name="plus" width={16} weight="regular" color="#fff" /> Записать
           </button>
-          <button onClick={() => { tap(); setPanel(panel === "hours" ? null : "hours"); }} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13px] font-extrabold text-[var(--ink)] stroke">
+          <button onClick={() => { tap(); setPanel(panel === "hours" ? null : "hours"); }} className="flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-extrabold stroke" style={panel === "hours" ? { background: "var(--head)", color: "var(--ink)", borderColor: "var(--edge)" } : { background: "#fff", color: "var(--ink)" }}>
             <Icon name="clock" width={16} /> Окна
           </button>
-          <button onClick={() => { tap(); setShowCal(!showCal); setSelDay(null); }} className="flex items-center justify-center rounded-full px-3.5 py-2.5 stroke" style={{ background: showCal ? "var(--ink)" : "#fff" }}>
-            <Icon name="calendar" width={17} weight={showCal ? "fill" : "regular"} color={showCal ? "#fff" : undefined} />
+          <button onClick={() => { tap(); setShowCal(!showCal); setPanel(null); setSelDay(null); }} className="flex items-center justify-center rounded-full px-3.5 py-2.5 stroke" style={showCal ? { background: "var(--head)", borderColor: "var(--edge)" } : { background: "#fff" }}>
+            <Icon name="calendar" width={17} weight="regular" />
           </button>
         </div>
-      </Reveal>
 
-      <Disclosure open={panel === "add"}><div className="mb-4"><QuickAdd onDone={() => { setPanel(null); inv(); }} /></div></Disclosure>
-      <Disclosure open={panel === "hours"}><Card className="mb-4"><WorkHoursEditor onSaved={() => setPanel(null)} /></Card></Disclosure>
-      <Disclosure open={showCal}><div className="mb-4"><MonthCalendar appts={appts} selected={selDay} onSelectDay={setSelDay} tone="blend" /></div></Disclosure>
+        <Panel open={panel === "add"} title="Новая запись" onClose={() => setPanel(null)}><QuickAdd onDone={() => { setPanel(null); inv(); }} /></Panel>
+        <Panel open={panel === "hours"} title="Свободные окна" onClose={() => setPanel(null)}><WorkHoursEditor onSaved={() => setPanel(null)} /></Panel>
+        <Panel open={showCal} title="Календарь занятости" onClose={() => setShowCal(false)}>
+          <MonthCalendar appts={appts} selected={selDay} onSelectDay={setSelDay} avail={avail} tone="blend" />
+        </Panel>
 
-      {isLoading ? (
-        <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
-      ) : dates.length === 0 ? (
-        <EmptyState onAdd={() => setPanel("add")} selDay={selDay} />
-      ) : (
-        <div className="space-y-7">
-          {dates.map((ymd) => (
-            <div key={ymd}>
-              <div className="mb-1 flex items-baseline gap-2 border-b pb-2" style={{ borderColor: "var(--hairline)" }}>
-                <span className="text-[14px] font-extrabold capitalize">{dateHeader(ymd)}</span>
+        {isLoading ? (
+          <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
+        ) : dates.length === 0 ? (
+          <EmptyState onAdd={() => setPanel("add")} selDay={selDay} />
+        ) : (
+          <div className="space-y-7">
+            {dates.map((ymd) => (
+              <div key={ymd}>
+                <div className="mb-1 flex items-baseline gap-2 border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
+                  <span className="text-[14px] font-extrabold capitalize">{dateHeader(ymd)}</span>
+                </div>
+                <div>
+                  {(byDate.get(ymd) ?? []).map((a) => <SessionRow key={a.id} a={a} onChange={inv} />)}
+                  <AddRow onOpen={() => setPanel("add")} />
+                </div>
               </div>
-              <div>
-                {(byDate.get(ymd) ?? []).map((a) => <SessionRow key={a.id} a={a} onChange={inv} />)}
-                <AddRow onOpen={() => setPanel("add")} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+// Панель со стрелкой-сворачиванием (понятно, что можно закрыть).
+function Panel({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <Disclosure open={open} zoom>
+      <Card className="mb-4">
+        <button onClick={() => { tap(); onClose(); }} className="mb-3 flex w-full items-center justify-between">
+          <span className="text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">{title}</span>
+          <span className="flex items-center gap-1 text-[12px] font-bold text-[var(--muted-2)]">Свернуть <span className="text-[14px]">▲</span></span>
+        </button>
+        {children}
+      </Card>
+    </Disclosure>
   );
 }
 
@@ -163,7 +183,8 @@ function SessionRow({ a, onChange }: { a: Appointment; onChange: () => void }) {
         </button>
         <button onClick={() => { tap(); setOpen(!open); }} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <span className={`min-w-0 flex-1 truncate text-[14px] font-semibold ${done || cancelled ? "text-[var(--muted-2)] line-through" : ""}`}>{a.client.name}</span>
-          <span className="shrink-0 rounded-md px-2 py-0.5 text-[12px] font-bold" style={{ background: "var(--surface-2)", color: cancelled ? "var(--muted-2)" : "var(--a1-ink)" }}>{timeF.format(d)}</span>
+          <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: a.format === "online" ? "var(--head-soft)" : "#fff", color: "var(--muted)" }}>{a.format === "online" ? "онлайн" : "очно"}</span>
+          <span className="shrink-0 rounded-md px-2 py-0.5 text-[12px] font-bold stroke" style={{ background: "#fff", color: cancelled ? "var(--muted-2)" : "var(--ink)" }}>{timeF.format(d)}</span>
           <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="shrink-0 text-[var(--muted-2)]">›</motion.span>
         </button>
       </div>
@@ -195,35 +216,44 @@ function SessionRow({ a, onChange }: { a: Appointment; onChange: () => void }) {
 function QuickAdd({ onDone }: { onDone: () => void }) {
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const [clientId, setClientId] = useState("");
-  const add = useMutation({ mutationFn: (iso: string) => createAppointment({ clientId: Number(clientId), startsAt: iso, durationMin: 60 }), onSuccess: onDone });
+  const [q, setQ] = useState("");
+  const add = useMutation({
+    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => createAppointment({ clientId: Number(clientId), startsAt: iso, format }),
+    onSuccess: onDone,
+  });
+  const filtered = clients.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const sel = clients.find((c) => String(c.id) === clientId);
 
   return (
-    <Card>
+    <div>
       <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Клиент</p>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {clients.map((c) => {
-          const on = String(c.id) === clientId;
-          return (
-            <button
-              key={c.id}
-              onClick={() => { tap(); setClientId(String(c.id)); }}
-              className="rounded-full px-3.5 py-1.5 text-[13px] font-bold transition-transform active:scale-95 stroke"
-              style={on ? { background: "var(--ink)", color: "#fff" } : { background: "#fff" }}
-            >
-              {c.name}
-            </button>
-          );
-        })}
-      </div>
-      {clientId ? (
-        <>
-          <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Выберите день и окно</p>
-          <SlotPicker variant="calendar" showAvail onPick={(iso) => add.mutate(iso)} />
-        </>
+      {sel ? (
+        <button onClick={() => { tap(); setClientId(""); }} className="mb-4 flex w-full items-center gap-2.5 rounded-[14px] px-3 py-2.5 stroke" style={{ background: "#fff" }}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-[10px] stroke text-[13px] font-extrabold" style={{ background: "var(--head-soft)" }}>{sel.name.charAt(0)}</span>
+          <span className="flex-1 text-left text-[14px] font-bold">{sel.name}</span>
+          <span className="text-[12px] font-semibold text-[var(--muted)]">сменить</span>
+        </button>
       ) : (
-        <p className="text-[12px] font-semibold text-[var(--muted-2)]">Выберите клиента — откроется календарь со свободными окнами.</p>
+        <div className="mb-4">
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по имени" />
+          <div className="no-scrollbar mt-2 max-h-52 space-y-1 overflow-y-auto rounded-[14px] p-1 stroke" style={{ background: "#fff" }}>
+            {filtered.map((c) => (
+              <button key={c.id} onClick={() => { tap(); setClientId(String(c.id)); }} className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-2 text-left transition-colors active:scale-[0.99]" style={{ background: "transparent" }}>
+                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] stroke text-[13px] font-extrabold" style={{ background: "var(--head-soft)" }}>{c.name.charAt(0)}</span>
+                <span className="text-[14px] font-bold">{c.name}</span>
+              </button>
+            ))}
+            {filtered.length === 0 && <p className="px-2 py-3 text-[13px] font-semibold text-[var(--muted-2)]">Никого не нашли.</p>}
+          </div>
+        </div>
       )}
-    </Card>
+      {clientId && (
+        <>
+          <p className="mb-2 text-[13px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Формат, день и окно</p>
+          <SlotPicker variant="calendar" showAvail withFormat onPick={(iso, format) => add.mutate({ iso, format })} />
+        </>
+      )}
+    </div>
   );
 }
 
@@ -271,7 +301,7 @@ function MyRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-bold">{b.psyName}</span>
-          <span className="block text-[12px] text-[var(--muted)]">{timeF.format(d)} · {b.durationMin} мин {past && "· прошла"}</span>
+          <span className="block text-[12px] text-[var(--muted)]">{timeF.format(d)} · {b.format === "online" ? "онлайн" : "очно"} {past && "· прошла"}</span>
         </span>
         {!past && <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="text-[var(--muted-2)]">›</motion.span>}
       </button>

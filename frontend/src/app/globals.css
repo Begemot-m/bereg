@@ -12,6 +12,10 @@
   --muted: rgba(32, 28, 24, 0.62);
   --muted-2: rgba(32, 28, 24, 0.4);
 
+  /* Нейтральная обводка для белых/светлых блоков (серая) */
+  --edge-neutral: #cabfa8;
+  --stroke: var(--edge-neutral);
+
   /* Палитра блоков — мягкие, приглушённые тона (олива, персик, пыльная лаванда) */
   --amber: #f3ce77;
   --amber-soft: #f9e8bc;
@@ -48,13 +52,14 @@
 }
 
 /* Тема раздела: --head — цвет шапки/фона, --page — тон страницы (=шапке),
-   --stroke — обводка (цвет блока, только темнее), --accent — акцент/кольца */
-[data-accent="amber"]  { --head: var(--amber);  --head-soft: var(--amber-soft);  --accent: var(--amber);  --stroke: var(--amber-edge);  --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
-[data-accent="green"]  { --head: var(--green);  --head-soft: var(--green-soft);  --accent: var(--green);  --stroke: var(--green-edge);  --page: color-mix(in srgb, var(--green) 44%, #fbf8ef); }
-[data-accent="purple"] { --head: var(--purple); --head-soft: var(--purple-soft); --accent: var(--purple); --stroke: var(--purple-edge); --page: color-mix(in srgb, var(--purple) 46%, #fbf8ef); }
-[data-accent="coral"]  { --head: var(--coral);  --head-soft: var(--coral-soft);  --accent: var(--coral);  --stroke: var(--coral-edge);  --page: color-mix(in srgb, var(--coral) 44%, #fbf7ee); }
-[data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); --stroke: var(--salmon-edge); --page: color-mix(in srgb, var(--salmon) 44%, #fbf7ee); }
-:root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --stroke: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
+   --edge — тёмный тон акцента для цветных элементов, --accent — акцент/кольца.
+   Обводка белых блоков всегда серая (--edge-neutral); цветные блоки берут свой --edge. */
+[data-accent="amber"]  { --head: var(--amber);  --head-soft: var(--amber-soft);  --accent: var(--amber);  --edge: var(--amber-edge);  --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
+[data-accent="green"]  { --head: var(--green);  --head-soft: var(--green-soft);  --accent: var(--green);  --edge: var(--green-edge);  --page: color-mix(in srgb, var(--green) 44%, #fbf8ef); }
+[data-accent="purple"] { --head: var(--purple); --head-soft: var(--purple-soft); --accent: var(--purple); --edge: var(--purple-edge); --page: color-mix(in srgb, var(--purple) 46%, #fbf8ef); }
+[data-accent="coral"]  { --head: var(--coral);  --head-soft: var(--coral-soft);  --accent: var(--coral);  --edge: var(--coral-edge);  --page: color-mix(in srgb, var(--coral) 44%, #fbf7ee); }
+[data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); --edge: var(--salmon-edge); --page: color-mix(in srgb, var(--salmon) 44%, #fbf7ee); }
+:root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --edge: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
 
 /* Совместимость со старыми токенами — плоский bold-стиль */
 :root {

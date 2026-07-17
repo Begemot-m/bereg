@@ -13,7 +13,7 @@ export function Button({ variant = "primary", arrow, size = "md", className = ""
   const pad = size === "sm" ? "px-3.5 py-1.5 text-[13px]" : "px-5 py-2.5 text-[14px]";
   const base = `group inline-flex items-center justify-center gap-1.5 rounded-full font-bold transition-transform duration-150 active:scale-[0.96] disabled:opacity-40 disabled:pointer-events-none ${pad}`;
   const tones =
-    variant === "primary" ? "bg-[var(--ink)] text-[var(--bg)] stroke" :
+    variant === "primary" ? "bg-[var(--ink)] text-[var(--bg)] border-[var(--bw)] border-[var(--ink)]" :
     variant === "soft" ? "bg-white text-[var(--ink)] stroke" :
     "text-[var(--muted)] hover:text-[var(--ink)]";
   const handle = (e: MouseEvent<HTMLButtonElement>) => { tap(); onClick?.(e); };
