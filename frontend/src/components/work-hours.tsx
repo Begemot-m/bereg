@@ -13,8 +13,16 @@ const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const PXH = 40;   // высота часа
-const SNAP = 15;
+const STEP = 10;  // базовая сетка, мин
+const MAGNET = 13; // сила притяжения к ровному часу, мин
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 26 };
+
+// Магнитная привязка: близко к ровному часу — прилипает к :00, иначе шаг 10 мин.
+function snapMin(raw: number): number {
+  const hour = Math.round(raw / 60) * 60;
+  if (Math.abs(raw - hour) <= MAGNET) return hour;
+  return Math.round(raw / STEP) * STEP;
+}
 
 export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const qc = useQueryClient();
@@ -48,7 +56,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const placeAt = (clientY: number) => {
     const rail = railRef.current; if (!rail) return;
     const rect = rail.getBoundingClientRect();
-    let mins = start + Math.round(((clientY - rect.top) / PXH * 60 - len / 2) / SNAP) * SNAP;
+    let mins = snapMin(start + ((clientY - rect.top) / PXH) * 60);
     mins = clamp(mins, start, end - len);
     if (!fits(mins, len)) { select(); return; }
     success();
@@ -63,8 +71,8 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const onUp = (s: WorkSlot) => {
     if (!drag) return;
     if (!drag.moved) { removeAt(s.t); setDrag(null); return; }
-    const deltaMin = Math.round(drag.dy / PXH * 60 / SNAP) * SNAP;
-    const ns = clamp(toMin(s.t) + deltaMin, start, end - s.d);
+    const raw = toMin(s.t) + (drag.dy / PXH) * 60;
+    const ns = clamp(snapMin(raw), start, end - s.d);
     if (fits(ns, s.d, s.t)) { success(); setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(ns) } : x))); }
     else select();
     setDrag(null);
