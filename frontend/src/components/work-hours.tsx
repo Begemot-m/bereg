@@ -4,18 +4,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
-import { Icon } from "@/components/icons";
 import { Button, Spinner } from "@/components/ui";
-import { select, success, tap } from "@/lib/haptics";
+import { select, success } from "@/lib/haptics";
 import { getWorkHours, saveWorkHours, WEEKDAYS, type WorkHours } from "@/lib/schedule";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
-const DURATIONS = [45, 50, 60, 90, 120];
+const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+const PXH = 46;      // высота одного часа на графике
+const SNAP = 15;     // шаг привязки, мин
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 26 };
 
-// Конструктор окон: сначала параметры и «Собрать сетку», затем ручная лепка
-// облачками-пузырьками (ползунок по минутам, микровибрация, пружинная анимация).
+// Интервал работы → длина сессии ползунком → тап по графику дня ставит блок-сессию.
 export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
@@ -23,8 +23,8 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const [day, setDay] = useState(0);
   const [from, setFrom] = useState(9);
   const [to, setTo] = useState(21);
-  const [pick, setPick] = useState(10 * 60);
   const lastHaptic = useRef(0);
+  const railRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (data) setDraft(structuredClone(data)); }, [data]);
 
   const save = useMutation({
@@ -34,28 +34,45 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 
   if (isLoading || !draft) return <Spinner label="Окна" />;
 
+  const len = draft.sessionMinutes;
+  const start = from * 60;
+  const end = to * 60;
   const dayHours = [...(draft.hours[day] ?? [])].sort();
   const setDayArr = (arr: string[]) => setDraft({ ...draft, hours: { ...draft.hours, [day]: [...new Set(arr)].sort() } });
-  const addTime = (m: number) => { const t = hhmm(m); if (!dayHours.includes(t)) { success(); setDayArr([...dayHours, t]); } };
-  const removeTime = (t: string) => { select(); setDayArr(dayHours.filter((x) => x !== t)); };
-  const buildGrid = () => { select(); const step = draft.sessionMinutes; const out: string[] = []; for (let m = from * 60; m + step <= to * 60; m += step) out.push(hhmm(m)); setDayArr(out); };
-  const copyTo = (n: number) => { tap(); const next = { ...draft.hours }; for (let d = 0; d < n; d++) next[d] = [...dayHours]; setDraft({ ...draft, hours: next }); };
-  const clearDay = () => { select(); setDayArr([]); };
 
-  const onSlide = (v: number) => { setPick(v); const now = Date.now(); if (now - lastHaptic.current > 55) { lastHaptic.current = now; select(); } };
-  const bubbleScale = 0.9 + (pick / 1439) * 0.4;
-  const pickExists = dayHours.includes(hhmm(pick));
+  const setLen = (v: number) => { setDraft({ ...draft, sessionMinutes: v }); const now = Date.now(); if (now - lastHaptic.current > 55) { lastHaptic.current = now; select(); } };
+
+  const placeAt = (clientY: number) => {
+    const rail = railRef.current; if (!rail) return;
+    const rect = rail.getBoundingClientRect();
+    let mins = start + Math.round(((clientY - rect.top) / PXH * 60 - len / 2) / SNAP) * SNAP;
+    mins = Math.max(start, Math.min(end - len, mins));
+    const overlap = dayHours.some((h) => { const s = toMin(h); return mins < s + len && s < mins + len; });
+    if (overlap) { select(); return; }
+    success();
+    setDayArr([...dayHours, hhmm(mins)]);
+  };
+  const removeAt = (h: string) => { select(); setDayArr(dayHours.filter((x) => x !== h)); };
+  const copyTo = (n: number) => { select(); const next = { ...draft.hours }; for (let d = 0; d < n; d++) next[d] = [...dayHours]; setDraft({ ...draft, hours: next }); };
+
+  const railH = Math.max(1, to - from) * PXH;
 
   return (
     <div className="space-y-4">
-      {/* Длина сессии */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[13px] font-bold text-[var(--muted)]">Длина сессии</span>
-        <div className="flex flex-wrap gap-1">
-          {DURATIONS.map((d) => (
-            <button key={d} onClick={() => { select(); setDraft({ ...draft, sessionMinutes: d }); }} className="rounded-full px-3 py-1 text-[12px] font-extrabold transition-transform active:scale-95 stroke" style={draft.sessionMinutes === d ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--muted)" }}>{d}м</button>
-          ))}
+      {/* Интервал работы */}
+      <div className="flex items-center gap-2">
+        <span className="text-[12px] font-bold text-[var(--muted)]">Работаю</span>
+        <TimeNum label="с" value={from} onChange={(v) => setFrom(Math.min(v, to - 1))} />
+        <TimeNum label="до" value={to} onChange={(v) => setTo(Math.max(v, from + 1))} />
+      </div>
+
+      {/* Длина сессии — ползунком */}
+      <div>
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[12px] font-bold text-[var(--muted)]">Длина сессии</span>
+          <motion.span key={len} initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={SPRING} className="rounded-full px-3 py-0.5 text-[13px] font-extrabold stroke" style={{ background: "var(--head)", borderColor: "var(--edge)" }}>{len} мин</motion.span>
         </div>
+        <input type="range" min={30} max={120} step={5} value={len} onChange={(e) => setLen(Number(e.target.value))} className="h-2.5 w-full cursor-pointer appearance-none rounded-full" style={{ accentColor: "var(--ink)", background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }} />
       </div>
 
       {/* Дни недели */}
@@ -72,71 +89,48 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
         })}
       </div>
 
-      {/* Шаг 1. Параметры + собрать сетку */}
-      <div className="rounded-[16px] p-3 stroke" style={{ background: "var(--head-soft)" }}>
-        <p className="mb-2 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Рабочий день</p>
-        <div className="flex items-center gap-2">
-          <TimeNum label="с" value={from} onChange={setFrom} />
-          <TimeNum label="до" value={to} onChange={setTo} />
-          <Button size="sm" className="ml-auto" onClick={buildGrid}>Собрать сетку</Button>
-        </div>
-      </div>
-
-      {/* Шаг 2. Ручная лепка облачком-ползунком */}
-      <div className="rounded-[16px] p-3.5 stroke" style={{ background: "#fff" }}>
-        <p className="mb-3 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Добавить окно вручную</p>
-        <div className="flex flex-col items-center gap-3">
-          <motion.button
-            onClick={() => (pickExists ? removeTime(hhmm(pick)) : addTime(pick))}
-            animate={{ scale: bubbleScale }}
-            transition={SPRING}
-            whileTap={{ scale: bubbleScale * 0.9 }}
-            className="flex h-16 w-16 flex-col items-center justify-center rounded-full stroke"
-            style={{ background: pickExists ? "var(--ink)" : "var(--head)", color: pickExists ? "#fff" : "var(--ink)", borderColor: pickExists ? "var(--ink)" : "var(--edge)" }}
-          >
-            <span className="font-tight text-[16px] font-extrabold leading-none tnum">{hhmm(pick)}</span>
-            <span className="mt-0.5 text-[9px] font-bold uppercase opacity-70">{pickExists ? "убрать" : "＋ окно"}</span>
-          </motion.button>
-          <input
-            type="range" min={0} max={1439} step={5} value={pick}
-            onChange={(e) => onSlide(Number(e.target.value))}
-            className="h-2 w-full cursor-pointer appearance-none rounded-full"
-            style={{ accentColor: "var(--ink)", background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }}
-          />
-          <p className="text-[11px] font-semibold text-[var(--muted-2)]">Двигай ползунок и жми на облачко</p>
-        </div>
-      </div>
-
-      {/* Окна дня — облачками */}
+      {/* График дня */}
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-[var(--muted)]">Окна · {WEEKDAYS[day]} · {dayHours.length}</span>
-          {dayHours.length > 0 && <button onClick={clearDay} className="text-[12px] font-semibold text-[var(--muted-2)] hover:text-[var(--warn)]">Очистить</button>}
-        </div>
-        {dayHours.length === 0 ? (
-          <div className="rounded-[14px] py-6 text-center text-[13px] font-semibold text-[var(--muted-2)] stroke" style={{ background: "#fff" }}>Пока пусто — соберите сетку или добавьте окно</div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            <AnimatePresence mode="popLayout">
-              {dayHours.map((h) => (
-                <motion.button
-                  key={h}
-                  layout
-                  initial={{ scale: 0, rotate: -8 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={SPRING}
-                  onClick={() => removeTime(h)}
-                  className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-extrabold stroke"
-                  style={{ background: "var(--head)", color: "var(--ink)", borderColor: "var(--edge)" }}
-                >
-                  {h}
-                  <Icon name="plus" width={12} className="rotate-45 opacity-55" color="var(--ink)" />
-                </motion.button>
-              ))}
+        <p className="mb-2 text-[12px] font-semibold text-[var(--muted)]">Тапни по времени — поставишь сессию. Тап по блоку убирает.</p>
+        <div className="flex gap-2">
+          {/* Часы */}
+          <div className="relative w-9 shrink-0" style={{ height: railH }}>
+            {Array.from({ length: to - from + 1 }, (_, i) => (
+              <span key={i} className="absolute right-1 -translate-y-1/2 text-[10px] font-bold text-[var(--muted-2)] tnum" style={{ top: i * PXH }}>{pad(from + i)}:00</span>
+            ))}
+          </div>
+          {/* Полотно */}
+          <div
+            ref={railRef}
+            onClick={(e) => placeAt(e.clientY)}
+            className="relative flex-1 overflow-hidden rounded-[14px] stroke"
+            style={{ height: railH, background: "#fff" }}
+          >
+            {/* линии часов */}
+            {Array.from({ length: to - from }, (_, i) => (
+              <div key={i} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
+            ))}
+            <AnimatePresence>
+              {dayHours.map((h) => {
+                const s = toMin(h);
+                return (
+                  <motion.button
+                    key={h}
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.6, opacity: 0 }}
+                    transition={SPRING}
+                    onClick={(e) => { e.stopPropagation(); removeAt(h); }}
+                    className="absolute inset-x-1 flex items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
+                    style={{ top: ((s - start) / 60) * PXH, height: (len / 60) * PXH - 3, background: "var(--head)", borderColor: "var(--edge)", color: "var(--ink)" }}
+                  >
+                    {h}–{hhmm(s + len)}
+                  </motion.button>
+                );
+              })}
             </AnimatePresence>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Перенос и сохранение */}
