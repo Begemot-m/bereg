@@ -66,7 +66,7 @@ export function MonthCalendar({
           let bd: string | undefined;
           let fg = "var(--ink)";
           if (!isSel && a === "free") { bg = "var(--green-soft)"; bd = "var(--green-edge)"; }
-          else if (!isSel && a === "full") { bg = "var(--purple-soft)"; bd = "var(--purple-edge)"; fg = "rgba(32,28,24,.5)"; }
+          else if (!isSel && a === "full") { bg = "var(--salmon-soft)"; bd = "var(--salmon-edge)"; fg = "rgba(32,28,24,.5)"; }
           else if (!isSel && isToday) { bg = "color-mix(in srgb, var(--head) 45%, transparent)"; }
 
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
@@ -92,7 +92,7 @@ export function MonthCalendar({
       {avail && (
         <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-bold text-[var(--muted)]">
           <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }} /> свободно</span>
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }} /> занято</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)" }} /> занято</span>
         </div>
       )}
     </div>

@@ -79,7 +79,7 @@ export default function CabinetPage() {
           </button>
           <Disclosure open={editHours}>
             <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
-              <div className="mb-3 flex justify-start">
+              <div className="mb-3 flex justify-end">
                 <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
                   <Icon name="spark" width={14} /> Как настроить?
                 </button>

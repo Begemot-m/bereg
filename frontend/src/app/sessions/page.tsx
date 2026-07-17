@@ -244,7 +244,7 @@ function SessionRow({ a, onChange }: { a: Appointment; onChange: () => void }) {
         </button>
         <button onClick={() => { tap(); setOpen(!open); }} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <span className={`min-w-0 flex-1 truncate text-[14px] font-semibold ${done || cancelled ? "text-[var(--muted-2)] line-through" : ""}`}>{a.client.name}</span>
-          <span className="flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: a.format === "online" ? "var(--head-soft)" : "#fff", color: "var(--muted)" }}><Icon name={a.format === "online" ? "video" : "pin"} width={10} />{a.format === "online" ? "онлайн" : "очно"}</span>
+          <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: a.format === "online" ? "var(--head-soft)" : "#fff", color: "var(--muted)" }}>{a.format === "online" ? "онлайн" : "очно"}</span>
           <span className="shrink-0 rounded-md px-2 py-0.5 text-[12px] font-bold stroke" style={{ background: "#fff", color: cancelled ? "var(--muted-2)" : "var(--ink)" }}>{timeF.format(d)}</span>
           <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="shrink-0 text-[var(--muted-2)]">›</motion.span>
         </button>
@@ -318,7 +318,7 @@ function MyRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-bold">{b.psyName}</span>
-          <span className="flex items-center gap-1 text-[12px] text-[var(--muted)]">{timeF.format(d)} · <Icon name={b.format === "online" ? "video" : "pin"} width={11} />{b.format === "online" ? "онлайн" : "очно"} {past && "· прошла"}</span>
+          <span className="block text-[12px] text-[var(--muted)]">{timeF.format(d)} · {b.format === "online" ? "онлайн" : "очно"} {past && "· прошла"}</span>
         </span>
         {!past && <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="text-[var(--muted-2)]">›</motion.span>}
       </button>

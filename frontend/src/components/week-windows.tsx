@@ -74,7 +74,7 @@ export function WeekWindows() {
               <span className="text-[15px] font-extrabold leading-none">{d.getDate()}</span>
               <span className="flex gap-0.5">
                 {free > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--green)", border: "1px solid var(--green-edge)" }} />}
-                {busy > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--purple)", border: "1px solid var(--purple-edge)" }} />}
+                {busy > 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--salmon)", border: "1px solid var(--salmon-edge)" }} />}
                 {free + busy === 0 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge-neutral)" }} />}
               </span>
             </button>
@@ -89,17 +89,14 @@ export function WeekWindows() {
         <div className="space-y-1.5">
           {curSlots.map((s) => {
             const picking = pick === s.iso;
-            const evening = new Date(s.iso).getHours() >= 18;
-            const dayIcon = <Icon name={evening ? "moon" : "sun"} width={15} weight="fill" color={evening ? "var(--purple-edge)" : "var(--amber-edge)"} />;
             if (s.appt) {
               return (
-                <div key={s.iso} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: evening ? "var(--purple)" : "var(--purple-soft)", borderColor: "var(--purple-edge)" }}>
+                <div key={s.iso} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "var(--salmon-soft)", borderColor: "var(--salmon-edge)" }}>
                   <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
                   <span className="min-w-0 flex-1 truncate text-[13px] font-bold">{s.appt.client.name}</span>
                   <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: "#fff" }}>
                     <Icon name={s.appt.format === "online" ? "video" : "pin"} width={11} />{s.appt.format === "online" ? "онлайн" : "очно"}
                   </span>
-                  {dayIcon}
                   <button onClick={() => cancel.mutate(s.appt!.id)} className="rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff" }}>Отменить</button>
                 </div>
               );
@@ -111,11 +108,10 @@ export function WeekWindows() {
                   disabled={s.past}
                   onClick={() => { tap(); setPick(picking ? null : s.iso); }}
                   className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left stroke disabled:opacity-45"
-                  style={{ background: picking ? "var(--head)" : evening ? "var(--green)" : "var(--green-soft)", borderColor: "var(--green-edge)" }}
+                  style={{ background: picking ? "var(--head)" : "var(--green-soft)", borderColor: "var(--green-edge)" }}
                 >
                   <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
                   <span className="flex-1 text-[13px] font-bold text-[var(--muted)]">{s.past ? "прошло" : "свободно"}</span>
-                  {dayIcon}
                   {!s.past && <span className="text-[16px] font-bold leading-none">{picking ? "×" : "＋"}</span>}
                 </button>
                 <Disclosure open={picking}>
