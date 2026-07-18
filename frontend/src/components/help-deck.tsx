@@ -19,10 +19,14 @@ const Pill = ({ bg, bd, children }: { bg: string; bd: string; children: ReactNod
   <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: bg, borderColor: bd }}>{children}</span>
 );
 
+const YEL = { bg: "#f4d64f", bd: "var(--amber-edge)" };
+const AMB = { bg: "var(--amber)", bd: "var(--amber-edge)" };
+const PUR = { bg: "var(--purple)", bd: "var(--purple-edge)" };
+
 export const SESSIONS_HELP: HelpPage[] = [
   {
     title: "Три вида расписания",
-    text: "«Ближайшие» — что сегодня и впереди. «Неделя» — весь график по дням. «Календарь» — выбрать любой день месяца.",
+    text: "«Ближайшие» — что сегодня и впереди. «Неделя» — весь график по дням. «Календарь» — любой день месяца.",
     illo: (
       <Frame>
         <div className="flex gap-1 rounded-full p-1 stroke" style={{ background: "#fff" }}>
@@ -34,18 +38,18 @@ export const SESSIONS_HELP: HelpPage[] = [
     ),
   },
   {
-    title: "Свободные окна",
-    text: "Зелёные окна — свободны для записи. Тапните «свободно», чтобы выбрать клиента и записать. Занятые окна — лавандовые.",
+    title: "Свободные окна — по времени",
+    text: "Утренние окна (до 13:00) — жёлтые, дневные — янтарные, вечерние — лавандовые, с иконкой солнца или луны. Тапните «свободное окно», чтобы выбрать клиента и записать.",
     illo: (
       <Frame>
-        <Row bg="var(--green-soft)" bd="var(--green-edge)"><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><Pill bg="var(--purple-soft)" bd="var(--purple-edge)">онлайн</Pill></Row>
-        <Row bg="var(--purple-soft)" bd="var(--purple-edge)"><span className="tnum">14:00</span><span className="flex-1">Марина</span><span style={{ color: "var(--salmon-edge)" }}>Отменить</span></Row>
+        <Row bg={YEL.bg} bd={YEL.bd}><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span>☀</span></Row>
+        <Row bg={PUR.bg} bd={PUR.bd}><span className="tnum">19:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span>🌙</span></Row>
       </Frame>
     ),
   },
   {
     title: "Формат: онлайн / очно",
-    text: "У каждого окна — тумблер формата. Онлайн лавандовый, очно зелёный. Формат берётся из шаблона, но его можно поменять на конкретную дату.",
+    text: "У каждого окна — тумблер: онлайн лавандовый, очно зелёный. Формат берётся из вашего шаблона, но его можно поменять на конкретную дату.",
     illo: (
       <Frame>
         <div className="flex justify-center gap-2">
@@ -56,23 +60,34 @@ export const SESSIONS_HELP: HelpPage[] = [
     ),
   },
   {
-    title: "Заморозить окно",
-    text: "Крестик ✕ замораживает окно на эту дату — оно становится прозрачным и недоступным для записи. Галочка ✓ возвращает его. Шаблон при этом не меняется.",
+    title: "Закрыть окно на дату",
+    text: "Крестик ✕ закрывает окно на эту дату — оно становится «закрыто» и недоступно для записи. Кнопка «↺ Открыть» возвращает его. Шаблон при этом не меняется.",
     illo: (
       <Frame>
-        <Row bg="var(--green-soft)" bd="var(--green-edge)"><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span style={{ color: "var(--salmon-edge)" }}>✕</span></Row>
-        <Row bg="#f7f3ea" bd="var(--edge-neutral)" dim><span className="tnum line-through text-[var(--muted-2)]">16:00</span><span className="flex-1 text-[var(--muted-2)]">заморожено</span><span style={{ color: "var(--green-edge)" }}>✓</span></Row>
+        <Row bg={AMB.bg} bd={AMB.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span style={{ color: "var(--salmon-edge)" }}>✕</span></Row>
+        <Row bg="#f7f3ea" bd="var(--edge-neutral)" dim><span className="tnum line-through text-[var(--muted-2)]">16:00</span><span className="flex-1 text-[var(--muted-2)]">закрыто</span><span style={{ color: "var(--green-edge)" }}>↺ Открыть</span></Row>
       </Frame>
     ),
   },
   {
-    title: "Меню дня",
-    text: "Кнопка «Действия» над списком: сделать день выходным (заморозить все свободные окна), вернуть все окна, перевести весь день в онлайн или очно.",
+    title: "Занятые окна — «Управлять»",
+    text: "Записанная сессия — белая карточка с именем клиента. Кнопка «Управлять» открывает «Перенести» и «Отменить».",
     illo: (
       <Frame>
-        <div className="ml-auto w-40 rounded-[12px] p-1 stroke" style={{ background: "#fff" }}>
-          {["🌙 Сделать выходным", "↩︎ Вернуть все окна", "📹 Все — онлайн"].map((t) => (
-            <div key={t} className="rounded-[8px] px-2 py-1 text-[10px] font-bold">{t}</div>
+        <div className="rounded-[10px] p-2 stroke" style={{ background: "#fff" }}>
+          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="h-4 w-1 rounded-full" style={{ background: AMB.bg }} /><span className="tnum">14:00</span><span className="flex-1">Марина</span><span className="rounded-full px-2 py-0.5 text-white" style={{ background: "var(--ink)" }}>⚙ Управлять</span></div>
+        </div>
+      </Frame>
+    ),
+  },
+  {
+    title: "Меню дня и несколько дней",
+    text: "Шестерёнка «Действия» над днём: сделать выходным, открыть все окна, перевести весь день в онлайн или очно. В «Календаре» можно «Выбрать несколько» дней и применить действия сразу ко всем.",
+    illo: (
+      <Frame>
+        <div className="ml-auto w-44 rounded-[12px] p-1 stroke" style={{ background: "#fff" }}>
+          {["⚙ Действия", "🌙 Сделать выходным", "↺ Открыть все окна"].map((t, i) => (
+            <div key={t} className="rounded-[8px] px-2 py-1 text-[10px] font-bold" style={i === 0 ? { background: "var(--head-soft)" } : undefined}>{t}</div>
           ))}
         </div>
       </Frame>
@@ -96,7 +111,7 @@ export const SCHEDULE_HELP: HelpPage[] = [
   },
   {
     title: "Длина сессии",
-    text: "Ползунком выбираете длительность. Она задаёт размер новых окон и наследуется — следующий блок будет как предыдущий. Уже поставленные окна не меняются.",
+    text: "Ползунком выбираете длительность. Она задаёт размер новых окон и наследуется — следующий блок ставится с тем же форматом, что и предыдущий. Уже поставленные окна не меняются.",
     illo: (
       <Frame>
         <div className="relative h-8">
@@ -108,12 +123,13 @@ export const SCHEDULE_HELP: HelpPage[] = [
   },
   {
     title: "Поставить окно",
-    text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Перетаскиванием двигаете время.",
+    text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Утренние окна жёлтые, дневные янтарные, вечерние лавандовые, с иконкой солнца или луны.",
     illo: (
       <Frame>
         <div className="relative h-16 rounded-[10px] stroke" style={{ background: "#fff" }}>
           <div className="absolute inset-x-0 top-1/2 border-t" style={{ borderColor: "var(--edge-neutral)" }} />
-          <div className="absolute left-2 right-2 top-2 flex items-center justify-center rounded-[8px] py-1.5 text-[11px] font-extrabold stroke" style={{ background: "var(--head)", borderColor: "var(--edge)" }}>10:00–10:50</div>
+          <div className="absolute left-2 right-2 top-1.5 flex items-center justify-between rounded-[8px] px-2 py-1 text-[11px] font-extrabold stroke" style={{ background: YEL.bg, borderColor: YEL.bd }}><span>10:00</span><span>☀</span></div>
+          <div className="absolute inset-x-2 bottom-1.5 flex items-center justify-between rounded-[8px] px-2 py-1 text-[11px] font-extrabold stroke" style={{ background: PUR.bg, borderColor: PUR.bd }}><span>19:00</span><span>🌙</span></div>
         </div>
       </Frame>
     ),
@@ -123,17 +139,18 @@ export const SCHEDULE_HELP: HelpPage[] = [
     text: "Слева на блоке — тумблер формата (онлайн лавандовый / очно зелёный). Справа персиковый крестик ✕ удаляет окно.",
     illo: (
       <Frame>
-        <div className="flex items-center justify-between rounded-[8px] px-2 py-1.5 stroke" style={{ background: "var(--head)", borderColor: "var(--edge)" }}>
+        <div className="flex items-center gap-2 rounded-[8px] px-2 py-1.5 stroke" style={{ background: AMB.bg, borderColor: AMB.bd }}>
           <Pill bg="var(--purple-soft)" bd="var(--purple-edge)">онлайн ⇄</Pill>
-          <span className="text-[11px] font-extrabold">11:00–11:50</span>
+          <span className="flex-1 text-center text-[11px] font-extrabold">11:00–11:50</span>
+          <span>☀</span>
           <span className="text-[13px] font-black" style={{ color: "var(--salmon-edge)" }}>✕</span>
         </div>
       </Frame>
     ),
   },
   {
-    title: "Копирование и сохранение",
-    text: "«На будни» повторит день на Пн–Пт, «На все дни» — на неделю. Потом можно поправить каждый день. Нажмите «Сохранить» — в эти окна клиенты записываются.",
+    title: "Двигать и копировать",
+    text: "Перетаскиванием блока меняете время. «На будни» повторит день на Пн–Пт, «На все дни» — на неделю. Потом можно поправить каждый день. «Сохранить» — и клиенты записываются в эти окна.",
     illo: (
       <Frame>
         <div className="flex gap-2">

@@ -93,7 +93,7 @@ export function DaySlots({ date }: { date: Date }) {
             </div>
             <Disclosure open={picking && !s.past}>
               <div className="mt-1.5 rounded-[12px] p-2.5 stroke" style={{ background: "#fff" }}>
-                <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Клиент · сначала в терапии</p>
+                <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Клиент</p>
                 <div className="no-scrollbar flex max-h-40 flex-col gap-1 overflow-y-auto">
                   <AnimatePresence>
                     {sortedClients.map((c) => (
@@ -143,7 +143,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
           ) : (
             <div className="flex items-center gap-2">
               <Button size="sm" variant="soft" onClick={() => setResch(true)}>Перенести</Button>
-              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "#fff", color: "var(--salmon-edge)" }}>Отменить</button>
+              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "#fff", color: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>
             </div>
           )}
         </div>
