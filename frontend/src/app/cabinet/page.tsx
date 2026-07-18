@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { HelpDeck, SCHEDULE_HELP } from "@/components/help-deck";
@@ -12,26 +12,18 @@ import { WorkHoursEditor } from "@/components/work-hours";
 import { Badge, Button, Card, Disclosure, Textarea } from "@/components/ui";
 import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
 import { select, tap } from "@/lib/haptics";
-import { displayName, displayPhoto, resetOnboarding, useProfile } from "@/lib/profile";
+import { resetOnboarding } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
 import { getSubscription, startSubscription } from "@/lib/subscription";
 import { sendSupport } from "@/lib/support";
 
-const ROLES: Role[] = ["guest", "client", "psychologist"];
+const ROLES: Role[] = ["psychologist", "client"];
 
 export default function CabinetPage() {
   const [role, switchRole] = useRole();
-  const [name, setName] = useState("");
-  const [photo, setPhoto] = useState<string | null>(null);
   const [editHours, setEditHours] = useState(false);
   const [help, setHelp] = useState(false);
-  const profile = useProfile();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
-
-  useEffect(() => {
-    setName(displayName());
-    setPhoto(displayPhoto());
-  }, [role, profile]);
 
   const subscribe = useMutation({
     mutationFn: startSubscription,
@@ -40,31 +32,31 @@ export default function CabinetPage() {
 
   return (
     <div>
-      <Reveal><PageHead title="Личный кабинет" /></Reveal>
-
-      {/* Профиль */}
-      <Reveal delay={0.03}>
-        <div className="mb-6">
-          {role === "psychologist" ? (
-            <ProfileEditor />
-          ) : (
-            <Card className="flex items-center gap-3">
-              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[16px] stroke" style={{ background: "var(--head-soft)" }}>
-                {photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photo} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-xl font-extrabold">{(name || ROLE_LABEL[role]).charAt(0).toUpperCase()}</span>
-                )}
+      <Reveal>
+        <PageHead title="Личный кабинет">
+          <ProfileEditor
+            key={role}
+            embedded
+            professional={role === "psychologist"}
+            roleControl={(
+              <div className="grid grid-cols-2 gap-2 rounded-[18px] p-1 stroke" style={{ background: "rgba(255,255,255,.45)" }}>
+                {ROLES.map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => { select(); switchRole(item); }}
+                    className={`rounded-[13px] px-3 py-2 text-[13px] font-extrabold transition-all duration-200 ${role === item ? "bg-[var(--ink)] text-white" : "text-[var(--muted)] hover:bg-white/60"}`}
+                    aria-pressed={role === item}
+                  >
+                    {ROLE_LABEL[item]}
+                  </button>
+                ))}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-extrabold">{name || ROLE_LABEL[role]}</p>
-                <p className="text-[13px] font-semibold text-[var(--muted)]">{ROLE_LABEL[role]} · привязка к Telegram</p>
-              </div>
-            </Card>
-          )}
-        </div>
+            )}
+          />
+        </PageHead>
       </Reveal>
+
+      <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
 
       {/* Расписание (только психолог) — единый блок, разворачивается вниз */}
       {role === "psychologist" && (
@@ -91,23 +83,6 @@ export default function CabinetPage() {
       )}
 
       {help && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setHelp(false)} />}
-
-      {/* Роль */}
-      <div className="mb-6">
-        <SectionTitle>Роль</SectionTitle>
-        <div className="grid grid-cols-3 gap-2">
-          {ROLES.map((r) => (
-            <button
-              key={r}
-              onClick={() => { select(); switchRole(r); }}
-              className={`rounded-2xl px-3 py-3 text-[13px] font-semibold transition-colors duration-200 ${role === r ? "bg-[var(--ink)] text-[var(--bg)]" : "bg-white text-[var(--muted)]"}`}
-              style={{ border: role === r ? "none" : "1px solid var(--hairline)" }}
-            >
-              {ROLE_LABEL[r]}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Подписка */}
       <div className="mb-6">
@@ -164,6 +139,7 @@ export default function CabinetPage() {
           <p className="mt-2 text-[13px] text-[var(--muted)]">{TAGLINE}. {APP_NAME} — инструмент центра для качественной помощи и самопомощи.</p>
         </div>
       </Reveal>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { Icon } from "@/components/icons";
 import { Badge, Button, Input, Textarea } from "@/components/ui";
@@ -10,7 +10,15 @@ import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUser, usePr
 const SUGGESTED = ["тревога", "депрессия", "выгорание", "отношения", "границы", "самооценка", "травма", "утрата", "зависимости", "панические атаки", "стресс", "сон", "прокрастинация", "одиночество"];
 
 // Единый блок профиля: показ + инлайн-редактирование.
-export function ProfileEditor() {
+export function ProfileEditor({
+  embedded = false,
+  professional = true,
+  roleControl,
+}: {
+  embedded?: boolean;
+  professional?: boolean;
+  roleControl?: ReactNode;
+}) {
   const profile = useProfile();
   const [editing, setEditing] = useState(false);
 
@@ -21,15 +29,19 @@ export function ProfileEditor() {
   const about = profile?.about?.trim();
   const topics = profile?.topics ?? [];
 
-  if (editing) return <ProfileForm onDone={() => setEditing(false)} />;
+  if (editing) {
+    return professional
+      ? <ProfileForm embedded={embedded} onDone={() => setEditing(false)} />
+      : <BasicProfileForm embedded={embedded} onDone={() => setEditing(false)} />;
+  }
 
   return (
-    <div className="chunk p-4">
+    <div className={embedded ? "space-y-4" : "chunk p-4"}>
       <div className="flex items-start gap-3">
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[16px] stroke" style={{ background: "var(--head-soft)" }}>
           {photo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photo} alt="" className="h-full w-full object-cover" />
+            <img src={photo} alt={`Фото профиля ${name}`} className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-2xl font-extrabold">{name.charAt(0).toUpperCase()}</span>
           )}
@@ -37,16 +49,16 @@ export function ProfileEditor() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate text-[16px] font-extrabold">{name}</p>
-            {profile && (profile.status === "approved" ? <Badge tone="active">✓</Badge> : <Badge tone="planned">на проверке</Badge>)}
+            {professional && profile && (profile.status === "approved" ? <Badge tone="active">✓</Badge> : <Badge tone="planned">на проверке</Badge>)}
           </div>
           <p className="text-[12px] font-semibold text-[var(--muted)]">{nick}</p>
-          {profile?.approach && <p className="mt-0.5 text-[12px] font-bold" style={{ color: "var(--stroke)" }}>{profile.approach}{profile.experienceYears ? ` · ${profile.experienceYears} лет` : ""}</p>}
+          {professional && profile?.approach && <p className="mt-0.5 text-[12px] font-bold" style={{ color: "var(--stroke)" }}>{profile.approach}{profile.experienceYears ? ` · ${profile.experienceYears} лет` : ""}</p>}
         </div>
       </div>
 
-      {about && <p className="mt-3 text-[13px] leading-relaxed text-[var(--muted)]">{about}</p>}
+      {!embedded && professional && about && <p className="mt-3 text-[13px] leading-relaxed text-[var(--muted)]">{about}</p>}
 
-      {topics.length > 0 && (
+      {!embedded && professional && topics.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {topics.slice(0, 6).map((t) => (
             <span key={t} className="rounded-full px-2.5 py-0.5 text-[11px] font-bold stroke" style={{ background: "#fff" }}>{t}</span>
@@ -55,14 +67,16 @@ export function ProfileEditor() {
         </div>
       )}
 
-      <button onClick={() => { tap(); setEditing(true); }} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-extrabold stroke" style={{ background: "#fff" }}>
+      {roleControl}
+
+      <button onClick={() => { tap(); setEditing(true); }} className={`${embedded ? "" : "mt-4"} flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-extrabold stroke`} style={{ background: "#fff" }}>
         <Icon name="note" width={15} weight="regular" /> Редактировать профиль
       </button>
     </div>
   );
 }
 
-function ProfileForm({ onDone }: { onDone: () => void }) {
+function ProfileForm({ onDone, embedded = false }: { onDone: () => void; embedded?: boolean }) {
   const cur = getPsyProfile();
   const [name, setName] = useState(cur?.name || displayName());
   const [approach, setApproach] = useState(cur?.approach || "");
@@ -95,13 +109,13 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const shown = topicsOpen ? [...new Set([...topics, ...SUGGESTED])] : [...new Set([...topics, ...SUGGESTED])].slice(0, 10);
 
   return (
-    <div className="chunk space-y-4 p-4">
+    <div className={`${embedded ? "" : "chunk p-4"} space-y-4`}>
       {/* Фото */}
       <div className="flex items-center gap-4">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px] stroke" style={{ background: "var(--head-soft)" }}>
           {shownPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={shownPhoto} alt="" className="h-full w-full object-cover" />
+            <img src={shownPhoto} alt={`Фото профиля ${name}`} className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-2xl font-extrabold">{(name || "П").charAt(0).toUpperCase()}</span>
           )}
@@ -158,6 +172,52 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       <Field label="Опыт, лет"><Input value={years} onChange={(e) => setYears(e.target.value)} inputMode="numeric" placeholder="5" /></Field>
       <Field label="О себе"><Textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="Пара предложений о вашей практике" /></Field>
 
+      <div className="flex gap-2">
+        <Button variant="soft" size="sm" onClick={onDone}>Отмена</Button>
+        <Button className="flex-1" onClick={save}>Сохранить профиль</Button>
+      </div>
+    </div>
+  );
+}
+
+function BasicProfileForm({ onDone, embedded = false }: { onDone: () => void; embedded?: boolean }) {
+  const cur = getPsyProfile();
+  const [name, setName] = useState(cur?.name || displayName());
+  const [photo, setPhoto] = useState<string | null>(cur?.photo ?? null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const shownPhoto = photo || displayPhoto();
+
+  const onFile = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { setPhoto(String(reader.result)); tap(); };
+    reader.readAsDataURL(file);
+  };
+
+  const save = () => {
+    savePsyProfile({ name: name.trim(), photo });
+    success();
+    onDone();
+  };
+
+  return (
+    <div className={`${embedded ? "" : "chunk p-4"} space-y-4`}>
+      <div className="flex items-center gap-4">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[18px] stroke" style={{ background: "var(--head-soft)" }}>
+          {shownPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={shownPhoto} alt={`Фото профиля ${name}`} className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-2xl font-extrabold">{(name || "К").charAt(0).toUpperCase()}</span>
+          )}
+        </div>
+        <div>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+          <Button size="sm" variant="soft" onClick={() => fileRef.current?.click()}>Загрузить фото</Button>
+          {photo && <button onClick={() => { tap(); setPhoto(null); }} className="mt-1.5 block text-[12px] font-semibold text-[var(--muted)]">Убрать фото</button>}
+        </div>
+      </div>
+      <Field label="Имя и фамилия"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <div className="flex gap-2">
         <Button variant="soft" size="sm" onClick={onDone}>Отмена</Button>
         <Button className="flex-1" onClick={save}>Сохранить профиль</Button>
