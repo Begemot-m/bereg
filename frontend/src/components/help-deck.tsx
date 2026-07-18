@@ -6,7 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 
-export type HelpPage = { title: string; text: string; illo: ReactNode };
+export type HelpPage = { title: string; text: string; illo?: ReactNode; image?: string; imageAlt?: string };
 
 // Мини-мокапы интерфейса для наглядности
 const Frame = ({ children }: { children: ReactNode }) => (
@@ -70,12 +70,12 @@ export const SESSIONS_HELP: HelpPage[] = [
     ),
   },
   {
-    title: "Занятые окна — «Управлять»",
-    text: "Записанная сессия — белая карточка с именем клиента. Кнопка «Управлять» открывает «Перенести» и «Отменить».",
+    title: "Занятые окна и шестерёнка",
+    text: "Записанная сессия — белая карточка с именем клиента. Шестерёнка открывает действия «Перенести» и «Отменить».",
     illo: (
       <Frame>
         <div className="rounded-[10px] p-2 stroke" style={{ background: "#fff" }}>
-          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="h-4 w-1 rounded-full" style={{ background: AMB.bg }} /><span className="tnum">14:00</span><span className="flex-1">Марина</span><span className="rounded-full px-2 py-0.5 text-white" style={{ background: "var(--ink)" }}>⚙ Управлять</span></div>
+          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="h-4 w-1 rounded-full" style={{ background: AMB.bg }} /><span className="tnum">14:00</span><span className="flex-1">Марина</span><span className="flex h-7 w-7 items-center justify-center rounded-[8px] text-white" style={{ background: "var(--ink)" }}>⚙</span></div>
         </div>
       </Frame>
     ),
@@ -162,7 +162,7 @@ export const SCHEDULE_HELP: HelpPage[] = [
   },
 ];
 
-export function HelpDeck({ title, pages, onClose }: { title: string; pages: HelpPage[]; onClose: () => void }) {
+export function HelpDeck({ title, pages, onClose, onDone, doneLabel = "Понятно" }: { title: string; pages: HelpPage[]; onClose: () => void; onDone?: () => void; doneLabel?: string }) {
   const [i, setI] = useState(0);
   const p = pages[i];
   const last = i === pages.length - 1;
@@ -176,7 +176,9 @@ export function HelpDeck({ title, pages, onClose }: { title: string; pages: Help
           </div>
 
           <motion.div key={i} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>
-            <div className="mb-3">{p.illo}</div>
+            <div className="mb-3">
+              {p.image ? <img src={p.image} alt={p.imageAlt ?? ""} className="aspect-[16/10] w-full rounded-[16px] object-cover stroke" /> : p.illo}
+            </div>
             <h4 className="text-[15px] font-extrabold">{p.title}</h4>
             <p className="mt-1 text-[13px] leading-relaxed text-[var(--muted)]">{p.text}</p>
           </motion.div>
@@ -190,7 +192,7 @@ export function HelpDeck({ title, pages, onClose }: { title: string; pages: Help
 
           <div className="mt-4 flex gap-2">
             {i > 0 && <Button variant="soft" size="sm" onClick={() => { tap(); setI(i - 1); }}>Назад</Button>}
-            <Button className="flex-1" onClick={() => { last ? onClose() : (select(), setI(i + 1)); }}>{last ? "Понятно" : "Далее"}</Button>
+            <Button className="flex-1" onClick={() => { last ? (onDone ? onDone() : onClose()) : (select(), setI(i + 1)); }}>{last ? doneLabel : "Далее"}</Button>
           </div>
         </motion.div>
       </motion.div>

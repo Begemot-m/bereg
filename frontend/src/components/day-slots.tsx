@@ -151,7 +151,7 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
   );
 }
 
-// Занятое окно: белая карточка + «Управлять» (отменить / перенести).
+// Занятое окно: белая карточка + компактная шестерёнка (отменить / перенести).
 function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; onChanged: () => void }) {
   const [manage, setManage] = useState(false);
   const [resch, setResch] = useState(false);
@@ -171,7 +171,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
         </span>
         <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
         <FmtSwitch fmt={appt.format} onToggle={() => setFmt.mutate(appt.format === "online" ? "offline" : "online")} />
-        <button onClick={() => { tap(); setManage(!manage); }} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={manage ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}><Icon name="gear" width={12} color={manage ? "#fff" : undefined} /> Управлять</button>
+        <button onClick={() => { tap(); setManage(!manage); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] stroke" style={manage ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }} aria-label="Управлять сессией" aria-expanded={manage}><Icon name="gear" width={15} color={manage ? "#fff" : undefined} /></button>
       </div>
       <Disclosure open={manage}>
         <div className="px-3 pb-3">

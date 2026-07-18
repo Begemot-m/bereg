@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SectionTitle } from "@/components/blocks";
+import { BalanceBars } from "@/components/balance-bars";
+import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { Button, Card, Input, Spinner, Textarea } from "@/components/ui";
 import {
@@ -25,6 +27,7 @@ import {
 } from "@/lib/clients";
 import { createAppointment, deleteAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
+import { balanceAverage, getClientTherapy } from "@/lib/therapy";
 
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUSES: ClientStatus[] = ["therapy", "new", "paused"];
@@ -44,6 +47,7 @@ export function ClientDetail() {
   const { data: appts = [] } = useQuery({ queryKey: ["appointments", id], queryFn: () => listAppointments(id) });
   const { data: homework = [] } = useQuery({ queryKey: ["homework", id], queryFn: () => listHomework(id) });
   const { data: moods = [] } = useQuery({ queryKey: ["moods", id], queryFn: () => listMoods(id) });
+  const { data: therapy } = useQuery({ queryKey: ["client-therapy", id], queryFn: () => getClientTherapy(id) });
 
   const [note, setNote] = useState("");
   useEffect(() => { if (client) setNote(client.note); }, [client]);
@@ -136,6 +140,19 @@ export function ClientDetail() {
               <MoodBars moods={moods} />
               <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">Отметки клиента за 7 дней · тёплое — тяжело, зелёное — хорошо</p>
             </Card>
+          </div>
+        </Reveal>
+      )}
+
+      {therapy?.balance && (
+        <Reveal delay={0.1}>
+          <div className="mt-4 rounded-[22px] bg-[var(--purple-soft)] p-4 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2"><Icon name="balance" width={22} weight="bold" /><div><p className="text-[13px] font-black uppercase tracking-[.05em]">Колесо баланса</p><p className="text-[10px] font-semibold text-[var(--muted)]">Самооценка клиента · последние две недели</p></div></div>
+              <div className="rounded-[14px] bg-white px-3 py-2 text-center stroke"><p className="tnum text-[20px] font-black leading-none">{balanceAverage(therapy.balance)}%</p><p className="mt-1 text-[8px] font-black uppercase">баланс</p></div>
+            </div>
+            <div className="rounded-[17px] bg-[#fffdf7] p-3 stroke"><BalanceBars balance={therapy.balance} compact /></div>
+            <p className="mt-2 text-[10px] font-semibold text-[var(--muted)]">Обновлено {new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date(therapy.balance.completedAt))}</p>
           </div>
         </Reveal>
       )}

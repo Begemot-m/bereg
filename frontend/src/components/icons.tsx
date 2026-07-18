@@ -20,6 +20,8 @@ import {
   UsersThree,
   VideoCamera,
   MapPin,
+  ChartPolar,
+  Smiley,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -45,7 +47,9 @@ export type IconName =
   | "video"
   | "pin"
   | "swap"
-  | "gear";
+  | "gear"
+  | "balance"
+  | "mood";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -69,6 +73,8 @@ const MAP: Record<IconName, PhIcon> = {
   pin: MapPin,
   swap: ArrowsLeftRight,
   gear: GearSix,
+  balance: ChartPolar,
+  mood: Smiley,
 };
 
 export function Icon({

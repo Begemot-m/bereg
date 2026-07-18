@@ -30,6 +30,8 @@ type Appointment = {
 
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number }; // 1..5
+type BalanceKey = "health" | "emotions" | "relationships" | "work" | "finance" | "rest" | "growth" | "environment";
+type BalanceResult = { scores: Record<BalanceKey, number>; completedAt: string };
 type Support = { id: number; kind: string; text: string; createdAt: string };
 
 // Окно приёма: время начала + длительность (мин) + формат (онлайн/очно)
@@ -49,6 +51,8 @@ type DB = {
   appts: Appointment[];
   homework: Homework[];
   moods: Record<number, Mood[]>;
+  balances: Record<number, BalanceResult | null>;
+  therapyTutorialSeen: boolean;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
   work: WorkHours;
   overrides: Record<string, SlotOverride>;
@@ -102,12 +106,18 @@ function seed(): DB {
     1: [3, 3, 2, 4, 3, 4, 4].map((m, i) => ({ date: day(i - 6), mood: m })),
     3: [2, 2, 3, 2, 3, 3, 2].map((m, i) => ({ date: day(i - 6), mood: m })),
   };
+  const balances: Record<number, BalanceResult | null> = {
+    1: null,
+    3: { scores: { health: 5, emotions: 4, relationships: 7, work: 3, finance: 5, rest: 4, growth: 6, environment: 7 }, completedAt: day(-4) },
+  };
   return {
     seq: 100,
     clients,
     appts,
     homework,
     moods,
+    balances,
+    therapyTutorialSeen: false,
     myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60, format: "online" }],
     work: {
       hours: {},
@@ -139,6 +149,8 @@ function load(): DB {
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
+      if (!db.balances) db.balances = s.balances;
+      if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
       return db;
@@ -257,6 +269,33 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   const moodClient = clean.match(/^\/clients\/(\d+)\/moods$/)?.[1];
   if (moodClient && method === "GET") {
     return delay((db.moods[Number(moodClient)] ?? []) as T);
+  }
+
+  const therapyClient = clean.match(/^\/clients\/(\d+)\/therapy$/)?.[1];
+  if (therapyClient && method === "GET") {
+    const id = Number(therapyClient);
+    return delay({ moods: db.moods[id] ?? [], balance: db.balances[id] ?? null, tutorialSeen: true } as T);
+  }
+
+  if (clean === "/my/therapy") {
+    const id = 1;
+    if (method === "PATCH") {
+      if (body.mood !== undefined) {
+        const today = new Date(); today.setHours(12, 0, 0, 0);
+        const key = today.toISOString().slice(0, 10);
+        const entries = db.moods[id] ?? [];
+        const found = entries.find((entry) => entry.date.slice(0, 10) === key);
+        if (found) found.mood = Math.min(5, Math.max(1, Number(body.mood)));
+        else entries.push({ date: today.toISOString(), mood: Math.min(5, Math.max(1, Number(body.mood))) });
+        db.moods[id] = entries.slice(-30);
+      }
+      if (body.balance) db.balances[id] = { scores: body.balance as BalanceResult["scores"], completedAt: new Date().toISOString() };
+      if (body.tutorialSeen !== undefined) db.therapyTutorialSeen = Boolean(body.tutorialSeen);
+      save(db);
+    }
+    if (method === "GET" || method === "PATCH") {
+      return delay({ moods: db.moods[id] ?? [], balance: db.balances[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
+    }
   }
 
   // homework
