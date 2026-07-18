@@ -26,7 +26,7 @@ const PUR = { bg: "var(--purple)", bd: "var(--purple-edge)" };    // вечер
 export const SESSIONS_HELP: HelpPage[] = [
   {
     title: "Три вида расписания",
-    text: "«Ближайшие» — что сегодня и впереди. «Неделя» — весь график по дням. «Календарь» — любой день месяца.",
+    text: "«Ближайшие» — только ваши записи, по дням от сегодня. «Неделя» — весь график со свободными окнами. «Календарь» — любой день месяца.",
     illo: (
       <Frame>
         <div className="flex gap-1 rounded-full p-1 stroke" style={{ background: "#fff" }}>

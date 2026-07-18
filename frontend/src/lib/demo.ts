@@ -140,6 +140,7 @@ function load(): DB {
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
       if (!db.overrides) db.overrides = {};
+      if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
       return db;
     }
   } catch {
@@ -304,7 +305,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       id: ++db.seq,
       clientId: cl.id,
       startsAt: new Date(String(body.startsAt)).toISOString(),
-      durationMin: Number(body.durationMin ?? db.work.sessionMinutes ?? 60),
+      durationMin: Number(body.durationMin ?? db.work.sessionMinutes ?? 50),
       status: "scheduled",
       note: "",
       format: (body.format as ApptFormat) ?? "online",

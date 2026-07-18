@@ -88,13 +88,10 @@ function PsySessions() {
 
   const todayY = ymdLocal(new Date());
   // Ближайшие дни (сегодня, завтра …) с окнами или записями
-  const soonDays = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }).filter((d) => {
+  const soonDays = Array.from({ length: 30 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }).filter((d) => {
     const y = ymdLocal(d);
-    if (selDay) return y === selDay;
-    const wd = (d.getDay() + 6) % 7;
-    const hasWin = (work?.hours?.[wd] ?? []).length > 0;
     const hasAppt = appts.some((a) => a.status !== "cancelled" && ymdLocal(new Date(a.startsAt)) === y);
-    return hasWin || hasAppt;
+    return selDay ? y === selDay && hasAppt : hasAppt;
   });
 
   return (
@@ -128,7 +125,7 @@ function PsySessions() {
                     <div className="mb-2 border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
                       <span className="text-[14px] font-extrabold capitalize">{dateHeader(y)}</span>
                     </div>
-                    <DaySlots date={d} />
+                    <DaySlots date={d} bookedOnly />
                   </div>
                 );
               })}

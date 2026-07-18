@@ -15,10 +15,11 @@ import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
 import { slotStyle } from "@/lib/slot-style";
 
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
+const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const SPRING = { type: "spring" as const, stiffness: 460, damping: 26 };
 type Patch = { removed?: boolean; fmt?: ApptFormat };
 
-export function DaySlots({ date }: { date: Date }) {
+export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?: boolean }) {
   const qc = useQueryClient();
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
@@ -43,6 +44,15 @@ export function DaySlots({ date }: { date: Date }) {
     const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
     return { t: s.t, hour: hh, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, iso, past: dt.getTime() < now, appt, removed: !!ov?.removed };
   });
+
+  // Режим «Ближайшие»: только записи этого дня (независимо от шаблона), без свободных окон и меню.
+  if (bookedOnly) {
+    const dayAppts = appts
+      .filter((a) => a.status !== "cancelled" && sameDay(new Date(a.startsAt), date))
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    if (dayAppts.length === 0) return null;
+    return <div className="space-y-1.5">{dayAppts.map((a) => <BusyRow key={a.id} appt={a} hour={new Date(a.startsAt).getHours()} onChanged={inv} />)}</div>;
+  }
 
   if (slots.length === 0) return <p className="py-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">В этот день окон нет.</p>;
 
