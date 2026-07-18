@@ -139,7 +139,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
               <span key={i} className="absolute right-1 -translate-y-1/2 text-[10px] font-bold text-[var(--muted-2)] tnum" style={{ top: i * PXH }}>{pad(from + i)}:00</span>
             ))}
           </div>
-          <div ref={railRef} onClick={(e) => placeAt(e.clientY)} className="relative flex-1 overflow-hidden rounded-[14px] stroke" style={{ height: railH, background: "#fff" }}>
+          <div ref={railRef} onClick={(e) => placeAt(e.clientY)} className="relative flex-1 overflow-hidden rounded-[14px] stroke-lg" style={{ height: railH, background: "#fff" }}>
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
               <div key={i} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
             ))}
@@ -192,7 +192,7 @@ function SlotBlock({ label, hour, fmt, top, height, onRemove, onToggleFmt, onCom
     <motion.div
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
-      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
+      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke-lg"
       style={{ top: top + dy, height, background: st.bg, borderColor: st.bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       <FmtSwitch fmt={fmt} onToggle={onToggleFmt} className="absolute left-1.5 top-1/2 -translate-y-1/2 !text-[9px]" />

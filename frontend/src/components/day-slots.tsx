@@ -85,7 +85,7 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
         const st = slotStyle(s.hour);
         if (s.removed) {
           return (
-            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "#f7f3ea", borderColor: "var(--edge-neutral)", opacity: 0.7 }}>
+            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke-lg" style={{ background: "#f7f3ea", borderColor: "var(--edge-neutral)", opacity: 0.7 }}>
               <span className="text-[13px] font-extrabold tnum text-[var(--muted-2)] line-through">{timeF.format(new Date(s.iso))}</span>
               <span className="flex-1 text-[12px] font-semibold text-[var(--muted-2)]">закрыто</span>
               {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff", color: "var(--green-edge)" }}>↺ Открыть</button>}
@@ -94,7 +94,7 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
         }
         return (
           <motion.div key={s.iso} layout>
-            <div className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: picking ? st.bg : st.bg, borderColor: st.bd }}>
+            <div className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke-lg" style={{ background: picking ? st.bg : st.bg, borderColor: st.bd }}>
               <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
               <button disabled={s.past} onClick={() => { tap(); setPick(picking ? null : s.iso); }} className="flex-1 text-left text-[13px] font-bold text-[var(--muted)] disabled:opacity-70">{s.past ? "прошло" : picking ? "выберите клиента" : "свободное окно"}</button>
               {!s.past && <Icon name={st.icon} width={13} weight="fill" color={st.ic} />}
@@ -133,7 +133,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
   const cancel = useMutation({ mutationFn: () => updateAppointment(appt.id, { status: "cancelled" }), onSuccess: () => { setManage(false); onChanged(); } });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(appt.id, { startsAt: iso }), onSuccess: () => { setResch(false); setManage(false); onChanged(); } });
   return (
-    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="rounded-[12px] stroke" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
+    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="rounded-[12px] stroke-lg" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
       <div className="flex items-center gap-2 px-3 py-2">
         <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bg, border: `1px solid ${st.bd}` }} />
         <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(appt.startsAt))}</span>

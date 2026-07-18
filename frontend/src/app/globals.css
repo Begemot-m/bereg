@@ -53,8 +53,10 @@
   --mood-4: #c3cf8e;
   --mood-5: #8ec295;
 
-  /* Толщина обводки и радиусы */
+  /* Толщина обводки и радиусы. --bw — мини-кнопки/пилюли внутри блоков (тонкие),
+     --bw-lg — крупные блоки и окна (капля потолще). */
   --bw: 1.5px;
+  --bw-lg: 2px;
   --r-block: 22px;
   --r-sm: 14px;
 
@@ -114,15 +116,20 @@ body {
 .font-tight { letter-spacing: -0.02em; }
 .tnum { font-variant-numeric: tabular-nums; }
 
-/* Обводка-штрих */
+/* Обводка-штрих (мини-элементы) */
 .stroke {
   border: var(--bw) solid var(--stroke);
+}
+
+/* Обводка крупных блоков — каплю толще */
+.stroke-lg {
+  border: var(--bw-lg) solid var(--stroke);
 }
 
 /* Чанк-карточка */
 .chunk {
   background: var(--surface);
-  border: var(--bw) solid var(--stroke);
+  border: var(--bw-lg) solid var(--stroke);
   border-radius: var(--r-block);
 }
 
@@ -152,7 +159,7 @@ body {
   background: linear-gradient(90deg, rgba(32,28,24,.06) 25%, rgba(32,28,24,.12) 37%, rgba(32,28,24,.06) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
-  border: var(--bw) solid var(--stroke);
+  border: var(--bw-lg) solid var(--stroke);
   border-radius: var(--r-block);
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
