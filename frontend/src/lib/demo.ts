@@ -40,6 +40,9 @@ type WorkHours = {
   sessionMinutes: number;
 };
 
+// Корректировки конкретных дат поверх шаблона: убрать окно / сменить формат
+type SlotOverride = { removed?: boolean; fmt?: ApptFormat };
+
 type DB = {
   seq: number;
   clients: Client[];
@@ -48,6 +51,7 @@ type DB = {
   moods: Record<number, Mood[]>;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
   work: WorkHours;
+  overrides: Record<string, SlotOverride>;
   support: Support[];
   sub: {
     plan: "free" | "pro";
@@ -109,6 +113,7 @@ function seed(): DB {
       hours: {},
       sessionMinutes: 50,
     },
+    overrides: {},
     support: [],
     sub: { plan: "free", status: "inactive", currentPeriodEnd: null, pendingSince: null },
   };
@@ -134,6 +139,7 @@ function load(): DB {
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
+      if (!db.overrides) db.overrides = {};
       return db;
     }
   } catch {
@@ -173,7 +179,7 @@ function withStats(db: DB, c: Client) {
 }
 
 // Вычислить свободные слоты на дату из выбранных часов минус занятые времена.
-function slotsFor(work: WorkHours, dateStr: string, takenISO: string[]): { start: string; taken: boolean; fmt: ApptFormat }[] {
+function slotsFor(work: WorkHours, dateStr: string, takenISO: string[], overrides: Record<string, SlotOverride>): { start: string; taken: boolean; fmt: ApptFormat }[] {
   const d = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(d.getTime())) return [];
   const wd = (d.getDay() + 6) % 7;
@@ -185,7 +191,10 @@ function slotsFor(work: WorkHours, dateStr: string, takenISO: string[]): { start
     const [hh, mm] = s.t.split(":").map(Number);
     const t = new Date(d); t.setHours(hh, mm, 0, 0);
     if (t.getTime() < now) continue;
-    out.push({ start: t.toISOString(), taken: taken.has(t.getTime()), fmt: s.fmt ?? "online" });
+    const iso = t.toISOString();
+    const ov = overrides[iso];
+    if (ov?.removed) continue; // окно снято на эту дату
+    out.push({ start: iso, taken: taken.has(t.getTime()), fmt: ov?.fmt ?? s.fmt ?? "online" });
   }
   return out;
 }
@@ -341,7 +350,19 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const taken = isClient
       ? db.myBookings.map((b) => b.startsAt)
       : db.appts.filter((a) => a.status !== "cancelled").map((a) => a.startsAt);
-    return delay(slotsFor(db.work, date, taken) as T);
+    return delay(slotsFor(db.work, date, taken, db.overrides) as T);
+  }
+
+  // корректировки конкретных дат (убрать окно / сменить формат)
+  if (clean === "/overrides" && method === "GET") return delay(db.overrides as T);
+  if (clean === "/overrides" && method === "PATCH") {
+    const iso = String(body.iso);
+    const cur = db.overrides[iso] ?? {};
+    if (body.removed !== undefined) cur.removed = Boolean(body.removed);
+    if (body.fmt !== undefined) cur.fmt = body.fmt as ApptFormat;
+    db.overrides[iso] = cur;
+    save(db);
+    return delay(db.overrides as T);
   }
 
   // доступность по дням на ближайшие ~2 месяца: free (есть окна) / full (все заняты)
@@ -356,7 +377,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       const d = new Date(base); d.setDate(d.getDate() + i);
       const p = (n: number) => String(n).padStart(2, "0");
       const ymd = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-      const slots = slotsFor(db.work, ymd, taken);
+      const slots = slotsFor(db.work, ymd, taken, db.overrides);
       if (slots.length === 0) continue;
       out[ymd] = slots.some((s) => !s.taken) ? "free" : "full";
     }

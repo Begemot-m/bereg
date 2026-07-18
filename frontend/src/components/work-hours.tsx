@@ -53,6 +53,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const [day, setDay] = useState(0);
   const [from, setFrom] = useState(9);
   const [to, setTo] = useState(21);
+  const [lastFmt, setLastFmt] = useState<"online" | "offline">("online");
   const railRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (data) setDraft(structuredClone(data)); }, [data]);
 
@@ -80,9 +81,14 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
     mins = clamp(resolveTouch(mins, len, others), start, end - len);
     if (overlaps(mins, len, others)) { select(); return; }
     success();
-    setSlots([...slots, { t: hhmm(mins), d: len, fmt: "online" }]);
+    setSlots([...slots, { t: hhmm(mins), d: len, fmt: lastFmt }]);
   };
-  const toggleFmt = (t: string) => { select(); setSlots(slots.map((s) => (s.t === t ? { ...s, fmt: s.fmt === "online" ? "offline" : "online" } : s))); };
+  const toggleFmt = (t: string) => {
+    select();
+    const nf: "online" | "offline" = slots.find((s) => s.t === t)?.fmt === "online" ? "offline" : "online";
+    setLastFmt(nf);
+    setSlots(slots.map((s) => (s.t === t ? { ...s, fmt: nf } : s)));
+  };
   const removeAt = (t: string) => { select(); setSlots(slots.filter((s) => s.t !== t)); };
   const commitMove = (s: WorkSlot, dyPx: number) => {
     const others = slots.filter((x) => x.t !== s.t).map((x) => ({ s: toMin(x.t), e: toMin(x.t) + x.d }));

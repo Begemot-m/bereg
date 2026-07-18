@@ -7,12 +7,13 @@ import { useMemo, useState } from "react";
 import { DaySlots } from "@/components/day-slots";
 import { listAppointments } from "@/lib/appointments";
 import { select } from "@/lib/haptics";
-import { getWorkHours, WEEKDAYS } from "@/lib/schedule";
+import { getOverrides, getWorkHours, WEEKDAYS } from "@/lib/schedule";
 
 // Готовый недельный график окон: обзор недели + слоты выбранного дня.
 export function WeekWindows() {
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
+  const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }), []);
   const [sel, setSel] = useState(0);
@@ -25,7 +26,8 @@ export function WeekWindows() {
       const [hh, mm] = s.t.split(":").map(Number);
       const dt = new Date(d); dt.setHours(hh, mm, 0, 0);
       const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
-      if (appt) busy++; else if (dt.getTime() >= now) free++;
+      if (appt) busy++;
+      else if (dt.getTime() >= now && !overrides[dt.toISOString()]?.removed) free++;
     }
     return { free, busy };
   };
