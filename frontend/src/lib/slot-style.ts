@@ -5,6 +5,6 @@ import type { IconName } from "@/components/icons";
 // Иконка: солнце днём, луна вечером.
 export function slotStyle(hour: number): { bg: string; bd: string; icon: IconName; ic: string } {
   if (hour >= 18) return { bg: "var(--purple)", bd: "var(--purple-edge)", icon: "moon", ic: "var(--purple-edge)" };
-  const morning = hour < 13;
-  return { bg: morning ? "#f4d64f" : "var(--amber)", bd: "var(--amber-edge)", icon: "sun", ic: "var(--amber-edge)" };
+  if (hour < 13) return { bg: "var(--slot-morn)", bd: "var(--slot-morn-e)", icon: "sun", ic: "var(--slot-morn-e)" };
+  return { bg: "var(--slot-day)", bd: "var(--slot-day-e)", icon: "sun", ic: "var(--slot-day-e)" };
 }

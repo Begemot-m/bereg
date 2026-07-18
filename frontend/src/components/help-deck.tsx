@@ -19,9 +19,9 @@ const Pill = ({ bg, bd, children }: { bg: string; bd: string; children: ReactNod
   <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: bg, borderColor: bd }}>{children}</span>
 );
 
-const YEL = { bg: "#f4d64f", bd: "var(--amber-edge)" };
-const AMB = { bg: "var(--amber)", bd: "var(--amber-edge)" };
-const PUR = { bg: "var(--purple)", bd: "var(--purple-edge)" };
+const YEL = { bg: "var(--slot-morn)", bd: "var(--slot-morn-e)" }; // утро
+const AMB = { bg: "var(--slot-day)", bd: "var(--slot-day-e)" };   // день (персик)
+const PUR = { bg: "var(--purple)", bd: "var(--purple-edge)" };    // вечер
 
 export const SESSIONS_HELP: HelpPage[] = [
   {
@@ -39,7 +39,7 @@ export const SESSIONS_HELP: HelpPage[] = [
   },
   {
     title: "Свободные окна — по времени",
-    text: "Утренние окна (до 13:00) — жёлтые, дневные — янтарные, вечерние — лавандовые, с иконкой солнца или луны. Тапните «свободное окно», чтобы выбрать клиента и записать.",
+    text: "Утренние окна (до 13:00) — жёлтые, дневные — персиковые, вечерние — лавандовые, с иконкой солнца или луны. Тапните «свободное окно», чтобы выбрать клиента и записать.",
     illo: (
       <Frame>
         <Row bg={YEL.bg} bd={YEL.bd}><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span>☀</span></Row>
@@ -123,7 +123,7 @@ export const SCHEDULE_HELP: HelpPage[] = [
   },
   {
     title: "Поставить окно",
-    text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Утренние окна жёлтые, дневные янтарные, вечерние лавандовые, с иконкой солнца или луны.",
+    text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Утренние окна жёлтые, дневные персиковые, вечерние лавандовые, с иконкой солнца или луны.",
     illo: (
       <Frame>
         <div className="relative h-16 rounded-[10px] stroke" style={{ background: "#fff" }}>

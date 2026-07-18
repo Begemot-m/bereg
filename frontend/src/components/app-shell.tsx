@@ -136,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Мобайл: нижние табы — жёлтая пилюля с обводкой, активная иконка в чёрном квадрате */}
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-1 @md:hidden">
-        <nav className="mx-auto max-w-md rounded-[26px] px-2 py-2" style={{ background: "var(--amber)", border: "var(--bw) solid var(--amber-edge)" }}>
+        <nav className="mx-auto max-w-md rounded-[26px] px-2 py-2" style={{ background: "var(--nav)", border: "var(--bw) solid var(--nav-edge)" }}>
           <div className="relative flex">
             {activeIndex >= 0 && (
               <motion.div
@@ -147,7 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 animate={{ left: `${(activeIndex * 100) / tabs.length}%` }}
                 transition={{ type: "spring", stiffness: 520, damping: 30 }}
               >
-                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--amber-edge)", transition: "background-color .5s ease" }} />
+                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--nav-edge)", transition: "background-color .5s ease" }} />
               </motion.div>
             )}
             {tabs.map((it) => {
