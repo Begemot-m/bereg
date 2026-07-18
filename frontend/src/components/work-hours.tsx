@@ -83,13 +83,6 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
     setSlots([...slots, { t: hhmm(mins), d: len, fmt: "online" }]);
   };
   const toggleFmt = (t: string) => { select(); setSlots(slots.map((s) => (s.t === t ? { ...s, fmt: s.fmt === "online" ? "offline" : "online" } : s))); };
-  const commitResize = (s: WorkSlot, dyPx: number) => {
-    const deltaMin = Math.round((dyPx / PXH) * 60 / 10) * 10;
-    const st = toMin(s.t);
-    const nextStart = slots.filter((x) => x.t !== s.t && toMin(x.t) >= st + 1).reduce((m, x) => Math.min(m, toMin(x.t)), end);
-    const newD = clamp(s.d + deltaMin, 20, nextStart - st);
-    if (newD !== s.d) { success(); setSlots(slots.map((x) => (x.t === s.t ? { ...x, d: newD } : x))); }
-  };
   const removeAt = (t: string) => { select(); setSlots(slots.filter((s) => s.t !== t)); };
   const commitMove = (s: WorkSlot, dyPx: number) => {
     const others = slots.filter((x) => x.t !== s.t).map((x) => ({ s: toMin(x.t), e: toMin(x.t) + x.d }));
@@ -154,7 +147,6 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
                   onRemove={() => removeAt(s.t)}
                   onToggleFmt={() => toggleFmt(s.t)}
                   onCommit={(dy) => commitMove(s, dy)}
-                  onCommitResize={(dy) => commitResize(s, dy)}
                 />
               ))}
             </AnimatePresence>
@@ -174,58 +166,40 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   );
 }
 
-// Блок: перетаскивание тела двигает сессию; тап по блоку не удаляет.
-// Красный крестик удаляет. Потянув за нижнюю грань (кружок), меняем длительность.
-const RZONE = 12; // высота зоны ресайза у нижней грани, px
-function SlotBlock({ label, evening, fmt, top, height, onRemove, onToggleFmt, onCommit, onCommitResize }: { label: string; evening: boolean; fmt: "online" | "offline"; top: number; height: number; onRemove: () => void; onToggleFmt: () => void; onCommit: (dyPx: number) => void; onCommitResize: (dyPx: number) => void }) {
+// Блок: перетаскивание двигает сессию; тап по блоку не удаляет.
+// Удаление — аккуратным крестиком справа.
+function SlotBlock({ label, evening, fmt, top, height, onRemove, onToggleFmt, onCommit }: { label: string; evening: boolean; fmt: "online" | "offline"; top: number; height: number; onRemove: () => void; onToggleFmt: () => void; onCommit: (dyPx: number) => void }) {
   const [dy, setDy] = useState(0);
-  const [rdy, setRdy] = useState(0);
-  const [resizing, setResizing] = useState(false);
-  const drag = useRef<{ base: number; moved: boolean; mode: "move" | "resize" } | null>(null);
-  const down = (e: RPointerEvent) => {
-    e.stopPropagation();
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const mode: "move" | "resize" = e.clientY - rect.top >= rect.height - RZONE ? "resize" : "move";
-    if (mode === "resize") setResizing(true);
-    drag.current = { base: e.clientY, moved: false, mode };
-  };
+  const drag = useRef<{ base: number; moved: boolean } | null>(null);
+  const down = (e: RPointerEvent) => { e.stopPropagation(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); drag.current = { base: e.clientY, moved: false }; };
   const move = (e: RPointerEvent) => {
     const d = drag.current; if (!d) return;
     const off = e.clientY - d.base;
     if (!d.moved && Math.abs(off) > 3) { d.moved = true; select(); }
-    if (!d.moved) return;
-    if (d.mode === "resize") setRdy(off); else setDy(off);
+    if (d.moved) setDy(off);
   };
-  const up = () => {
-    const d = drag.current; drag.current = null; setResizing(false);
-    if (!d) return;
-    if (d.mode === "resize") { if (d.moved) onCommitResize(rdy); setRdy(0); return; }
-    if (d.moved) onCommit(dy); setDy(0);
-  };
+  const up = () => { const d = drag.current; drag.current = null; if (!d) return; if (d.moved) onCommit(dy); setDy(0); };
   const bg = evening ? "var(--purple)" : "var(--head)";
   const bd = evening ? "var(--purple-edge)" : "var(--edge)";
-  const h = Math.max(16, height + (resizing ? rdy : 0));
   return (
     <motion.div
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
       className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
-      style={{ top: top + dy, height: h, background: bg, borderColor: bd, color: "var(--ink)", zIndex: dy || resizing ? 5 : 1, cursor: "grab" }}
+      style={{ top: top + dy, height, background: bg, borderColor: bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       <FmtSwitch fmt={fmt} onToggle={onToggleFmt} className="absolute left-1.5 top-1/2 -translate-y-1/2 !text-[9px]" />
       {label}
-      {/* Красный крестик — удалить */}
+      {/* Аккуратный персиково-красный крестик справа — удалить */}
       <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); select(); onRemove(); }}
-        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black leading-none text-white stroke"
-        style={{ background: "var(--danger)", borderColor: "var(--danger)" }}
+        className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center text-[15px] font-black leading-none"
+        style={{ color: "var(--salmon-edge)" }}
+        aria-label="Удалить"
       >
         ✕
       </button>
-      {/* Ручка ресайза по нижней грани */}
-      <span className="pointer-events-none absolute bottom-[-6px] left-1/2 h-3 w-3 -translate-x-1/2 rounded-full stroke" style={{ background: "#fff", boxShadow: resizing ? "0 0 0 3px color-mix(in srgb, var(--ink) 12%, transparent)" : "none" }} />
     </motion.div>
   );
 }
