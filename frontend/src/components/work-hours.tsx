@@ -5,9 +5,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { memo, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 
 import { FmtSwitch } from "@/components/fmt-switch";
+import { Icon } from "@/components/icons";
 import { Button, Spinner } from "@/components/ui";
 import { select, success } from "@/lib/haptics";
 import { getWorkHours, saveWorkHours, WEEKDAYS, type WorkHours, type WorkSlot } from "@/lib/schedule";
+import { slotStyle } from "@/lib/slot-style";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
@@ -146,7 +148,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
                 <SlotBlock
                   key={s.t}
                   label={`${s.t}–${hhmm(toMin(s.t) + s.d)}`}
-                  evening={toMin(s.t) >= 18 * 60}
+                  hour={Math.floor(toMin(s.t) / 60)}
                   fmt={s.fmt}
                   top={((toMin(s.t) - start) / 60) * PXH}
                   height={(s.d / 60) * PXH - 3}
@@ -173,8 +175,8 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 }
 
 // Блок: перетаскивание двигает сессию; тап по блоку не удаляет.
-// Удаление — аккуратным крестиком справа.
-function SlotBlock({ label, evening, fmt, top, height, onRemove, onToggleFmt, onCommit }: { label: string; evening: boolean; fmt: "online" | "offline"; top: number; height: number; onRemove: () => void; onToggleFmt: () => void; onCommit: (dyPx: number) => void }) {
+// Удаление — аккуратным крестиком справа. Цвет и иконка — по времени суток.
+function SlotBlock({ label, hour, fmt, top, height, onRemove, onToggleFmt, onCommit }: { label: string; hour: number; fmt: "online" | "offline"; top: number; height: number; onRemove: () => void; onToggleFmt: () => void; onCommit: (dyPx: number) => void }) {
   const [dy, setDy] = useState(0);
   const drag = useRef<{ base: number; moved: boolean } | null>(null);
   const down = (e: RPointerEvent) => { e.stopPropagation(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); drag.current = { base: e.clientY, moved: false }; };
@@ -185,27 +187,28 @@ function SlotBlock({ label, evening, fmt, top, height, onRemove, onToggleFmt, on
     if (d.moved) setDy(off);
   };
   const up = () => { const d = drag.current; drag.current = null; if (!d) return; if (d.moved) onCommit(dy); setDy(0); };
-  const bg = evening ? "var(--purple)" : "var(--head)";
-  const bd = evening ? "var(--purple-edge)" : "var(--edge)";
+  const st = slotStyle(hour);
   return (
     <motion.div
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
       className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[10px] text-[12px] font-extrabold stroke"
-      style={{ top: top + dy, height, background: bg, borderColor: bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
+      style={{ top: top + dy, height, background: st.bg, borderColor: st.bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       <FmtSwitch fmt={fmt} onToggle={onToggleFmt} className="absolute left-1.5 top-1/2 -translate-y-1/2 !text-[9px]" />
       {label}
-      {/* Аккуратный персиково-красный крестик справа — удалить */}
-      <button
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); select(); onRemove(); }}
-        className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center text-[15px] font-black leading-none"
-        style={{ color: "var(--salmon-edge)" }}
-        aria-label="Удалить"
-      >
-        ✕
-      </button>
+      <span className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+        <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); select(); onRemove(); }}
+          className="flex h-5 w-5 items-center justify-center text-[15px] font-black leading-none"
+          style={{ color: "var(--salmon-edge)" }}
+          aria-label="Удалить"
+        >
+          ✕
+        </button>
+      </span>
     </motion.div>
   );
 }

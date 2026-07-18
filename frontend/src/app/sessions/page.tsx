@@ -19,9 +19,9 @@ import { WeekWindows } from "@/components/week-windows";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, deleteAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { listMyBookings, type MyBooking } from "@/lib/clients";
-import { tap } from "@/lib/haptics";
+import { select, success, tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
-import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
+import { getMonthAvailability, getOverrides, getSlots, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
 import { cancelMyBooking, rescheduleMyBooking } from "@/lib/mybookings";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -62,7 +62,31 @@ function PsySessions() {
 
   const { data: appts = [], isLoading } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const { data: avail } = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
-  const inv = () => { qc.invalidateQueries({ queryKey: ["appointments"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); };
+  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
+  const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
+  const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
+
+  const [multiMode, setMultiMode] = useState(false);
+  const [multiDays, setMultiDays] = useState<Set<string>>(new Set());
+  const [bulkMenu, setBulkMenu] = useState(false);
+  const bulk = useMutation({ mutationFn: async (ops: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }[]) => { for (const o of ops) await setOverride(o.iso, o.patch); }, onSuccess: () => { success(); setBulkMenu(false); inv(); } });
+  const toggleDay = (y: string) => setMultiDays((prev) => { const n = new Set(prev); n.has(y) ? n.delete(y) : n.add(y); return n; });
+  const daySlots = (ymd: string) => {
+    const d = new Date(ymd + "T00:00:00"); const wd = (d.getDay() + 6) % 7; const now = Date.now();
+    return (work?.hours?.[wd] ?? []).map((s) => { const [hh, mm] = s.t.split(":").map(Number); const dt = new Date(d); dt.setHours(hh, mm, 0, 0); const iso = dt.toISOString(); return { iso, past: dt.getTime() < now, appt: appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime()), removed: !!overrides[iso]?.removed }; });
+  };
+  const bulkAct = (kind: "off" | "open" | "online" | "offline") => {
+    const ops: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }[] = [];
+    for (const ymd of multiDays) for (const s of daySlots(ymd)) {
+      if (s.past) continue;
+      if (kind === "off" && !s.appt && !s.removed) ops.push({ iso: s.iso, patch: { removed: true } });
+      if (kind === "open" && s.removed) ops.push({ iso: s.iso, patch: { removed: false } });
+      if (kind === "online" && !s.appt) ops.push({ iso: s.iso, patch: { fmt: "online" } });
+      if (kind === "offline" && !s.appt) ops.push({ iso: s.iso, patch: { fmt: "offline" } });
+    }
+    setMultiDays(new Set());
+    if (ops.length) bulk.mutate(ops); else setBulkMenu(false);
+  };
 
   const todayY = ymdLocal(new Date());
   const shown = selDay ? appts.filter((a) => ymdLocal(new Date(a.startsAt)) === selDay) : appts.filter((a) => ymdLocal(new Date(a.startsAt)) >= todayY);
@@ -114,8 +138,33 @@ function PsySessions() {
 
         {view === "cal" && (
           <div>
-            <MonthCalendar appts={appts} selected={calDay} onSelectDay={setCalDay} avail={avail} tone="blend" />
-            {calDay ? (
+            <div className="relative mb-2 flex items-center justify-between">
+              <button onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setCalDay(null); setBulkMenu(false); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>
+                {multiMode ? "✓ Выбор дней" : "Выбрать несколько"}
+              </button>
+              {multiMode && (
+                <>
+                  <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke disabled:opacity-40" style={{ background: "#fff" }}><Icon name="gear" width={14} /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}</button>
+                  {bulkMenu && multiDays.size > 0 && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setBulkMenu(false)} />
+                      <div className="absolute right-0 top-8 z-20 w-56 overflow-hidden rounded-[14px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
+                        <BulkItem onClick={() => bulkAct("off")}>🌙 Сделать выходными</BulkItem>
+                        <BulkItem onClick={() => bulkAct("open")}>↺ Открыть все окна</BulkItem>
+                        <BulkItem onClick={() => bulkAct("online")}>📹 Все окна — онлайн</BulkItem>
+                        <BulkItem onClick={() => bulkAct("offline")}>📍 Все окна — очно</BulkItem>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            <MonthCalendar appts={appts} selected={calDay} onSelectDay={setCalDay} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
+
+            {multiMode ? (
+              <p className="mt-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">{multiDays.size ? `Выбрано дней: ${multiDays.size}. Действия применятся ко всем.` : "Тапайте по дням, чтобы выбрать несколько."}</p>
+            ) : calDay ? (
               <div className="mt-3">
                 <p className="mb-2.5 text-[13px] font-extrabold capitalize">{dateHeader(calDay)}</p>
                 <DaySlots date={new Date(calDay + "T00:00:00")} />
@@ -128,6 +177,10 @@ function PsySessions() {
       </div>
     </div>
   );
+}
+
+function BulkItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return <button onClick={onClick} className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">{children}</button>;
 }
 
 function Segmented({ value, onChange }: { value: View; onChange: (v: View) => void }) {

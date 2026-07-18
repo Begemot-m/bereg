@@ -26,6 +26,8 @@ export function MonthCalendar({
   avail,
   tone = "card",
   disableUnavailable = false,
+  multi,
+  onToggle,
 }: {
   appts: Appointment[];
   selected: string | null;
@@ -33,6 +35,8 @@ export function MonthCalendar({
   avail?: Record<string, Avail>;
   tone?: "card" | "blend";
   disableUnavailable?: boolean;
+  multi?: Set<string>;
+  onToggle?: (ymd: string) => void;
 }) {
   const [cursor, setCursor] = useState(new Date());
   const has = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
@@ -58,7 +62,7 @@ export function MonthCalendar({
         {cells.map((d, i) => {
           const y = ymdLocal(d);
           const inMonth = d.getMonth() === cursor.getMonth();
-          const isSel = selected === y;
+          const isSel = multi ? multi.has(y) : selected === y;
           const isToday = y === todayY;
           const a: Avail | undefined = avail?.[y];
 
@@ -75,11 +79,11 @@ export function MonthCalendar({
             <button
               key={i}
               disabled={disabled}
-              onClick={() => { select(); onSelectDay(isSel ? null : y); }}
+              onClick={() => { select(); if (multi) onToggle?.(y); else onSelectDay(isSel ? null : y); }}
               className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-transform duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
               style={
                 isSel
-                  ? { background: "var(--head)", color: "var(--ink)", border: "var(--bw) solid var(--edge)" }
+                  ? { background: multi ? "var(--ink)" : "var(--head)", color: multi ? "#fff" : "var(--ink)", border: "var(--bw) solid var(--edge)" }
                   : { background: bg, color: fg, border: bd ? `var(--bw) solid ${bd}` : undefined }
               }
             >

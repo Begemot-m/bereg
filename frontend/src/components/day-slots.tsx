@@ -5,11 +5,14 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 import { FmtSwitch } from "@/components/fmt-switch";
-import { Disclosure } from "@/components/ui";
-import { createAppointment, listAppointments, updateAppointment, type ApptFormat } from "@/lib/appointments";
+import { Icon } from "@/components/icons";
+import { SlotPicker } from "@/components/slot-picker";
+import { Button, Disclosure } from "@/components/ui";
+import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
+import { slotStyle } from "@/lib/slot-style";
 
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const SPRING = { type: "spring" as const, stiffness: 460, damping: 26 };
@@ -26,8 +29,6 @@ export function DaySlots({ date }: { date: Date }) {
 
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
   const book = useMutation({ mutationFn: ({ clientId, iso, format }: { clientId: number; iso: string; format: ApptFormat }) => createAppointment({ clientId, startsAt: iso, format }), onSuccess: () => { success(); setPick(null); inv(); } });
-  const cancel = useMutation({ mutationFn: (id: number) => updateAppointment(id, { status: "cancelled" }), onSuccess: () => { select(); inv(); } });
-  const setApptFmt = useMutation({ mutationFn: ({ id, format }: { id: number; format: ApptFormat }) => updateAppointment(id, { format }), onSuccess: inv });
   const setOv = useMutation({ mutationFn: ({ iso, patch }: { iso: string; patch: Patch }) => setOverride(iso, patch), onSuccess: () => { select(); inv(); } });
   const batch = useMutation({ mutationFn: async (ops: { iso: string; patch: Patch }[]) => { for (const o of ops) await setOverride(o.iso, o.patch); }, onSuccess: () => { success(); setMenu(false); inv(); } });
   const sortedClients = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
@@ -40,7 +41,7 @@ export function DaySlots({ date }: { date: Date }) {
     const iso = dt.toISOString();
     const ov = overrides[iso];
     const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
-    return { t: s.t, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, iso, past: dt.getTime() < now, appt, removed: !!ov?.removed };
+    return { t: s.t, hour: hh, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, iso, past: dt.getTime() < now, appt, removed: !!ov?.removed };
   });
 
   if (slots.length === 0) return <p className="py-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">В этот день окон нет.</p>;
@@ -52,15 +53,15 @@ export function DaySlots({ date }: { date: Date }) {
 
   return (
     <div className="space-y-1.5">
-      {/* Мини-меню дня */}
+      {/* Меню дня — шестерёнка */}
       <div className="relative mb-1 flex justify-end">
-        <button onClick={() => { tap(); setMenu(!menu); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "#fff" }}>Действия ▾</button>
+        <button onClick={() => { tap(); setMenu(!menu); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "#fff" }}><Icon name="gear" width={14} /> Действия</button>
         {menu && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
             <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING} className="absolute right-0 top-8 z-20 w-52 overflow-hidden rounded-[14px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
               <MenuItem onClick={() => menuAct(futureFree.map((s) => ({ iso: s.iso, patch: { removed: true } })))}>🌙 Сделать выходным</MenuItem>
-              <MenuItem onClick={() => menuAct(removedSlots.map((s) => ({ iso: s.iso, patch: { removed: false } })))}>↩︎ Вернуть все окна</MenuItem>
+              <MenuItem onClick={() => menuAct(removedSlots.map((s) => ({ iso: s.iso, patch: { removed: false } })))}>↺ Открыть все окна</MenuItem>
               <MenuItem onClick={() => menuAct(futureNonAppt.map((s) => ({ iso: s.iso, patch: { fmt: "online" } })))}>📹 Все окна — онлайн</MenuItem>
               <MenuItem onClick={() => menuAct(futureNonAppt.map((s) => ({ iso: s.iso, patch: { fmt: "offline" } })))}>📍 Все окна — очно</MenuItem>
             </motion.div>
@@ -69,31 +70,28 @@ export function DaySlots({ date }: { date: Date }) {
       </div>
 
       {slots.map((s) => {
+        if (s.appt) return <BusyRow key={s.iso} appt={s.appt} hour={s.hour} onChanged={inv} />;
         const picking = pick === s.iso;
-        if (s.appt) {
+        const st = slotStyle(s.hour);
+        if (s.removed) {
           return (
-            <motion.div key={s.iso} layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "var(--purple-soft)", borderColor: "var(--purple-edge)" }}>
-              <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
-              <span className="min-w-0 flex-1 truncate text-[13px] font-bold">{s.appt.client.name}</span>
-              <FmtSwitch fmt={s.appt.format} onToggle={() => setApptFmt.mutate({ id: s.appt!.id, format: s.appt!.format === "online" ? "offline" : "online" })} />
-              <button onClick={() => cancel.mutate(s.appt!.id)} className="rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff" }}>Отменить</button>
+            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "#f7f3ea", borderColor: "var(--edge-neutral)", opacity: 0.7 }}>
+              <span className="text-[13px] font-extrabold tnum text-[var(--muted-2)] line-through">{timeF.format(new Date(s.iso))}</span>
+              <span className="flex-1 text-[12px] font-semibold text-[var(--muted-2)]">закрыто</span>
+              {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff", color: "var(--green-edge)" }}>↺ Открыть</button>}
             </motion.div>
           );
         }
-        const frozen = s.removed;
         return (
           <motion.div key={s.iso} layout>
-            <div className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke transition-all" style={{ background: frozen ? "#f7f3ea" : picking ? "var(--head)" : "var(--green-soft)", borderColor: frozen ? "var(--edge-neutral)" : "var(--green-edge)", opacity: frozen ? 0.62 : 1 }}>
-              <span className={`text-[13px] font-extrabold tnum ${frozen ? "line-through text-[var(--muted-2)]" : ""}`}>{timeF.format(new Date(s.iso))}</span>
-              <button disabled={frozen || s.past} onClick={() => { tap(); setPick(picking ? null : s.iso); }} className="flex-1 text-left text-[13px] font-bold text-[var(--muted)] disabled:opacity-70">{s.past ? "прошло" : frozen ? "заморожено" : picking ? "выберите клиента" : "свободно"}</button>
-              {!s.past && !frozen && <FmtSwitch fmt={s.fmt} onToggle={() => setOv.mutate({ iso: s.iso, patch: { fmt: s.fmt === "online" ? "offline" : "online" } })} />}
-              {!s.past && (frozen ? (
-                <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="flex h-6 w-6 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--green-edge)" }} aria-label="Вернуть окно">✓</button>
-              ) : (
-                <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: true } })} className="flex h-6 w-6 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--salmon-edge)" }} aria-label="Заморозить окно">✕</button>
-              ))}
+            <div className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: picking ? st.bg : st.bg, borderColor: st.bd }}>
+              <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
+              <button disabled={s.past} onClick={() => { tap(); setPick(picking ? null : s.iso); }} className="flex-1 text-left text-[13px] font-bold text-[var(--muted)] disabled:opacity-70">{s.past ? "прошло" : picking ? "выберите клиента" : "свободное окно"}</button>
+              {!s.past && <Icon name={st.icon} width={13} weight="fill" color={st.ic} />}
+              {!s.past && <FmtSwitch fmt={s.fmt} onToggle={() => setOv.mutate({ iso: s.iso, patch: { fmt: s.fmt === "online" ? "offline" : "online" } })} />}
+              {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: true } })} className="flex h-6 w-6 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--salmon-edge)" }} aria-label="Закрыть окно">✕</button>}
             </div>
-            <Disclosure open={picking && !frozen}>
+            <Disclosure open={picking && !s.past}>
               <div className="mt-1.5 rounded-[12px] p-2.5 stroke" style={{ background: "#fff" }}>
                 <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Клиент · сначала в терапии</p>
                 <div className="no-scrollbar flex max-h-40 flex-col gap-1 overflow-y-auto">
@@ -113,6 +111,44 @@ export function DaySlots({ date }: { date: Date }) {
         );
       })}
     </div>
+  );
+}
+
+// Занятое окно: белая карточка + «Управлять» (отменить / перенести).
+function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; onChanged: () => void }) {
+  const [manage, setManage] = useState(false);
+  const [resch, setResch] = useState(false);
+  const st = slotStyle(hour);
+  const setFmt = useMutation({ mutationFn: (format: ApptFormat) => updateAppointment(appt.id, { format }), onSuccess: onChanged });
+  const cancel = useMutation({ mutationFn: () => updateAppointment(appt.id, { status: "cancelled" }), onSuccess: () => { setManage(false); onChanged(); } });
+  const move = useMutation({ mutationFn: (iso: string) => updateAppointment(appt.id, { startsAt: iso }), onSuccess: () => { setResch(false); setManage(false); onChanged(); } });
+  return (
+    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="rounded-[12px] stroke" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bg, border: `1px solid ${st.bd}` }} />
+        <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(appt.startsAt))}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] font-bold">{appt.client.name}</span>
+        <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
+        <FmtSwitch fmt={appt.format} onToggle={() => setFmt.mutate(appt.format === "online" ? "offline" : "online")} />
+        <button onClick={() => { tap(); setManage(!manage); }} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={manage ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}><Icon name="gear" width={12} color={manage ? "#fff" : undefined} /> Управлять</button>
+      </div>
+      <Disclosure open={manage}>
+        <div className="px-3 pb-3">
+          {resch ? (
+            <div className="rounded-[12px] p-2.5 stroke" style={{ background: "#faf7f0" }}>
+              <p className="mb-2 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
+              <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
+              <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="soft" onClick={() => setResch(true)}>Перенести</Button>
+              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "#fff", color: "var(--salmon-edge)" }}>Отменить</button>
+            </div>
+          )}
+        </div>
+      </Disclosure>
+    </motion.div>
   );
 }
 

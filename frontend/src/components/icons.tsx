@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Clock,
   Compass,
+  GearSix,
   Heart,
   House,
   MoonStars,
@@ -43,7 +44,8 @@ export type IconName =
   | "moon"
   | "video"
   | "pin"
-  | "swap";
+  | "swap"
+  | "gear";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -66,6 +68,7 @@ const MAP: Record<IconName, PhIcon> = {
   video: VideoCamera,
   pin: MapPin,
   swap: ArrowsLeftRight,
+  gear: GearSix,
 };
 
 export function Icon({
