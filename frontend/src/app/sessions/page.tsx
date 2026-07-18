@@ -67,7 +67,8 @@ function PsySessions() {
   const [multiMode, setMultiMode] = useState(false);
   const [multiDays, setMultiDays] = useState<Set<string>>(new Set());
   const [bulkMenu, setBulkMenu] = useState(false);
-  const bulk = useMutation({ mutationFn: async (ops: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }[]) => { for (const o of ops) await setOverride(o.iso, o.patch); }, onSuccess: () => { success(); setBulkMenu(false); inv(); } });
+  const closeMultiMode = () => { setMultiMode(false); setMultiDays(new Set()); setBulkMenu(false); };
+  const bulk = useMutation({ mutationFn: async (ops: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }[]) => { for (const o of ops) await setOverride(o.iso, o.patch); }, onSuccess: () => { success(); closeMultiMode(); inv(); } });
   const toggleDay = (y: string) => setMultiDays((prev) => { const n = new Set(prev); n.has(y) ? n.delete(y) : n.add(y); return n; });
   const daySlots = (ymd: string) => {
     const d = new Date(ymd + "T00:00:00"); const wd = (d.getDay() + 6) % 7; const now = Date.now();
@@ -82,8 +83,7 @@ function PsySessions() {
       if (kind === "online" && !s.appt) ops.push({ iso: s.iso, patch: { fmt: "online" } });
       if (kind === "offline" && !s.appt) ops.push({ iso: s.iso, patch: { fmt: "offline" } });
     }
-    setMultiDays(new Set());
-    if (ops.length) bulk.mutate(ops); else setBulkMenu(false);
+    if (ops.length) bulk.mutate(ops); else closeMultiMode();
   };
 
   const todayY = ymdLocal(new Date());
@@ -139,7 +139,7 @@ function PsySessions() {
           <div>
             <div className="relative mb-2 flex items-center justify-between">
               <button onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setCalDay(null); setBulkMenu(false); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>
-                {multiMode ? "✓ Выбор дней" : "Выбрать несколько"}
+                {multiMode ? "Отменить выбор" : "Выбрать несколько"}
               </button>
               {multiMode && (
                 <>
@@ -166,7 +166,7 @@ function PsySessions() {
             ) : calDay ? (
               <div className="mt-3">
                 <p className="mb-2.5 text-[13px] font-extrabold capitalize">{dateHeader(calDay)}</p>
-                <DaySlots date={new Date(calDay + "T00:00:00")} />
+                <DaySlots key={calDay} date={new Date(calDay + "T00:00:00")} />
               </div>
             ) : (
               <p className="mt-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">Выберите день в календаре — покажу свободные окна и записи.</p>
@@ -243,36 +243,35 @@ function MyRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
   const cancel = useMutation({ mutationFn: () => cancelMyBooking(b.id), onSuccess: () => { setOpen(false); onChange(); } });
 
   return (
-    <Card className="!p-0">
+    <Card className="!p-0" style={past ? { opacity: 0.68 } : undefined}>
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left">
         <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-2xl stroke" style={{ background: "var(--head-soft)" }}>
           <span className="text-[15px] font-extrabold leading-none">{d.getDate()}</span>
           <span className="text-[9px] font-bold uppercase">{d.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "")}</span>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-bold">{b.psyName}</span>
-          <span className="block text-[12px] text-[var(--muted)]">{timeF.format(d)} · {b.format === "online" ? "онлайн" : "очно"} {past && "· прошла"}</span>
+          <span className={`block truncate text-[14px] font-bold ${past ? "line-through" : ""}`}>{b.psyName}</span>
+          <span className={`block text-[12px] text-[var(--muted)] ${past ? "line-through" : ""}`}>{timeF.format(d)} · {b.format === "online" ? "онлайн" : "очно"}</span>
+          {past && <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-wide text-[var(--muted)]">выполнено</span>}
         </span>
-        {!past && <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="text-[var(--muted-2)]">›</motion.span>}
+        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="text-[var(--muted-2)]">›</motion.span>
       </button>
-      {!past && (
-        <Disclosure open={open}>
-          <div className="px-4 pb-4">
-            {reschedule ? (
-              <div className="rounded-2xl p-3 stroke" style={{ background: "#fff" }}>
-                <p className="mb-2 text-[13px] font-bold">Новое окно</p>
-                <SlotPicker forClient variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
-                <button onClick={() => setReschedule(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="soft" onClick={() => setReschedule(true)}>Перенести</Button>
-                <button onClick={() => cancel.mutate()} className="ml-auto text-[12px] font-semibold text-[var(--muted-2)] hover:text-[var(--warn)]">Отменить запись</button>
-              </div>
-            )}
-          </div>
-        </Disclosure>
-      )}
+      <Disclosure open={open}>
+        <div className="px-4 pb-4">
+          {reschedule ? (
+            <div className="rounded-2xl p-3 stroke" style={{ background: "#fff" }}>
+              <p className="mb-2 text-[13px] font-bold">Новое окно</p>
+              <SlotPicker forClient variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
+              <button onClick={() => setReschedule(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="soft" onClick={() => setReschedule(true)}>Перенести</Button>
+              <button onClick={() => cancel.mutate()} className="ml-auto text-[12px] font-semibold text-[var(--muted-2)] hover:text-[var(--warn)]">Отменить запись</button>
+            </div>
+          )}
+        </div>
+      </Disclosure>
     </Card>
   );
 }
