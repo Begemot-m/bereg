@@ -74,9 +74,7 @@ function PsyHome() {
 
   return (
     <div>
-      <Reveal>
-        <PageHead title={`${greeting()}${name ? `, ${name}` : ""}`} sub={`Ваш день в «${APP_NAME}»`} />
-      </Reveal>
+      <PageHead title={`${greeting()}${name ? `, ${name}` : ""}`} sub={`Ваш день в «${APP_NAME}»`} />
 
       {next && <Reminder who={`Сессия с ${next.client.name}`} iso={next.startsAt} />}
 
@@ -114,9 +112,7 @@ function PersonHome({ guest }: { guest: boolean }) {
 
   return (
     <div>
-      <Reveal>
-        <PageHead title={`${greeting()}${name && !guest ? `, ${name}` : ""}`} sub={TAGLINE} />
-      </Reveal>
+      <PageHead title={`${greeting()}${name && !guest ? `, ${name}` : ""}`} sub={TAGLINE} />
 
       {next && <Reminder who={`Сессия · ${next.psyName}`} iso={next.startsAt} />}
 

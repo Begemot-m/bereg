@@ -28,7 +28,7 @@ export default function CatalogPage() {
 
   return (
     <div>
-      <Reveal><PageHead title="Каталог" sub="Специалисты платформы" /></Reveal>
+      <PageHead title="Каталог" sub="Специалисты платформы" />
 
       <Reveal delay={0.04}>
         <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto">

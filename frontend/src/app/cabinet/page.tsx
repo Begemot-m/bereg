@@ -9,7 +9,7 @@ import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
 import { WorkHoursEditor } from "@/components/work-hours";
-import { Badge, Button, Card, Disclosure, Textarea } from "@/components/ui";
+import { Badge, Button, Card, Textarea } from "@/components/ui";
 import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
@@ -32,8 +32,7 @@ export default function CabinetPage() {
 
   return (
     <div>
-      <Reveal>
-        <PageHead title="Личный кабинет">
+      <PageHead title="Личный кабинет">
           <ProfileEditor
             key={role}
             embedded
@@ -53,9 +52,9 @@ export default function CabinetPage() {
               </div>
             )}
           />
-        </PageHead>
-      </Reveal>
+      </PageHead>
 
+      <Reveal y={10}>
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
 
       {/* Расписание (только психолог) — единый блок, разворачивается вниз */}
@@ -69,7 +68,13 @@ export default function CabinetPage() {
             </span>
             <span className="text-[var(--muted-2)] transition-transform duration-300" style={{ transform: editHours ? "rotate(90deg)" : "none" }}>›</span>
           </button>
-          <Disclosure open={editHours}>
+          <div
+            className={`grid transition-[grid-template-rows,opacity] duration-300 ${editHours ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+            style={{ transitionTimingFunction: "var(--ease-out)" }}
+            aria-hidden={!editHours}
+            inert={!editHours}
+          >
+            <div className="min-h-0 overflow-hidden">
             <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
               <div className="mb-3 flex justify-start">
                 <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
@@ -78,7 +83,8 @@ export default function CabinetPage() {
               </div>
               <WorkHoursEditor onSaved={() => setEditHours(false)} />
             </div>
-          </Disclosure>
+            </div>
+          </div>
         </div>
       )}
 
@@ -140,6 +146,7 @@ export default function CabinetPage() {
         </div>
       </Reveal>
       </div>
+      </Reveal>
     </div>
   );
 }

@@ -21,7 +21,7 @@ export default function BillingReturn() {
 
   return (
     <div>
-      <Reveal><PageHead title="Оплата" sub="ЮKassa" /></Reveal>
+      <PageHead title="Оплата" sub="ЮKassa" />
       <Reveal delay={0.05}>
         <Card>
           {active ? (

@@ -236,7 +236,7 @@ function MinuteSlider({ value, onChange }: { value: number; onChange: (v: number
     >
       <div className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-full stroke" style={{ background: "var(--head-soft)" }} />
       <div className="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full" style={{ left: 0, width: `${pct * 100}%`, background: "var(--head)" }} />
-      <div className="absolute top-1/2 flex h-9 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[12px] font-extrabold" style={{ left: `${pct * 100}%`, background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }}>{value}м</div>
+      <div className="absolute top-1/2 flex h-9 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[12px] font-extrabold" style={{ left: `${pct * 100}%`, background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }}>{value} мин</div>
     </div>
   );
 }

@@ -17,7 +17,7 @@ function AvatarLink({ size = 36 }: { size?: number }) {
   const [photo, setPhoto] = useState<string | null>(null);
   useEffect(() => setPhoto(displayPhoto()), []);
   return (
-    <Link href="/cabinet" onClick={select} className="flex shrink-0 items-center justify-center overflow-hidden rounded-full stroke" style={{ width: size, height: size, background: "var(--head-soft)", transition: "background-color .5s ease" }}>
+    <Link href="/cabinet" onClick={select} className="flex shrink-0 items-center justify-center overflow-hidden rounded-full stroke" style={{ width: size, height: size, background: "var(--head-soft)" }}>
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photo} alt="" className="h-full w-full object-cover" />
@@ -40,7 +40,7 @@ const NAV: Record<Role, NavItem[]> = {
   client: [
     { href: "/", label: "Главная", icon: "home" },
     { href: "/sessions", label: "Сессии", icon: "calendar" },
-    { href: "/catalog", label: "Каталог", icon: "compass" },
+    { href: "/therapy", label: "Терапия", icon: "heart" },
   ],
   guest: [
     { href: "/", label: "Главная", icon: "home" },
@@ -53,6 +53,7 @@ const isActive = (pathname: string, href: string) => (href === "/" ? pathname ==
 
 function accentFor(pathname: string) {
   if (pathname.startsWith("/sessions")) return "green";
+  if (pathname.startsWith("/therapy")) return "purple";
   if (pathname.startsWith("/clients")) return "purple";
   if (pathname.startsWith("/tools")) return "coral";
   if (pathname.startsWith("/catalog")) return "salmon";
@@ -84,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!onboarded) return <Onboarding />;
 
   return (
-    <div data-accent={accent} className="@container min-h-[100dvh]" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
+    <div data-accent={accent} className="@container min-h-[100dvh]" style={{ background: "var(--page)" }}>
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>
@@ -124,7 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Мобайл: верхняя панель — закреплена сверху перманентно */}
-      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)" }}>
         <Wordmark small />
         <AvatarLink />
       </header>
@@ -147,7 +148,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 animate={{ left: `${(activeIndex * 100) / tabs.length}%` }}
                 transition={{ type: "spring", stiffness: 520, damping: 30 }}
               >
-                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--nav-edge)", transition: "background-color .5s ease" }} />
+                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--nav-edge)" }} />
               </motion.div>
             )}
             {tabs.map((it) => {

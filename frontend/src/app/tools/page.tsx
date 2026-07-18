@@ -14,7 +14,7 @@ const PLANNED = [
 export default function ToolsPage() {
   return (
     <div>
-      <Reveal><PageHead title="Инструменты" sub="Раздел в разработке" /></Reveal>
+      <PageHead title="Инструменты" sub="Раздел в разработке" />
 
       <Reveal delay={0.05}>
         <div className="rounded-2xl p-5 text-center" style={{ background: "var(--a-tint, #eef0fb)" }}>
