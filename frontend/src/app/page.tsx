@@ -75,7 +75,7 @@ function PsyHome() {
   return (
     <div>
       <Reveal>
-        <PageHead title={`${greeting()}${name ? `, ${name}` : ""}`} sub="Ваш день в «Тепле»" />
+        <PageHead title={`${greeting()}${name ? `, ${name}` : ""}`} sub={`Ваш день в «${APP_NAME}»`} />
       </Reveal>
 
       {next && <Reminder who={`Сессия с ${next.client.name}`} iso={next.startsAt} />}

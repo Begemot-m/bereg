@@ -37,12 +37,18 @@ export function Card({ children, className = "", interactive, style }: { childre
   );
 }
 
+// При фокусе на мобильном подкручиваем поле в центр, чтобы клавиатура не мешала.
+function centerOnFocus(el: HTMLElement) {
+  setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+}
+
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
+      onFocus={(e) => { centerOnFocus(e.currentTarget); props.onFocus?.(e); }}
       className={`w-full bg-white px-3.5 py-2.5 text-sm font-semibold text-[var(--ink)] outline-none placeholder:font-normal placeholder:text-[var(--muted-2)] ${props.className ?? ""}`}
-      style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)", ...(props.style ?? {}) }}
+      style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)", scrollMarginBlock: "96px", ...(props.style ?? {}) }}
     />
   );
 }
@@ -51,8 +57,9 @@ export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...props}
+      onFocus={(e) => { centerOnFocus(e.currentTarget); props.onFocus?.(e); }}
       className={`w-full resize-none bg-white px-3.5 py-2.5 text-sm font-medium text-[var(--ink)] outline-none placeholder:font-normal placeholder:text-[var(--muted-2)] ${props.className ?? ""}`}
-      style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)" }}
+      style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)", scrollMarginBlock: "96px" }}
     />
   );
 }

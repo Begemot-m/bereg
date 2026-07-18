@@ -123,15 +123,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      {/* Мобайл: верхняя панель — в цвет фона раздела, сливается с заголовком */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
+      {/* Мобайл: верхняя панель — закреплена сверху перманентно */}
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
         <Wordmark small />
         <AvatarLink />
       </header>
 
       {/* Контент */}
       <div className="@md:ml-[248px]">
-        <div className="mx-auto w-full max-w-3xl px-4 pb-32 pt-5 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
+        <div className="mx-auto w-full max-w-3xl px-4 pb-32 pt-[60px] @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
       </div>
 
       {/* Мобайл: нижние табы — жёлтая пилюля с обводкой, активная иконка в чёрном квадрате */}

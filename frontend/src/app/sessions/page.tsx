@@ -10,6 +10,7 @@ import { PageHead } from "@/components/blocks";
 import { ClientSelect } from "@/components/client-select";
 import { DaySlots } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
+import { HelpDeck, SESSIONS_HELP } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
@@ -57,6 +58,7 @@ function PsySessions() {
   const [view, setView] = useState<View>("soon");
   const [selDay, setSelDay] = useState<string | null>(null);
   const [calDay, setCalDay] = useState<string | null>(null);
+  const [help, setHelp] = useState(false);
 
   const { data: appts = [], isLoading } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const { data: avail } = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
@@ -80,7 +82,13 @@ function PsySessions() {
       </Reveal>
 
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw) solid var(--edge-neutral)" }}>
+        <div className="mb-3 flex justify-end">
+          <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
+            <Icon name="spark" width={13} /> Как это работает?
+          </button>
+        </div>
         <Segmented value={view} onChange={(v) => { tap(); setView(v); }} />
+        {help && <HelpDeck title="Как работают сессии" pages={SESSIONS_HELP} onClose={() => setHelp(false)} />}
 
         {view === "soon" && (
           isLoading ? (

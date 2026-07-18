@@ -13,9 +13,8 @@ import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
 
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const SPRING = { type: "spring" as const, stiffness: 460, damping: 26 };
+type Patch = { removed?: boolean; fmt?: ApptFormat };
 
-// Слоты одного дня: свободные окна, снятые окна и поставленные сессии.
-// Формат окна берётся из шаблона, но его можно скорректировать на конкретную дату.
 export function DaySlots({ date }: { date: Date }) {
   const qc = useQueryClient();
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
@@ -23,12 +22,14 @@ export function DaySlots({ date }: { date: Date }) {
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
   const [pick, setPick] = useState<string | null>(null);
+  const [menu, setMenu] = useState(false);
 
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
   const book = useMutation({ mutationFn: ({ clientId, iso, format }: { clientId: number; iso: string; format: ApptFormat }) => createAppointment({ clientId, startsAt: iso, format }), onSuccess: () => { success(); setPick(null); inv(); } });
   const cancel = useMutation({ mutationFn: (id: number) => updateAppointment(id, { status: "cancelled" }), onSuccess: () => { select(); inv(); } });
   const setApptFmt = useMutation({ mutationFn: ({ id, format }: { id: number; format: ApptFormat }) => updateAppointment(id, { format }), onSuccess: inv });
-  const setOv = useMutation({ mutationFn: ({ iso, patch }: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }) => setOverride(iso, patch), onSuccess: () => { select(); inv(); } });
+  const setOv = useMutation({ mutationFn: ({ iso, patch }: { iso: string; patch: Patch }) => setOverride(iso, patch), onSuccess: () => { select(); inv(); } });
+  const batch = useMutation({ mutationFn: async (ops: { iso: string; patch: Patch }[]) => { for (const o of ops) await setOverride(o.iso, o.patch); }, onSuccess: () => { success(); setMenu(false); inv(); } });
   const sortedClients = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
 
   const wd = (date.getDay() + 6) % 7;
@@ -44,11 +45,31 @@ export function DaySlots({ date }: { date: Date }) {
 
   if (slots.length === 0) return <p className="py-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">В этот день окон нет.</p>;
 
+  const futureFree = slots.filter((s) => !s.appt && !s.removed && !s.past);
+  const removedSlots = slots.filter((s) => s.removed);
+  const futureNonAppt = slots.filter((s) => !s.appt && !s.past);
+  const menuAct = (ops: { iso: string; patch: Patch }[]) => { if (ops.length) batch.mutate(ops); else setMenu(false); };
+
   return (
     <div className="space-y-1.5">
+      {/* Мини-меню дня */}
+      <div className="relative mb-1 flex justify-end">
+        <button onClick={() => { tap(); setMenu(!menu); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "#fff" }}>Действия ▾</button>
+        {menu && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
+            <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING} className="absolute right-0 top-8 z-20 w-52 overflow-hidden rounded-[14px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
+              <MenuItem onClick={() => menuAct(futureFree.map((s) => ({ iso: s.iso, patch: { removed: true } })))}>🌙 Сделать выходным</MenuItem>
+              <MenuItem onClick={() => menuAct(removedSlots.map((s) => ({ iso: s.iso, patch: { removed: false } })))}>↩︎ Вернуть все окна</MenuItem>
+              <MenuItem onClick={() => menuAct(futureNonAppt.map((s) => ({ iso: s.iso, patch: { fmt: "online" } })))}>📹 Все окна — онлайн</MenuItem>
+              <MenuItem onClick={() => menuAct(futureNonAppt.map((s) => ({ iso: s.iso, patch: { fmt: "offline" } })))}>📍 Все окна — очно</MenuItem>
+            </motion.div>
+          </>
+        )}
+      </div>
+
       {slots.map((s) => {
         const picking = pick === s.iso;
-        // Занятая сессия
         if (s.appt) {
           return (
             <motion.div key={s.iso} layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "var(--purple-soft)", borderColor: "var(--purple-edge)" }}>
@@ -59,26 +80,20 @@ export function DaySlots({ date }: { date: Date }) {
             </motion.div>
           );
         }
-        // Снятое окно на эту дату
-        if (s.removed) {
-          return (
-            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: "#faf6ee", borderColor: "var(--edge-neutral)" }}>
-              <span className="text-[13px] font-extrabold tnum text-[var(--muted-2)] line-through">{timeF.format(new Date(s.iso))}</span>
-              <span className="flex-1 text-[12px] font-semibold text-[var(--muted-2)]">окно снято</span>
-              <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff" }}>Вернуть</button>
-            </motion.div>
-          );
-        }
-        // Свободное окно
+        const frozen = s.removed;
         return (
           <motion.div key={s.iso} layout>
-            <div className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke" style={{ background: picking ? "var(--head)" : "var(--green-soft)", borderColor: "var(--green-edge)" }}>
-              <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
-              <button disabled={s.past} onClick={() => { tap(); setPick(picking ? null : s.iso); }} className="flex-1 text-left text-[13px] font-bold text-[var(--muted)] disabled:opacity-60">{s.past ? "прошло" : picking ? "выберите клиента" : "свободно"}</button>
-              {!s.past && <FmtSwitch fmt={s.fmt} onToggle={() => setOv.mutate({ iso: s.iso, patch: { fmt: s.fmt === "online" ? "offline" : "online" } })} />}
-              {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: true } })} className="flex h-5 w-5 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--salmon-edge)" }} aria-label="Снять окно">✕</button>}
+            <div className="flex items-center gap-2 rounded-[12px] px-3 py-2 stroke transition-all" style={{ background: frozen ? "#f7f3ea" : picking ? "var(--head)" : "var(--green-soft)", borderColor: frozen ? "var(--edge-neutral)" : "var(--green-edge)", opacity: frozen ? 0.62 : 1 }}>
+              <span className={`text-[13px] font-extrabold tnum ${frozen ? "line-through text-[var(--muted-2)]" : ""}`}>{timeF.format(new Date(s.iso))}</span>
+              <button disabled={frozen || s.past} onClick={() => { tap(); setPick(picking ? null : s.iso); }} className="flex-1 text-left text-[13px] font-bold text-[var(--muted)] disabled:opacity-70">{s.past ? "прошло" : frozen ? "заморожено" : picking ? "выберите клиента" : "свободно"}</button>
+              {!s.past && !frozen && <FmtSwitch fmt={s.fmt} onToggle={() => setOv.mutate({ iso: s.iso, patch: { fmt: s.fmt === "online" ? "offline" : "online" } })} />}
+              {!s.past && (frozen ? (
+                <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="flex h-6 w-6 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--green-edge)" }} aria-label="Вернуть окно">✓</button>
+              ) : (
+                <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: true } })} className="flex h-6 w-6 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--salmon-edge)" }} aria-label="Заморозить окно">✕</button>
+              ))}
             </div>
-            <Disclosure open={picking}>
+            <Disclosure open={picking && !frozen}>
               <div className="mt-1.5 rounded-[12px] p-2.5 stroke" style={{ background: "#fff" }}>
                 <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Клиент · сначала в терапии</p>
                 <div className="no-scrollbar flex max-h-40 flex-col gap-1 overflow-y-auto">
@@ -98,5 +113,11 @@ export function DaySlots({ date }: { date: Date }) {
         );
       })}
     </div>
+  );
+}
+
+function MenuItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">{children}</button>
   );
 }
