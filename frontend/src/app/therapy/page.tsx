@@ -1,16 +1,17 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { WheelFlow } from "@/components/balance-flow";
 import { Icon } from "@/components/icons";
+import { MoodFaces, MoodTrend } from "@/components/mood-tracker";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { Button, Disclosure, SkeletonRow, Textarea } from "@/components/ui";
 import { listMyBookings, type MyBooking, type Mood } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
+import { MOOD_LABEL } from "@/lib/mascots";
 import { getSubscription, startSubscription } from "@/lib/subscription";
 import { select, success, tap } from "@/lib/haptics";
 
@@ -20,13 +21,6 @@ const DEFAULT_TASKS: TherapyTask[] = [
   { id: 1, text: "Отмечать уровень тревоги вечером", done: true },
   { id: 2, text: "Записать три автоматические мысли", done: false },
   { id: 3, text: "Практика дыхания — 5 минут", done: false },
-];
-const MOODS = [
-  { v: 1, face: "😞", label: "тяжело" },
-  { v: 2, face: "😕", label: "непросто" },
-  { v: 3, face: "😐", label: "ровно" },
-  { v: 4, face: "🙂", label: "неплохо" },
-  { v: 5, face: "😄", label: "отлично" },
 ];
 const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
@@ -129,47 +123,18 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
   );
 }
 
-// Живой модуль настроения: крупные лица, пружинный отклик, анимированный тренд.
+// Живой модуль настроения: маскот с разными эмоциями + анимированный тренд.
 function MoodModule({ todayMood, moods, onMood }: { todayMood?: number; moods: Mood[]; onMood: (m: number) => void }) {
-  const active = MOODS.find((m) => m.v === todayMood);
   return (
     <section className="overflow-hidden rounded-[22px] p-4" style={{ background: "var(--amber)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2"><Icon name="mood" width={21} weight="bold" /><h2 className="text-[13px] font-black uppercase tracking-[.06em]">Как вы сегодня?</h2></div>
-        {active && <motion.span key={active.v} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-full bg-[#fffdf7] px-2.5 py-0.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{active.label}</motion.span>}
+        {todayMood && <span className="rounded-full bg-[#fffdf7] px-2.5 py-0.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{MOOD_LABEL[todayMood]}</span>}
       </div>
-
-      <div className="mt-3 grid grid-cols-5 gap-1.5">
-        {MOODS.map((m) => {
-          const on = todayMood === m.v;
-          return (
-            <motion.button key={m.v} onClick={() => { success(); onMood(m.v); }} whileTap={{ scale: 0.88 }} animate={on ? { scale: [1, 1.18, 1] } : { scale: 1 }} transition={{ duration: 0.4 }}
-              className="flex aspect-square flex-col items-center justify-center rounded-[15px]" style={{ background: on ? "var(--ink)" : `var(--mood-${m.v})`, border: `var(--bw) solid ${on ? "var(--ink)" : `color-mix(in srgb, var(--mood-${m.v}) 60%, var(--ink))`}` }}>
-              <span className="text-[22px] leading-none" style={{ filter: on ? "none" : "grayscale(0.15)" }}>{m.face}</span>
-            </motion.button>
-          );
-        })}
-      </div>
-
+      <div className="mt-3"><MoodFaces todayMood={todayMood} onMood={onMood} /></div>
       <MoodTrend moods={moods} />
       <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">Ежедневная отметка настроения · общая, не привязана к терапевту</p>
     </section>
-  );
-}
-
-function MoodTrend({ moods }: { moods: Mood[] }) {
-  const day = new Intl.DateTimeFormat("ru-RU", { weekday: "short" });
-  if (moods.length === 0) return null;
-  return (
-    <div className="mt-4 flex h-20 items-end gap-1.5">
-      {moods.map((entry, index) => (
-        <div key={`${entry.date}-${index}`} className="flex flex-1 flex-col items-center justify-end gap-1">
-          <motion.div className="w-full rounded-t-[8px]" initial={{ height: 6 }} animate={{ height: `${15 + entry.mood * 9}px` }} transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 18 }}
-            style={{ background: `var(--mood-${entry.mood})`, border: `var(--bw) solid color-mix(in srgb, var(--mood-${entry.mood}) 62%, var(--ink))`, borderBottom: "none" }} />
-          <span className="text-[8px] font-black uppercase">{day.format(new Date(entry.date)).slice(0, 2)}</span>
-        </div>
-      ))}
-    </div>
   );
 }
 

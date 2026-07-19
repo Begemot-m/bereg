@@ -13,6 +13,7 @@ import { SubscriptionBlock } from "@/components/subscription-block";
 import { WorkHoursEditor } from "@/components/work-hours";
 import { Card } from "@/components/ui";
 import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
+import { useCancelLockDays } from "@/lib/cancel-policy";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
@@ -75,6 +76,7 @@ export default function CabinetPage() {
           <Card className="space-y-3">
             <ToggleRow label="Уведомления о заданиях" defaultOn />
             <ToggleRow label="Тихие часы (22:00–8:00)" />
+            {role === "psychologist" && <CancelLockRow />}
             <button onClick={() => { tap(); resetOnboarding(); }} className="w-full pt-1 text-left text-[13px] font-semibold text-[var(--muted)] hover:text-[var(--ink)]">
               Пройти знакомство заново
             </button>
@@ -122,6 +124,23 @@ function Foldable({ icon, title, subtitle, children, defaultOpen = false }: { ic
           <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>{children}</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CancelLockRow() {
+  const [days, setDays] = useCancelLockDays();
+  return (
+    <div className="border-t pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[13px]">Запрет отмены сессий</span>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white text-[18px] font-black stroke" aria-label="Меньше">−</button>
+          <span className="flex h-8 min-w-[64px] items-center justify-center rounded-[10px] px-2 text-[12px] font-black" style={{ background: days ? "var(--head-soft)" : "#fff", border: `var(--bw) solid ${days ? "var(--edge)" : "var(--edge-neutral)"}` }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
+          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white text-[18px] font-black stroke" aria-label="Больше">+</button>
+        </div>
+      </div>
+      <p className="mt-1.5 text-[11px] font-medium text-[var(--muted-2)]">{days === 0 ? "Клиент может отменить сессию в любое время." : `Клиент не сможет отменить менее чем за ${days} дн. до сессии — только через вас.`}</p>
     </div>
   );
 }

@@ -12,6 +12,8 @@ const repo = process.env.PAGES_BASE_PATH ?? "";
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: here,
+  // Базовый путь доступен в клиенте для ссылок на public-ассеты (картинки маскотов).
+  env: { NEXT_PUBLIC_BASE_PATH: repo ? `/${repo}` : "" },
   ...(isStatic
     ? {
         output: "export",

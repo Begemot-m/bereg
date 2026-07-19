@@ -1,18 +1,19 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
+import { MoodFaces } from "@/components/mood-tracker";
 import { Reveal } from "@/components/motion";
 import { Disclosure } from "@/components/ui";
 import { APP_NAME } from "@/lib/brand";
 import { listAppointments } from "@/lib/appointments";
 import { listClients, listMyBookings, type Mood } from "@/lib/clients";
-import { success, tap } from "@/lib/haptics";
+import { mascotSrc, MOOD_LABEL, useAnimal } from "@/lib/mascots";
+import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { getSubscription, trialDaysLeft } from "@/lib/subscription";
@@ -30,13 +31,6 @@ const T: Record<string, { bg: string; soft: string; edge: string }> = {
   sky: { bg: "var(--sky)", soft: "#d5e8ef", edge: "#5f95ab" },
 };
 
-const MOODS = [
-  { v: 1, face: "😞", label: "тяжело" },
-  { v: 2, face: "😕", label: "непросто" },
-  { v: 3, face: "😐", label: "ровно" },
-  { v: 4, face: "🙂", label: "неплохо" },
-  { v: 5, face: "😄", label: "отлично" },
-];
 
 // Центры, где можно получить помощь (реальные горячие линии РФ).
 const CENTERS: { name: string; note: string; phone: string; tel: string }[] = [
@@ -234,7 +228,7 @@ function MoodQuick({ todayMood }: { todayMood?: number }) {
   const qc = useQueryClient();
   const save = useMutation({ mutationFn: (mood: number) => updateMyTherapy({ mood }), onSuccess: (s) => qc.setQueryData(["my-therapy"], s) });
   const [open, setOpen] = useState(false);
-  const active = MOODS.find((m) => m.v === todayMood);
+  const [animal] = useAnimal();
   const expanded = open || !todayMood;
 
   return (
@@ -242,20 +236,15 @@ function MoodQuick({ todayMood }: { todayMood?: number }) {
       <section className="overflow-hidden rounded-[20px] p-4" style={{ background: T.amber.soft, border: `var(--bw-lg) solid ${T.amber.edge}` }}>
         <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2.5 text-left" aria-expanded={expanded}>
           <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white" style={{ border: `var(--bw) solid ${T.amber.edge}` }}><Icon name="mood" width={18} weight="bold" /></span>
-          <span className="flex-1"><span className="block text-[13px] font-black">Как вы сегодня?</span><span className="block text-[11px] font-semibold text-[var(--muted)]">{active ? `Отмечено: ${active.label}` : "Отметьте настроение за пару секунд"}</span></span>
-          {active && <span className="text-[22px]">{active.face}</span>}
+          <span className="flex-1"><span className="block text-[13px] font-black">Как вы сегодня?</span><span className="block text-[11px] font-semibold text-[var(--muted)]">{todayMood ? `Отмечено: ${MOOD_LABEL[todayMood]}` : "Отметьте настроение за пару секунд"}</span></span>
+          {todayMood ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={mascotSrc(animal, todayMood)} alt="" className="h-9 w-9 object-contain" />
+          ) : null}
           <span className="text-[14px] font-black text-[var(--muted-2)] transition-transform" style={{ transform: expanded ? "rotate(180deg)" : "none" }}>⌄</span>
         </button>
         <Disclosure open={expanded} autoScroll={false}>
-          <div className="mt-3 grid grid-cols-5 gap-1.5">
-            {MOODS.map((m) => {
-              const on = todayMood === m.v;
-              return (
-                <motion.button key={m.v} onClick={() => { success(); save.mutate(m.v); setOpen(false); }} whileTap={{ scale: 0.88 }} animate={on ? { scale: [1, 1.18, 1] } : { scale: 1 }} transition={{ duration: 0.4 }}
-                  className="flex aspect-square items-center justify-center rounded-[14px] text-[22px]" style={{ background: on ? "var(--ink)" : `var(--mood-${m.v})`, border: `var(--bw) solid ${on ? "var(--ink)" : `color-mix(in srgb, var(--mood-${m.v}) 60%, var(--ink))`}` }}>{m.face}</motion.button>
-              );
-            })}
-          </div>
+          <div className="mt-3"><MoodFaces todayMood={todayMood} onMood={(v) => { save.mutate(v); setOpen(false); }} /></div>
         </Disclosure>
       </section>
     </Reveal>

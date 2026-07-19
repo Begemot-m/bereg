@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { NotificationBell } from "@/components/notification-bell";
 import { Onboarding } from "@/components/onboarding";
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
@@ -131,7 +132,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Мобайл: верхняя панель — sticky, ровно держится сверху и не дёргается при скролле */}
       <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
         <Wordmark small />
-        <AvatarLink />
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <AvatarLink />
+        </div>
       </header>
 
       {/* Контент */}

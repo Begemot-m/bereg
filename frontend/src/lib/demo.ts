@@ -32,6 +32,8 @@ type Homework = { id: number; clientId: number; text: string; status: HwStatus; 
 type Mood = { date: string; mood: number }; // 1..5
 type WheelResult = { answers: Record<string, number[]>; completedAt: string };
 type Support = { id: number; kind: string; text: string; createdAt: string };
+type NotifRole = "psychologist" | "client";
+type Notif = { id: number; forRole: NotifRole; kind: string; text: string; createdAt: string; read: boolean };
 
 // Окно приёма: время начала + длительность (мин) + формат (онлайн/очно)
 type WorkSlot = { t: string; d: number; fmt: ApptFormat };
@@ -56,6 +58,7 @@ type DB = {
   work: WorkHours;
   overrides: Record<string, SlotOverride>;
   support: Support[];
+  notifications: Notif[];
   sub: {
     status: "trial" | "active" | "pending" | "expired";
     trialEndsAt: string | null;
@@ -132,6 +135,10 @@ function seed(): DB {
     },
     overrides: {},
     support: [],
+    notifications: [
+      { id: 90, forRole: "psychologist", kind: "system", text: "Добро пожаловать во «Вдох». Здесь появляются отмены и переносы сессий.", createdAt: iso(-1, 9, 0), read: false },
+      { id: 91, forRole: "client", kind: "system", text: "Добро пожаловать. Здесь будут напоминания и изменения по вашим сессиям.", createdAt: iso(-1, 9, 0), read: false },
+    ],
     sub: { status: "trial", trialEndsAt: iso(10, 12, 0), currentPeriodEnd: null, tools: true, promo: false, clientPro: false, pendingPlan: null, pendingSince: null },
   };
 }
@@ -159,6 +166,7 @@ function load(): DB {
       if (!db.wheel) db.wheel = s.wheel;
       if (!db.sub || (db.sub as { trialEndsAt?: string }).trialEndsAt === undefined) db.sub = s.sub;
       if (db.sub.clientPro === undefined) db.sub.clientPro = false;
+      if (!db.notifications) db.notifications = s.notifications;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
@@ -174,6 +182,11 @@ function load(): DB {
 
 function save(db: DB) {
   if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(db));
+}
+
+const fmtWhen = (iso: string) => new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+function notify(db: DB, forRole: NotifRole, kind: string, text: string) {
+  db.notifications.push({ id: ++db.seq, forRole, kind, text, createdAt: new Date().toISOString(), read: false });
 }
 
 function resolveSub(db: DB) {
@@ -388,6 +401,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const a = db.appts.find((x) => x.id === id);
     if (!a) throw new Error("API 404");
     if (method === "PATCH") {
+      if (body.status === "cancelled") notify(db, "client", "cancel", `Психолог отменил сессию · ${fmtWhen(a.startsAt)}`);
+      else if (body.startsAt !== undefined) notify(db, "client", "reschedule", `Психолог перенёс сессию на ${fmtWhen(new Date(String(body.startsAt)).toISOString())}`);
       if (body.status !== undefined) a.status = body.status as Appointment["status"];
       if (body.startsAt !== undefined) a.startsAt = new Date(String(body.startsAt)).toISOString();
       if (body.durationMin !== undefined) a.durationMin = Number(body.durationMin);
@@ -469,10 +484,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     if (!b) throw new Error("API 404");
     if (method === "PATCH") {
       if (body.startsAt) b.startsAt = new Date(String(body.startsAt)).toISOString();
+      notify(db, "psychologist", "reschedule", `Клиент перенёс сессию на ${fmtWhen(b.startsAt)}`);
       save(db);
       return delay(b as T);
     }
     if (method === "DELETE") {
+      notify(db, "psychologist", "cancel", `Клиент отменил сессию · ${b.psyName} · ${fmtWhen(b.startsAt)}`);
       db.myBookings = db.myBookings.filter((x) => x.id !== id);
       save(db);
       return delay(undefined as T);
@@ -514,6 +531,19 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     db.support.push(s);
     save(db);
     return delay(s as T);
+  }
+
+  // уведомления
+  if (clean === "/notifications" && method === "GET") {
+    const role = (q.get("role") === "psychologist" ? "psychologist" : "client") as NotifRole;
+    const list = db.notifications.filter((n) => n.forRole === role).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return delay(list as T);
+  }
+  if (clean === "/notifications/read" && method === "POST") {
+    const role = (body.role === "psychologist" ? "psychologist" : "client") as NotifRole;
+    db.notifications.forEach((n) => { if (n.forRole === role) n.read = true; });
+    save(db);
+    return delay({ ok: true } as T);
   }
 
   throw new Error(`Demo mock: не покрыт роут ${method} ${clean}`);

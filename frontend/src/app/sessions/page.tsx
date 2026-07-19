@@ -20,6 +20,7 @@ import { select, success, tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
 import { getMonthAvailability, getOverrides, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
 import { cancelMyBooking, rescheduleMyBooking } from "@/lib/mybookings";
+import { canCancel, useCancelLockDays } from "@/lib/cancel-policy";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
@@ -262,8 +263,10 @@ function PersonSessions() {
 function MyRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
   const [open, setOpen] = useState(false);
   const [reschedule, setReschedule] = useState(false);
+  const [lockDays] = useCancelLockDays();
   const d = new Date(b.startsAt);
   const past = d < new Date();
+  const locked = !past && !canCancel(b.startsAt, lockDays);
 
   const move = useMutation({ mutationFn: (iso: string) => rescheduleMyBooking(b.id, iso), onSuccess: () => { setReschedule(false); setOpen(false); onChange(); } });
   const cancel = useMutation({ mutationFn: () => cancelMyBooking(b.id), onSuccess: () => { setOpen(false); onChange(); } });
@@ -289,6 +292,12 @@ function MyRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
               <p className="mb-2 text-[13px] font-bold">Новое окно</p>
               <SlotPicker forClient variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
               <button onClick={() => setReschedule(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
+            </div>
+          ) : locked ? (
+            <div className="rounded-[14px] p-3" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)" }}>
+              <p className="text-[13px] font-black" style={{ color: "var(--salmon-edge)" }}>Отменить нельзя</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">До сессии меньше {lockDays} дн. Чтобы отменить или перенести — свяжитесь с психологом.</p>
+              <div className="mt-2"><Button size="sm" variant="soft" onClick={() => setReschedule(true)}>Перенести</Button></div>
             </div>
           ) : (
             <div className="flex items-center gap-2">
