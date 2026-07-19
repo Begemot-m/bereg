@@ -1,16 +1,19 @@
 import { apiFetch } from "@/lib/api";
 
-export type PlanId = "tools" | "promo" | "bundle";
+export type PlanId = "tools" | "all" | "client";
 export type Subscription = {
   status: "trial" | "active" | "pending" | "expired";
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
-  tools: boolean; // доступ к инструментарию
-  promo: boolean; // продвижение в каталоге
+  tools: boolean;     // инструментарий психолога
+  promo: boolean;     // продвижение в каталоге
+  clientPro: boolean; // «Вдох+» — инструменты клиента
   pendingPlan: PlanId | null;
 };
 
-export const PLAN_PRICE: Record<PlanId, number> = { tools: 990, promo: 1990, bundle: 2490 };
+// tools — инструменты психолога (990); all — всё включено: инструменты + каталог (1990);
+// client — «Вдох+» для клиента (390).
+export const PLAN_PRICE: Record<PlanId, number> = { tools: 990, all: 1990, client: 390 };
 export const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
 
 export function trialDaysLeft(sub: Subscription): number {

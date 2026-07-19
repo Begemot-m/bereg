@@ -62,7 +62,8 @@ type DB = {
     currentPeriodEnd: string | null;
     tools: boolean;
     promo: boolean;
-    pendingPlan: "tools" | "promo" | "bundle" | null;
+    clientPro: boolean;
+    pendingPlan: "tools" | "all" | "client" | null;
     pendingSince: number | null;
   };
 };
@@ -131,7 +132,7 @@ function seed(): DB {
     },
     overrides: {},
     support: [],
-    sub: { status: "trial", trialEndsAt: iso(10, 12, 0), currentPeriodEnd: null, tools: true, promo: false, pendingPlan: null, pendingSince: null },
+    sub: { status: "trial", trialEndsAt: iso(10, 12, 0), currentPeriodEnd: null, tools: true, promo: false, clientPro: false, pendingPlan: null, pendingSince: null },
   };
 }
 
@@ -157,6 +158,7 @@ function load(): DB {
       if (!db.moods) db.moods = s.moods;
       if (!db.wheel) db.wheel = s.wheel;
       if (!db.sub || (db.sub as { trialEndsAt?: string }).trialEndsAt === undefined) db.sub = s.sub;
+      if (db.sub.clientPro === undefined) db.sub.clientPro = false;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
@@ -181,8 +183,8 @@ function resolveSub(db: DB) {
     const end = new Date();
     end.setDate(end.getDate() + 30);
     if (s.pendingPlan === "tools") s.tools = true;
-    else if (s.pendingPlan === "promo") s.promo = true;
-    else if (s.pendingPlan === "bundle") { s.tools = true; s.promo = true; }
+    else if (s.pendingPlan === "all") { s.tools = true; s.promo = true; }
+    else if (s.pendingPlan === "client") s.clientPro = true;
     s.status = "active";
     s.currentPeriodEnd = end.toISOString();
     s.trialEndsAt = null;
@@ -496,11 +498,11 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // subscription / billing
   if (clean === "/subscription" && method === "GET") {
     resolveSub(db);
-    const { status, trialEndsAt, currentPeriodEnd, tools, promo, pendingPlan } = db.sub;
-    return delay({ status, trialEndsAt, currentPeriodEnd, tools, promo, pendingPlan } as T);
+    const { status, trialEndsAt, currentPeriodEnd, tools, promo, clientPro, pendingPlan } = db.sub;
+    return delay({ status, trialEndsAt, currentPeriodEnd, tools, promo, clientPro, pendingPlan } as T);
   }
   if (clean === "/billing/subscribe" && method === "POST") {
-    const plan = (["tools", "promo", "bundle"].includes(String(body.plan)) ? body.plan : "tools") as "tools" | "promo" | "bundle";
+    const plan = (["tools", "all", "client"].includes(String(body.plan)) ? body.plan : "tools") as "tools" | "all" | "client";
     db.sub = { ...db.sub, status: "pending", pendingPlan: plan, pendingSince: Date.now() };
     save(db);
     return delay({ confirmation_url: "/billing/return" } as T);

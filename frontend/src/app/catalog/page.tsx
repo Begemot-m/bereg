@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
+import { Icon } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
 import { Badge, Button, Card, Disclosure } from "@/components/ui";
@@ -23,12 +24,24 @@ const FILTERS = ["Все", "тревога", "выгорание", "отноше
 
 export default function CatalogPage() {
   const [filter, setFilter] = useState("Все");
+  const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<number | null>(null);
-  const list = [...PSYS].filter((p) => filter === "Все" || p.topics.includes(filter)).sort((a, b) => Number(b.pro) - Number(a.pro) || b.rating - a.rating);
+  const nq = query.trim().toLowerCase();
+  const list = [...PSYS]
+    .filter((p) => (filter === "Все" || p.topics.includes(filter)) && (!nq || p.name.toLowerCase().includes(nq) || p.method.toLowerCase().includes(nq) || p.topics.some((t) => t.includes(nq))))
+    .sort((a, b) => Number(b.pro) - Number(a.pro) || b.rating - a.rating);
 
   return (
     <div>
       <PageHead title="Каталог" sub="Специалисты платформы" />
+
+      <Reveal delay={0.03}>
+        <label className="mb-3 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 stroke">
+          <Icon name="compass" width={16} color="var(--muted)" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск: имя, подход, запрос…" className="w-full bg-transparent text-[14px] font-semibold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]" />
+          {query && <button onClick={() => setQuery("")} className="text-[16px] font-black text-[var(--muted-2)]" aria-label="Очистить">×</button>}
+        </label>
+      </Reveal>
 
       <Reveal delay={0.04}>
         <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto">
@@ -37,6 +50,8 @@ export default function CatalogPage() {
           ))}
         </div>
       </Reveal>
+
+      {list.length === 0 && <p className="py-10 text-center text-[13px] font-semibold text-[var(--muted-2)]">Никого не нашли. Попробуйте другой запрос.</p>}
 
       <Stagger className="space-y-3">
         {list.map((p) => (

@@ -84,11 +84,13 @@ export default function CabinetPage() {
 
       {help && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setHelp(false)} />}
 
-      {/* Подписка */}
-      <div className="mb-6">
-        <SectionTitle>Подписка</SectionTitle>
-        <SubscriptionBlock />
-      </div>
+      {/* Подписка психолога */}
+      {role === "psychologist" && (
+        <div className="mb-6">
+          <SectionTitle>Подписка</SectionTitle>
+          <SubscriptionBlock variant="psy" />
+        </div>
+      )}
 
       {/* Настройки */}
       <div className="mb-6">
