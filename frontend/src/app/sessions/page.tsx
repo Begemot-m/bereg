@@ -112,7 +112,17 @@ function PsySessions() {
           isLoading ? (
             <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
           ) : soonDays.length === 0 ? (
-            <EmptyState onAdd={() => setView("cal")} selDay={selDay} />
+            selDay ? (
+              <div>
+                <div className="mb-2 flex items-center justify-between border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
+                  <span className="text-[14px] font-extrabold capitalize">{dateHeader(selDay)}</span>
+                  <span className="text-[11px] font-bold text-[var(--muted-2)]">записей нет · свободные окна</span>
+                </div>
+                <DaySlots date={new Date(selDay + "T00:00:00")} />
+              </div>
+            ) : (
+              <EmptyState onAdd={() => setView("cal")} selDay={null} />
+            )
           ) : (
             <div className="space-y-6">
               {soonDays.map((d) => {
