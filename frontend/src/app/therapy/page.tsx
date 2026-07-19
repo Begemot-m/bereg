@@ -1,15 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { Who5Flow } from "@/components/balance-flow";
+import { WheelFlow } from "@/components/balance-flow";
 import { Icon } from "@/components/icons";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { Button, Disclosure, SkeletonRow, Textarea } from "@/components/ui";
 import { listMyBookings, type MyBooking, type Mood } from "@/lib/clients";
-import { getMyTherapy, updateMyTherapy, type TherapyState } from "@/lib/therapy";
+import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { select, success, tap } from "@/lib/haptics";
 
 type TherapyTask = { id: number; text: string; done: boolean };
@@ -18,6 +19,13 @@ const DEFAULT_TASKS: TherapyTask[] = [
   { id: 1, text: "Отмечать уровень тревоги вечером", done: true },
   { id: 2, text: "Записать три автоматические мысли", done: false },
   { id: 3, text: "Практика дыхания — 5 минут", done: false },
+];
+const MOODS = [
+  { v: 1, face: "😞", label: "тяжело" },
+  { v: 2, face: "😕", label: "непросто" },
+  { v: 3, face: "😐", label: "ровно" },
+  { v: 4, face: "🙂", label: "неплохо" },
+  { v: 5, face: "😄", label: "отлично" },
 ];
 const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
@@ -32,10 +40,10 @@ export default function TherapyPage() {
 
   if (bookingsLoading || therapyLoading) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
   if (!therapist || !therapy) return <EmptyTherapy />;
-  return <TherapyDashboard therapist={therapist} next={next} bookings={ordered} therapy={therapy} onMood={(mood) => save.mutate({ mood })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWho5={(answers) => save.mutate({ who5: answers })} />;
+  return <TherapyDashboard therapist={therapist} next={next} bookings={ordered} therapy={therapy} onMood={(mood) => save.mutate({ mood })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />;
 }
 
-function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideSeen, onWho5 }: { therapist: string; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number) => void; onGuideSeen: () => void; onWho5: (answers: number[]) => void }) {
+function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapist: string; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const [tab, setTab] = useState<"общее" | "терапевт">("общее");
   const [tasks, setTasks] = useState(DEFAULT_TASKS);
   const [messageOpen, setMessageOpen] = useState(false);
@@ -54,13 +62,23 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
 
   return (
     <div className="-mx-4 -mt-2 @md:-mx-9">
-      <header className="relative overflow-hidden bg-[var(--purple)] px-4 pb-16 pt-7 @md:px-9" style={{ borderBottom: "var(--bw-lg) solid var(--purple-edge)" }}>
-        <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-[.16em]">Между встречами</span><span className="rounded-full bg-[#fffdf7] px-3 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>ТЕРАПИЯ</span></div>
-        <h1 className="font-tight mt-2 text-center text-[21px] font-black uppercase tracking-[.02em]">Моя терапия</h1>
-        <div className="mt-5 flex items-center gap-3 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[15px] bg-[var(--green)] text-[20px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>{therapist.charAt(0)}</div>
-          <div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p><p className="truncate text-[16px] font-black">{therapist}</p><p className="mt-0.5 truncate text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p></div>
-          <Link href="/sessions" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--amber)]" style={{ border: "var(--bw) solid var(--amber-edge)" }} aria-label="Перейти к сессиям"><Icon name="calendar" width={17} weight="bold" /></Link>
+      {/* Шапка раздела — тон совпадает с верхней полоской (var(--page)) */}
+      <header className="px-4 pb-16 pt-3 @md:px-9" style={{ background: "var(--page)" }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--purple)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="therapy" width={20} weight="fill" /></span>
+            <div className="leading-none"><h1 className="font-tight text-[20px] font-black">Терапия</h1><p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">Ваш путь между сессиями</p></div>
+          </div>
+          <Link href="/sessions" className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>Все сессии</Link>
+        </div>
+
+        {/* Карточка терапевта */}
+        <div className="mt-5 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[15px] bg-[var(--green)] text-[20px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>{therapist.charAt(0)}</div>
+            <div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p><p className="truncate text-[16px] font-black">{therapist}</p><p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p></div>
+          </div>
+          <Link href="/sessions" className="mt-3 flex items-center justify-center gap-1.5 rounded-[14px] bg-[var(--amber)] py-2.5 text-[13px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="calendar" width={16} weight="bold" /> Записаться на сессию</Link>
         </div>
       </header>
 
@@ -69,13 +87,8 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
 
         {tab === "общее" ? (
           <div className="mt-4 space-y-3">
-            <WellbeingCard who5={therapy.who5} onStart={startFlow} subtitle="видно вашему терапевту" />
-            <section className="rounded-[22px] bg-[var(--amber)] p-4" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
-              <div className="flex items-center gap-2"><Icon name="mood" width={21} weight="bold" /><h2 className="text-[13px] font-black uppercase tracking-[.06em]">Как вы сегодня?</h2></div>
-              <div className="mt-3 grid grid-cols-5 gap-1.5">{[1,2,3,4,5].map((mood) => <button key={mood} onClick={() => { success(); onMood(mood); }} className="flex aspect-square items-center justify-center rounded-[13px] text-[14px] font-black" style={{ background: todayMood === mood ? "var(--ink)" : `var(--mood-${mood})`, color: todayMood === mood ? "#fff" : "var(--ink)", border: `var(--bw) solid ${todayMood === mood ? "var(--ink)" : "rgba(32,28,24,.4)"}` }}>{mood}</button>)}</div>
-              <MoodBars moods={therapy.moods.slice(-7)} />
-              <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">Ежедневная отметка настроения · общая, не привязана к терапевту</p>
-            </section>
+            <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
+            <MoodModule todayMood={todayMood} moods={therapy.moods.slice(-7)} onMood={onMood} />
           </div>
         ) : (
           <div className="mt-4 space-y-3">
@@ -108,7 +121,51 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
           </div>
         )}
       </main>
-      {flowOpen && <Who5Flow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWho5} />}
+      {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} />}
+    </div>
+  );
+}
+
+// Живой модуль настроения: крупные лица, пружинный отклик, анимированный тренд.
+function MoodModule({ todayMood, moods, onMood }: { todayMood?: number; moods: Mood[]; onMood: (m: number) => void }) {
+  const active = MOODS.find((m) => m.v === todayMood);
+  return (
+    <section className="overflow-hidden rounded-[22px] p-4" style={{ background: "var(--amber)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2"><Icon name="mood" width={21} weight="bold" /><h2 className="text-[13px] font-black uppercase tracking-[.06em]">Как вы сегодня?</h2></div>
+        {active && <motion.span key={active.v} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-full bg-[#fffdf7] px-2.5 py-0.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{active.label}</motion.span>}
+      </div>
+
+      <div className="mt-3 grid grid-cols-5 gap-1.5">
+        {MOODS.map((m) => {
+          const on = todayMood === m.v;
+          return (
+            <motion.button key={m.v} onClick={() => { success(); onMood(m.v); }} whileTap={{ scale: 0.88 }} animate={on ? { scale: [1, 1.18, 1] } : { scale: 1 }} transition={{ duration: 0.4 }}
+              className="flex aspect-square flex-col items-center justify-center rounded-[15px]" style={{ background: on ? "var(--ink)" : `var(--mood-${m.v})`, border: `var(--bw) solid ${on ? "var(--ink)" : `color-mix(in srgb, var(--mood-${m.v}) 60%, var(--ink))`}` }}>
+              <span className="text-[22px] leading-none" style={{ filter: on ? "none" : "grayscale(0.15)" }}>{m.face}</span>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      <MoodTrend moods={moods} />
+      <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">Ежедневная отметка настроения · общая, не привязана к терапевту</p>
+    </section>
+  );
+}
+
+function MoodTrend({ moods }: { moods: Mood[] }) {
+  const day = new Intl.DateTimeFormat("ru-RU", { weekday: "short" });
+  if (moods.length === 0) return null;
+  return (
+    <div className="mt-4 flex h-20 items-end gap-1.5">
+      {moods.map((entry, index) => (
+        <div key={`${entry.date}-${index}`} className="flex flex-1 flex-col items-center justify-end gap-1">
+          <motion.div className="w-full rounded-t-[8px]" initial={{ height: 6 }} animate={{ height: `${15 + entry.mood * 9}px` }} transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 18 }}
+            style={{ background: `var(--mood-${entry.mood})`, border: `var(--bw) solid color-mix(in srgb, var(--mood-${entry.mood}) 62%, var(--ink))`, borderBottom: "none" }} />
+          <span className="text-[8px] font-black uppercase">{day.format(new Date(entry.date)).slice(0, 2)}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -128,9 +185,4 @@ function Metric({ value, label, edge, bg = "var(--green-soft)" }: { value: strin
   return <div className="rounded-[15px] p-2.5 text-center" style={{ background: bg, border: `var(--bw) solid ${edge}` }}><p className="font-tight tnum text-[20px] font-black leading-none">{value}</p><p className="mt-1 text-[9px] font-black uppercase tracking-[.05em]">{label}</p></div>;
 }
 
-function MoodBars({ moods }: { moods: Mood[] }) {
-  const day = new Intl.DateTimeFormat("ru-RU", { weekday: "short" });
-  return <div className="mt-4 flex h-20 items-end gap-1.5">{moods.map((entry, index) => <div key={`${entry.date}-${index}`} className="flex flex-1 flex-col items-center justify-end gap-1"><div className="w-full rounded-t-[8px]" style={{ height: `${15 + entry.mood * 9}px`, background: `var(--mood-${entry.mood})`, border: `var(--bw) solid color-mix(in srgb, var(--mood-${entry.mood}) 62%, var(--ink))`, borderBottom: "none" }} /><span className="text-[8px] font-black uppercase">{day.format(new Date(entry.date)).slice(0,2)}</span></div>)}</div>;
-}
-
-function EmptyTherapy() { return <div className="mx-auto max-w-sm py-8 text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--purple-soft)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="heart" width={28} weight="fill" /></div><h2 className="font-tight mt-4 text-2xl font-extrabold">Здесь появится ваша терапия</h2><p className="mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-[var(--muted)]">После записи здесь будут встречи, задания и ваш прогресс между сессиями.</p><Link href="/" className="mt-5 inline-block"><Button arrow>Найти терапевта на главной</Button></Link></div>; }
+function EmptyTherapy() { return <div className="mx-auto max-w-sm py-8 text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--purple-soft)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="therapy" width={30} weight="fill" /></div><h2 className="font-tight mt-4 text-2xl font-extrabold">Здесь появится ваша терапия</h2><p className="mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-[var(--muted)]">После записи здесь будут встречи, задания и ваш прогресс между сессиями.</p><Link href="/" className="mt-5 inline-block"><Button arrow>Найти терапевта на главной</Button></Link></div>; }

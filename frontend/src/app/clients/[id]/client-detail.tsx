@@ -128,7 +128,7 @@ export function ClientDetail() {
       <div className="mt-6"><SectionTitle>Общее самочувствие</SectionTitle></div>
       <Reveal delay={0.06}>
         <div className="mt-1">
-          <WellbeingCard who5={therapy?.who5 ?? null} subtitle="самооценка клиента · последние две недели" />
+          <WellbeingCard wheel={therapy?.wheel ?? null} subtitle="самооценка клиента · последние две недели" />
         </div>
       </Reveal>
 

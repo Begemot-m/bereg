@@ -30,7 +30,7 @@ type Appointment = {
 
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number }; // 1..5
-type Who5Result = { answers: number[]; completedAt: string };
+type WheelResult = { answers: Record<string, number[]>; completedAt: string };
 type Support = { id: number; kind: string; text: string; createdAt: string };
 
 // Окно приёма: время начала + длительность (мин) + формат (онлайн/очно)
@@ -50,7 +50,7 @@ type DB = {
   appts: Appointment[];
   homework: Homework[];
   moods: Record<number, Mood[]>;
-  who5: Record<number, Who5Result | null>;
+  wheel: Record<number, WheelResult | null>;
   therapyTutorialSeen: boolean;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
   work: WorkHours;
@@ -105,9 +105,13 @@ function seed(): DB {
     1: [3, 3, 2, 4, 3, 4, 4].map((m, i) => ({ date: day(i - 6), mood: m })),
     3: [2, 2, 3, 2, 3, 3, 2].map((m, i) => ({ date: day(i - 6), mood: m })),
   };
-  const who5: Record<number, Who5Result | null> = {
+  const wheel: Record<number, WheelResult | null> = {
     1: null,
-    3: { answers: [3, 4, 3, 2, 4], completedAt: day(-4) },
+    3: { answers: {
+      health: [6, 5, 6], emotions: [4, 3, 5], relationships: [7, 8, 7], family: [6, 6, 5],
+      social: [5, 4, 5], work: [3, 3, 4], finance: [5, 5, 4], growth: [7, 6, 7],
+      leisure: [4, 4, 5], environment: [6, 7, 6],
+    }, completedAt: day(-4) },
   };
   return {
     seq: 100,
@@ -115,7 +119,7 @@ function seed(): DB {
     appts,
     homework,
     moods,
-    who5,
+    wheel,
     therapyTutorialSeen: false,
     myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60, format: "online" }],
     work: {
@@ -148,7 +152,7 @@ function load(): DB {
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
-      if (!db.who5) db.who5 = s.who5;
+      if (!db.wheel) db.wheel = s.wheel;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
@@ -273,7 +277,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   const therapyClient = clean.match(/^\/clients\/(\d+)\/therapy$/)?.[1];
   if (therapyClient && method === "GET") {
     const id = Number(therapyClient);
-    return delay({ moods: db.moods[id] ?? [], who5: db.who5[id] ?? null, tutorialSeen: true } as T);
+    return delay({ moods: db.moods[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: true } as T);
   }
 
   if (clean === "/my/therapy") {
@@ -288,12 +292,16 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         else entries.push({ date: today.toISOString(), mood: Math.min(5, Math.max(1, Number(body.mood))) });
         db.moods[id] = entries.slice(-30);
       }
-      if (Array.isArray(body.who5)) db.who5[id] = { answers: (body.who5 as number[]).map((v) => Math.min(5, Math.max(0, Number(v)))), completedAt: new Date().toISOString() };
+      if (body.wheel && typeof body.wheel === "object") {
+        const clean: Record<string, number[]> = {};
+        for (const [k, arr] of Object.entries(body.wheel as Record<string, number[]>)) clean[k] = arr.map((v) => Math.min(10, Math.max(0, Number(v))));
+        db.wheel[id] = { answers: clean, completedAt: new Date().toISOString() };
+      }
       if (body.tutorialSeen !== undefined) db.therapyTutorialSeen = Boolean(body.tutorialSeen);
       save(db);
     }
     if (method === "GET" || method === "PATCH") {
-      return delay({ moods: db.moods[id] ?? [], who5: db.who5[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
+      return delay({ moods: db.moods[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
     }
   }
 
