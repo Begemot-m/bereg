@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { Badge, Button, Input, Textarea } from "@/components/ui";
 import { select, success, tap } from "@/lib/haptics";
-import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUser, useProfile, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, getPsyProfile, savePsyProfile, useProfile, type PsyProfile } from "@/lib/profile";
 
 const SUGGESTED = ["тревога", "депрессия", "выгорание", "отношения", "границы", "самооценка", "травма", "утрата", "зависимости", "панические атаки", "стресс", "сон", "прокрастинация", "одиночество"];
 
@@ -168,32 +168,46 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const [about, setAbout] = useState(cur?.about || "");
   const [years, setYears] = useState(cur?.experienceYears || "");
   const [topics, setTopics] = useState<string[]>(cur?.topics || []);
-  const [photo, setPhoto] = useState<string | null>(cur?.photo ?? null);
+  const [photos, setPhotos] = useState<string[]>(cur?.photos?.length ? cur.photos : cur?.photo ? [cur.photo] : []);
   const [manual, setManual] = useState("");
   const [topicsOpen, setTopicsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const shownPhoto = photo || displayPhoto();
-  const tgPhoto = tgUser()?.photo_url ?? null;
 
   const toggleTopic = (topic: string) => { select(); setTopics((current) => current.includes(topic) ? current.filter((item) => item !== topic) : [...current, topic]); };
   const addManual = () => { const value = manual.trim().toLowerCase(); if (value && !topics.includes(value)) setTopics([...topics, value]); setManual(""); };
-  const onFile = (file: File | undefined) => { if (!file) return; const reader = new FileReader(); reader.onload = () => { setPhoto(String(reader.result)); tap(); }; reader.readAsDataURL(file); };
+  const onFile = (file: File | undefined) => { if (!file) return; const reader = new FileReader(); reader.onload = () => { setPhotos((p) => [...p, String(reader.result)].slice(0, 3)); tap(); }; reader.readAsDataURL(file); };
+  const setMain = (i: number) => { select(); setPhotos((p) => [p[i], ...p.filter((_, idx) => idx !== i)]); };
+  const removePhoto = (i: number) => { tap(); setPhotos((p) => p.filter((_, idx) => idx !== i)); };
   const save = () => {
-    savePsyProfile({ name: name.trim(), approach: approach.trim(), education: education.map((item) => item.trim()).filter(Boolean), about: about.trim(), experienceYears: years.trim(), topics, photo });
+    savePsyProfile({ name: name.trim(), approach: approach.trim(), education: education.map((item) => item.trim()).filter(Boolean), about: about.trim(), experienceYears: years.trim(), topics, photos });
     success(); onDone();
   };
   const shownTopics = topicsOpen ? [...new Set([...topics, ...SUGGESTED])] : [...new Set([...topics, ...SUGGESTED])].slice(0, 9);
 
   return (
     <div className="space-y-4">
-      <FormSection number="01" title="Основное" hint="Фото и имя — первое, что увидит клиент.">
-        <div className="flex items-center gap-4">
-          <ProfilePhoto photo={shownPhoto} name={name} size="lg" />
-          <div className="space-y-1.5">
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => onFile(event.target.files?.[0])} />
-            <Button size="sm" variant="soft" onClick={() => fileRef.current?.click()}>Изменить фото</Button>
-            {photo && <button onClick={() => setPhoto(null)} className="block text-[11px] font-semibold text-[var(--muted)]">{tgPhoto ? "Вернуть фото из Telegram" : "Убрать фото"}</button>}
-          </div>
+      <FormSection number="01" title="Фото и имя" hint="До трёх фото. Первое — основное, его видят в каталоге. Тапните по фото, чтобы сделать основным.">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => onFile(event.target.files?.[0])} />
+        <div className="flex flex-wrap gap-2.5">
+          {photos.map((src, i) => (
+            <div key={i} className="relative">
+              <button onClick={() => i !== 0 && setMain(i)} className="block h-[84px] w-[84px] overflow-hidden rounded-[16px] stroke" style={i === 0 ? { borderColor: "var(--edge)", borderWidth: "var(--bw-lg)" } : undefined} aria-label={i === 0 ? "Основное фото" : "Сделать основным"}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="h-full w-full object-cover" />
+              </button>
+              {i === 0 ? (
+                <span className="absolute bottom-1 left-1 rounded-full bg-[var(--ink)] px-1.5 py-0.5 text-[9px] font-black text-white">★ основное</span>
+              ) : (
+                <span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[9px] font-black stroke">сделать осн.</span>
+              )}
+              <button onClick={() => removePhoto(i)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button>
+            </div>
+          ))}
+          {photos.length < 3 && (
+            <button onClick={() => fileRef.current?.click()} className="flex h-[84px] w-[84px] flex-col items-center justify-center gap-1 rounded-[16px] text-[11px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) dashed var(--edge-neutral)", background: "#fff" }}>
+              <Icon name="plus" width={18} /> Фото
+            </button>
+          )}
         </div>
         <Field label="Имя и фамилия"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></Field>
       </FormSection>

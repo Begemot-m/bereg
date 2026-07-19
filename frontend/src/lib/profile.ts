@@ -21,9 +21,10 @@ export function displayName(): string {
   return "коллега";
 }
 
-/** Фото: загруженное вручную важнее, иначе из Telegram, иначе null. */
+/** Фото: основное из профиля важнее, иначе из Telegram, иначе null. */
 export function displayPhoto(): string | null {
-  return getPsyProfile()?.photo || tgUser()?.photo_url || null;
+  const p = getPsyProfile();
+  return p?.photos?.[0] || p?.photo || tgUser()?.photo_url || null;
 }
 
 // --- Онбординг и профиль психолога (localStorage, демо) ---
@@ -35,7 +36,8 @@ export type PsyProfile = {
   about: string;
   education: string[];
   topics: string[];
-  photo: string | null;
+  photo: string | null;        // совместимость; дублирует photos[0]
+  photos: string[];            // до 3 фото, первое — основное
   status: "review" | "approved";
 };
 
@@ -71,18 +73,23 @@ export function getPsyProfile(): PsyProfile | null {
       p.education = s ? [s] : [];
     }
     if (!Array.isArray(p.education)) p.education = [];
+    // миграция: одиночное фото → массив photos
+    if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : [];
     return p;
   } catch {
     return null;
   }
 }
 
-const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, status: "review" };
+const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, photos: [], status: "review" };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
 export function savePsyProfile(patch: Partial<Omit<PsyProfile, "status">>) {
   const cur = getPsyProfile();
   const profile: PsyProfile = { ...EMPTY, ...cur, ...patch, status: cur?.status ?? "review" };
+  // Основное фото — первое в массиве (совместимость со старым polем photo).
+  if (patch.photos) profile.photo = patch.photos[0] ?? null;
+  else if (patch.photo !== undefined) profile.photos = patch.photo ? [patch.photo, ...profile.photos.filter((x) => x !== patch.photo)].slice(0, 3) : profile.photos;
   localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
   window.dispatchEvent(new CustomEvent(EVENT));
 }
