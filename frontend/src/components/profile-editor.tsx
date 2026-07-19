@@ -6,7 +6,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { Badge, Button, Input, Textarea } from "@/components/ui";
 import { select, success, tap } from "@/lib/haptics";
-import { displayName, displayPhoto, getPsyProfile, savePsyProfile, useProfile, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, type PsyProfile } from "@/lib/profile";
+
+const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
 
 const SUGGESTED = ["тревога", "депрессия", "выгорание", "отношения", "границы", "самооценка", "травма", "утрата", "зависимости", "панические атаки", "стресс", "сон", "прокрастинация", "одиночество"];
 
@@ -150,8 +152,15 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
         </section>
       )}
 
+      {profile?.tg ? (
+        <a href={tgLink(profile.tg)} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">
+          <Icon name="spark" width={16} weight="fill" /> Связаться в Telegram
+        </a>
+      ) : (
+        <div className="rounded-full bg-[var(--surface-2)] py-3 text-center text-[12px] font-semibold text-[var(--muted)] stroke">Добавьте Telegram в профиле — появится кнопка «Связаться»</div>
+      )}
       <Button className="w-full" disabled>Записаться на сессию</Button>
-      <p className="text-center text-[11px] text-[var(--muted-2)]">Предпросмотр. Кнопка записи здесь неактивна.</p>
+      <p className="text-center text-[11px] text-[var(--muted-2)]">Предпросмотр. Клиент увидит эти кнопки в каталоге.</p>
     </article>
   );
 }
@@ -168,6 +177,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const [about, setAbout] = useState(cur?.about || "");
   const [years, setYears] = useState(cur?.experienceYears || "");
   const [minutes, setMinutes] = useState<number>(cur?.sessionMinutes ?? 50);
+  const [tg, setTg] = useState<string>((cur?.tg || tgUsername() || "").replace(/^@/, ""));
   const [topics, setTopics] = useState<string[]>(cur?.topics || []);
   const [photos, setPhotos] = useState<string[]>(cur?.photos?.length ? cur.photos : cur?.photo ? [cur.photo] : []);
   const [manual, setManual] = useState("");
@@ -180,7 +190,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const setMain = (i: number) => { select(); setPhotos((p) => [p[i], ...p.filter((_, idx) => idx !== i)]); };
   const removePhoto = (i: number) => { tap(); setPhotos((p) => p.filter((_, idx) => idx !== i)); };
   const save = () => {
-    savePsyProfile({ name: name.trim(), approach: approach.trim(), education: education.map((item) => item.trim()).filter(Boolean), about: about.trim(), experienceYears: years.trim(), sessionMinutes: minutes, topics, photos });
+    savePsyProfile({ name: name.trim(), approach: approach.trim(), education: education.map((item) => item.trim()).filter(Boolean), about: about.trim(), experienceYears: years.trim(), sessionMinutes: minutes, tg: tg.trim().replace(/^@/, ""), topics, photos });
     success(); onDone();
   };
   const shownTopics = topicsOpen ? [...new Set([...topics, ...SUGGESTED])] : [...new Set([...topics, ...SUGGESTED])].slice(0, 9);
@@ -211,6 +221,14 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
           )}
         </div>
         <Field label="Имя и фамилия"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></Field>
+        <Field label="Telegram для связи">
+          <div className="flex items-center gap-2 rounded-[14px] bg-white px-3 stroke">
+            <span className="text-[15px] font-black text-[var(--muted-2)]">@</span>
+            <input value={tg} onChange={(e) => setTg(e.target.value.replace(/^@/, ""))} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]" />
+            {tg && <a href={tgLink(tg)} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-full bg-[var(--head-soft)] px-2.5 py-1 text-[11px] font-black stroke">Связаться</a>}
+          </div>
+          <p className="mt-1 text-[11px] font-medium text-[var(--muted-2)]">Подтянут из вашей учётки Telegram — можно изменить. По нему клиенты свяжутся с вами.</p>
+        </Field>
       </FormSection>
 
       <FormSection number="02" title="Специализация" hint="Помогает клиенту понять, подходите ли вы друг другу.">

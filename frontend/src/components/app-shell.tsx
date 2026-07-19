@@ -9,13 +9,14 @@ import { Icon, type IconName } from "@/components/icons";
 import { Onboarding } from "@/components/onboarding";
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
-import { displayPhoto, useOnboarded } from "@/lib/profile";
+import { displayPhoto, useOnboarded, useProfile } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
 
 // Круглая кнопка кабинета с аватаркой из Telegram (если есть).
 function AvatarLink({ size = 36 }: { size?: number }) {
+  const profile = useProfile(); // перечитываем фото при изменении профиля/привязки
   const [photo, setPhoto] = useState<string | null>(null);
-  useEffect(() => setPhoto(displayPhoto()), []);
+  useEffect(() => setPhoto(displayPhoto()), [profile]);
   return (
     <Link href="/cabinet" onClick={select} className="flex shrink-0 items-center justify-center overflow-hidden rounded-full stroke" style={{ width: size, height: size, background: "var(--head-soft)" }}>
       {photo ? (
