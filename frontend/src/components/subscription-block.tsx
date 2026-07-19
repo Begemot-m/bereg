@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 
 import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon, type IconName } from "@/components/icons";
+import { Disclosure } from "@/components/ui";
 import { getSubscription, PLAN_PRICE, rub, startSubscription, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
 import { tap } from "@/lib/haptics";
 
@@ -135,7 +136,7 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
         ) : (
           <>
             {activeTools && !sub.promo && <p className="text-[12px] font-bold text-[var(--muted)]">Усильте профиль в каталоге:</p>}
-            {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} />)}
+            {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} />)}
             <p className="pt-1 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата через ЮKassa · отмена в любой момент{variant === "psy" ? " · годовая оплата — 2 месяца в подарок" : ""}</p>
           </>
         )}
@@ -171,23 +172,29 @@ function clientHero(sub: Subscription): { badge: ReactNode; title: string; subti
   };
 }
 
-function PlanCard({ plan, onPick, loading }: { plan: Plan; onPick: () => void; loading: boolean }) {
+function PlanCard({ plan, onPick, loading, defaultOpen = false }: { plan: Plan; onPick: () => void; loading: boolean; defaultOpen?: boolean }) {
   const best = plan.best;
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="relative rounded-[18px] p-3.5" style={{ background: best ? "var(--purple-soft)" : "#fff", border: `var(--bw-lg) solid ${best ? "var(--purple-edge)" : "var(--edge-neutral)"}` }}>
-      {best && <span className="absolute -top-2.5 left-4 rounded-full bg-[var(--ink)] px-2.5 py-0.5 text-[9px] font-black uppercase text-white">{plan.id === "client" ? "рекомендуем" : "выгоднее"}</span>}
-      <div className="flex items-baseline justify-between gap-2">
-        <div><p className="text-[15px] font-black">{plan.name}</p><p className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">{plan.tag}</p></div>
-        <div className="text-right"><p className="font-tight text-[22px] font-black leading-none">{rub(PLAN_PRICE[plan.id])}</p><p className="text-[10px] font-bold text-[var(--muted)]">в месяц</p></div>
-      </div>
-      <ul className="mt-2.5 space-y-1">
-        {plan.perks.map((perk) => (
-          <li key={perk} className="flex items-start gap-1.5 text-[11px] font-semibold text-[var(--muted)]"><Icon name="check" width={13} weight="bold" className="mt-0.5 shrink-0" color="var(--green-edge)" />{perk}</li>
-        ))}
-      </ul>
-      <button onClick={() => { tap(); onPick(); }} disabled={loading} className="mt-3 w-full rounded-[13px] py-2.5 text-[13px] font-black transition-transform active:scale-[0.98] disabled:opacity-50" style={best ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--purple-edge)" }}>
-        {loading ? "Готовим оплату…" : `Подключить · ${rub(PLAN_PRICE[plan.id])}/мес`}
+    <div className="relative rounded-[18px]" style={{ background: best ? "var(--purple-soft)" : "#fff", border: `var(--bw-lg) solid ${best ? "var(--purple-edge)" : "var(--edge-neutral)"}` }}>
+      {best && <span className="absolute -top-2.5 left-4 z-[1] rounded-full bg-[var(--ink)] px-2.5 py-0.5 text-[9px] font-black uppercase text-white">{plan.id === "client" ? "рекомендуем" : "выгоднее"}</span>}
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2 p-3.5 text-left" aria-expanded={open}>
+        <div className="flex-1"><p className="text-[15px] font-black">{plan.name}</p><p className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">{plan.tag}</p></div>
+        <div className="text-right"><p className="font-tight text-[20px] font-black leading-none">{rub(PLAN_PRICE[plan.id])}</p><p className="text-[10px] font-bold text-[var(--muted)]">в месяц</p></div>
+        <span className="text-[16px] font-black text-[var(--muted-2)] transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
       </button>
+      <Disclosure open={open}>
+        <div className="px-3.5 pb-3.5">
+          <ul className="space-y-1">
+            {plan.perks.map((perk) => (
+              <li key={perk} className="flex items-start gap-1.5 text-[11px] font-semibold text-[var(--muted)]"><Icon name="check" width={13} weight="bold" className="mt-0.5 shrink-0" color="var(--green-edge)" />{perk}</li>
+            ))}
+          </ul>
+          <button onClick={() => { tap(); onPick(); }} disabled={loading} className="mt-3 w-full rounded-[13px] py-2.5 text-[13px] font-black transition-transform active:scale-[0.98] disabled:opacity-50" style={best ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--purple-edge)" }}>
+            {loading ? "Готовим оплату…" : `Подключить · ${rub(PLAN_PRICE[plan.id])}/мес`}
+          </button>
+        </div>
+      </Disclosure>
     </div>
   );
 }

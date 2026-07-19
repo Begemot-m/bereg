@@ -10,11 +10,20 @@ import { SubscriptionBlock } from "@/components/subscription-block";
 import { getSubscription } from "@/lib/subscription";
 import { useRole } from "@/lib/role";
 
-const PLANNED = [
-  { icon: "book" as const, title: "Шаблоны техник", desc: "КПТ, ACT — готовые домашние задания" },
-  { icon: "chart" as const, title: "Тесты и шкалы", desc: "PHQ-9, GAD-7 с автоподсчётом" },
-  { icon: "heart" as const, title: "Дневник эмоций", desc: "Для клиентов — с доступом психологу" },
-  { icon: "spark" as const, title: "Практики", desc: "Дыхание, заземление, аудио" },
+// Бесплатные инструменты психолога — быстрый переход в раздел.
+const PSY_FREE: { icon: IconName; title: string; desc: string; href: string }[] = [
+  { icon: "users", title: "Клиенты и карточки", desc: "База, заметки, прогресс", href: "/clients" },
+  { icon: "calendar", title: "Сессии и записи", desc: "Ближайшие, неделя, календарь", href: "/sessions" },
+  { icon: "clock", title: "Расписание и окна", desc: "Часы работы, форматы приёма", href: "/cabinet" },
+  { icon: "balance", title: "Колесо баланса клиента", desc: "Смотреть в карточке клиента", href: "/clients" },
+];
+
+// По подписке PRO — затемнены (данные о подписке не показываем, только метку).
+const PSY_PRO: { icon: IconName; title: string; desc: string }[] = [
+  { icon: "book", title: "Шаблоны техник", desc: "Готовые домашки: КПТ, ACT" },
+  { icon: "chart", title: "Тесты и шкалы", desc: "PHQ-9, GAD-7 с автоподсчётом" },
+  { icon: "spark", title: "Аналитика практики", desc: "Динамика, удержание, доход" },
+  { icon: "note", title: "Экспорт заметок", desc: "PDF-отчёты по клиенту" },
 ];
 
 // Инструменты клиента («приколюхи»): часть бесплатна, часть — по подписке «Вдох+».
@@ -73,36 +82,38 @@ function ClientTools() {
 function PsyTools() {
   return (
     <div>
-      <PageHead title="Инструменты" sub="Раздел в разработке" />
+      <PageHead title="Инструменты" sub="Всё для практики" />
 
-      <Reveal delay={0.05}>
-        <div className="rounded-2xl p-5 text-center" style={{ background: "var(--a-tint, #eef0fb)" }}>
-          <span className="sheen-fill mx-auto block h-1.5 w-10 rounded-full" />
-          <p className="mt-3 font-semibold">Собираем самое полезное</p>
-          <p className="mx-auto mt-1 max-w-xs text-[13px] text-[var(--muted)]">
-            Ниже — что появится первым. Хотите повлиять на порядок? Напишите в отдел заботы в кабинете.
-          </p>
+      <Reveal y={10}>
+        <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+          <p className="mb-2 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Быстрый доступ</p>
+          <div className="space-y-2">
+            {PSY_FREE.map((t, i) => (
+              <Reveal key={t.title} delay={0.03 + i * 0.04}>
+                <Link href={t.href} className="flex items-center gap-3 rounded-[16px] bg-white p-3 transition-transform active:scale-[0.99]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}><Icon name={t.icon} width={18} weight="bold" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{t.title}</span><span className="block text-[12px] font-semibold text-[var(--muted)]">{t.desc}</span></span>
+                  <span className="text-[18px] font-black text-[var(--muted-2)]">›</span>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+
+          <p className="mb-2 mt-6 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">По подписке PRO</p>
+          <div className="space-y-2">
+            {PSY_PRO.map((t, i) => (
+              <Reveal key={t.title} delay={0.03 + i * 0.04}>
+                <div className="flex items-center gap-3 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)", opacity: 0.6 }}>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--edge-neutral)" }}><Icon name={t.icon} width={18} weight="bold" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{t.title}</span><span className="block text-[12px] font-semibold text-[var(--muted)]">{t.desc}</span></span>
+                  <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[.04em] text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>PRO</span>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-[11px] font-semibold text-[var(--muted-2)]">Открывается на тарифе PRO — подключить можно в <Link href="/cabinet" className="font-black text-[var(--edge)]">кабинете</Link>.</p>
         </div>
       </Reveal>
-
-      <div className="mt-5 space-y-2.5">
-        {PLANNED.map((p, i) => (
-          <Reveal key={p.title} delay={0.1 + i * 0.06}>
-            <div className="flex items-center gap-3.5 rounded-2xl bg-white p-4 opacity-80" style={{ border: "1px dashed rgba(44,46,49,0.18)" }}>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)]">
-                <Icon name={p.icon} width={18} height={18} />
-              </span>
-              <span className="flex-1">
-                <p className="text-[14px] font-semibold">{p.title}</p>
-                <p className="text-[12px] text-[var(--muted)]">{p.desc}</p>
-              </span>
-              <span className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
-                скоро
-              </span>
-            </div>
-          </Reveal>
-        ))}
-      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { WellbeingCard } from "@/components/wellbeing-card";
 import { Button, Disclosure, SkeletonRow, Textarea } from "@/components/ui";
 import { listMyBookings, type MyBooking, type Mood } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
+import { getSubscription, startSubscription } from "@/lib/subscription";
 import { select, success, tap } from "@/lib/haptics";
 
 type TherapyTask = { id: number; text: string; done: boolean };
@@ -51,6 +52,8 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
   const [sent, setSent] = useState(false);
   const [flowOpen, setFlowOpen] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  const buySub = useMutation({ mutationFn: () => startSubscription("client"), onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; } });
 
   useEffect(() => { const raw = localStorage.getItem(TASK_KEY); if (raw) try { setTasks(JSON.parse(raw)); } catch { localStorage.removeItem(TASK_KEY); } }, []);
   const toggleTask = (id: number) => { select(); setTasks((cur) => { const nextTasks = cur.map((t) => t.id === id ? { ...t, done: !t.done } : t); localStorage.setItem(TASK_KEY, JSON.stringify(nextTasks)); return nextTasks; }); };
@@ -121,7 +124,7 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
           </div>
         )}
       </main>
-      {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} />}
+      {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} locked={!sub?.clientPro} onUnlock={() => buySub.mutate()} />}
     </div>
   );
 }

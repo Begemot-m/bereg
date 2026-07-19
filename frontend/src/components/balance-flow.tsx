@@ -67,47 +67,124 @@ function initAnswers(): WheelAnswers {
   return a;
 }
 
-export function WheelFlow({ guide, onClose, onGuideSeen, onSave }: { guide: boolean; onClose: () => void; onGuideSeen: () => void; onSave: (answers: WheelAnswers) => void }) {
+export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false, onUnlock }: { guide: boolean; onClose: () => void; onGuideSeen: () => void; onSave: (answers: WheelAnswers) => void; locked?: boolean; onUnlock?: () => void }) {
   const [testing, setTesting] = useState(!guide);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<WheelAnswers>(initAnswers);
   if (!testing) return <HelpDeck title="Колесо баланса" pages={WHEEL_HELP} onClose={onClose} doneLabel="Пройти колесо" onDone={() => { onGuideSeen(); setTesting(true); }} />;
 
+  const summary = step === WHEEL.length;
   const domain = WHEEL[step];
-  const last = step === WHEEL.length - 1;
-  const setVal = (qi: number, v: number) => setAnswers((s) => ({ ...s, [domain.key]: s[domain.key].map((x, i) => (i === qi ? v : x)) }));
-  const next = () => { if (last) { success(); onSave(answers); onClose(); } else { select(); setStep((v) => v + 1); } };
+  const pct = wheelPctLocal(answers);
+  const band = wheelBand(pct);
+  const filled = summary ? WHEEL.length : step;
+  const next = () => { if (step === WHEEL.length - 1) { success(); setStep(WHEEL.length); } else { select(); setStep((v) => v + 1); } };
+  const setVal = (qi: number, v: number) => domain && setAnswers((s) => ({ ...s, [domain.key]: s[domain.key].map((x, i) => (i === qi ? v : x)) }));
 
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 backdrop-blur-[2px] @md:items-center" onClick={onClose}>
-        <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 34 }} onClick={(e) => e.stopPropagation()} className="chunk w-full max-w-md overflow-hidden bg-[#fffdf7]">
-          <div className="flex items-center justify-between bg-[var(--purple)] px-5 py-4" style={{ borderBottom: "var(--bw-lg) solid var(--purple-edge)" }}>
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name={domain.icon} width={18} weight="bold" /></span>
-              <div><p className="text-[10px] font-black uppercase tracking-[.12em]">Сфера {step + 1} из {WHEEL.length}</p><p className="text-[14px] font-black leading-tight">{domain.label}</p></div>
+        <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 34 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[92dvh] w-full max-w-md overflow-y-auto bg-[#fffdf7]">
+          <div className="sticky top-0 z-[1] bg-[var(--purple)] px-5 py-4" style={{ borderBottom: "var(--bw-lg) solid var(--purple-edge)" }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name={summary ? "balance" : domain.icon} width={18} weight="bold" /></span>
+                <div><p className="text-[10px] font-black uppercase tracking-[.12em]">{summary ? "Ваш результат" : `Сфера ${step + 1} из ${WHEEL.length}`}</p><p className="text-[14px] font-black leading-tight">{summary ? "Колесо собрано" : domain.label}</p></div>
+              </div>
+              <button onClick={() => { tap(); onClose(); }} className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[14px] font-black stroke" aria-label="Закрыть">×</button>
             </div>
-            <button onClick={() => { tap(); onClose(); }} className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[14px] font-black stroke" aria-label="Закрыть">×</button>
+            {/* Прогресс-бар со статой */}
+            <div className="mt-3 flex items-center gap-2.5">
+              <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-[#fffdf7]" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+                <motion.div className="h-full rounded-full bg-[var(--ink)]" animate={{ width: `${(filled / WHEEL.length) * 100}%` }} transition={{ type: "spring", stiffness: 200, damping: 24 }} />
+              </div>
+              <span className="tnum rounded-full bg-[#fffdf7] px-2 py-0.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{pct}%</span>
+            </div>
           </div>
+
           <div className="p-5">
-            <div className="mb-5 grid gap-1" style={{ gridTemplateColumns: `repeat(${WHEEL.length}, 1fr)` }}>{WHEEL.map((_, i) => <span key={i} className="h-2 rounded-full" style={{ background: i <= step ? "var(--purple)" : "#fff", border: "var(--bw) solid var(--purple-edge)" }} />)}</div>
-            <motion.div key={domain.key} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="space-y-4">
-              {domain.questions.map((q, qi) => (
-                <div key={qi}>
-                  <p className="mb-2 text-[13px] font-bold leading-snug">{q}</p>
-                  <Scale value={answers[domain.key][qi]} onChange={(v) => setVal(qi, v)} />
+            {summary ? (
+              <ResultView answers={answers} pct={pct} band={band} locked={locked} onSave={() => { success(); onSave(answers); onClose(); }} onUnlock={onUnlock} />
+            ) : (
+              <>
+                <motion.div key={domain.key} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="space-y-4">
+                  {domain.questions.map((q, qi) => (
+                    <div key={qi}>
+                      <p className="mb-2 text-[13px] font-bold leading-snug">{q}</p>
+                      <Scale value={answers[domain.key][qi]} onChange={(v) => setVal(qi, v)} />
+                    </div>
+                  ))}
+                </motion.div>
+                <div className="mt-5 flex gap-2">
+                  {step > 0 && <Button variant="soft" onClick={() => { tap(); setStep((v) => v - 1); }}>Назад</Button>}
+                  <Button className="flex-1" onClick={next}>{step === WHEEL.length - 1 ? "Показать результат" : "Дальше"}</Button>
                 </div>
-              ))}
-            </motion.div>
-            <div className="mt-5 flex gap-2">
-              {step > 0 && <Button variant="soft" onClick={() => { tap(); setStep((v) => v - 1); }}>Назад</Button>}
-              <Button className="flex-1" onClick={next}>{last ? `Готово · ${wheelBand(wheelPctLocal(answers)).label}` : "Дальше"}</Button>
-            </div>
-            <p className="mt-3 text-center text-[10px] font-semibold text-[var(--muted-2)]">Самооценка для разговора с терапевтом · не диагноз.</p>
+                <p className="mt-3 text-center text-[10px] font-semibold text-[var(--muted-2)]">Самооценка для разговора с терапевтом · не диагноз.</p>
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+// Экран результата: круговая стата, сильные/слабые сферы и (для клиента без Вдох+) оплата.
+function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers: WheelAnswers; pct: number; band: ReturnType<typeof wheelBand>; locked: boolean; onSave: () => void; onUnlock?: () => void }) {
+  const per = WHEEL.map((d) => ({ d, v: d.questions.reduce((s, _, i) => s + answers[d.key][i], 0) / d.questions.length })).sort((a, b) => b.v - a.v);
+  const tone = band.tone === "green" ? "var(--green)" : band.tone === "amber" ? "var(--amber)" : "var(--salmon)";
+  const edge = band.tone === "green" ? "var(--green-edge)" : band.tone === "amber" ? "var(--amber-edge)" : "var(--salmon-edge)";
+  const R = 34, C = 2 * Math.PI * R;
+  const strong = per.slice(0, 2), weak = per.slice(-2).reverse();
+
+  return (
+    <div className="space-y-4">
+      {/* Круговая стата */}
+      <div className="flex items-center gap-4 rounded-[18px] p-4" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
+        <div className="relative h-[86px] w-[86px] shrink-0">
+          <svg viewBox="0 0 86 86" className="h-full w-full -rotate-90">
+            <circle cx="43" cy="43" r={R} fill="none" stroke="#fff" strokeWidth="9" />
+            <motion.circle cx="43" cy="43" r={R} fill="none" stroke={tone} strokeWidth="9" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - pct / 100) }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="font-tight tnum text-[22px] font-black leading-none">{pct}%</span></div>
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: tone, border: `var(--bw) solid ${edge}` }}>{band.label}</span>
+          <p className="mt-1.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{band.hint}</p>
+        </div>
+      </div>
+
+      {/* Сильные / слабые сферы */}
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard title="Опора" items={strong} good />
+        <StatCard title="Внимание" items={weak} />
+      </div>
+
+      {locked ? (
+        <div className="rounded-[18px] p-4" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
+          <div className="flex items-center gap-2"><Icon name="therapy" width={18} weight="fill" /><p className="text-[13px] font-black">Полный разбор в Вдох+</p></div>
+          <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Детальный радар по 10 сферам, история и динамика от встречи к встрече — по подписке 390 ₽/мес.</p>
+          <button onClick={() => { tap(); onUnlock?.(); }} className="mt-3 w-full rounded-[13px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98]">Открыть Вдох+ · 390 ₽/мес</button>
+          <button onClick={onSave} className="mt-2 w-full text-center text-[12px] font-bold text-[var(--muted)]">Пока сохранить базовый результат</button>
+        </div>
+      ) : (
+        <Button className="w-full" onClick={onSave}>Сохранить результат</Button>
+      )}
+      <p className="text-center text-[10px] font-semibold text-[var(--muted-2)]">Самооценка для разговора с терапевтом · не диагноз.</p>
+    </div>
+  );
+}
+
+function StatCard({ title, items, good }: { title: string; items: { d: (typeof WHEEL)[number]; v: number }[]; good?: boolean }) {
+  return (
+    <div className="rounded-[15px] bg-white p-3" style={{ border: `var(--bw) solid ${good ? "var(--green-edge)" : "var(--salmon-edge)"}` }}>
+      <p className="text-[10px] font-black uppercase tracking-[.06em]" style={{ color: good ? "var(--green-edge)" : "var(--salmon-edge)" }}>{title}</p>
+      <div className="mt-1.5 space-y-1">
+        {items.map(({ d, v }) => (
+          <div key={d.key} className="flex items-center justify-between gap-1"><span className="truncate text-[11px] font-bold">{d.short}</span><span className="tnum text-[11px] font-black text-[var(--muted)]">{v.toFixed(1)}</span></div>
+        ))}
+      </div>
+    </div>
   );
 }
 
