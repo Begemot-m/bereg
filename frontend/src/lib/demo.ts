@@ -57,9 +57,12 @@ type DB = {
   overrides: Record<string, SlotOverride>;
   support: Support[];
   sub: {
-    plan: "free" | "pro";
-    status: "inactive" | "pending" | "active";
+    status: "trial" | "active" | "pending" | "expired";
+    trialEndsAt: string | null;
     currentPeriodEnd: string | null;
+    tools: boolean;
+    promo: boolean;
+    pendingPlan: "tools" | "promo" | "bundle" | null;
     pendingSince: number | null;
   };
 };
@@ -128,7 +131,7 @@ function seed(): DB {
     },
     overrides: {},
     support: [],
-    sub: { plan: "free", status: "inactive", currentPeriodEnd: null, pendingSince: null },
+    sub: { status: "trial", trialEndsAt: iso(10, 12, 0), currentPeriodEnd: null, tools: true, promo: false, pendingPlan: null, pendingSince: null },
   };
 }
 
@@ -153,6 +156,7 @@ function load(): DB {
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
       if (!db.wheel) db.wheel = s.wheel;
+      if (!db.sub || (db.sub as { trialEndsAt?: string }).trialEndsAt === undefined) db.sub = s.sub;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
@@ -171,10 +175,25 @@ function save(db: DB) {
 }
 
 function resolveSub(db: DB) {
-  if (db.sub.status === "pending" && db.sub.pendingSince && Date.now() - db.sub.pendingSince > 2500) {
+  const s = db.sub;
+  // Оплата «подтверждается» через ~2.5с после возврата с ЮKassa.
+  if (s.status === "pending" && s.pendingSince && Date.now() - s.pendingSince > 2500) {
     const end = new Date();
     end.setDate(end.getDate() + 30);
-    db.sub = { plan: "pro", status: "active", currentPeriodEnd: end.toISOString(), pendingSince: null };
+    if (s.pendingPlan === "tools") s.tools = true;
+    else if (s.pendingPlan === "promo") s.promo = true;
+    else if (s.pendingPlan === "bundle") { s.tools = true; s.promo = true; }
+    s.status = "active";
+    s.currentPeriodEnd = end.toISOString();
+    s.trialEndsAt = null;
+    s.pendingPlan = null;
+    s.pendingSince = null;
+    save(db);
+  }
+  // Истёкший триал (в демо триал длинный, но обрабатываем честно).
+  if (s.status === "trial" && s.trialEndsAt && new Date(s.trialEndsAt).getTime() < Date.now()) {
+    s.status = "expired";
+    s.tools = false;
     save(db);
   }
 }
@@ -477,11 +496,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // subscription / billing
   if (clean === "/subscription" && method === "GET") {
     resolveSub(db);
-    const { plan, status, currentPeriodEnd } = db.sub;
-    return delay({ plan, status, currentPeriodEnd } as T);
+    const { status, trialEndsAt, currentPeriodEnd, tools, promo, pendingPlan } = db.sub;
+    return delay({ status, trialEndsAt, currentPeriodEnd, tools, promo, pendingPlan } as T);
   }
   if (clean === "/billing/subscribe" && method === "POST") {
-    db.sub = { ...db.sub, plan: "pro", status: "pending", pendingSince: Date.now() };
+    const plan = (["tools", "promo", "bundle"].includes(String(body.plan)) ? body.plan : "tools") as "tools" | "promo" | "bundle";
+    db.sub = { ...db.sub, status: "pending", pendingPlan: plan, pendingSince: Date.now() };
     save(db);
     return delay({ confirmation_url: "/billing/return" } as T);
   }

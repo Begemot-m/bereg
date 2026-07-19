@@ -54,10 +54,10 @@ export function ProfileEditor({
           )}
           <button
             onClick={() => { tap(); setEditing(true); }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-extrabold stroke"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[11px] font-bold stroke"
             style={{ background: "#fff" }}
           >
-            <Icon name="note" width={15} weight="regular" /> Редактировать профиль
+            <Icon name="note" width={13} weight="regular" /> Редактировать профиль
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
@@ -8,13 +8,13 @@ import { HelpDeck, SCHEDULE_HELP } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
+import { SubscriptionBlock } from "@/components/subscription-block";
 import { WorkHoursEditor } from "@/components/work-hours";
-import { Badge, Button, Card, Textarea } from "@/components/ui";
+import { Button, Card, Textarea } from "@/components/ui";
 import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
-import { getSubscription, startSubscription } from "@/lib/subscription";
 import { sendSupport } from "@/lib/support";
 
 const ROLES: Role[] = ["psychologist", "client"];
@@ -23,12 +23,6 @@ export default function CabinetPage() {
   const [role, switchRole] = useRole();
   const [editHours, setEditHours] = useState(false);
   const [help, setHelp] = useState(false);
-  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
-
-  const subscribe = useMutation({
-    mutationFn: startSubscription,
-    onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; },
-  });
 
   return (
     <div>
@@ -93,27 +87,7 @@ export default function CabinetPage() {
       {/* Подписка */}
       <div className="mb-6">
         <SectionTitle>Подписка</SectionTitle>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-tight text-2xl font-extrabold">{sub?.plan === "pro" ? "PRO" : "Бесплатно"}</p>
-              <p className="text-[12px] text-[var(--muted)]">
-                {sub?.status === "active" ? "активна" : sub?.status === "pending" ? "ожидает оплаты" : "базовый доступ"}
-              </p>
-            </div>
-            {sub?.status === "active" ? <Badge tone="active">активна</Badge> : <Badge tone="accent">990 ₽/мес</Badge>}
-          </div>
-          {sub?.status !== "active" && (
-            <div className="mt-4">
-              <p className="mb-3 text-[13px] text-[var(--muted)]">
-                Расширенные модули и место в каталоге. Базовый инструмент — бесплатный навсегда.
-              </p>
-              <Button onClick={() => subscribe.mutate()} disabled={subscribe.isPending} arrow className="w-full">
-                {subscribe.isPending ? "Готовим оплату" : "Оформить Pro"}
-              </Button>
-            </div>
-          )}
-        </Card>
+        <SubscriptionBlock />
       </div>
 
       {/* Настройки */}
