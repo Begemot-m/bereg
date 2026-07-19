@@ -113,13 +113,7 @@ function PsySessions() {
             <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
           ) : soonDays.length === 0 ? (
             selDay ? (
-              <div>
-                <div className="mb-2 flex items-center justify-between border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
-                  <span className="text-[14px] font-extrabold capitalize">{dateHeader(selDay)}</span>
-                  <span className="text-[11px] font-bold text-[var(--muted-2)]">записей нет · свободные окна</span>
-                </div>
-                <DaySlots date={new Date(selDay + "T00:00:00")} />
-              </div>
+              <EmptyDayFree key={selDay} day={selDay} />
             ) : (
               <EmptyState onAdd={() => setView("cal")} selDay={null} />
             )
@@ -210,6 +204,30 @@ function EmptyState({ onAdd, selDay }: { onAdd: () => void; selDay: string | nul
       <p className="text-[14px] font-bold">{selDay ? "На этот день записей нет" : "Пока нет предстоящих сессий"}</p>
       <p className="mx-auto mt-1 max-w-[240px] text-[13px] text-[var(--muted-2)]">Откройте «Календарь» и запишите клиента в свободное окно.</p>
       <div className="mt-4"><Button size="sm" onClick={onAdd} arrow>К календарю</Button></div>
+    </div>
+  );
+}
+
+// Выбранный день без записей: сообщение + кнопка, которая разворачивает свободные окна дня.
+function EmptyDayFree({ day }: { day: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <div className="py-8 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl stroke" style={{ background: "var(--head-soft)" }}><Icon name="calendar" width={24} /></div>
+        <p className="text-[14px] font-bold">На этот день записей нет</p>
+        <p className="mx-auto mt-1 max-w-[240px] text-[13px] text-[var(--muted-2)]">Можно записать клиента в свободное окно.</p>
+        <button onClick={() => { tap(); setOpen(!open); }} className="mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-extrabold stroke" style={{ background: "#fff" }} aria-expanded={open}>
+          {open ? "Скрыть свободные окна" : "Показать свободные окна"}
+          <span className="transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+        </button>
+      </div>
+      <Disclosure open={open}>
+        <div className="border-t pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
+          <div className="mb-2"><span className="text-[14px] font-extrabold capitalize">{dateHeader(day)}</span></div>
+          <DaySlots date={new Date(day + "T00:00:00")} />
+        </div>
+      </Disclosure>
     </div>
   );
 }
