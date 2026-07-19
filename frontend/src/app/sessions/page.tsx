@@ -86,6 +86,7 @@ function PsySessions() {
   };
 
   const todayY = ymdLocal(new Date());
+  const markedDays = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
   // Ближайшие дни (сегодня, завтра …) с окнами или записями
   const soonDays = Array.from({ length: 30 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }).filter((d) => {
     const y = ymdLocal(d);
@@ -96,7 +97,7 @@ function PsySessions() {
   return (
     <div>
       <PageHead title="Сессии" sub={view === "soon" ? (selDay ? dateHeader(selDay) : "Что впереди") : view === "week" ? "Неделя целиком" : "Запись в свободные окна"}>
-          <WeekStrip selected={selDay ?? todayY} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
+          <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
       </PageHead>
 
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>

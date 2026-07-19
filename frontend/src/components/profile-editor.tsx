@@ -167,6 +167,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const [education, setEducation] = useState<string[]>(cur?.education?.length ? cur.education : []);
   const [about, setAbout] = useState(cur?.about || "");
   const [years, setYears] = useState(cur?.experienceYears || "");
+  const [minutes, setMinutes] = useState<number>(cur?.sessionMinutes ?? 50);
   const [topics, setTopics] = useState<string[]>(cur?.topics || []);
   const [photos, setPhotos] = useState<string[]>(cur?.photos?.length ? cur.photos : cur?.photo ? [cur.photo] : []);
   const [manual, setManual] = useState("");
@@ -179,7 +180,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const setMain = (i: number) => { select(); setPhotos((p) => [p[i], ...p.filter((_, idx) => idx !== i)]); };
   const removePhoto = (i: number) => { tap(); setPhotos((p) => p.filter((_, idx) => idx !== i)); };
   const save = () => {
-    savePsyProfile({ name: name.trim(), approach: approach.trim(), education: education.map((item) => item.trim()).filter(Boolean), about: about.trim(), experienceYears: years.trim(), topics, photos });
+    savePsyProfile({ name: name.trim(), approach: approach.trim(), education: education.map((item) => item.trim()).filter(Boolean), about: about.trim(), experienceYears: years.trim(), sessionMinutes: minutes, topics, photos });
     success(); onDone();
   };
   const shownTopics = topicsOpen ? [...new Set([...topics, ...SUGGESTED])] : [...new Set([...topics, ...SUGGESTED])].slice(0, 9);
@@ -216,6 +217,17 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
         <div className="grid grid-cols-[minmax(0,1fr)_96px] gap-2">
           <Field label="Подход"><Input value={approach} onChange={(event) => setApproach(event.target.value)} placeholder="КПТ, ACT…" /></Field>
           <Field label="Опыт"><Input value={years} onChange={(event) => setYears(event.target.value)} inputMode="numeric" placeholder="5 лет" /></Field>
+        </div>
+        <div>
+          <p className="mb-2 text-[12px] font-extrabold text-[var(--muted)]">Длина сессии</p>
+          <div className="flex items-center gap-2.5">
+            <button onClick={() => { select(); setMinutes((m) => Math.max(30, m - 5)); }} className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white text-[20px] font-black stroke" aria-label="Меньше">−</button>
+            <div className="flex h-11 min-w-[92px] flex-col items-center justify-center rounded-[13px] px-3" style={{ background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }}>
+              <span className="tnum text-[16px] font-black leading-none">{minutes} мин</span>
+            </div>
+            <button onClick={() => { select(); setMinutes((m) => Math.min(120, m + 5)); }} className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white text-[20px] font-black stroke" aria-label="Больше">+</button>
+            <span className="text-[11px] font-semibold text-[var(--muted)]">сколько длится одна встреча</span>
+          </div>
         </div>
         <div>
           <p className="mb-2 text-[12px] font-extrabold text-[var(--muted)]">С какими запросами работаю</p>

@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={it.href}
                   onClick={select}
                   className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
-                  style={active ? { background: "var(--head)", border: "var(--bw) solid var(--stroke)" } : { color: "var(--muted)" }}
+                  style={active ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
                 >
                   <Icon name={it.icon} width={19} weight="regular" />
                   {it.label}
@@ -115,7 +115,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           href="/cabinet"
           onClick={select}
           className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
-          style={cabinetActive ? { background: "var(--head)", border: "var(--bw) solid var(--stroke)" } : { color: "var(--muted)" }}
+          style={cabinetActive ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full stroke" style={{ background: "#fff" }}>
             <Icon name="user" width={16} />
@@ -151,7 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 animate={{ left: `${(activeIndex * 100) / tabs.length}%` }}
                 transition={{ type: "spring", stiffness: 520, damping: 30 }}
               >
-                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--nav-edge)" }} />
+                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--edge)", transition: "border-color .4s ease, background-color .4s ease" }} />
               </motion.div>
             )}
             {tabs.map((it) => {

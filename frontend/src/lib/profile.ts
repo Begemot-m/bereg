@@ -38,6 +38,7 @@ export type PsyProfile = {
   topics: string[];
   photo: string | null;        // совместимость; дублирует photos[0]
   photos: string[];            // до 3 фото, первое — основное
+  sessionMinutes: number;      // длительность сессии
   status: "review" | "approved";
 };
 
@@ -75,13 +76,14 @@ export function getPsyProfile(): PsyProfile | null {
     if (!Array.isArray(p.education)) p.education = [];
     // миграция: одиночное фото → массив photos
     if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : [];
+    if (typeof p.sessionMinutes !== "number") p.sessionMinutes = 50;
     return p;
   } catch {
     return null;
   }
 }
 
-const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, photos: [], status: "review" };
+const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, photos: [], sessionMinutes: 50, status: "review" };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
 export function savePsyProfile(patch: Partial<Omit<PsyProfile, "status">>) {

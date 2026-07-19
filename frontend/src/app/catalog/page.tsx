@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -16,7 +16,7 @@ import { bookSlot } from "@/lib/mybookings";
 
 type Psy = {
   id: number; name: string; tone: keyof typeof T; verified: boolean; rating: number; reviews: number;
-  method: string; methods: string[]; topics: string[]; price: number; format: "online" | "offline" | "both";
+  method: string; methods: string[]; topics: string[]; price: number; minutes: number; format: "online" | "offline" | "both"; tg: string;
   years: number; sessions: number; clients: number; responseHrs: number; about: string; education: string[];
 };
 
@@ -41,10 +41,10 @@ const METHOD_ICON: Record<string, string> = { "КПТ": "🧠", "ACT": "🎯", "
 const methodIcon = (m: string) => METHOD_ICON[m] ?? "✦";
 
 const PSYS: Psy[] = [
-  { id: 1, name: "Ирина Верещагина", tone: "green", verified: true, rating: 4.9, reviews: 128, method: "КПТ", methods: ["КПТ", "EMDR"], topics: ["тревога", "границы", "панические атаки"], price: 3500, format: "both", years: 8, sessions: 1240, clients: 210, responseHrs: 2, about: "Помогаю справляться с тревогой и вернуть опору. Работаю бережно, в темпе клиента, с опорой на доказательные методы.", education: ["МГУ, факультет психологии", "Сертификация по КПТ, АКБТ", "EMDR Europe, базовый курс"] },
-  { id: 2, name: "Сергей Домбровский", tone: "amber", verified: true, rating: 4.8, reviews: 94, method: "ACT", methods: ["ACT", "DBT"], topics: ["выгорание", "самооценка", "стресс"], price: 4000, format: "online", years: 11, sessions: 1980, clients: 340, responseHrs: 3, about: "Работаю с выгоранием и самооценкой. Помогаю находить ценности и действовать вопреки тревоге и прокрастинации.", education: ["СПбГУ, клиническая психология", "ACT — Ассоциация контекстно-поведенческой науки"] },
-  { id: 3, name: "Наталья Юсупова", tone: "purple", verified: false, rating: 4.7, reviews: 51, method: "Гештальт", methods: ["Гештальт"], topics: ["отношения", "утрата", "одиночество"], price: 3000, format: "both", years: 6, sessions: 640, clients: 120, responseHrs: 6, about: "Про отношения, потерю и поиск себя. В центре — живой контакт и то, что происходит здесь и сейчас.", education: ["МИП, гештальт-терапия", "Программа работы с утратой"] },
-  { id: 4, name: "Артём Белов", tone: "coral", verified: true, rating: 4.9, reviews: 173, method: "Схема-терапия", methods: ["Схема-терапия", "КПТ"], topics: ["травма", "тревога", "самооценка"], price: 4500, format: "offline", years: 13, sessions: 2450, clients: 410, responseHrs: 4, about: "Схема-терапия при последствиях травмы и устойчивых сложностях в отношениях с собой и другими.", education: ["РНИМУ им. Пирогова", "Международное общество схема-терапии (ISST)"] },
+  { id: 1, name: "Ирина Верещагина", tone: "green", verified: true, rating: 4.9, reviews: 128, method: "КПТ", methods: ["КПТ", "EMDR"], topics: ["тревога", "границы", "панические атаки"], price: 3500, minutes: 50, format: "both", tg: "irina_v", years: 8, sessions: 1240, clients: 210, responseHrs: 2, about: "Помогаю справляться с тревогой и вернуть опору. Работаю бережно, в темпе клиента, с опорой на доказательные методы.", education: ["МГУ, факультет психологии", "Сертификация по КПТ, АКБТ", "EMDR Europe, базовый курс"] },
+  { id: 2, name: "Сергей Домбровский", tone: "amber", verified: true, rating: 4.8, reviews: 94, method: "ACT", methods: ["ACT", "DBT"], topics: ["выгорание", "самооценка", "стресс"], price: 4000, minutes: 60, format: "online", tg: "sergey_act", years: 11, sessions: 1980, clients: 340, responseHrs: 3, about: "Работаю с выгоранием и самооценкой. Помогаю находить ценности и действовать вопреки тревоге и прокрастинации.", education: ["СПбГУ, клиническая психология", "ACT — Ассоциация контекстно-поведенческой науки"] },
+  { id: 3, name: "Наталья Юсупова", tone: "purple", verified: false, rating: 4.7, reviews: 51, method: "Гештальт", methods: ["Гештальт"], topics: ["отношения", "утрата", "одиночество"], price: 3000, minutes: 60, format: "both", tg: "natalia_gestalt", years: 6, sessions: 640, clients: 120, responseHrs: 6, about: "Про отношения, потерю и поиск себя. В центре — живой контакт и то, что происходит здесь и сейчас.", education: ["МИП, гештальт-терапия", "Программа работы с утратой"] },
+  { id: 4, name: "Артём Белов", tone: "coral", verified: true, rating: 4.9, reviews: 173, method: "Схема-терапия", methods: ["Схема-терапия", "КПТ"], topics: ["травма", "тревога", "самооценка"], price: 4500, minutes: 50, format: "offline", tg: "artem_schema", years: 13, sessions: 2450, clients: 410, responseHrs: 4, about: "Схема-терапия при последствиях травмы и устойчивых сложностях в отношениях с собой и другими.", education: ["РНИМУ им. Пирогова", "Международное общество схема-терапии (ISST)"] },
 ];
 
 const FILTERS = ["Все", "тревога", "выгорание", "отношения", "самооценка", "травма"];
@@ -58,6 +58,8 @@ export default function CatalogPage() {
   const list = [...PSYS]
     .filter((p) => (filter === "Все" || p.topics.includes(filter)) && (!nq || p.name.toLowerCase().includes(nq) || p.method.toLowerCase().includes(nq) || p.topics.some((t) => t.includes(nq))))
     .sort((a, b) => Number(b.verified) - Number(a.verified) || b.rating - a.rating);
+
+  if (sel) return <PsyDetailView psy={sel} onBack={() => setSel(null)} />;
 
   return (
     <div>
@@ -84,8 +86,6 @@ export default function CatalogPage() {
       <Stagger className="space-y-3">
         {list.map((p) => <StaggerItem key={p.id}><PsyCard psy={p} onOpen={() => { tap(); setSel(p); }} /></StaggerItem>)}
       </Stagger>
-
-      <AnimatePresence>{sel && <PsyDetail psy={sel} onClose={() => setSel(null)} />}</AnimatePresence>
     </div>
   );
 }
@@ -99,15 +99,23 @@ function Avatar({ name, tone, size }: { name: string; tone: keyof typeof T; size
   );
 }
 
-function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
+const STAR_PATH = "M12 2.2l2.7 5.85 6.4.62-4.8 4.3 1.4 6.23L12 16.7 6.3 19.2l1.4-6.23-4.8-4.3 6.4-.62z";
+function StarSvg({ size, fill }: { size: number; fill: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className="block">
+      <path d={STAR_PATH} fill={fill} stroke="var(--amber-edge)" strokeWidth={1.3} strokeLinejoin="round" />
+    </svg>
+  );
+}
+function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
     <span className="inline-flex items-center gap-0.5 align-middle">
       {[0, 1, 2, 3, 4].map((i) => {
         const fill = Math.max(0, Math.min(1, rating - i));
         return (
           <span key={i} className="relative inline-block" style={{ width: size, height: size }}>
-            <span className="absolute inset-0 text-[var(--edge-neutral)]" style={{ fontSize: size, lineHeight: `${size}px` }}>★</span>
-            <span className="absolute inset-0 overflow-hidden text-[var(--amber-edge)]" style={{ width: `${fill * 100}%`, fontSize: size, lineHeight: `${size}px` }}>★</span>
+            <span className="absolute inset-0"><StarSvg size={size} fill="#fff" /></span>
+            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}><StarSvg size={size} fill="var(--amber)" /></span>
           </span>
         );
       })}
@@ -118,7 +126,7 @@ function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
 function VerifiedBadge({ small }: { small?: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full ${small ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]"} font-black`} style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)", color: "var(--green-edge)" }}>
-      <Icon name="check" width={small ? 10 : 12} weight="fill" color="var(--green-edge)" /> {small ? "" : "проверен"}
+      <Icon name="check" width={small ? 10 : 12} weight="fill" color="var(--green-edge)" /> {small ? "" : "подтверждён"}
     </span>
   );
 }
@@ -126,21 +134,21 @@ function VerifiedBadge({ small }: { small?: boolean }) {
 // Карточка каталога — крупнее фото, рейтинг, значок, чипы-запросы.
 function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   return (
-    <button onClick={onOpen} className="w-full rounded-[22px] bg-white p-3 text-left transition-transform active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-      <div className="flex gap-3">
-        <Avatar name={psy.name} tone={psy.tone} size={64} />
+    <button onClick={onOpen} className="w-full rounded-[24px] bg-white p-4 text-left transition-transform active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="flex gap-3.5">
+        <Avatar name={psy.name} tone={psy.tone} size={84} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5"><p className="truncate text-[15px] font-black">{psy.name}</p>{psy.verified && <VerifiedBadge small />}</div>
-          <div className="mt-0.5 flex items-center gap-1.5"><Stars rating={psy.rating} /><span className="text-[12px] font-black">{psy.rating}</span><span className="text-[11px] font-semibold text-[var(--muted-2)]">· {psy.reviews} отзывов</span></div>
-          <div className="mt-1.5 flex flex-wrap gap-1">
+          <div className="flex items-center gap-1.5"><p className="truncate text-[16px] font-black">{psy.name}</p>{psy.verified && <VerifiedBadge small />}</div>
+          <div className="mt-1 flex items-center gap-1.5"><Stars rating={psy.rating} /><span className="text-[13px] font-black">{psy.rating}</span><span className="text-[11px] font-semibold text-[var(--muted-2)]">· {psy.reviews} отзывов</span></div>
+          <div className="mt-2 flex flex-wrap gap-1">
             <Chip>{methodIcon(psy.method)} {psy.method}</Chip>
             {psy.topics.slice(0, 2).map((t) => <Chip key={t}>{topicIcon(t)} {t}</Chip>)}
           </div>
         </div>
       </div>
-      <div className="mt-2.5 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "var(--edge-neutral)" }}>
-        <p className="font-tight text-[16px] font-black">{psy.price.toLocaleString("ru-RU")} ₽<span className="text-[11px] font-semibold text-[var(--muted)]"> / сессия · {fmtLabel(psy.format)}</span></p>
-        <span className="flex items-center gap-1 text-[12px] font-black text-[var(--muted)]">Профиль <span>›</span></span>
+      <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
+        <p className="font-tight text-[17px] font-black">{psy.price.toLocaleString("ru-RU")} ₽<span className="text-[11px] font-semibold text-[var(--muted)]"> · {psy.minutes} мин · {fmtLabel(psy.format)}</span></p>
+        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--ink)] px-3.5 py-1.5 text-[12px] font-black text-white">Профиль <span>›</span></span>
       </div>
     </button>
   );
@@ -160,13 +168,11 @@ function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
   return <>{v.toLocaleString("ru-RU")}{suffix}</>;
 }
 
-// Детальный профиль — игровой, с анимациями и статистикой.
-function PsyDetail({ psy, onClose }: { psy: Psy; onClose: () => void }) {
+// Детальный профиль — отдельная страница: шапка с именем на фоне, ниже скруглённый блок.
+function PsyDetailView({ psy, onBack }: { psy: Psy; onBack: () => void }) {
   const c = T[psy.tone];
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const wasInTherapy = bookings.some((b) => b.psyName === psy.name);
-  const [booking, setBooking] = useState(false);
-  useEffect(() => { const o = document.body.style.overflow; document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = o; }; }, []);
 
   const stats: { label: string; value: React.ReactNode; tone: keyof typeof T; icon: Parameters<typeof Icon>[0]["name"] }[] = [
     { label: "сессий в «Вдох»", value: <CountUp target={psy.sessions} />, tone: "green", icon: "calendar" },
@@ -176,74 +182,79 @@ function PsyDetail({ psy, onClose }: { psy: Psy; onClose: () => void }) {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-end justify-center @md:items-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-[rgba(32,28,24,.42)] backdrop-blur-[2px]" />
-      <motion.section initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40, opacity: 0 }} transition={{ type: "spring", stiffness: 380, damping: 34 }} onClick={(e) => e.stopPropagation()} className="relative max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-[30px] bg-[#fffaf0] pb-[calc(env(safe-area-inset-bottom)+16px)] @md:rounded-[30px]">
-        {/* Герой */}
-        <div className="relative px-5 pb-5 pt-5" style={{ background: `linear-gradient(160deg, ${c.bg}, ${c.soft})`, borderBottom: `var(--bw-lg) solid ${c.edge}` }}>
-          <button onClick={onClose} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[15px] font-black stroke" aria-label="Закрыть">×</button>
-          <div className="flex items-center gap-3">
-            <Avatar name={psy.name} tone={psy.tone} size={84} />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5"><h2 className="text-[19px] font-black leading-tight">{psy.name}</h2>{psy.verified && <VerifiedBadge />}</div>
-              <div className="mt-1 flex items-center gap-1.5"><Stars rating={psy.rating} size={15} /><span className="text-[13px] font-black">{psy.rating}</span><span className="text-[11px] font-semibold text-[var(--muted)]">· {psy.reviews} отзывов</span></div>
-              <p className="mt-1 text-[12px] font-bold text-[var(--muted)]">{methodIcon(psy.method)} {psy.method} · {psy.price.toLocaleString("ru-RU")} ₽ · {fmtLabel(psy.format)}</p>
-            </div>
+    <div>
+      {/* Шапка на фоне страницы (как в сессиях/кабинете) */}
+      <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: "var(--page)" }}>
+        <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-[13px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">← Каталог</button>
+        <div className="flex items-center gap-3">
+          <Avatar name={psy.name} tone={psy.tone} size={72} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5"><h1 className="font-tight text-[20px] font-black leading-tight">{psy.name}</h1>{psy.verified && <VerifiedBadge />}</div>
+            <div className="mt-1 flex items-center gap-1.5"><Stars rating={psy.rating} size={15} /><span className="text-[13px] font-black">{psy.rating}</span><span className="text-[11px] font-semibold text-[var(--muted)]">· {psy.reviews} отзывов</span></div>
+            <p className="mt-1 text-[12px] font-bold text-[var(--muted)]">{methodIcon(psy.method)} {psy.method} · {psy.price.toLocaleString("ru-RU")} ₽ · {psy.minutes} мин · {fmtLabel(psy.format)}</p>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-5 p-5">
-          {/* Статистика — бенто */}
-          <div className="grid grid-cols-2 gap-2.5">
-            {stats.map((s, i) => {
-              const t = T[s.tone];
-              return (
-                <motion.div key={s.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.08 + i * 0.06, type: "spring", stiffness: 260, damping: 18 }}
-                  className="rounded-[16px] p-3" style={{ background: t.soft, border: `var(--bw) solid ${t.edge}` }}>
-                  <Icon name={s.icon} width={16} weight="bold" />
-                  <p className="mt-1.5 font-tight tnum text-[24px] font-black leading-none">{s.value}</p>
-                  <p className="mt-0.5 text-[10px] font-black uppercase tracking-[.03em] text-[var(--muted)]">{s.label}</p>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Запросы */}
-          <Section title="С чем помогает">
-            <div className="flex flex-wrap gap-1.5">
-              {psy.topics.map((t) => <span key={t} className="rounded-full bg-white px-2.5 py-1 text-[12px] font-bold" style={{ border: `var(--bw) solid ${c.edge}` }}>{topicIcon(t)} {t}</span>)}
-            </div>
-          </Section>
-
-          {/* Техники */}
-          <Section title="Методы и техники">
-            <div className="flex flex-wrap gap-1.5">
-              {psy.methods.map((m) => <span key={m} className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[12px] font-black" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><span className="text-[13px]">{methodIcon(m)}</span> {m}</span>)}
-            </div>
-          </Section>
-
-          {/* О специалисте */}
-          <Section title="О специалисте"><p className="text-[13px] leading-relaxed">{psy.about}</p></Section>
-
-          {/* Образование */}
-          <Section title="Образование">
-            <ul className="space-y-1.5">{psy.education.map((e, i) => <li key={i} className="flex gap-2 text-[13px]"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{e}</li>)}</ul>
-          </Section>
-
-          {/* Оценка */}
-          <RatingBlock psy={psy} canRate={wasInTherapy} tone={c} />
-
-          {/* Запись */}
-          {booking ? (
-            <div className="rounded-[18px] bg-white p-4" style={{ border: `var(--bw-lg) solid ${c.edge}` }}>
-              <BookFlow psyName={psy.name} onDone={onClose} />
-            </div>
-          ) : (
-            <button onClick={() => { tap(); setBooking(true); }} className="w-full rounded-[16px] bg-[var(--ink)] py-3.5 text-[15px] font-black text-white transition-transform active:scale-[0.98]">Записаться к специалисту</button>
-          )}
+      {/* Скруглённый блок с информацией */}
+      <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        {/* Статистика — бенто */}
+        <div className="grid grid-cols-2 gap-2.5">
+          {stats.map((s, i) => {
+            const t = T[s.tone];
+            return (
+              <motion.div key={s.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.05 + i * 0.05, type: "spring", stiffness: 260, damping: 18 }}
+                className="rounded-[16px] p-3" style={{ background: t.soft, border: `var(--bw) solid ${t.edge}` }}>
+                <Icon name={s.icon} width={16} weight="bold" />
+                <p className="mt-1.5 font-tight tnum text-[24px] font-black leading-none">{s.value}</p>
+                <p className="mt-0.5 text-[10px] font-black uppercase tracking-[.03em] text-[var(--muted)]">{s.label}</p>
+              </motion.div>
+            );
+          })}
         </div>
-      </motion.section>
-    </motion.div>
+
+        <Section title="С чем помогает">
+          <div className="flex flex-wrap gap-1.5">
+            {psy.topics.map((t) => <span key={t} className="rounded-full bg-white px-2.5 py-1 text-[12px] font-bold" style={{ border: `var(--bw) solid ${c.edge}` }}>{topicIcon(t)} {t}</span>)}
+          </div>
+        </Section>
+
+        <Section title="Методы и техники">
+          <div className="flex flex-wrap gap-1.5">
+            {psy.methods.map((m) => <span key={m} className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[12px] font-black" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><span className="text-[13px]">{methodIcon(m)}</span> {m}</span>)}
+          </div>
+        </Section>
+
+        <Section title="О специалисте"><p className="text-[13px] leading-relaxed">{psy.about}</p></Section>
+
+        <Section title="Образование">
+          <ul className="space-y-1.5">{psy.education.map((e, i) => <li key={i} className="flex gap-2 text-[13px]"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{e}</li>)}</ul>
+        </Section>
+
+        <RatingBlock psy={psy} canRate={wasInTherapy} />
+
+        <Section title="Записаться · ближайшие окна">
+          <div className="rounded-[18px] bg-white p-4" style={{ border: `var(--bw-lg) solid ${c.edge}` }}>
+            <BookFlow psyName={psy.name} onDone={onBack} />
+          </div>
+        </Section>
+
+        <TgWrite psy={psy} />
+      </div>
+    </div>
+  );
+}
+
+function TgWrite({ psy }: { psy: Psy }) {
+  const text = encodeURIComponent("Здравствуйте! Пишу из платформы «Вдох» — хочу записаться на консультацию.");
+  const url = `https://t.me/${psy.tg}?text=${text}`;
+  return (
+    <div>
+      <a href={url} target="_blank" rel="noopener noreferrer" onClick={() => tap()} className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[15px] font-black text-white transition-transform active:scale-[0.98]">
+        <Icon name="spark" width={16} weight="fill" /> Написать специалисту
+      </a>
+      <p className="mt-2 text-center text-[11px] font-semibold text-[var(--muted-2)]">Откроется чат в Telegram — специалист увидит, что вы пишете из платформы «Вдох».</p>
+    </div>
   );
 }
 
@@ -257,30 +268,44 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const RATING_KEY = "bereg_ratings";
-function RatingBlock({ psy, canRate, tone }: { psy: Psy; canRate: boolean; tone: { bg: string; soft: string; edge: string } }) {
+const RATE_LABELS = ["", "плохо", "так себе", "нормально", "хорошо", "отлично"];
+function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
   const [mine, setMine] = useState(0);
+  const [hover, setHover] = useState(0);
   useEffect(() => { try { const r = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); if (r[psy.id]) setMine(r[psy.id]); } catch { /* ignore */ } }, [psy.id]);
   const rate = (v: number) => { success(); setMine(v); try { const r = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); r[psy.id] = v; localStorage.setItem(RATING_KEY, JSON.stringify(r)); } catch { /* ignore */ } };
+  const shown = hover || mine;
 
   return (
     <Section title="Оценить специалиста">
-      <div className="rounded-[16px] p-3.5" style={{ background: tone.soft, border: `var(--bw) solid ${tone.edge}` }}>
-        {canRate ? (
-          <>
-            <div className="flex items-center justify-center gap-1.5">
-              {[1, 2, 3, 4, 5].map((v) => (
-                <motion.button key={v} whileTap={{ scale: 0.85 }} animate={mine >= v ? { scale: [1, 1.2, 1] } : {}} onClick={() => rate(v)} className="text-[28px] leading-none" style={{ color: mine >= v ? "var(--amber-edge)" : "var(--edge-neutral)" }} aria-label={`Оценка ${v}`}>★</motion.button>
-              ))}
-            </div>
-            <p className="mt-2 text-center text-[11px] font-bold text-[var(--muted)]">{mine ? "Спасибо за оценку!" : "Вы были в терапии — можете оценить"}</p>
-          </>
-        ) : (
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white" style={{ border: `var(--bw) solid ${tone.edge}` }}><Icon name="check" width={16} weight="bold" /></span>
-            <p className="text-[12px] font-semibold text-[var(--muted)]">Оценку могут ставить только клиенты, которые были в терапии с этим специалистом.</p>
+      {canRate ? (
+        <div className="rounded-[20px] p-4" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
+          <div className="flex items-center justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((v) => {
+              const on = shown >= v;
+              return (
+                <motion.button key={v} onMouseEnter={() => setHover(v)} onMouseLeave={() => setHover(0)} whileTap={{ scale: 0.82 }} animate={mine === v ? { scale: [1, 1.28, 1] } : { scale: 1 }} transition={{ duration: 0.4 }} onClick={() => rate(v)} aria-label={`Оценка ${v}`}
+                  className="flex h-11 w-11 items-center justify-center rounded-[14px] transition-colors"
+                  style={{ background: on ? "var(--amber-soft)" : "#fff", border: `var(--bw) solid ${on ? "var(--amber-edge)" : "var(--edge-neutral)"}` }}><StarSvg size={22} fill={on ? "var(--amber)" : "#fff"} /></motion.button>
+              );
+            })}
           </div>
-        )}
-      </div>
+          <div className="mt-3 flex items-center justify-center">
+            {mine ? (
+              <motion.span key={mine} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[12px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
+                <Icon name="check" width={13} weight="fill" color="var(--green-edge)" /> Ваша оценка: {RATE_LABELS[mine]} · спасибо!
+              </motion.span>
+            ) : (
+              <span className="text-[12px] font-bold text-[var(--muted)]">{shown ? RATE_LABELS[shown] : "Нажмите на звёзды — вы были в терапии"}</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2.5 rounded-[16px] p-3.5" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--edge-neutral)" }}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white stroke"><Icon name="check" width={16} weight="bold" color="var(--muted)" /></span>
+          <p className="text-[12px] font-semibold text-[var(--muted)]">Оценку могут ставить только клиенты, которые были в терапии с этим специалистом.</p>
+        </div>
+      )}
     </Section>
   );
 }

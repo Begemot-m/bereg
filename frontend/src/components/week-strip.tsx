@@ -6,7 +6,7 @@ import { select } from "@/lib/haptics";
 import { ymdLocal, WEEKDAYS } from "@/lib/schedule";
 
 // Верхний календарь-стрип: свайп вбок с микровибрацией, выбранный день в оливковом круге.
-export function WeekStrip({ selected, onSelect, from = -3, days = 24 }: { selected?: string | null; onSelect?: (ymd: string) => void; from?: number; days?: number }) {
+export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: { selected?: string | null; onSelect?: (ymd: string) => void; marked?: Set<string>; from?: number; days?: number }) {
   const list = useMemo(() => {
     const base = new Date(); base.setHours(0, 0, 0, 0);
     return Array.from({ length: days }, (_, i) => { const d = new Date(base); d.setDate(d.getDate() + from + i); return d; });
@@ -46,6 +46,7 @@ export function WeekStrip({ selected, onSelect, from = -3, days = 24 }: { select
             >
               {d.getDate()}
             </span>
+            <span className="flex h-1.5 items-center justify-center">{marked?.has(key) && <span className="h-1.5 w-1.5 rounded-full" style={{ background: active ? "var(--ink)" : "var(--edge)" }} />}</span>
           </button>
         );
       })}
