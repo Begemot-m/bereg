@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, MouseEvent, ReactNode, TextareaHTMLAttributes } from "react";
+import { useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type MouseEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
 
 import { tap } from "@/lib/haptics";
 
@@ -88,11 +88,27 @@ export function SkeletonRow() {
   return <div className="skeleton h-16" />;
 }
 
-export function Disclosure({ open, children, zoom }: { open: boolean; children: ReactNode; zoom?: boolean }) {
+// Разворачиваемый блок. При открытии сам подкручивает экран так,
+// чтобы раскрытый блок оказался в поле зрения (не оставался за нижним краем).
+export function Disclosure({ open, children, zoom, autoScroll = true }: { open: boolean; children: ReactNode; zoom?: boolean; autoScroll?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || !autoScroll) return;
+    const t = setTimeout(() => {
+      const el = ref.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // Крутим только если блок вылезает за нижний край или уходит под шапку.
+      if (r.bottom > vh - 24 || r.top < 72) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, zoom ? 460 : 320);
+    return () => clearTimeout(t);
+  }, [open, autoScroll, zoom]);
   return (
     <AnimatePresence initial={false}>
       {open && (
         <motion.div
+          ref={ref}
           initial={{ height: 0, opacity: 0, ...(zoom ? { scale: 1.03 } : {}) }}
           animate={{ height: "auto", opacity: 1, ...(zoom ? { scale: 1 } : {}) }}
           exit={{ height: 0, opacity: 0, ...(zoom ? { scale: 0.98 } : {}) }}

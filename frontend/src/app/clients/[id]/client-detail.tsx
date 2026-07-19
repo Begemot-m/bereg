@@ -6,8 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SectionTitle } from "@/components/blocks";
-import { BalanceBars } from "@/components/balance-bars";
-import { Icon } from "@/components/icons";
+import { WellbeingCard } from "@/components/wellbeing-card";
 import { Reveal } from "@/components/motion";
 import { Button, Card, Input, Spinner, Textarea } from "@/components/ui";
 import {
@@ -27,7 +26,7 @@ import {
 } from "@/lib/clients";
 import { createAppointment, deleteAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
-import { balanceAverage, getClientTherapy } from "@/lib/therapy";
+import { getClientTherapy } from "@/lib/therapy";
 
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUSES: ClientStatus[] = ["therapy", "new", "paused"];
@@ -95,9 +94,10 @@ export function ClientDetail() {
         ))}
       </div>
 
-      {/* Статистика в духе трекера (карточка 2) */}
+      {/* Работа именно с этим терапевтом */}
+      <div className="mt-6"><SectionTitle>Работа со мной</SectionTitle></div>
       <Reveal delay={0.05}>
-        <div className="mt-4">
+        <div className="mt-1">
           <Card className="!p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -124,10 +124,18 @@ export function ClientDetail() {
         </div>
       </Reveal>
 
+      {/* Общее самочувствие клиента (не привязано к терапевту) — те же сведения, что видит клиент */}
+      <div className="mt-6"><SectionTitle>Общее самочувствие</SectionTitle></div>
+      <Reveal delay={0.06}>
+        <div className="mt-1">
+          <WellbeingCard who5={therapy?.who5 ?? null} subtitle="самооценка клиента · последние две недели" />
+        </div>
+      </Reveal>
+
       {/* Настроение за неделю — цветные столбики */}
       {moods.length > 0 && (
         <Reveal delay={0.08}>
-          <div className="mt-4">
+          <div className="mt-3">
             <Card className="!p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-[13px] font-extrabold">Настроение</p>
@@ -140,19 +148,6 @@ export function ClientDetail() {
               <MoodBars moods={moods} />
               <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">Отметки клиента за 7 дней · тёплое — тяжело, зелёное — хорошо</p>
             </Card>
-          </div>
-        </Reveal>
-      )}
-
-      {therapy?.balance && (
-        <Reveal delay={0.1}>
-          <div className="mt-4 rounded-[22px] bg-[var(--purple-soft)] p-4 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><Icon name="balance" width={22} weight="bold" /><div><p className="text-[13px] font-black uppercase tracking-[.05em]">Колесо баланса</p><p className="text-[10px] font-semibold text-[var(--muted)]">Самооценка клиента · последние две недели</p></div></div>
-              <div className="rounded-[14px] bg-white px-3 py-2 text-center stroke"><p className="tnum text-[20px] font-black leading-none">{balanceAverage(therapy.balance)}%</p><p className="mt-1 text-[8px] font-black uppercase">баланс</p></div>
-            </div>
-            <div className="rounded-[17px] bg-[#fffdf7] p-3 stroke"><BalanceBars balance={therapy.balance} compact /></div>
-            <p className="mt-2 text-[10px] font-semibold text-[var(--muted)]">Обновлено {new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date(therapy.balance.completedAt))}</p>
           </div>
         </Reveal>
       )}
@@ -231,7 +226,7 @@ function moodWord(m: number): string {
   return ["тяжело", "непросто", "ровно", "неплохо", "хорошо"][Math.min(4, Math.max(0, m - 1))];
 }
 const moodColor = (m: number) => `var(--mood-${Math.min(5, Math.max(1, m))})`;
-const moodEdge = "rgba(32,28,24,.28)";
+const moodEdge = (m: number) => `color-mix(in srgb, var(--mood-${Math.min(5, Math.max(1, m))}) 62%, var(--ink))`;
 
 /* Столбики настроения: цвет по значению (тёплое — тяжело, зелёное — хорошо) */
 function MoodBars({ moods }: { moods: Mood[] }) {
@@ -247,7 +242,7 @@ function MoodBars({ moods }: { moods: Mood[] }) {
               style={{
                 height: `${20 + (m.mood / 5) * 80}%`,
                 background: moodColor(m.mood),
-                border: `var(--bw) solid ${moodEdge}`,
+                border: `var(--bw) solid ${moodEdge(m.mood)}`,
                 borderBottom: "none",
                 transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)",
               }}

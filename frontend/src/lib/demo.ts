@@ -30,8 +30,7 @@ type Appointment = {
 
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number }; // 1..5
-type BalanceKey = "health" | "emotions" | "relationships" | "work" | "finance" | "rest" | "growth" | "environment";
-type BalanceResult = { scores: Record<BalanceKey, number>; completedAt: string };
+type Who5Result = { answers: number[]; completedAt: string };
 type Support = { id: number; kind: string; text: string; createdAt: string };
 
 // Окно приёма: время начала + длительность (мин) + формат (онлайн/очно)
@@ -51,7 +50,7 @@ type DB = {
   appts: Appointment[];
   homework: Homework[];
   moods: Record<number, Mood[]>;
-  balances: Record<number, BalanceResult | null>;
+  who5: Record<number, Who5Result | null>;
   therapyTutorialSeen: boolean;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
   work: WorkHours;
@@ -106,9 +105,9 @@ function seed(): DB {
     1: [3, 3, 2, 4, 3, 4, 4].map((m, i) => ({ date: day(i - 6), mood: m })),
     3: [2, 2, 3, 2, 3, 3, 2].map((m, i) => ({ date: day(i - 6), mood: m })),
   };
-  const balances: Record<number, BalanceResult | null> = {
+  const who5: Record<number, Who5Result | null> = {
     1: null,
-    3: { scores: { health: 5, emotions: 4, relationships: 7, work: 3, finance: 5, rest: 4, growth: 6, environment: 7 }, completedAt: day(-4) },
+    3: { answers: [3, 4, 3, 2, 4], completedAt: day(-4) },
   };
   return {
     seq: 100,
@@ -116,7 +115,7 @@ function seed(): DB {
     appts,
     homework,
     moods,
-    balances,
+    who5,
     therapyTutorialSeen: false,
     myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60, format: "online" }],
     work: {
@@ -149,7 +148,7 @@ function load(): DB {
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
-      if (!db.balances) db.balances = s.balances;
+      if (!db.who5) db.who5 = s.who5;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
@@ -274,7 +273,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   const therapyClient = clean.match(/^\/clients\/(\d+)\/therapy$/)?.[1];
   if (therapyClient && method === "GET") {
     const id = Number(therapyClient);
-    return delay({ moods: db.moods[id] ?? [], balance: db.balances[id] ?? null, tutorialSeen: true } as T);
+    return delay({ moods: db.moods[id] ?? [], who5: db.who5[id] ?? null, tutorialSeen: true } as T);
   }
 
   if (clean === "/my/therapy") {
@@ -289,12 +288,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         else entries.push({ date: today.toISOString(), mood: Math.min(5, Math.max(1, Number(body.mood))) });
         db.moods[id] = entries.slice(-30);
       }
-      if (body.balance) db.balances[id] = { scores: body.balance as BalanceResult["scores"], completedAt: new Date().toISOString() };
+      if (Array.isArray(body.who5)) db.who5[id] = { answers: (body.who5 as number[]).map((v) => Math.min(5, Math.max(0, Number(v)))), completedAt: new Date().toISOString() };
       if (body.tutorialSeen !== undefined) db.therapyTutorialSeen = Boolean(body.tutorialSeen);
       save(db);
     }
     if (method === "GET" || method === "PATCH") {
-      return delay({ moods: db.moods[id] ?? [], balance: db.balances[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
+      return delay({ moods: db.moods[id] ?? [], who5: db.who5[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
     }
   }
 
