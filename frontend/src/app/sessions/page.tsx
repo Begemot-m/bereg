@@ -3,22 +3,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
 import { PageHead } from "@/components/blocks";
 import { DaySlots } from "@/components/day-slots";
-import { HelpDeck, SESSIONS_HELP } from "@/components/help-deck";
+import { HelpDeck, SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
 import { WeekWindows } from "@/components/week-windows";
+import { WorkHoursEditor } from "@/components/work-hours";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { listAppointments, type ApptFormat } from "@/lib/appointments";
 import { listMyBookings, type MyBooking } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
-import { getMonthAvailability, getOverrides, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
+import { getMonthAvailability, getOverrides, getWorkHours, setOverride, WEEKDAYS, ymdLocal, type WorkHours } from "@/lib/schedule";
 import { cancelMyBooking, rescheduleMyBooking } from "@/lib/mybookings";
 import { canCancel, useCancelLockDays } from "@/lib/cancel-policy";
 
@@ -26,6 +27,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const dayShort = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
 const weekdayF = new Intl.DateTimeFormat("ru-RU", { weekday: "long" });
+const SCHEDULE_SETUP_KEY = "bereg:schedule-setup-seen:v1";
 
 export default function SessionsPage() {
   const [role] = useRole();
@@ -57,12 +59,28 @@ function PsySessions() {
   const [selDay, setSelDay] = useState<string | null>(null);
   const [calDay, setCalDay] = useState<string | null>(null);
   const [help, setHelp] = useState(false);
+  const [scheduleHelp, setScheduleHelp] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleFirstVisit, setScheduleFirstVisit] = useState(false);
+  const [scheduleReady, setScheduleReady] = useState(false);
 
   const { data: appts = [], isLoading } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const { data: avail } = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
+
+  useEffect(() => {
+    const seen = window.localStorage.getItem(SCHEDULE_SETUP_KEY) === "1";
+    setScheduleFirstVisit(!seen);
+    setScheduleReady(true);
+  }, []);
+
+  const finishScheduleIntro = (keepOpen = false) => {
+    window.localStorage.setItem(SCHEDULE_SETUP_KEY, "1");
+    setScheduleFirstVisit(false);
+    setScheduleOpen(keepOpen);
+  };
 
   const [multiMode, setMultiMode] = useState(false);
   const [multiDays, setMultiDays] = useState<Set<string>>(new Set());
@@ -107,8 +125,21 @@ function PsySessions() {
             <Icon name="spark" width={13} /> Как это работает?
           </button>
         </div>
+        {scheduleReady && (
+          <ScheduleSetup
+            work={work}
+            firstVisit={scheduleFirstVisit}
+            open={scheduleOpen}
+            onOpen={() => { tap(); setScheduleOpen(true); }}
+            onToggle={() => { tap(); setScheduleOpen((value) => !value); }}
+            onLater={() => finishScheduleIntro(false)}
+            onHelp={() => { tap(); setScheduleHelp(true); }}
+            onSaved={() => finishScheduleIntro(false)}
+          />
+        )}
         <Segmented value={view} onChange={(v) => { tap(); setView(v); }} />
         {help && <HelpDeck title="Как работают сессии" pages={SESSIONS_HELP} onClose={() => setHelp(false)} />}
+        {scheduleHelp && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setScheduleHelp(false)} />}
 
         {view === "soon" && (
           isLoading ? (
@@ -177,6 +208,60 @@ function PsySessions() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHelp, onSaved }: { work?: WorkHours; firstVisit: boolean; open: boolean; onOpen: () => void; onToggle: () => void; onLater: () => void; onHelp: () => void; onSaved: () => void }) {
+  const activeDays = WEEKDAYS.filter((_, day) => (work?.hours?.[day]?.length ?? 0) > 0);
+  const summary = activeDays.length
+    ? `${activeDays.join(", ")} · ${work?.sessionMinutes ?? 50} мин`
+    : "Рабочие дни пока не указаны";
+
+  return (
+    <div className="mb-4">
+      {firstVisit ? (
+        <section className="overflow-hidden rounded-[22px] p-4" style={{ background: "var(--green)", border: "var(--bw-lg) solid var(--green-edge)" }}>
+          <div className="flex items-start gap-3">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={23} weight="bold" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Первый шаг</p>
+              <h2 className="font-tight mt-1 text-[18px] font-black leading-tight">Настройте рабочие часы</h2>
+              <p className="mt-1 max-w-[420px] text-[12px] font-semibold text-[var(--muted)]">Клиенты увидят только свободные окна, а занятые сессии появятся в календаре автоматически.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-1.5">
+            {["Выберите дни", "Добавьте окна", "Сохраните"].map((label, index) => (
+              <div key={label} className="rounded-[13px] bg-white px-2 py-2.5 text-center" style={{ border: "var(--bw) solid var(--green-edge)" }}>
+                <span className="tnum block text-[11px] font-black text-[var(--green-edge)]">0{index + 1}</span>
+                <span className="mt-0.5 block text-[10px] font-extrabold leading-tight">{label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button onClick={onOpen} className="rounded-full bg-[var(--ink)] px-4 py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.97]">Настроить сейчас</button>
+            <button onClick={onHelp} className="rounded-full bg-white px-3.5 py-2 text-[12px] font-extrabold" style={{ border: "var(--bw) solid var(--green-edge)" }}>Как настроить?</button>
+            <button onClick={onLater} className="ml-auto px-2 py-2 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Позже</button>
+          </div>
+        </section>
+      ) : (
+        <button onClick={onToggle} className="group flex w-full items-center gap-3 rounded-[18px] p-3 text-left transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" }} aria-expanded={open}>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={19} weight="bold" /></span>
+          <span className="min-w-0 flex-1"><span className="block text-[13px] font-black">Рабочие часы</span><span className="block truncate text-[11px] font-semibold text-[var(--muted)]">{summary}</span></span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white transition-transform group-active:rotate-12" style={{ border: "var(--bw) solid var(--green-edge)" }} aria-label="Настроить рабочие часы"><Icon name="gear" width={18} weight="bold" /></span>
+        </button>
+      )}
+
+      <Disclosure open={open}>
+        <div className="mt-3 rounded-[22px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div><p className="text-[14px] font-black">Ваш обычный график</p><p className="text-[11px] font-semibold text-[var(--muted)]">Нажмите на шкалу дня, чтобы добавить окно.</p></div>
+            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="spark" width={16} /></button>}
+          </div>
+          <WorkHoursEditor onSaved={onSaved} />
+          <button onClick={onToggle} className="mt-3 w-full py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Свернуть настройку</button>
+        </div>
+      </Disclosure>
     </div>
   );
 }

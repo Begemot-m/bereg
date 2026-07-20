@@ -1,17 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
-import { HelpDeck, SCHEDULE_HELP } from "@/components/help-deck";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
 import { RemindersModule } from "@/components/reminders";
 import { SubscriptionBlock } from "@/components/subscription-block";
-import { WorkHoursEditor } from "@/components/work-hours";
 import { Card } from "@/components/ui";
 import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
 import { useCancelLockDays } from "@/lib/cancel-policy";
@@ -23,7 +22,6 @@ const ROLES: Role[] = ["psychologist", "client"];
 
 export default function CabinetPage() {
   const [role, switchRole] = useRole();
-  const [help, setHelp] = useState(false);
 
   return (
     <div>
@@ -48,16 +46,12 @@ export default function CabinetPage() {
       <div className="-mx-4 min-h-[64vh] space-y-6 rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
 
         {role === "psychologist" && (
-          <Foldable icon="clock" title="Моё расписание" subtitle="Часы работы и окна приёма">
-            <div className="mb-3 flex justify-start">
-              <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
-                <Icon name="spark" width={14} /> Как настроить?
-              </button>
-            </div>
-            <WorkHoursEditor />
-          </Foldable>
+          <Link href="/sessions" onClick={tap} className="group flex items-center gap-3 rounded-[18px] p-3.5 transition-transform active:scale-[0.99]" style={{ background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" }}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={19} weight="bold" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-[13px] font-black">Рабочие часы — в Сессиях</span><span className="block text-[11px] font-semibold text-[var(--muted)]">Настройте дни, окна и длительность встреч</span></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white transition-transform group-hover:rotate-12" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="gear" width={17} weight="bold" /></span>
+          </Link>
         )}
-        {help && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setHelp(false)} />}
 
         {role === "psychologist" && (
           <Foldable icon="spark" title="Подписка" subtitle="Тарифы, триал и продвижение">
