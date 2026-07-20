@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal } from "@/components/motion";
-import { SubscriptionBlock } from "@/components/subscription-block";
 import { TechniqueRunner, type TechKey } from "@/components/techniques";
+import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
 
@@ -28,15 +28,14 @@ const PSY_PRO: { icon: IconName; title: string; desc: string }[] = [
 ];
 
 // Инструменты клиента: часть бесплатна, часть — по подписке «Вдох+». Интерактивные — с tech.
-const CLIENT_TOOLS: { icon: IconName; title: string; desc: string; pro: boolean; tech?: TechKey; href?: string }[] = [
-  { icon: "pulse", title: "Дыхание 4-7-8", desc: "Успокоиться за пару минут", pro: true, tech: "breathing" },
-  { icon: "note", title: "Дневник мыслей (КПТ)", desc: "Разобрать тревожную мысль по шагам", pro: true, tech: "thought" },
-  { icon: "compass", title: "Заземление 5-4-3-2-1", desc: "Вернуться в момент при тревоге", pro: true, tech: "grounding" },
-  { icon: "chart", title: "Шкала тревоги GAD-7", desc: "Оценить уровень тревоги", pro: true, tech: "gad7" },
-  { icon: "mood", title: "Дневник настроения", desc: "Ежедневный чек-ин состояния", pro: false, href: "/therapy" },
-  { icon: "balance", title: "Колесо баланса", desc: "10 сфер жизни, наглядная карта", pro: false, href: "/therapy" },
-  { icon: "therapy", title: "Медитации", desc: "Короткие аудио-практики · скоро", pro: true },
+const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
+  { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.png", bg: "#d9edf3", edge: "#5f95ab" },
+  { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики", time: "2–7 мин", image: "/practices/automatic-thoughts.png", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
+  { tech: "grounding", title: "Вернуться в момент", desc: "Мягко переключить внимание на ощущения", time: "2–4 мин", image: "/practices/grounding-54321.png", bg: "var(--green-soft)", edge: "var(--green-edge)" },
+  { tech: "gad7", title: "Проверить тревогу", desc: "Скрининг состояния за две недели", time: "2 мин", image: "/practices/tests-scales.png", bg: "var(--coral-soft)", edge: "var(--coral-edge)" },
 ];
+
+type PracticeHistory = { tech: TechKey; completedAt: string; before?: number; after?: number }[];
 
 export default function ToolsPage() {
   const [role] = useRole();
@@ -46,43 +45,87 @@ export default function ToolsPage() {
 
 function ClientTools() {
   const [tech, setTech] = useState<TechKey | null>(null);
+  const [history, setHistory] = useState<PracticeHistory>([]);
+  const [drafts, setDrafts] = useState<TechKey[]>([]);
+
+  useEffect(() => {
+    try { setHistory(JSON.parse(localStorage.getItem("bereg-practice-history-v1") || "[]")); } catch { setHistory([]); }
+    setDrafts((["breathing", "thought", "grounding", "gad7"] as TechKey[]).filter((key) => Boolean(localStorage.getItem(`bereg-practice-draft-v1:${key}`))));
+  }, [tech]);
+
+  const weekly = useMemo(() => {
+    const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return history.filter((x) => new Date(x.completedAt).getTime() >= since).length;
+  }, [history]);
+  const recommended = useMemo(() => {
+    if (drafts.length) return drafts[0];
+    if (!history.length) return "breathing";
+    const order: TechKey[] = ["breathing", "grounding", "thought", "gad7"];
+    const last = history[0]?.tech;
+    return order[(Math.max(0, order.indexOf(last as TechKey)) + 1) % order.length];
+  }, [drafts, history]);
+  const recommendation = CLIENT_PRACTICES.find((x) => x.tech === recommended) ?? CLIENT_PRACTICES[0];
+
   return (
     <div>
-      <PageHead title="Инструменты" sub="Забота о себе между сессиями" />
+      <PageHead title="Инструменты" sub="Короткая помощь в нужный момент" />
 
       <Reveal y={10}>
-        <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-          <SubscriptionBlock variant="client" />
+        <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+          <section className="overflow-hidden rounded-[23px] bg-[var(--amber-soft)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+            <div className="flex items-start gap-3 p-4">
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[.07em]" style={{ border: "var(--bw) solid var(--amber-edge)" }}>Что поможет сейчас</span>
+                  <span className="text-[11px] font-bold text-[var(--muted)]">Вдох+</span>
+                </div>
+                <h2 className="font-tight text-[22px] font-black leading-[1.05]">{recommendation.title}</h2>
+                <p className="mt-1 max-w-[230px] text-[12px] font-semibold leading-snug text-[var(--muted)]">{drafts.includes(recommendation.tech) ? "Черновик сохранён — можно спокойно продолжить с того же шага." : history.length ? "Предлагаем сменить фокус после прошлой практики." : "Начните с мягкого способа вернуть спокойный ритм."}</p>
+              </div>
+              <img src={asset(recommendation.image)} alt="" className="h-[92px] w-[92px] shrink-0 object-contain" />
+            </div>
+            <div className="flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--amber-edge)" }}>
+              <button onClick={() => { tap(); setTech(recommendation.tech); }} className="flex-1 rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[.98]">Начать · {recommendation.time}</button>
+              <span className="rounded-full bg-white px-3 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{weekly ? `${weekly} за неделю` : "без спешки"}</span>
+            </div>
+          </section>
 
-          <p className="mb-2 mt-6 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики и техники</p>
-          <div className="space-y-2">
-            {CLIENT_TOOLS.map((t, i) => {
-              const inner = (
-                <>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: t.pro ? "var(--purple-soft)" : "var(--green-soft)", border: `var(--bw) solid ${t.pro ? "var(--purple-edge)" : "var(--green-edge)"}` }}><Icon name={t.icon} width={18} weight="bold" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{t.title}</span><span className="block text-[12px] font-semibold text-[var(--muted)]">{t.desc}</span></span>
-                  {t.tech || t.href
-                    ? <span className="shrink-0 rounded-full bg-[var(--ink)] px-2.5 py-1 text-[10px] font-black text-white">{t.tech ? "Открыть" : "Перейти"}</span>
-                    : <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>Вдох+</span>}
-                </>
-              );
-              const cls = "flex w-full items-center gap-3 rounded-[16px] bg-white p-3 text-left transition-transform active:scale-[0.99]";
-              const style = { border: `var(--bw) solid ${t.tech ? "var(--purple-edge)" : "var(--edge-neutral)"}` } as const;
-              return (
-                <Reveal key={t.title} delay={0.04 + i * 0.04}>
-                  {t.tech ? (
-                    <button onClick={() => { tap(); setTech(t.tech!); }} className={cls} style={style}>{inner}</button>
-                  ) : t.href ? (
-                    <Link href={t.href} onClick={() => tap()} className={cls} style={style}>{inner}</Link>
-                  ) : (
-                    <div className={cls} style={{ ...style, opacity: 0.75 }}>{inner}</div>
-                  )}
-                </Reveal>
-              );
+          <div className="mb-2 mt-6 flex items-end justify-between">
+            <div><p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Четыре практики</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted-2)]">Выбирайте по состоянию, не ради серии</p></div>
+            <span className="rounded-full bg-[var(--purple-soft)] px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>доступ открыт</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {CLIENT_PRACTICES.map((t, i) => {
+              const last = history.find((x) => x.tech === t.tech);
+              const hasDraft = drafts.includes(t.tech);
+              return <Reveal key={t.tech} delay={0.03 + i * 0.04}>
+                <button onClick={() => { tap(); setTech(t.tech); }} className="group flex min-h-[226px] w-full flex-col overflow-hidden rounded-[21px] text-left transition-transform duration-200 active:scale-[.98]" style={{ background: t.bg, border: `var(--bw-lg) solid ${t.edge}` }}>
+                  <div className="relative flex h-[118px] items-center justify-center overflow-hidden">
+                    <img src={asset(t.image)} alt="" className="h-[118px] w-[118px] object-contain transition-transform duration-300 group-hover:scale-[1.04]" />
+                    <span className="absolute right-2 top-2 rounded-full bg-[#fffdf7] px-2 py-1 text-[10px] font-black" style={{ border: `var(--bw) solid ${t.edge}` }}>{t.time}</span>
+                  </div>
+                  <div className="flex flex-1 flex-col border-t bg-[#fffdf7] p-3" style={{ borderColor: t.edge }}>
+                    <h3 className="font-tight text-[15px] font-black leading-tight">{t.title}</h3>
+                    <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">{t.desc}</p>
+                    <span className="mt-auto pt-2 text-[10px] font-black uppercase tracking-[.05em]" style={{ color: t.edge }}>{hasDraft ? "продолжить черновик" : last ? "можно повторить" : "попробовать"} →</span>
+                  </div>
+                </button>
+              </Reveal>;
             })}
           </div>
 
-          <p className="mt-4 text-center text-[11px] font-semibold text-[var(--muted-2)]">Практики основаны на научных методиках. Прогресс виден в вашей <Link href="/therapy" className="font-black text-[var(--purple-edge)]">терапии</Link>.</p>
+          {history.some((x) => typeof x.before === "number" && typeof x.after === "number") && <section className="mt-5 rounded-[19px] bg-white p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+            <p className="text-[10px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Личное наблюдение</p>
+            <p className="mt-1 font-tight text-[17px] font-black">Практики уже помогают замечать изменения</p>
+            <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Это не оценка и не диагноз — только ваша сохранённая динамика до и после.</p>
+          </section>}
+
+          <p className="mb-2 mt-6 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Ещё для себя</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Link href="/therapy" onClick={() => tap()} className="rounded-[18px] bg-white p-3" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="mood" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="rounded-[18px] bg-white p-3" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="balance" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
+          </div>
+          <p className="mt-4 text-center text-[10px] font-semibold leading-relaxed text-[var(--muted-2)]">Инструменты не заменяют медицинскую помощь. Результаты остаются на этом устройстве и не отправляются терапевту автоматически.</p>
         </div>
       </Reveal>
 
