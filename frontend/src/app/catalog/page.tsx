@@ -16,6 +16,7 @@ import { listMyBookings } from "@/lib/clients";
 import {
   EMPTY_FILTERS,
   EMPTY_PREFS,
+  METHOD_DESCRIPTIONS,
   PSYS,
   filterCatalog,
   formatLabel,
@@ -89,7 +90,7 @@ export default function CatalogPage() {
   const pageCount = Math.max(1, Math.ceil(allFiltered.length / 10));
   const allPage = allFiltered.slice(page * 10, page * 10 + 10);
   const visible = mode === "personal" ? personal : mode === "wait" ? waiting : allPage;
-  const activeFilters = filters.topics.length + filters.methods.length + Number(filters.format !== "any") + Number(filters.maxPrice != null) + Number(filters.gender !== "any") + Number(filters.minYears > 0) + Number(filters.verifiedOnly) + Number(filters.thisWeek);
+  const activeFilters = filters.topics.length + filters.methods.length + Number(filters.format !== "any") + Number(filters.maxPrice != null) + Number(filters.gender !== "any") + Number(filters.minYears > 0) + Number(filters.verifiedOnly) + Number(filters.thisWeek) + Number(Boolean(filters.city.trim())) + Number(filters.language !== "any");
   const countFilters = useCallback((value: CatalogFilters) => filterCatalog(value).length, []);
 
   const savePrefs = (next: CatalogPrefs) => {
@@ -103,7 +104,7 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} onBack={() => setSelected(null)} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} onBack={() => setSelected(null)} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
@@ -144,6 +145,7 @@ function AllControls({ filters, setFilters, sort, setSort, activeFilters, openFi
 function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogPrefs; showReason: boolean; onOpen: () => void }) {
   const tone = T[psy.tone];
   const reasons = reasonsFor(psy, prefs);
+  const place = catalogLocation(psy);
   return <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform active:scale-[.99] stroke-lg">
     <div className="flex gap-3 p-3">
       <div className="relative h-[132px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={asset(psy.portrait)} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} /></div>
@@ -153,6 +155,7 @@ function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogP
         <p className="mt-2 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
         <div className="mt-2 flex flex-wrap gap-1">{psy.topics.slice(0, 2).map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: tone.soft, border: `1.5px solid ${tone.edge}` }}>{topic}</span>)}</div>
         <p className="mt-2 text-[11px] font-black">{psy.price.toLocaleString("ru-RU")} ₽ <span className="font-bold text-[var(--muted)]">· {psy.minutes} мин</span></p>
+        <p className="mt-1 flex items-center gap-1 truncate text-[10px] font-bold text-[var(--muted)]"><Icon name={psy.format === "online" ? "video" : "pin"} width={12} /> {place}</p>
       </div>
     </div>
     {showReason && reasons.length > 0 && <div className="mx-3 flex flex-wrap gap-1.5 border-t pt-2.5" style={{ borderColor: "var(--edge-neutral)" }}>{reasons.map((reason) => <span key={reason} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2 py-1 text-[9px] font-black" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={10} weight="bold" /> {reason}</span>)}</div>}
@@ -167,11 +170,44 @@ function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: 
 
 function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={asset(psy.portrait)} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority /></div>; }
 
-function PsyDetailView({ psy, onBack }: { psy: Psy; onBack: () => void }) {
+function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; onBack: () => void }) {
   const tone = T[psy.tone];
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const wasInTherapy = bookings.some((booking) => booking.psyName === psy.name);
-  return <div><div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}><button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-[13px] font-bold text-[var(--muted)]">← Каталог</button><div className="flex items-center gap-3"><Portrait psy={psy} size={92} /><div className="min-w-0 flex-1"><div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div><div className="mt-2 flex items-center gap-1"><Icon name="star" width={15} weight="fill" color="var(--amber-edge)" /><span className="text-[13px] font-black">{psy.rating}</span><span className="text-[10px] font-bold text-[var(--muted)]">· {psy.reviews} оценок</span></div><p className="mt-1 text-[11px] font-black">{psy.method} · {psy.price.toLocaleString("ru-RU")} ₽ · {psy.minutes} мин</p></div></div></div><div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] bg-[#fffaf0] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}><div className="grid grid-cols-3 gap-2"><Stat value={`${psy.years}`} label={`${yearsWord(psy.years)} практики`} tone="var(--amber-soft)" /><Stat value={`~${psy.responseHrs} ч`} label="средний ответ" tone="var(--green-soft)" /><Stat value={nextSlotLabel(psy.nextDays)} label="ближайшее окно" tone="var(--purple-soft)" /></div><Section title="С чем помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ border: `var(--bw) solid ${tone.edge}` }}>{topic}</span>)}</div></Section><Section title="О специалисте"><p className="text-[13px] font-semibold leading-relaxed">{psy.about}</p></Section><Section title="Методы"><div className="flex flex-wrap gap-1.5">{psy.methods.map((method) => <span key={method} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black stroke">{method}</span>)}</div></Section><Section title="Образование"><ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul></Section><RatingBlock psy={psy} canRate={wasInTherapy} /><Section title="Записаться · ближайшие окна"><div className="rounded-[18px] bg-white p-4 stroke-lg"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section><a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из платформы «Вдох» — хочу записаться на консультацию.")}`} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white"><Icon name="spark" width={16} weight="fill" /> Написать специалисту</a></div></div>;
+  const reasons = reasonsFor(psy, prefs);
+  const details = detailLocation(psy);
+  return <div>
+    <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
+      <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-[13px] font-bold text-[var(--muted)]">← Каталог</button>
+      <div className="flex items-center gap-3"><Portrait psy={psy} size={98} /><div className="min-w-0 flex-1"><div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div><div className="mt-2 flex items-center gap-1"><Icon name="star" width={15} weight="fill" color="var(--amber-edge)" /><span className="text-[13px] font-black">{psy.reviews >= 3 ? psy.rating : "Новый"}</span><span className="text-[10px] font-bold text-[var(--muted)]">· {psy.reviews} оценок</span></div><p className="mt-1 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p></div></div>
+    </div>
+    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] bg-[#fffaf0] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="grid grid-cols-3 gap-2"><Stat value={`${psy.price.toLocaleString("ru-RU")} ₽`} label="одна встреча" tone="var(--amber-soft)" /><Stat value={`${psy.minutes} мин`} label="длительность" tone="var(--green-soft)" /><Stat value={nextSlotLabel(psy.nextDays)} label="ближайшее окно" tone="var(--purple-soft)" /></div>
+      {reasons.length > 0 && <Section title="Почему подходит вам"><div className="flex flex-wrap gap-1.5">{reasons.map((reason) => <span key={reason} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1.5 text-[10px] font-black" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={11} weight="bold" />{reason}</span>)}</div></Section>}
+      <Section title="С чем помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ border: `var(--bw) solid ${tone.edge}` }}>{topic}</span>)}</div></Section>
+      <Section title="Методы работы"><div className="space-y-2">{psy.methods.map((method) => <div key={method} className="rounded-[17px] bg-white p-3 stroke"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke" style={{ background: tone.soft, borderColor: tone.edge }}><Icon name="therapy" width={14} weight="bold" /></span><p className="text-[13px] font-black">{method}{method === psy.method ? " · основной" : ""}</p></div><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{METHOD_DESCRIPTIONS[method] ?? "Метод подбирается под запрос и задачи клиента."}</p></div>)}</div></Section>
+      <Section title="Формат и место"><div className="rounded-[18px] bg-white p-4 stroke-lg"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--head-soft)] stroke"><Icon name={psy.format === "online" ? "video" : "pin"} width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p>{psy.format !== "online" && psy.address && !psy.publicExactAddress && <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Точный адрес станет доступен после подтверждения очной записи.</p>}</div></div></div></Section>
+      <Section title="О специалисте"><p className="text-[13px] font-semibold leading-relaxed">{psy.about}</p></Section>
+      {psy.firstSession && <Section title="Как проходит первая встреча"><div className="rounded-[18px] bg-[var(--purple-soft)] p-4 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}><p className="text-[13px] font-semibold leading-relaxed">{psy.firstSession}</p></div></Section>}
+      <Section title="Образование"><ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul></Section>
+      <RatingBlock psy={psy} canRate={wasInTherapy} />
+      <Section title="Записаться · ближайшие окна"><div className="rounded-[18px] bg-white p-4 stroke-lg"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section>
+      <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из платформы «Вдох» — хочу записаться на консультацию.")}`} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white"><Icon name="spark" width={16} weight="fill" /> Написать специалисту</a>
+    </div>
+  </div>;
+}
+
+function catalogLocation(psy: Psy) {
+  if (psy.format === "online") return "Онлайн";
+  const place = [psy.city, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : psy.district].filter(Boolean).join(" · ");
+  return [formatLabel(psy.format), place].filter(Boolean).join(" · ");
+}
+
+function detailLocation(psy: Psy) {
+  if (psy.format === "online") return "Онлайн — можно подключиться из любой точки";
+  const place = [psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : ""].filter(Boolean).join(" · ");
+  const exact = psy.publicExactAddress ? psy.address : "";
+  return [formatLabel(psy.format), place, exact].filter(Boolean).join(" · ");
 }
 
 function Stat({ value, label, tone }: { value: string; label: string; tone: string }) { return <div className="rounded-[15px] p-2.5 text-center stroke" style={{ background: tone }}><p className="font-tight tnum text-[18px] font-black leading-none">{value}</p><p className="mt-1 text-[8px] font-black uppercase tracking-[.04em] text-[var(--muted)]">{label}</p></div>; }

@@ -31,11 +31,26 @@ export function displayPhoto(): string | null {
 
 export type PsyProfile = {
   name: string;
+  /** Старое поле, сохраняется для совместимости со старыми анкетами. */
   approach: string;
+  primaryMethod: string;
+  methods: string[];
   experienceYears: string;
   about: string;
+  firstSession: string;
   education: string[];
   topics: string[];
+  gender: "woman" | "man" | "unspecified";
+  languages: string[];
+  format: "online" | "offline" | "both";
+  sessionPrice: number;
+  location: {
+    city: string;
+    district: string;
+    metro: string;
+    address: string;
+    publicExactAddress: boolean;
+  };
   photo: string | null;        // совместимость; дублирует photos[0]
   photos: string[];            // до 3 фото, первое — основное
   sessionMinutes: number;      // длительность сессии
@@ -73,29 +88,54 @@ export function getPsyProfile(): PsyProfile | null {
   try {
     const raw = localStorage.getItem(KEY_PROFILE);
     if (!raw) return null;
-    const p = JSON.parse(raw) as PsyProfile;
+    const source = JSON.parse(raw) as Partial<PsyProfile> & { education?: string[] | string };
+    const p = { ...EMPTY, ...source } as PsyProfile;
     // миграция: образование могло быть строкой
-    if (typeof (p as unknown as { education: unknown }).education === "string") {
-      const s = (p as unknown as { education: string }).education.trim();
+    if (typeof source.education === "string") {
+      const s = source.education.trim();
       p.education = s ? [s] : [];
     }
     if (!Array.isArray(p.education)) p.education = [];
     // миграция: одиночное фото → массив photos
     if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : [];
     if (typeof p.sessionMinutes !== "number") p.sessionMinutes = 50;
+    if (typeof p.sessionPrice !== "number") p.sessionPrice = 3500;
     if (typeof p.tg !== "string") p.tg = "";
+    p.primaryMethod = p.primaryMethod || p.approach || "";
+    p.approach = p.primaryMethod;
+    if (!Array.isArray(p.methods)) p.methods = p.primaryMethod ? [p.primaryMethod] : [];
+    if (p.primaryMethod && !p.methods.includes(p.primaryMethod)) p.methods = [p.primaryMethod, ...p.methods];
+    if (!Array.isArray(p.languages) || !p.languages.length) p.languages = ["русский"];
+    if (!Array.isArray(p.topics)) p.topics = [];
+    if (!(["online", "offline", "both"] as const).includes(p.format)) p.format = "online";
+    if (!(["woman", "man", "unspecified"] as const).includes(p.gender)) p.gender = "unspecified";
+    p.location = { ...EMPTY.location, ...(source.location ?? {}) };
     return p;
   } catch {
     return null;
   }
 }
 
-const EMPTY: PsyProfile = { name: "", approach: "", experienceYears: "", about: "", education: [], topics: [], photo: null, photos: [], sessionMinutes: 50, tg: "", status: "review" };
+const EMPTY: PsyProfile = {
+  name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
+  education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
+  location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
+  photo: null, photos: [], sessionMinutes: 50, tg: "", status: "review",
+};
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
 export function savePsyProfile(patch: Partial<Omit<PsyProfile, "status">>) {
   const cur = getPsyProfile();
-  const profile: PsyProfile = { ...EMPTY, ...cur, ...patch, status: cur?.status ?? "review" };
+  const profile: PsyProfile = {
+    ...EMPTY,
+    ...cur,
+    ...patch,
+    location: { ...EMPTY.location, ...(cur?.location ?? {}), ...(patch.location ?? {}) },
+    status: cur?.status ?? "review",
+  };
+  if (patch.primaryMethod !== undefined) profile.approach = patch.primaryMethod;
+  else if (patch.approach !== undefined) profile.primaryMethod = patch.approach;
+  if (profile.primaryMethod && !profile.methods.includes(profile.primaryMethod)) profile.methods = [profile.primaryMethod, ...profile.methods];
   // Основное фото — первое в массиве (совместимость со старым polем photo).
   if (patch.photos) profile.photo = patch.photos[0] ?? null;
   else if (patch.photo !== undefined) profile.photos = patch.photo ? [patch.photo, ...profile.photos.filter((x) => x !== patch.photo)].slice(0, 3) : profile.photos;
