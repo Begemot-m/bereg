@@ -6,16 +6,21 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SectionTitle } from "@/components/blocks";
+import { Icon } from "@/components/icons";
+import { InviteButton } from "@/components/invite";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { Reveal } from "@/components/motion";
-import { Button, Card, Input, Spinner, Textarea } from "@/components/ui";
+import { SlotPicker } from "@/components/slot-picker";
+import { Button, Card, Disclosure, Spinner, Textarea } from "@/components/ui";
 import {
   deleteClient,
+  derivedStatus,
   getClient,
   HW_LABEL,
   listHomework,
   listMoods,
   sendHomework,
+  statusReason,
   STATUS_LABEL,
   updateClient,
   updateHomework,
@@ -24,12 +29,12 @@ import {
   type HwStatus,
   type Mood,
 } from "@/lib/clients";
-import { createAppointment, deleteAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
+import { createAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
 import { getClientTherapy } from "@/lib/therapy";
 
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const STATUSES: ClientStatus[] = ["therapy", "new", "paused"];
+const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
 
 export function ClientDetail() {
   const id = Number(useParams().id);
@@ -49,9 +54,11 @@ export function ClientDetail() {
   const { data: therapy } = useQuery({ queryKey: ["client-therapy", id], queryFn: () => getClientTherapy(id) });
 
   const [note, setNote] = useState("");
+  const [bookOpen, setBookOpen] = useState(false);
   useEffect(() => { if (client) setNote(client.note); }, [client]);
 
   const patch = useMutation({ mutationFn: (p: Parameters<typeof updateClient>[1]) => updateClient(id, p), onSuccess: inv });
+  const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => createAppointment({ clientId: id, startsAt: iso, format }), onSuccess: () => { success(); setBookOpen(false); inv(); } });
   const remove = useMutation({
     mutationFn: () => deleteClient(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); router.push("/clients"); },
@@ -60,6 +67,8 @@ export function ClientDetail() {
   if (isLoading || !client) return <div className="pt-10"><Spinner /></div>;
 
   const hwPct = client.hwTotal ? Math.round((client.hwDone / client.hwTotal) * 100) : 0;
+  const dstatus = derivedStatus(client);
+  const st = STATUS_TONE[dstatus];
 
   return (
     <div>
@@ -80,18 +89,10 @@ export function ClientDetail() {
         </Card>
       </Reveal>
 
-      {/* Статус */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {STATUSES.map((s) => (
-          <button
-            key={s}
-            onClick={() => { select(); patch.mutate({ status: s }); }}
-            className="rounded-full px-3 py-1.5 text-[12px] font-extrabold transition-transform active:scale-95 stroke"
-            style={client.status === s ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--muted)" }}
-          >
-            {STATUS_LABEL[s]}
-          </button>
-        ))}
+      {/* Статус — вычисляется автоматически по активности */}
+      <div className="mt-3 flex items-center gap-2">
+        <span className="rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw) solid var(--${st}-edge)` }}>{STATUS_LABEL[dstatus]}</span>
+        <span className="text-[11px] font-semibold text-[var(--muted-2)]">{statusReason(client)} · статус меняется сам</span>
       </div>
 
       {/* Работа именно с этим терапевтом */}
@@ -99,26 +100,31 @@ export function ClientDetail() {
       <Reveal delay={0.05}>
         <div className="mt-1">
           <Card className="!p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-tight text-[32px] font-extrabold leading-none tnum">{client.sessionsDone}</p>
-                <p className="mt-1 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Встреч<br />проведено</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[16px] p-3" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
+                <Icon name="calendar" width={16} weight="bold" />
+                <p className="mt-1.5 font-tight text-[26px] font-black leading-none tnum">{client.sessionsDone}</p>
+                <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-[var(--muted)]">встреч проведено</p>
               </div>
-              <span className="rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>{STATUS_LABEL[client.status]}</span>
+              <div className="rounded-[16px] p-3" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
+                <Icon name="clock" width={16} weight="bold" />
+                <p className="mt-1.5 font-tight text-[26px] font-black leading-none tnum">{client.hoursDone}<span className="text-[15px]"> ч</span></p>
+                <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-[var(--muted)]">часов всего</p>
+              </div>
             </div>
 
             {/* Прогресс заданий */}
-            <div className="mt-4">
-              <div className="h-3.5 overflow-hidden rounded-full stroke" style={{ background: "#fff" }}>
-                <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(4, hwPct)}%`, background: "var(--green)", borderRight: "var(--bw) solid var(--green-edge)", transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)" }} />
+            <div className="mt-3 flex items-center gap-2">
+              <div className="h-3 flex-1 overflow-hidden rounded-full" style={{ background: "#fff", border: "var(--bw) solid var(--edge-neutral)" }}>
+                <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(4, hwPct)}%`, background: "var(--green)", transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)" }} />
               </div>
+              <span className="text-[11px] font-black text-[var(--muted)]">задания {client.hwTotal ? `${client.hwDone}/${client.hwTotal}` : "0"}</span>
             </div>
 
-            {/* 3 плитки */}
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <Tile value={client.hwTotal ? `${client.hwDone}/${client.hwTotal}` : "—"} label="Задания" />
-              <Tile value={`${hwPct}%`} label="Выполнено" />
-              <Tile value={moods.length ? moodWord(moods[moods.length - 1].mood) : "—"} label="Настроение" />
+            {/* Динамика состояния */}
+            <div className="mt-3 flex items-center gap-2 rounded-[14px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--edge-neutral)" }}>
+              <MoodTrendMini moods={moods} />
+              <span className="text-[11px] font-semibold text-[var(--muted)]">{moods.length >= 2 ? "динамика настроения за период" : "мало данных по настроению"}</span>
             </div>
           </Card>
         </div>
@@ -152,41 +158,51 @@ export function ClientDetail() {
         </Reveal>
       )}
 
-      {/* Домашние задания */}
+      {/* Домашние задания — отдельным обрамлённым блоком с историей и процессом */}
       <div className="mt-6">
         <SectionTitle>Домашние задания</SectionTitle>
-        <HomeworkBlock clientId={id} items={homework} onChanged={inv} />
+        <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+          <HomeworkBlock clientId={id} items={homework} onChanged={inv} />
+        </div>
       </div>
 
-      {/* Записи */}
+      {/* История встреч + записать/пригласить */}
       <div className="mt-6">
-        <SectionTitle>Записи</SectionTitle>
-        <div className="space-y-2">
-          <AddAppt clientId={id} onDone={inv} />
-          {appts.length === 0 ? (
-            <p className="text-[13px] text-[var(--muted-2)]">Записей нет.</p>
-          ) : (
-            appts.map((a) => (
-              <Card key={a.id} className="!p-3">
-                <div className="flex items-center gap-3">
-                  <span className={`h-8 w-1 rounded-full`} style={{ background: a.status === "scheduled" ? "var(--a1)" : "var(--hairline)" }} />
-                  <div className="flex-1">
-                    <p className="text-[13px] font-semibold capitalize">{dtf.format(new Date(a.startsAt))}</p>
-                    <p className="text-[11px] text-[var(--muted-2)]">
-                      {a.durationMin} мин · {a.status === "scheduled" ? "запланирована" : a.status === "done" ? "проведена" : "отменена"}
-                    </p>
+        <SectionTitle>История встреч</SectionTitle>
+        <div className="mb-2.5 flex gap-2">
+          <button onClick={() => { tap(); setBookOpen(!bookOpen); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98]"><Icon name="calendar" width={15} weight="bold" /> Записать</button>
+          <InviteButton variant="psy" label="Пригласить" className="flex-1 !py-2.5" />
+        </div>
+        <Disclosure open={bookOpen}>
+          <div className="mb-2.5 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+            <p className="mb-2 text-[12px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно из вашего расписания</p>
+            <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
+          </div>
+        </Disclosure>
+        {appts.length === 0 ? (
+          <p className="text-[13px] text-[var(--muted-2)]">Встреч пока не было. Запишите клиента в свободное окно.</p>
+        ) : (
+          <div className="space-y-2">
+            {[...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt)).map((a) => {
+              const t = a.status === "done" ? "green" : a.status === "scheduled" ? "purple" : "salmon";
+              return (
+                <div key={a.id} className="flex items-center gap-3 rounded-[15px] bg-white p-3" style={{ border: `var(--bw) solid var(--${t}-edge)` }}>
+                  <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${t})` }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-black capitalize">{dtf.format(new Date(a.startsAt))}</p>
+                    <p className="text-[11px] font-semibold text-[var(--muted)]">{a.durationMin} мин · {a.status === "scheduled" ? "запланирована" : a.status === "done" ? "проведена" : "отменена"} · {a.format === "online" ? "онлайн" : "очно"}</p>
                   </div>
                   {a.status === "scheduled" && (
                     <div className="flex gap-1">
-                      <button onClick={() => { success(); updateAppointment(a.id, { status: "done" }).then(inv); }} className="rounded-full bg-[var(--good-tint)] px-2.5 py-1 text-[11px] font-semibold text-[var(--good)]">✓</button>
-                      <button onClick={() => { tap(); deleteAppointment(a.id).then(inv); }} className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--muted)]">✕</button>
+                      <button onClick={() => { success(); updateAppointment(a.id, { status: "done" }).then(inv); }} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)", color: "var(--green-edge)" }}>✓ провести</button>
+                      <button onClick={() => { tap(); updateAppointment(a.id, { status: "cancelled" }).then(inv); }} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "#fff", border: "var(--bw) solid var(--edge-neutral)", color: "var(--muted)" }}>✕</button>
                     </div>
                   )}
                 </div>
-              </Card>
-            ))
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Заметки */}
@@ -213,18 +229,17 @@ export function ClientDetail() {
   );
 }
 
-function Tile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="chunk px-2.5 py-2.5 text-center">
-      <p className="tnum font-tight text-[18px] font-extrabold leading-none">{value}</p>
-      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
-    </div>
-  );
+// Стрелка динамики настроения: сравнивает вторую половину периода с первой.
+function MoodTrendMini({ moods }: { moods: Mood[] }) {
+  if (moods.length < 2) return <span className="flex h-8 shrink-0 items-center rounded-[10px] bg-white px-2.5 text-[13px] font-black stroke text-[var(--muted)]">—</span>;
+  const half = Math.floor(moods.length / 2);
+  const avg = (arr: Mood[]) => arr.reduce((s, m) => s + m.mood, 0) / (arr.length || 1);
+  const diff = avg(moods.slice(half)) - avg(moods.slice(0, half));
+  const dir = diff > 0.3 ? "up" : diff < -0.3 ? "down" : "flat";
+  const meta = { up: { a: "↑", c: "var(--green-edge)", w: "растёт" }, down: { a: "↓", c: "var(--salmon-edge)", w: "снижается" }, flat: { a: "→", c: "var(--muted)", w: "ровно" } }[dir];
+  return <span className="flex h-8 shrink-0 items-center gap-1 rounded-[10px] bg-white px-2.5 text-[13px] font-black stroke" style={{ color: meta.c }}>{meta.a} {meta.w}</span>;
 }
 
-function moodWord(m: number): string {
-  return ["тяжело", "непросто", "ровно", "неплохо", "хорошо"][Math.min(4, Math.max(0, m - 1))];
-}
 const moodColor = (m: number) => `var(--mood-${Math.min(5, Math.max(1, m))})`;
 const moodEdge = (m: number) => `color-mix(in srgb, var(--mood-${Math.min(5, Math.max(1, m))}) 62%, var(--ink))`;
 
@@ -263,14 +278,23 @@ function HomeworkBlock({ clientId, items, onChanged }: { clientId: number; items
     onSuccess: () => { success(); setText(""); onChanged(); },
   });
 
+  const done = items.filter((h) => h.status === "done").length;
   return (
     <div className="space-y-2.5">
-      <Card className="!p-3">
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="Новое задание клиенту… (скоро — шаблоны техник)" />
-        <div className="mt-2 flex justify-end">
+      {/* Отправка нового задания */}
+      <div className="rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+        <div className="mb-2 flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}><Icon name="note" width={16} weight="bold" /></span>
+          <div><p className="text-[13px] font-black leading-none">Новое задание</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">Клиент увидит его в своей терапии</p></div>
+        </div>
+        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="Например: дневник тревоги — 3 записи за неделю" />
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-[var(--muted-2)]">Скоро — шаблоны техник</span>
           <Button size="sm" disabled={send.isPending || !text.trim()} onClick={() => send.mutate()} arrow>Отправить</Button>
         </div>
-      </Card>
+      </div>
+      {/* История и процесс выполнения */}
+      {items.length > 0 && <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">История · {done}/{items.length} выполнено</p>}
       {items.map((h) => (
         <HomeworkRow key={h.id} hw={h} onChanged={onChanged} />
       ))}
@@ -340,23 +364,3 @@ function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void })
   );
 }
 
-function AddAppt({ clientId, onDone }: { clientId: number; onDone: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [startsAt, setStartsAt] = useState("");
-  const add = useMutation({
-    mutationFn: () => createAppointment({ clientId, startsAt, durationMin: 60 }),
-    onSuccess: () => { success(); setOpen(false); setStartsAt(""); onDone(); },
-  });
-  if (!open)
-    return (
-      <Button size="sm" variant="soft" onClick={() => setOpen(true)}>
-        + Записать на сессию
-      </Button>
-    );
-  return (
-    <form className="flex w-full gap-2" onSubmit={(e) => { e.preventDefault(); if (startsAt) add.mutate(); }}>
-      <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} autoFocus />
-      <Button type="submit" size="sm" disabled={add.isPending}>OK</Button>
-    </form>
-  );
-}

@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
+import { InviteBanner } from "@/components/invite";
 import { MoodFaces } from "@/components/mood-tracker";
 import { Reveal } from "@/components/motion";
 import { Disclosure } from "@/components/ui";
@@ -99,6 +100,7 @@ function PsyHome() {
         { title: "Кабинет", desc: "Профиль и подписка", icon: "user", tone: "salmon", href: "/cabinet" },
       ]} />
 
+      <Reveal><InviteBanner variant="psy" /></Reveal>
       <HelpCenters />
     </div>
   );
@@ -171,6 +173,7 @@ function PersonHome({ guest }: { guest: boolean }) {
         { title: "Инструменты", desc: "Забота о себе", icon: "tools", tone: "amber", href: "/tools" },
       ]} />
 
+      <Reveal><InviteBanner variant="client" /></Reveal>
       <HelpCenters />
     </div>
   );

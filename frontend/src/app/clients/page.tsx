@@ -7,8 +7,10 @@ import { useState } from "react";
 import { PageHead } from "@/components/blocks";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Badge, Button, Card, Input, SkeletonRow } from "@/components/ui";
-import { createClient, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
+import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select } from "@/lib/haptics";
+
+const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
 
 const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
   { key: "all", label: "Все" },
@@ -21,9 +23,10 @@ const nextF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short",
 
 // Ранжирование: сначала в терапии и записанные, затем новые, затем пауза.
 function rank(c: Client): number {
-  if (c.status === "therapy") return 0;
+  const s = derivedStatus(c);
+  if (s === "therapy") return 0;
   if (c.nextAt) return 1;
-  if (c.status === "new") return 2;
+  if (s === "new") return 2;
   return 3;
 }
 
@@ -41,7 +44,7 @@ export default function ClientsPage() {
   });
 
   const list = clients
-    .filter((c) => (filter === "all" ? true : c.status === filter))
+    .filter((c) => (filter === "all" ? true : derivedStatus(c) === filter))
     .filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, "ru"));
 
@@ -90,33 +93,35 @@ export default function ClientsPage() {
         <p className="px-1 text-sm text-[var(--muted-2)]">{search ? "Никого не нашли по этому имени." : "Нет клиентов в этом фильтре."}</p>
       ) : (
         <Stagger className="space-y-2.5">
-          {list.map((c: Client) => (
-            <StaggerItem key={c.id}>
-              <Link href={`/clients/${c.id}`} className="group block">
-                <Card interactive className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-bold"
-                      style={{ background: c.status === "therapy" ? "var(--good-tint)" : "var(--surface-2)", color: c.status === "therapy" ? "var(--good)" : "var(--ink)" }}
-                    >
-                      {c.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-semibold">{c.name}</p>
-                        <StatusBadge status={c.status} />
+          {list.map((c: Client) => {
+            const s = derivedStatus(c);
+            const tone = STATUS_TONE[s];
+            return (
+              <StaggerItem key={c.id}>
+                <Link href={`/clients/${c.id}`} className="group block">
+                  <div className="rounded-[18px] bg-white p-3.5 transition-transform active:scale-[0.99]" style={{ border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] text-[16px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` }}>
+                        {c.name.charAt(0)}
                       </div>
-                      <p className="mt-0.5 text-[12px] text-[var(--muted)]">
-                        {c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч не было"}
-                        {c.nextAt && ` · ближайшая ${nextF.format(new Date(c.nextAt))}`}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-[15px] font-black">{c.name}</p>
+                          <StatusBadge status={s} />
+                        </div>
+                        <p className="mt-0.5 text-[12px] font-semibold text-[var(--muted)]">
+                          {c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч не было"}
+                          {c.hoursDone > 0 ? ` · ${c.hoursDone} ч` : ""}
+                          {c.nextAt && ` · ближайшая ${nextF.format(new Date(c.nextAt))}`}
+                        </p>
+                      </div>
+                      <span className="text-[var(--muted-2)] transition-transform duration-200 group-hover:translate-x-0.5">›</span>
                     </div>
-                    <span className="text-[var(--muted-2)] transition-transform duration-200 group-hover:translate-x-0.5">›</span>
                   </div>
-                </Card>
-              </Link>
-            </StaggerItem>
-          ))}
+                </Link>
+              </StaggerItem>
+            );
+          })}
         </Stagger>
       )}
     </div>

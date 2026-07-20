@@ -6,6 +6,7 @@ import { PageHead, SectionTitle } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
 import { HelpDeck, SCHEDULE_HELP } from "@/components/help-deck";
 import { Icon, type IconName } from "@/components/icons";
+import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
 import { RemindersModule } from "@/components/reminders";
@@ -81,6 +82,12 @@ export default function CabinetPage() {
               Пройти знакомство заново
             </button>
           </Card>
+        </div>
+
+        {/* Приглашения */}
+        <div>
+          <SectionTitle>Приглашайте друзей</SectionTitle>
+          <InviteBanner variant={role === "psychologist" ? "psy" : "client"} />
         </div>
 
         {/* Отдел заботы */}

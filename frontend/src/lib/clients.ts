@@ -10,12 +10,28 @@ export type Client = {
   note: string;
   status: ClientStatus;
   sessionsDone: number;
+  hoursDone: number;
   nextAt: string | null;
+  lastAt: string | null;
   hwTotal: number;
   hwDone: number;
   createdAt: string;
   updatedAt: string;
 };
+
+// Статус вычисляется автоматически по активности, не выставляется вручную.
+export function derivedStatus(c: Pick<Client, "sessionsDone" | "nextAt" | "lastAt">): ClientStatus {
+  if (c.sessionsDone === 0 && !c.nextAt) return "new";
+  const recent = c.lastAt ? (Date.now() - new Date(c.lastAt).getTime()) / 86_400_000 <= 45 : false;
+  if (c.nextAt || recent) return "therapy";
+  return "paused";
+}
+export function statusReason(c: Pick<Client, "sessionsDone" | "nextAt" | "lastAt">): string {
+  const s = derivedStatus(c);
+  if (s === "new") return "Пока не было встреч";
+  if (s === "therapy") return c.nextAt ? "Есть предстоящая сессия" : "Недавняя активность";
+  return "Давно не было встреч";
+}
 
 export type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 export type Mood = { date: string; mood: number };

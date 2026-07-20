@@ -214,15 +214,18 @@ function resolveSub(db: DB) {
 }
 
 function withStats(db: DB, c: Client) {
-  const done = db.appts.filter((a) => a.clientId === c.id && a.status === "done").length;
+  const doneAppts = db.appts.filter((a) => a.clientId === c.id && a.status === "done");
   const next = db.appts
     .filter((a) => a.clientId === c.id && a.status === "scheduled" && new Date(a.startsAt) > new Date())
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+  const last = [...doneAppts].sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
   const hw = db.homework.filter((h) => h.clientId === c.id);
   return {
     ...c,
-    sessionsDone: done,
+    sessionsDone: doneAppts.length,
+    hoursDone: Math.round((doneAppts.reduce((s, a) => s + a.durationMin, 0) / 60) * 10) / 10,
     nextAt: next?.startsAt ?? null,
+    lastAt: last?.startsAt ?? null,
     hwTotal: hw.length,
     hwDone: hw.filter((h) => h.status === "done").length,
   };

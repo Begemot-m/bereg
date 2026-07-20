@@ -5,8 +5,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { memo, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 
 import { FmtSwitch } from "@/components/fmt-switch";
-import { Icon } from "@/components/icons";
-import { Button, Spinner } from "@/components/ui";
+import { Icon, type IconName } from "@/components/icons";
+import { Spinner } from "@/components/ui";
 import { select, success } from "@/lib/haptics";
 import { getWorkHours, saveWorkHours, WEEKDAYS, type WorkHours, type WorkSlot } from "@/lib/schedule";
 import { slotStyle } from "@/lib/slot-style";
@@ -101,6 +101,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
     setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(mins) } : x)));
   };
   const copyTo = (n: number) => { select(); const next = { ...draft.hours }; for (let d = 0; d < n; d++) next[d] = slots.map((x) => ({ ...x })); setDraft({ ...draft, hours: next }); };
+  const clearDay = () => { if (slots.length === 0) return; success(); setSlots([]); };
 
   return (
     <div className="space-y-3.5">
@@ -165,12 +166,27 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 
       <WeekMini hours={draft.hours} from={from} to={to} day={day} onPick={(d) => { select(); setDay(d); }} />
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="soft" size="sm" onClick={() => copyTo(5)}>На будни</Button>
-        <Button variant="soft" size="sm" onClick={() => copyTo(7)}>На все дни</Button>
-        <Button className="flex-1" disabled={save.isPending} onClick={() => save.mutate()}>{save.isSuccess ? "Сохранено" : "Сохранить"}</Button>
+      {/* Действия с днём — компактные видимые чипы */}
+      <div className="grid grid-cols-3 gap-1.5">
+        <ActionChip icon="swap" onClick={() => copyTo(5)}>На будни</ActionChip>
+        <ActionChip icon="calendar" onClick={() => copyTo(7)}>На все дни</ActionChip>
+        <ActionChip icon="note" tone="salmon" disabled={slots.length === 0} onClick={clearDay}>Очистить</ActionChip>
       </div>
+      <button disabled={save.isPending} onClick={() => save.mutate()} className="w-full rounded-[14px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-50">
+        {save.isSuccess ? "Сохранено ✓" : "Сохранить расписание"}
+      </button>
     </div>
+  );
+}
+
+function ActionChip({ icon, tone = "neutral", disabled, onClick, children }: { icon: IconName; tone?: "neutral" | "salmon"; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
+  const salmon = tone === "salmon";
+  const edge = salmon ? "var(--salmon-edge)" : "var(--edge-neutral)";
+  const col = salmon ? "var(--salmon-edge)" : "var(--ink)";
+  return (
+    <button disabled={disabled} onClick={onClick} className="flex flex-col items-center justify-center gap-1 rounded-[13px] py-2.5 text-[11px] font-black transition-transform active:scale-95 disabled:opacity-45" style={{ background: salmon ? "var(--salmon-soft)" : "#fff", border: `var(--bw) solid ${edge}`, color: col }}>
+      <Icon name={icon} width={16} weight="bold" color={col} /> {children}
+    </button>
   );
 }
 
