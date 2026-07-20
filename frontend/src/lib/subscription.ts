@@ -6,7 +6,7 @@ export type Subscription = {
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
   tools: boolean;     // инструментарий психолога
-  promo: boolean;     // продвижение в каталоге
+  promo: boolean;     // право размещения в каталоге (не влияет на ранжирование)
   clientPro: boolean; // «Вдох+» — инструменты клиента
   pendingPlan: PlanId | null;
 };

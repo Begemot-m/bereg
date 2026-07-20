@@ -17,12 +17,12 @@ import {
   EMPTY_FILTERS,
   EMPTY_PREFS,
   METHOD_DESCRIPTIONS,
-  PSYS,
   filterCatalog,
   formatLabel,
   matchScore,
   nextSlotLabel,
   personalSelection,
+  publishedCatalog,
   reasonsFor,
   sortCatalog,
   type CatalogFilters,
@@ -33,6 +33,8 @@ import {
 } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { bookSlot } from "@/lib/mybookings";
+import { useProfile } from "@/lib/profile";
+import { getSubscription } from "@/lib/subscription";
 
 const PREFS_KEY = "bereg_catalog_prefs_v1";
 const SEEN_KEY = "bereg_catalog_survey_seen_v1";
@@ -67,6 +69,8 @@ function yearsWord(value: number) {
 }
 
 export default function CatalogPage() {
+  const profile = useProfile();
+  const { data: subscription } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const [mode, setMode] = useState<CatalogMode>("personal");
   const [prefs, setPrefs] = useState<CatalogPrefs>(EMPTY_PREFS);
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
@@ -84,14 +88,15 @@ export default function CatalogPage() {
     } catch { setSurveyOpen(true); }
   }, []);
 
-  const personal = useMemo(() => personalSelection(prefs), [prefs]);
-  const allFiltered = useMemo(() => sortCatalog(filterCatalog(filters), sort, prefs), [filters, sort, prefs]);
-  const waiting = useMemo(() => PSYS.filter((psy) => psy.nextDays > 14).sort((a, b) => matchScore(b, prefs) - matchScore(a, prefs)), [prefs]);
+  const catalog = useMemo(() => publishedCatalog(profile, subscription), [profile, subscription]);
+  const personal = useMemo(() => personalSelection(prefs, catalog), [prefs, catalog]);
+  const allFiltered = useMemo(() => sortCatalog(filterCatalog(filters, catalog), sort, prefs), [filters, sort, prefs, catalog]);
+  const waiting = useMemo(() => catalog.filter((psy) => psy.nextDays > 14).sort((a, b) => matchScore(b, prefs) - matchScore(a, prefs)), [catalog, prefs]);
   const pageCount = Math.max(1, Math.ceil(allFiltered.length / 10));
   const allPage = allFiltered.slice(page * 10, page * 10 + 10);
   const visible = mode === "personal" ? personal : mode === "wait" ? waiting : allPage;
   const activeFilters = filters.topics.length + filters.methods.length + Number(filters.format !== "any") + Number(filters.maxPrice != null) + Number(filters.gender !== "any") + Number(filters.minYears > 0) + Number(filters.verifiedOnly) + Number(filters.thisWeek) + Number(Boolean(filters.city.trim())) + Number(filters.language !== "any");
-  const countFilters = useCallback((value: CatalogFilters) => filterCatalog(value).length, []);
+  const countFilters = useCallback((value: CatalogFilters) => filterCatalog(value, catalog).length, [catalog]);
 
   const savePrefs = (next: CatalogPrefs) => {
     localStorage.setItem(PREFS_KEY, JSON.stringify(next));
@@ -146,14 +151,16 @@ function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogP
   const tone = T[psy.tone];
   const reasons = reasonsFor(psy, prefs);
   const place = catalogLocation(psy);
+  const portrait = asset(psy.portrait);
+  const topics = topicsForCard(psy, prefs);
   return <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform active:scale-[.99] stroke-lg">
     <div className="flex gap-3 p-3">
-      <div className="relative h-[132px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={asset(psy.portrait)} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} /></div>
+      <div className="relative h-[132px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} /></div>
       <div className="min-w-0 flex-1 py-0.5">
         <div className="flex items-start gap-1"><h3 className="min-w-0 flex-1 text-[16px] font-black leading-[1.05]">{psy.name}</h3>{psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}</div>
         <div className="mt-1.5 flex items-center gap-1"><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /><span className="tnum text-[12px] font-black">{psy.reviews >= 3 ? psy.rating : "Новый"}</span><span className="text-[10px] font-bold text-[var(--muted-2)]">· {psy.reviews} оценок</span></div>
         <p className="mt-2 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
-        <div className="mt-2 flex flex-wrap gap-1">{psy.topics.slice(0, 2).map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: tone.soft, border: `1.5px solid ${tone.edge}` }}>{topic}</span>)}</div>
+        <div className="mt-2 flex flex-wrap gap-1">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: tone.soft, border: `1.5px solid ${tone.edge}` }}>{topic}</span>)}</div>
         <p className="mt-2 text-[11px] font-black">{psy.price.toLocaleString("ru-RU")} ₽ <span className="font-bold text-[var(--muted)]">· {psy.minutes} мин</span></p>
         <p className="mt-1 flex items-center gap-1 truncate text-[10px] font-bold text-[var(--muted)]"><Icon name={psy.format === "online" ? "video" : "pin"} width={12} /> {place}</p>
       </div>
@@ -168,7 +175,7 @@ function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: 
   return <div className="rounded-[22px] bg-[var(--amber-soft)] p-5 text-center stroke-lg" style={{ borderColor: "var(--amber-edge)" }}><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[15px] bg-white stroke"><Icon name="compass" width={23} weight="bold" /></div><h3 className="font-tight mt-3 text-[19px] font-black">Точных совпадений нет</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Сильнее всего ограничивает: {blocker}.</p><Button className="mt-4" onClick={onRelax}>Ослабить условие</Button></div>;
 }
 
-function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={asset(psy.portrait)} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority /></div>; }
+function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
 
 function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; onBack: () => void }) {
   const tone = T[psy.tone];
@@ -183,19 +190,31 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
     </div>
     <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] bg-[#fffaf0] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
       <div className="grid grid-cols-3 gap-2"><Stat value={`${psy.price.toLocaleString("ru-RU")} ₽`} label="одна встреча" tone="var(--amber-soft)" /><Stat value={`${psy.minutes} мин`} label="длительность" tone="var(--green-soft)" /><Stat value={nextSlotLabel(psy.nextDays)} label="ближайшее окно" tone="var(--purple-soft)" /></div>
+      {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} />}
       {reasons.length > 0 && <Section title="Почему подходит вам"><div className="flex flex-wrap gap-1.5">{reasons.map((reason) => <span key={reason} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1.5 text-[10px] font-black" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={11} weight="bold" />{reason}</span>)}</div></Section>}
       <Section title="С чем помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ border: `var(--bw) solid ${tone.edge}` }}>{topic}</span>)}</div></Section>
       <Section title="Методы работы"><div className="space-y-2">{psy.methods.map((method) => <div key={method} className="rounded-[17px] bg-white p-3 stroke"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke" style={{ background: tone.soft, borderColor: tone.edge }}><Icon name="therapy" width={14} weight="bold" /></span><p className="text-[13px] font-black">{method}{method === psy.method ? " · основной" : ""}</p></div><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{METHOD_DESCRIPTIONS[method] ?? "Метод подбирается под запрос и задачи клиента."}</p></div>)}</div></Section>
-      <Section title="Формат и место"><div className="rounded-[18px] bg-white p-4 stroke-lg"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--head-soft)] stroke"><Icon name={psy.format === "online" ? "video" : "pin"} width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p>{psy.format !== "online" && psy.address && !psy.publicExactAddress && <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Точный адрес станет доступен после подтверждения очной записи.</p>}</div></div></div></Section>
-      <Section title="О специалисте"><p className="text-[13px] font-semibold leading-relaxed">{psy.about}</p></Section>
+      <Section title="Формат и место"><div className="rounded-[18px] bg-white p-4 stroke-lg"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--head-soft)] stroke"><Icon name={psy.format === "online" ? "video" : "pin"} width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p>{psy.format !== "online" && psy.privateAddressAvailable && <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Точный адрес станет доступен после подтверждения очной записи.</p>}</div></div></div></Section>
+      {psy.about && <Section title="О специалисте"><p className="text-[13px] font-semibold leading-relaxed">{psy.about}</p></Section>}
       {psy.firstSession && <Section title="Как проходит первая встреча"><div className="rounded-[18px] bg-[var(--purple-soft)] p-4 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}><p className="text-[13px] font-semibold leading-relaxed">{psy.firstSession}</p></div></Section>}
-      <Section title="Образование"><ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul></Section>
+      {psy.education.length > 0 && <Section title="Образование"><ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul></Section>}
       <RatingBlock psy={psy} canRate={wasInTherapy} />
       <Section title="Записаться · ближайшие окна"><div className="rounded-[18px] bg-white p-4 stroke-lg"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section>
       <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из платформы «Вдох» — хочу записаться на консультацию.")}`} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white"><Icon name="spark" width={16} weight="fill" /> Написать специалисту</a>
     </div>
   </div>;
 }
+
+function PhotoGallery({ psy }: { psy: Psy }) {
+  return <Section title="Фотографии"><div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">{psy.photos!.map((photo, index) => { const src = asset(photo); return <div key={`${photo.slice(0, 24)}-${index}`} className="relative h-[174px] w-[132px] shrink-0 snap-start overflow-hidden rounded-[18px] bg-white stroke-lg"><Image src={src} alt={`${psy.name}, фотография ${index + 1}`} fill sizes="132px" className="object-cover" unoptimized={isInlineImage(src)} /></div>; })}</div></Section>;
+}
+
+function topicsForCard(psy: Psy, prefs: CatalogPrefs) {
+  const matching = prefs.topics.filter((topic) => psy.topics.includes(topic));
+  return [...new Set([...matching, ...psy.topics])].slice(0, 2);
+}
+
+function isInlineImage(src: string) { return /^(data:|blob:)/i.test(src); }
 
 function catalogLocation(psy: Psy) {
   if (psy.format === "online") return "Онлайн";

@@ -1,3 +1,6 @@
+import type { PsyProfile } from "@/lib/profile";
+import type { Subscription } from "@/lib/subscription";
+
 export type Tone = "green" | "amber" | "purple" | "coral" | "salmon" | "sky";
 export type PsyFormat = "online" | "offline" | "both";
 export type Gender = "woman" | "man";
@@ -7,6 +10,7 @@ export type Psy = {
   id: number;
   name: string;
   portrait: string;
+  photos?: string[];
   tone: Tone;
   verified: boolean;
   rating: number;
@@ -22,7 +26,8 @@ export type Psy = {
   metro?: string;
   address?: string;
   publicExactAddress?: boolean;
-  gender: Gender;
+  privateAddressAvailable?: boolean;
+  gender: Gender | "unspecified";
   languages: string[];
   years: number;
   sessions: number;
@@ -98,6 +103,78 @@ export const PSYS: Psy[] = [
   { id: 12, name: "Денис Орлов", portrait: "/catalog/denis.webp", tone: "amber", verified: false, rating: 4.8, reviews: 5, method: "КПТ", methods: ["КПТ", "ACT"], topics: ["тревога", "стресс", "сон"], price: 2600, minutes: 50, format: "online", city: "Самара", gender: "man", languages: ["русский"], years: 3, sessions: 120, clients: 34, responseHrs: 2, nextDays: 5, availableTimes: ["evening"], exposure: 8, newcomer: true, tg: "denis_orlov", about: "Короткая структурированная работа с тревогой, стрессом и нарушениями сна.", education: ["Самарский университет, психология", "АКБТ, базовый курс"] },
 ];
 
+const PUBLIC_PSYS = PSYS.filter((psy) => psy.verified).map((psy) => ({
+  ...psy,
+  privateAddressAvailable: !psy.publicExactAddress && Boolean(psy.address),
+  address: psy.publicExactAddress ? psy.address : undefined,
+}));
+
+const OWN_PROFILE_ID = 100_001;
+
+export function hasCatalogPlacement(subscription: Subscription | null | undefined, now = Date.now()): boolean {
+  if (!subscription) return false;
+  if (subscription.status === "trial") {
+    return Boolean(subscription.trialEndsAt && new Date(subscription.trialEndsAt).getTime() > now);
+  }
+  return subscription.status === "active" && subscription.promo;
+}
+
+export function isCatalogProfileReady(profile: PsyProfile | null | undefined): profile is PsyProfile {
+  if (!profile || profile.status !== "approved") return false;
+  if (!profile.name.trim() || !profile.photos.length || !profile.primaryMethod.trim()) return false;
+  if (!profile.methods.length || !profile.topics.length || !profile.languages.length) return false;
+  if (!Number.isFinite(profile.sessionPrice) || profile.sessionPrice <= 0 || profile.sessionMinutes < 30) return false;
+  if (profile.experienceYears === "" || Number(profile.experienceYears) < 0) return false;
+  if (profile.format !== "online" && !profile.location.city.trim()) return false;
+  if (profile.location.publicExactAddress && !profile.location.address.trim()) return false;
+  return true;
+}
+
+export function profileToCatalogPsy(profile: PsyProfile): Psy {
+  const photos = profile.photos.filter(Boolean).slice(0, 3);
+  return {
+    id: OWN_PROFILE_ID,
+    name: profile.name.trim(),
+    portrait: photos[0],
+    photos,
+    tone: "purple",
+    verified: profile.status === "approved",
+    rating: 0,
+    reviews: 0,
+    method: profile.primaryMethod.trim(),
+    methods: [...new Set([profile.primaryMethod, ...profile.methods].filter(Boolean))],
+    topics: profile.topics.filter(Boolean),
+    price: profile.sessionPrice,
+    minutes: profile.sessionMinutes,
+    format: profile.format,
+    city: profile.location.city.trim(),
+    district: profile.location.district.trim() || undefined,
+    metro: profile.location.metro.trim() || undefined,
+    address: profile.location.publicExactAddress ? profile.location.address.trim() || undefined : undefined,
+    publicExactAddress: profile.location.publicExactAddress,
+    privateAddressAvailable: !profile.location.publicExactAddress && Boolean(profile.location.address.trim()),
+    gender: profile.gender,
+    languages: profile.languages.filter(Boolean),
+    years: Number(profile.experienceYears) || 0,
+    sessions: 0,
+    clients: 0,
+    responseHrs: 24,
+    nextDays: 7,
+    availableTimes: ["day"],
+    exposure: 0,
+    newcomer: true,
+    tg: profile.tg.trim().replace(/^@/, ""),
+    about: profile.about.trim(),
+    firstSession: profile.firstSession.trim() || undefined,
+    education: profile.education.map((item) => item.trim()).filter(Boolean),
+  };
+}
+
+export function publishedCatalog(profile: PsyProfile | null | undefined, subscription: Subscription | null | undefined): Psy[] {
+  if (!hasCatalogPlacement(subscription) || !isCatalogProfileReady(profile)) return PUBLIC_PSYS;
+  return [profileToCatalogPsy(profile), ...PUBLIC_PSYS];
+}
+
 const formatFits = (psy: Psy, format: CatalogPrefs["format"] | CatalogFilters["format"]) => format === "any" || psy.format === "both" || psy.format === format;
 const overlap = (a: string[], b: string[]) => a.filter((value) => b.includes(value)).length;
 
@@ -124,14 +201,17 @@ export function reasonsFor(psy: Psy, prefs: CatalogPrefs): string[] {
   const topic = prefs.topics.find((value) => psy.topics.includes(value));
   if (topic) reasons.push(`работает с запросом «${topic}»`);
   if (prefs.budget != null && psy.price <= prefs.budget) reasons.push("подходит по бюджету");
+  if (prefs.format !== "any" && formatFits(psy, prefs.format)) reasons.push(`подходит формат «${prefs.format === "online" ? "онлайн" : prefs.format === "offline" ? "очно" : "онлайн и очно"}»`);
+  if (prefs.language !== "any" && psy.languages.includes(prefs.language)) reasons.push(`консультирует на ${prefs.language}`);
+  if (prefs.city && prefs.format !== "online" && psy.city.toLowerCase() === prefs.city.toLowerCase()) reasons.push(`принимает в городе ${psy.city}`);
   if (psy.nextDays <= 2) reasons.push(psy.nextDays === 1 ? "есть окно завтра" : "есть окно послезавтра");
   else if (psy.nextDays <= 7) reasons.push("есть окно на этой неделе");
   if (psy.newcomer && reasons.length < 2) reasons.push("новый специалист");
   return reasons.slice(0, 2);
 }
 
-export function personalSelection(prefs: CatalogPrefs): Psy[] {
-  const available = PSYS.filter((psy) => psy.nextDays <= 14).sort((a, b) => matchScore(b, prefs) - matchScore(a, prefs));
+export function personalSelection(prefs: CatalogPrefs, catalog: Psy[] = PUBLIC_PSYS): Psy[] {
+  const available = catalog.filter((psy) => psy.nextDays <= 14).sort((a, b) => matchScore(b, prefs) - matchScore(a, prefs));
   const picked: Psy[] = available.slice(0, 3);
   const underexposed = available.filter((psy) => !picked.includes(psy)).sort((a, b) => a.exposure - b.exposure || matchScore(b, prefs) - matchScore(a, prefs));
   picked.push(...underexposed.slice(0, 2));
@@ -141,9 +221,9 @@ export function personalSelection(prefs: CatalogPrefs): Psy[] {
   return picked.slice(0, 6);
 }
 
-export function filterCatalog(filters: CatalogFilters): Psy[] {
+export function filterCatalog(filters: CatalogFilters, catalog: Psy[] = PUBLIC_PSYS): Psy[] {
   const query = filters.query.trim().toLowerCase();
-  return PSYS.filter((psy) => {
+  return catalog.filter((psy) => {
     if (query && ![psy.name, psy.method, ...psy.methods, ...psy.topics].some((value) => value.toLowerCase().includes(query))) return false;
     if (filters.topics.length && !overlap(psy.topics, filters.topics)) return false;
     if (filters.methods.length && !overlap(psy.methods, filters.methods)) return false;

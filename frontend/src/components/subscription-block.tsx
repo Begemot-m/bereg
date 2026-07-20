@@ -15,7 +15,7 @@ const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
   { id: "tools", name: "Практика", tag: "инструменты", perks: ["Расписание, клиенты, сессии", "Домашние задания и техники", "Колесо баланса и трекеры", "Инструменты для ваших клиентов", "Новые методики каждый месяц"] },
-  { id: "all", name: "Всё включено", tag: "инструменты + каталог", best: true, perks: ["Весь инструментарий «Практики»", "Подтверждённый профиль в каталоге", "Топ выдачи и бейдж «Рекомендуем»", "Статистика показов профиля"] },
+  { id: "all", name: "Всё включено", tag: "инструменты + каталог", best: true, perks: ["Весь инструментарий «Практики»", "Подтверждённый профиль в каталоге", "Честная выдача без покупки рейтинга", "Статистика показов профиля"] },
 ];
 const CLIENT_PLAN: Plan = { id: "client", name: "Вдох+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
@@ -47,14 +47,14 @@ export const PRO_BENEFITS: HelpPage[] = [
         <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><motion.div className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7 }} style={{ background: c as string }} /></div></div>
     ))}</BFrame>
   ) },
-  { title: "Выше в каталоге — больше клиентов", text: "На тарифе «Всё включено» ваш подтверждённый профиль поднимается в топ выдачи с бейджем «Рекомендуем». Клиенты находят вас первыми.", illo: (
+  { title: "Профиль появляется в каталоге", text: "На тарифе «Всё включено» подтверждённая анкета участвует в подборках на равных. Оплата не меняет рейтинг и место в выдаче.", illo: (
     <BFrame>
-      <div className="flex items-center gap-2 rounded-[10px] bg-[var(--amber)] px-2.5 py-2" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
-        <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white text-[11px] font-black" style={{ border: "1px solid var(--amber-edge)" }}>1</span>
-        <span className="flex-1 text-[10px] font-black">Ваш профиль</span>
-        <span className="rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black uppercase" style={{ border: "1px solid var(--amber-edge)" }}>рекомендуем</span>
+      <div className="flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-2.5 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
+        <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white" style={{ border: "1px solid var(--green-edge)" }}><Icon name="check" width={15} weight="bold" /></span>
+        <span className="flex-1 text-[10px] font-black">Профиль опубликован</span>
+        <span className="text-[8px] font-black uppercase text-[var(--muted)]">на равных</span>
       </div>
-      {["Психолог · 4.9", "Психолог · 4.8"].map((t) => <div key={t} className="rounded-[10px] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>{t}</div>)}
+      {["Совпадение с запросом", "Рейтинг после сессий"].map((t) => <div key={t} className="rounded-[10px] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>{t}</div>)}
     </BFrame>
   ) },
 ];
@@ -135,7 +135,7 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
           <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Вдох+ активен — все инструменты открыты.</p>
         ) : (
           <>
-            {activeTools && !sub.promo && <p className="text-[12px] font-bold text-[var(--muted)]">Усильте профиль в каталоге:</p>}
+            {activeTools && !sub.promo && <p className="text-[12px] font-bold text-[var(--muted)]">Добавьте размещение в каталоге:</p>}
             {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} />)}
             <p className="pt-1 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата через ЮKassa · отмена в любой момент{variant === "psy" ? " · годовая оплата — 2 месяца в подарок" : ""}</p>
           </>
