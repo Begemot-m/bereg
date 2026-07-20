@@ -1,13 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { SubscriptionBlock } from "@/components/subscription-block";
-import { getSubscription } from "@/lib/subscription";
+import { TechniqueRunner, type TechKey } from "@/components/techniques";
+import { tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
 
 // Бесплатные инструменты психолога — быстрый переход в раздел.
@@ -26,15 +27,15 @@ const PSY_PRO: { icon: IconName; title: string; desc: string }[] = [
   { icon: "note", title: "Экспорт заметок", desc: "PDF-отчёты по клиенту" },
 ];
 
-// Инструменты клиента («приколюхи»): часть бесплатна, часть — по подписке «Вдох+».
-const CLIENT_TOOLS: { icon: IconName; title: string; desc: string; pro: boolean }[] = [
-  { icon: "mood", title: "Дневник настроения", desc: "Ежедневный чек-ин состояния", pro: false },
-  { icon: "balance", title: "Колесо баланса", desc: "10 сфер жизни, наглядная карта", pro: false },
-  { icon: "note", title: "Дневник эмоций и мыслей", desc: "Разбор ситуаций по КПТ", pro: true },
-  { icon: "pulse", title: "Дыхание 4-7-8", desc: "Успокоиться за пару минут", pro: true },
-  { icon: "therapy", title: "Медитации", desc: "Короткие аудио-практики", pro: true },
-  { icon: "check", title: "Трекер привычек", desc: "Маленькие шаги каждый день", pro: true },
-  { icon: "chart", title: "Шкала тревоги GAD-7", desc: "Отслеживать динамику тревоги", pro: true },
+// Инструменты клиента: часть бесплатна, часть — по подписке «Вдох+». Интерактивные — с tech.
+const CLIENT_TOOLS: { icon: IconName; title: string; desc: string; pro: boolean; tech?: TechKey; href?: string }[] = [
+  { icon: "pulse", title: "Дыхание 4-7-8", desc: "Успокоиться за пару минут", pro: true, tech: "breathing" },
+  { icon: "note", title: "Дневник мыслей (КПТ)", desc: "Разобрать тревожную мысль по шагам", pro: true, tech: "thought" },
+  { icon: "compass", title: "Заземление 5-4-3-2-1", desc: "Вернуться в момент при тревоге", pro: true, tech: "grounding" },
+  { icon: "chart", title: "Шкала тревоги GAD-7", desc: "Оценить уровень тревоги", pro: true, tech: "gad7" },
+  { icon: "mood", title: "Дневник настроения", desc: "Ежедневный чек-ин состояния", pro: false, href: "/therapy" },
+  { icon: "balance", title: "Колесо баланса", desc: "10 сфер жизни, наглядная карта", pro: false, href: "/therapy" },
+  { icon: "therapy", title: "Медитации", desc: "Короткие аудио-практики · скоро", pro: true },
 ];
 
 export default function ToolsPage() {
@@ -44,8 +45,7 @@ export default function ToolsPage() {
 }
 
 function ClientTools() {
-  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
-  const unlocked = !!sub?.clientPro;
+  const [tech, setTech] = useState<TechKey | null>(null);
   return (
     <div>
       <PageHead title="Инструменты" sub="Забота о себе между сессиями" />
@@ -54,27 +54,39 @@ function ClientTools() {
         <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
           <SubscriptionBlock variant="client" />
 
-          <p className="mb-2 mt-6 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Что внутри</p>
+          <p className="mb-2 mt-6 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики и техники</p>
           <div className="space-y-2">
             {CLIENT_TOOLS.map((t, i) => {
-              const locked = t.pro && !unlocked;
+              const inner = (
+                <>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: t.pro ? "var(--purple-soft)" : "var(--green-soft)", border: `var(--bw) solid ${t.pro ? "var(--purple-edge)" : "var(--green-edge)"}` }}><Icon name={t.icon} width={18} weight="bold" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{t.title}</span><span className="block text-[12px] font-semibold text-[var(--muted)]">{t.desc}</span></span>
+                  {t.tech || t.href
+                    ? <span className="shrink-0 rounded-full bg-[var(--ink)] px-2.5 py-1 text-[10px] font-black text-white">{t.tech ? "Открыть" : "Перейти"}</span>
+                    : <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>Вдох+</span>}
+                </>
+              );
+              const cls = "flex w-full items-center gap-3 rounded-[16px] bg-white p-3 text-left transition-transform active:scale-[0.99]";
+              const style = { border: `var(--bw) solid ${t.tech ? "var(--purple-edge)" : "var(--edge-neutral)"}` } as const;
               return (
                 <Reveal key={t.title} delay={0.04 + i * 0.04}>
-                  <div className="flex items-center gap-3 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)", opacity: locked ? 0.78 : 1 }}>
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: t.pro ? "var(--purple-soft)" : "var(--green-soft)", border: `var(--bw) solid ${t.pro ? "var(--purple-edge)" : "var(--green-edge)"}` }}><Icon name={t.icon} width={18} weight="bold" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{t.title}</span><span className="block text-[12px] font-semibold text-[var(--muted)]">{t.desc}</span></span>
-                    {t.pro
-                      ? <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: locked ? "var(--purple-soft)" : "var(--green-soft)", border: `var(--bw) solid ${locked ? "var(--purple-edge)" : "var(--green-edge)"}` }}>{locked ? "Вдох+" : "открыто"}</span>
-                      : <span className="shrink-0 rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>бесплатно</span>}
-                  </div>
+                  {t.tech ? (
+                    <button onClick={() => { tap(); setTech(t.tech!); }} className={cls} style={style}>{inner}</button>
+                  ) : t.href ? (
+                    <Link href={t.href} onClick={() => tap()} className={cls} style={style}>{inner}</Link>
+                  ) : (
+                    <div className={cls} style={{ ...style, opacity: 0.75 }}>{inner}</div>
+                  )}
                 </Reveal>
               );
             })}
           </div>
 
-          <p className="mt-4 text-center text-[11px] font-semibold text-[var(--muted-2)]">Всё это открывается и в вашей <Link href="/therapy" className="font-black text-[var(--purple-edge)]">терапии</Link> — прогресс виден терапевту.</p>
+          <p className="mt-4 text-center text-[11px] font-semibold text-[var(--muted-2)]">Практики основаны на научных методиках. Прогресс виден в вашей <Link href="/therapy" className="font-black text-[var(--purple-edge)]">терапии</Link>.</p>
         </div>
       </Reveal>
+
+      {tech && <TechniqueRunner tech={tech} onClose={() => setTech(null)} />}
     </div>
   );
 }

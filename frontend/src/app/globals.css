@@ -116,6 +116,11 @@ body {
 .font-tight { letter-spacing: -0.02em; }
 .tnum { font-variant-numeric: tabular-nums; }
 
+/* Поле техник и подпись */
+.tf { width: 100%; resize: none; border-radius: 14px; border: var(--bw) solid var(--edge-neutral); background: #fff; padding: 10px 14px; font-size: 14px; font-weight: 500; outline: none; color: var(--ink); }
+.tf::placeholder { color: var(--muted-2); font-weight: 400; }
+.lbl { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 800; color: var(--muted); }
+
 /* Обводка-штрих (мини-элементы) */
 .stroke {
   border: var(--bw) solid var(--stroke);
