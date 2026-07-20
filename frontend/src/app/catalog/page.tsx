@@ -11,6 +11,7 @@ import { Icon } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
 import { Button, Input } from "@/components/ui";
+import { asset } from "@/lib/asset";
 import { listMyBookings } from "@/lib/clients";
 import {
   EMPTY_FILTERS,
@@ -145,7 +146,7 @@ function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogP
   const reasons = reasonsFor(psy, prefs);
   return <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform active:scale-[.99] stroke-lg">
     <div className="flex gap-3 p-3">
-      <div className="relative h-[132px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={psy.portrait} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} /></div>
+      <div className="relative h-[132px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={asset(psy.portrait)} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} /></div>
       <div className="min-w-0 flex-1 py-0.5">
         <div className="flex items-start gap-1"><h3 className="min-w-0 flex-1 text-[16px] font-black leading-[1.05]">{psy.name}</h3>{psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}</div>
         <div className="mt-1.5 flex items-center gap-1"><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /><span className="tnum text-[12px] font-black">{psy.reviews >= 3 ? psy.rating : "Новый"}</span><span className="text-[10px] font-bold text-[var(--muted-2)]">· {psy.reviews} оценок</span></div>
@@ -164,7 +165,7 @@ function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: 
   return <div className="rounded-[22px] bg-[var(--amber-soft)] p-5 text-center stroke-lg" style={{ borderColor: "var(--amber-edge)" }}><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[15px] bg-white stroke"><Icon name="compass" width={23} weight="bold" /></div><h3 className="font-tight mt-3 text-[19px] font-black">Точных совпадений нет</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Сильнее всего ограничивает: {blocker}.</p><Button className="mt-4" onClick={onRelax}>Ослабить условие</Button></div>;
 }
 
-function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={psy.portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority /></div>; }
+function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={asset(psy.portrait)} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority /></div>; }
 
 function PsyDetailView({ psy, onBack }: { psy: Psy; onBack: () => void }) {
   const tone = T[psy.tone];
