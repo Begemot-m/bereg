@@ -24,6 +24,9 @@ import {
   Smiley,
   Pulse,
   FlowerLotus,
+  Funnel,
+  SlidersHorizontal,
+  Star,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -53,7 +56,10 @@ export type IconName =
   | "balance"
   | "mood"
   | "pulse"
-  | "therapy";
+  | "therapy"
+  | "filter"
+  | "sort"
+  | "star";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -81,6 +87,9 @@ const MAP: Record<IconName, PhIcon> = {
   mood: Smiley,
   pulse: Pulse,
   therapy: FlowerLotus,
+  filter: Funnel,
+  sort: SlidersHorizontal,
+  star: Star,
 };
 
 export function Icon({
