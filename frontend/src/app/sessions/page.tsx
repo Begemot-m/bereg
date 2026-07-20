@@ -120,7 +120,10 @@ function PsySessions() {
       </PageHead>
 
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-        <div className="mb-3 flex justify-end">
+        <div className="mb-3 flex items-center justify-end gap-2">
+          <button onClick={() => { tap(); setScheduleOpen((v) => !v); }} className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-label="Рабочие часы" aria-expanded={scheduleOpen}>
+            <Icon name="gear" width={13} color="currentColor" />
+          </button>
           <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
             <Icon name="spark" width={13} /> Как это работает?
           </button>
@@ -219,43 +222,40 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
     : "Рабочие дни пока не указаны";
 
   return (
-    <div className="mb-4">
-      {firstVisit ? (
-        <section className="overflow-hidden rounded-[22px] p-4" style={{ background: "var(--green)", border: "var(--bw-lg) solid var(--green-edge)" }}>
-          <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={23} weight="bold" /></span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Первый шаг</p>
-              <h2 className="font-tight mt-1 text-[18px] font-black leading-tight">Настройте рабочие часы</h2>
-              <p className="mt-1 max-w-[420px] text-[12px] font-semibold text-[var(--muted)]">Клиенты увидят только свободные окна, а занятые сессии появятся в календаре автоматически.</p>
+    <div className={open ? "mb-4" : ""}>
+      {/* Первый визит — всплывающее окно с приглашением настроить окна */}
+      {firstVisit && (
+        <div className="fixed inset-0 z-[85] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3 @md:items-center" onClick={onLater}>
+          <section onClick={(e) => e.stopPropagation()} className="chunk w-full max-w-md overflow-hidden p-0" style={{ background: "var(--surface)" }}>
+            <div className="p-5" style={{ background: "var(--green)", borderBottom: "var(--bw-lg) solid var(--green-edge)" }}>
+              <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={23} weight="bold" /></span>
+              <p className="mt-3 text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Первый шаг</p>
+              <h2 className="font-tight mt-1 text-[20px] font-black leading-tight">Настройте рабочие часы</h2>
+              <p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Клиенты увидят только свободные окна, а занятые сессии появятся в календаре автоматически.</p>
             </div>
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-1.5">
-            {["Выберите дни", "Добавьте окна", "Сохраните"].map((label, index) => (
-              <div key={label} className="rounded-[13px] bg-white px-2 py-2.5 text-center" style={{ border: "var(--bw) solid var(--green-edge)" }}>
-                <span className="tnum block text-[11px] font-black text-[var(--green-edge)]">0{index + 1}</span>
-                <span className="mt-0.5 block text-[10px] font-extrabold leading-tight">{label}</span>
+            <div className="p-5">
+              <div className="grid grid-cols-3 gap-1.5">
+                {["Выберите дни", "Добавьте окна", "Сохраните"].map((label, index) => (
+                  <div key={label} className="rounded-[13px] px-2 py-2.5 text-center" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
+                    <span className="tnum block text-[11px] font-black text-[var(--green-edge)]">0{index + 1}</span>
+                    <span className="mt-0.5 block text-[10px] font-extrabold leading-tight">{label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button onClick={onOpen} className="rounded-full bg-[var(--ink)] px-4 py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.97]">Настроить сейчас</button>
-            <button onClick={onHelp} className="rounded-full bg-white px-3.5 py-2 text-[12px] font-extrabold" style={{ border: "var(--bw) solid var(--green-edge)" }}>Как настроить?</button>
-            <button onClick={onLater} className="ml-auto px-2 py-2 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Позже</button>
-          </div>
-        </section>
-      ) : (
-        <button onClick={onToggle} className="group flex w-full items-center gap-3 rounded-[18px] p-3 text-left transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" }} aria-expanded={open}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={19} weight="bold" /></span>
-          <span className="min-w-0 flex-1"><span className="block text-[13px] font-black">Рабочие часы</span><span className="block truncate text-[11px] font-semibold text-[var(--muted)]">{summary}</span></span>
-          <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white transition-transform group-active:rotate-12" style={{ border: "var(--bw) solid var(--green-edge)" }} aria-label="Настроить рабочие часы"><Icon name="gear" width={18} weight="bold" /></span>
-        </button>
+              <button onClick={onOpen} className="mt-4 w-full rounded-[15px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">Настроить сейчас</button>
+              <div className="mt-2 flex items-center justify-between">
+                <button onClick={onHelp} className="px-1 py-1.5 text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Как настроить?</button>
+                <button onClick={onLater} className="px-1 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Позже</button>
+              </div>
+            </div>
+          </section>
+        </div>
       )}
 
       <Disclosure open={open}>
         <div className="mt-3 rounded-[22px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div><p className="text-[14px] font-black">Ваш обычный график</p><p className="text-[11px] font-semibold text-[var(--muted)]">Нажмите на шкалу дня, чтобы добавить окно.</p></div>
+            <div><p className="text-[14px] font-black">Рабочие часы</p><p className="text-[11px] font-semibold text-[var(--muted)]">{summary} · нажмите на шкалу дня, чтобы добавить окно</p></div>
             {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="spark" width={16} /></button>}
           </div>
           <WorkHoursEditor onSaved={onSaved} />

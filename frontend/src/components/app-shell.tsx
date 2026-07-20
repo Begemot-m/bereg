@@ -44,13 +44,11 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/sessions", label: "Сессии", icon: "calendar" },
     { href: "/therapy", label: "Терапия", icon: "therapy" },
     { href: "/tools", label: "Инструменты", icon: "tools" },
-    { href: "/catalog", label: "Каталог", icon: "compass" },
   ],
   guest: [
     { href: "/", label: "Главная", icon: "home" },
     { href: "/sessions", label: "Сессии", icon: "calendar" },
     { href: "/tools", label: "Инструменты", icon: "tools" },
-    { href: "/catalog", label: "Каталог", icon: "compass" },
   ],
 };
 
@@ -147,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-1 @md:hidden">
         <nav className="mx-auto max-w-md rounded-[26px] px-2 py-2" style={{ background: "var(--nav)", border: "var(--bw-lg) solid var(--nav-edge)" }}>
           <div className="relative flex">
-            {activeIndex >= 0 && (
+            {activeIndex >= 0 && tabs[activeIndex]?.href !== "/therapy" && (
               <motion.div
                 aria-hidden
                 className="pointer-events-none absolute top-0 flex h-full items-center justify-center"
@@ -161,6 +159,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
+              // Терапия — акцентная кнопка по центру меню.
+              if (it.href === "/therapy") return (
+                <Link key={it.href} href={it.href} onClick={select} className="relative z-[2] flex flex-1 items-center justify-center py-0.5" aria-label={it.label}>
+                  <span className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-150 active:scale-90" style={{ background: active ? "var(--ink)" : "var(--purple)", border: `var(--bw-lg) solid ${active ? "var(--ink)" : "var(--purple-edge)"}`, boxShadow: "0 8px 18px -8px rgba(32,28,24,.5)" }}>
+                    <Icon name={it.icon} width={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
+                  </span>
+                </Link>
+              );
               return (
                 <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 items-center justify-center py-0.5">
                   <span className="flex h-11 w-11 items-center justify-center transition-transform duration-150 active:scale-90">

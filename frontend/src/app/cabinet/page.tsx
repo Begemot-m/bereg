@@ -12,7 +12,6 @@ import { ProfileEditor } from "@/components/profile-editor";
 import { RemindersModule } from "@/components/reminders";
 import { SubscriptionBlock } from "@/components/subscription-block";
 import { Card } from "@/components/ui";
-import { APP_NAME, CENTER, TAGLINE } from "@/lib/brand";
 import { useCancelLockDays } from "@/lib/cancel-policy";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
@@ -84,22 +83,10 @@ export default function CabinetPage() {
           <InviteBanner variant={role === "psychologist" ? "psy" : "client"} />
         </div>
 
-        {/* Отдел заботы */}
+        {/* Отдел заботы — центр-создатель + связь */}
         <div>
           <SectionTitle>Отдел заботы</SectionTitle>
           <CareModule />
-        </div>
-
-        {/* Центр */}
-        <div className="chunk overflow-hidden">
-          <div className="flex items-center gap-3 p-4" style={{ background: "var(--ink)" }}>
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-[18px] font-black text-[var(--ink)]" style={{ background: "var(--amber)" }}>{APP_NAME.charAt(0)}</span>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[rgba(255,255,255,.6)]">Платформу создал центр</p>
-              <p className="font-tight text-[18px] font-black text-white">{CENTER}</p>
-            </div>
-          </div>
-          <p className="p-4 text-[13px] leading-relaxed text-[var(--muted)]">{TAGLINE}. {APP_NAME} — инструмент центра для качественной помощи и самопомощи.</p>
         </div>
       </div>
       </Reveal>

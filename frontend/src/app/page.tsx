@@ -9,7 +9,6 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodFaces } from "@/components/mood-tracker";
 import { Stagger, StaggerItem } from "@/components/motion";
-import { Disclosure } from "@/components/ui";
 import { listAppointments, type Appointment } from "@/lib/appointments";
 import { listClients, listMyBookings, type Client } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
@@ -17,18 +16,12 @@ import { mascotSrc, MOOD_LABEL, useAnimal } from "@/lib/mascots";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { getWorkHours } from "@/lib/schedule";
-import { domainScore, getMyTherapy, updateMyTherapy, wheelLowest, wheelPercent } from "@/lib/therapy";
+import { Disclosure } from "@/components/ui";
+import { getMyTherapy, updateMyTherapy, wheelPercent } from "@/lib/therapy";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 const dateTimeF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
-
-const CENTERS = [
-  { name: "Детский телефон доверия", note: "бесплатно · круглосуточно · анонимно", phone: "8 800 2000 122", tel: "88002000122" },
-  { name: "Экстренная психологическая помощь МЧС", note: "круглосуточно", phone: "8 495 989 50 50", tel: "84959895050" },
-  { name: "Московская служба психологической помощи", note: "для жителей Москвы", phone: "051", tel: "051" },
-  { name: "Горячая линия центра «АННА»", note: "насилие · кризис · бесплатно", phone: "8 800 7000 600", tel: "88007000600" },
-];
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -66,7 +59,6 @@ function PsyHome() {
   );
   const next = upcoming[0];
   const activeClients = clients.filter((c) => c.status === "therapy").length;
-  const attention = clients.filter(needsAttention).slice(0, 2);
   const weekday = (now.getDay() + 6) % 7;
   const freeToday = Math.max(0, (work?.hours?.[weekday]?.length ?? 0) - today.length);
 
@@ -94,17 +86,6 @@ function PsyHome() {
           </div>
         ) : (
           <QuietState icon="sun" title="Сегодня без встреч" text="Можно оставить день свободным или проверить открытые окна." href="/sessions" action="Открыть расписание" />
-        )}
-      </section>
-
-      <section>
-        <SectionTitle action={<Link href="/clients" onClick={tap} className="text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">К клиентам →</Link>}>Требует внимания</SectionTitle>
-        {attention.length ? (
-          <div className="space-y-2">
-            {attention.map((client) => <AttentionRow key={client.id} client={client} />)}
-          </div>
-        ) : (
-          <QuietState icon="check" title="Всё важное отмечено" text="Новых действий по клиентам сейчас нет." />
         )}
       </section>
 
@@ -148,7 +129,6 @@ function PersonHome({ guest }: { guest: boolean }) {
             { icon: "mood", value: String(recentMoodMarks), label: "отметок за 7 дней" },
             { icon: "check", value: String(doneSessions), label: "встреч" },
           ]} />
-          <TherapyStep therapy={therapy} />
         </>
       )}
 
@@ -164,7 +144,6 @@ function PersonHome({ guest }: { guest: boolean }) {
       ]} />
 
       {!guest && <InviteBanner variant="client" />}
-      <HelpCenters />
     </HomeFrame>
   );
 }
@@ -286,21 +265,6 @@ function SessionRow({ appointment, divided }: { appointment: Appointment; divide
   );
 }
 
-function AttentionRow({ client }: { client: Client }) {
-  const homework = Math.max(0, client.hwTotal - client.hwDone);
-  const detail = homework ? `${homework} ${plural(homework, "задание", "задания", "заданий")} в работе` : client.status === "new" ? "Ещё не было первой встречи" : "Давно не было встреч";
-  return (
-    <Link href={`/clients/${client.id}`} onClick={tap} className="group flex items-center gap-3 rounded-[18px] p-3.5 transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white text-[16px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{client.name.charAt(0)}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-black">{client.name}</span>
-        <span className="block truncate text-[11px] font-semibold text-[var(--muted)]">{detail}</span>
-      </span>
-      <span className="text-[18px] font-black transition-transform group-hover:translate-x-0.5">›</span>
-    </Link>
-  );
-}
-
 function QuietState({ icon, title, text, href, action }: { icon: IconName; title: string; text: string; href?: string; action?: string }) {
   const content = (
     <div className="flex items-center gap-3 rounded-[18px] bg-[#fbfaf6] p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
@@ -333,37 +297,6 @@ function MoodQuick({ todayMood }: { todayMood?: number }) {
   );
 }
 
-function TherapyStep({ therapy }: { therapy?: Awaited<ReturnType<typeof getMyTherapy>> }) {
-  if (!therapy?.wheel) {
-    return (
-      <section>
-        <SectionTitle>Следующий шаг</SectionTitle>
-        <Link href="/therapy" onClick={tap} className="group block rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
-          <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="balance" width={23} weight="bold" /></span>
-            <span className="min-w-0 flex-1"><span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">3–5 минут</span><span className="mt-1 block text-[17px] font-black">Собрать колесо баланса</span><span className="mt-0.5 block max-w-[300px] text-[12px] font-semibold text-[var(--muted)]">Короткий тест покажет, на что сейчас стоит опереться.</span></span>
-            <Arrow />
-          </div>
-        </Link>
-      </section>
-    );
-  }
-  const domain = wheelLowest(therapy.wheel, 1)[0];
-  const score = domain ? Math.round(domainScore(therapy.wheel, domain.key) * 10) : wheelPercent(therapy.wheel);
-  return (
-    <section>
-      <SectionTitle action={<Link href="/therapy" onClick={tap} className="text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">В терапию →</Link>}>Фокус сейчас</SectionTitle>
-      <Link href="/therapy" onClick={tap} className="group block rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
-        <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name={domain?.icon ?? "therapy"} width={22} weight="bold" /></span>
-          <span className="min-w-0 flex-1"><span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Колесо баланса</span><span className="mt-0.5 block truncate text-[16px] font-black">{domain?.label ?? "Продолжить работу"}</span><span className="mt-2 block h-2.5 overflow-hidden rounded-full bg-white stroke"><span className="block h-full rounded-full bg-[var(--purple)]" style={{ width: `${score}%` }} /></span></span>
-          <span className="tnum text-[19px] font-black">{score}%</span>
-        </div>
-      </Link>
-    </section>
-  );
-}
-
 function GuestStart() {
   const steps = [
     ["1", "Ответьте на несколько вопросов", "Уточним запрос, формат и важные предпочтения."],
@@ -386,48 +319,27 @@ function GuestStart() {
   );
 }
 
+const ROUTE_TONE: Record<string, string> = { "/sessions": "green", "/clients": "purple", "/tools": "amber", "/cabinet": "salmon", "/therapy": "purple", "/catalog": "salmon" };
+
+// Разделы — плиткой (бенто 2 в ряд), рамки в тон заливки.
 function HomeRoutes({ items }: { items: { title: string; detail: string; icon: IconName; href: string }[] }) {
   return (
     <section>
-      <SectionTitle>Ещё в Береге</SectionTitle>
-      <div className="chunk overflow-hidden">
-        {items.map((item, index) => (
-          <Link key={item.href} href={item.href} onClick={tap} className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--head-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[var(--ink)]" style={index ? { borderTop: "var(--bw) solid var(--edge-neutral)" } : undefined}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[var(--head-soft)] stroke"><Icon name={item.icon} width={17} weight="bold" /></span>
-            <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{item.title}</span><span className="block text-[11px] font-semibold text-[var(--muted)]">{item.detail}</span></span>
-            <span className="text-[18px] font-black text-[var(--muted)] transition-transform group-hover:translate-x-0.5">›</span>
-          </Link>
-        ))}
+      <SectionTitle>Разделы</SectionTitle>
+      <div className="grid grid-cols-2 gap-2.5">
+        {items.map((item) => {
+          const t = ROUTE_TONE[item.href] ?? "amber";
+          return (
+            <Link key={item.href} href={item.href} onClick={tap} className="rounded-[18px] p-3.5 transition-transform active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ background: `var(--${t})`, border: `var(--bw-lg) solid var(--${t}-edge)` }}>
+              <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-white" style={{ border: `var(--bw) solid var(--${t}-edge)` }}><Icon name={item.icon} width={19} weight="bold" /></span>
+              <span className="mt-4 block text-[14px] font-black leading-tight">{item.title}</span>
+              <span className="mt-0.5 block text-[11px] font-semibold text-[var(--muted)]">{item.detail}</span>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
-}
-
-function HelpCenters() {
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="chunk overflow-hidden">
-      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[var(--ink)]" aria-expanded={open}>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--coral-soft)]" style={{ border: "var(--bw) solid var(--coral-edge)" }}><Icon name="heart" width={19} weight="bold" /></span>
-        <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">Нужна помощь прямо сейчас?</span><span className="block text-[11px] font-semibold text-[var(--muted)]">Бесплатные и анонимные линии поддержки</span></span>
-        <span className="text-[16px] font-black text-[var(--muted)] transition-transform" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
-      </button>
-      <Disclosure open={open}>
-        <div className="border-t px-3 pb-3" style={{ borderColor: "var(--edge-neutral)" }}>
-          {CENTERS.map((center, index) => (
-            <a key={center.tel} href={`tel:${center.tel}`} onClick={tap} className="flex items-center gap-3 px-1 py-3" style={index ? { borderTop: "var(--bw) solid var(--edge-neutral)" } : undefined}>
-              <span className="min-w-0 flex-1"><span className="block text-[12px] font-black leading-tight">{center.name}</span><span className="block text-[10px] font-semibold text-[var(--muted)]">{center.note}</span></span>
-              <span className="tnum shrink-0 text-[11px] font-black">{center.phone}</span>
-            </a>
-          ))}
-        </div>
-      </Disclosure>
-    </section>
-  );
-}
-
-function needsAttention(client: Client): boolean {
-  return client.hwTotal > client.hwDone || client.status === "new" || client.status === "paused";
 }
 
 function byStart(a: Appointment, b: Appointment): number {
