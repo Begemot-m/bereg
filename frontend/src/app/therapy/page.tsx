@@ -8,13 +8,13 @@ import Image from "next/image";
 
 import { WheelFlow } from "@/components/balance-flow";
 import { Icon } from "@/components/icons";
-import { MoodFaces, MoodTrend } from "@/components/mood-tracker";
+import { MoodCard, MoodSheet } from "@/components/mood-dial";
+import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { MyBookingsManager } from "@/components/my-bookings";
 import { Button, Disclosure, SkeletonRow, Textarea } from "@/components/ui";
 import { HW_LABEL, listHomework, updateHomework, type Homework, type HwStatus, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
-import { MOOD_LABEL } from "@/lib/mascots";
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { getSubscription, startSubscription } from "@/lib/subscription";
@@ -34,10 +34,10 @@ export default function TherapyPage() {
 
   if (bookingsLoading || therapyLoading) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
   if (!therapist || !therapy) return <EmptyTherapy />;
-  return <TherapyDashboard therapist={therapist} next={next} bookings={ordered} therapy={therapy} onMood={(mood) => save.mutate({ mood })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />;
+  return <TherapyDashboard therapist={therapist} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />;
 }
 
-function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapist: string; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
+function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapist: string; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const [tab, setTab] = useState<"общее" | "терапевт">("общее");
   const [messageOpen, setMessageOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -53,7 +53,7 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
   const done = homework.filter((h) => h.status === "done").length;
   const taskProgress = homework.length ? Math.round(done / homework.length * 100) : 0;
   const completedSessions = bookings.filter((b) => new Date(b.startsAt) < new Date()).length;
-  const todayMood = [...therapy.moods].reverse().find((e) => e.date.slice(0, 10) === new Date().toISOString().slice(0, 10))?.mood;
+  const todayEntry = [...therapy.moods].reverse().find((e) => e.date.slice(0, 10) === new Date().toISOString().slice(0, 10));
   const startFlow = () => { tap(); setShowGuide(!therapy.tutorialSeen); setFlowOpen(true); };
 
   return (
@@ -77,7 +77,7 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
         {tab === "общее" ? (
           <div className="mt-4 space-y-3">
             <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
-            <MoodModule todayMood={todayMood} moods={therapy.moods.slice(-7)} onMood={onMood} />
+            <MoodModule today={todayEntry} moods={therapy.moods} onSave={onMood} />
           </div>
         ) : (
           <div className="mt-4 space-y-3">
@@ -126,18 +126,16 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
   );
 }
 
-// Живой модуль настроения: маскот с разными эмоциями + анимированный тренд.
-function MoodModule({ todayMood, moods, onMood }: { todayMood?: number; moods: Mood[]; onMood: (m: number) => void }) {
+// Настроение: миниатюра → окно с диском, ниже — динамика и календарь.
+function MoodModule({ today, moods, onSave }: { today?: Mood; moods: Mood[]; onSave: (mood: number, emotions: string[]) => void }) {
+  const [sheet, setSheet] = useState(false);
   return (
-    <section className="overflow-hidden rounded-[22px] p-4" style={{ background: "var(--amber)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2"><Icon name="mood" width={21} weight="bold" /><h2 className="text-[13px] font-black uppercase tracking-[.06em]">Как вы сегодня?</h2></div>
-        {todayMood && <span className="rounded-full bg-[#fffdf7] px-2.5 py-0.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{MOOD_LABEL[todayMood]}</span>}
-      </div>
-      <div className="mt-3"><MoodFaces todayMood={todayMood} onMood={onMood} /></div>
-      <MoodTrend moods={moods} />
-      <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">Ежедневная отметка настроения · общая, не привязана к терапевту</p>
-    </section>
+    <div className="space-y-2.5">
+      <MoodCard mood={today?.mood} emotions={today?.emotions} onOpen={() => setSheet(true)} />
+      <MoodStats moods={moods} title="Динамика настроения" />
+      <p className="px-1 text-[10px] font-semibold text-[var(--muted-2)]">Отметки видит ваш терапевт — они помогают заметить, что меняется между встречами.</p>
+      <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={onSave} />
+    </div>
   );
 }
 

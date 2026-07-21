@@ -16,4 +16,18 @@ const TONE_OF: Record<string, string> = Object.fromEntries(
 );
 
 export const emotionTone = (name: string): string => TONE_OF[name] ?? "amber";
+
+// Какие семьи эмоций предлагать под выбранной точкой шкалы.
+const BY_LEVEL: Record<number, string[]> = {
+  1: ["sad", "fear", "anger", "tired"],
+  2: ["sad", "fear", "tired", "anger"],
+  3: ["tired", "calm", "fear", "sad"],
+  4: ["calm", "joy", "tired"],
+  5: ["joy", "calm"],
+};
+
+export function suggestFamilies(mood: number): EmotionFamily[] {
+  const keys = BY_LEVEL[Math.min(5, Math.max(1, Math.round(mood)))] ?? [];
+  return keys.map((key) => EMOTION_FAMILIES.find((family) => family.key === key)!).filter(Boolean);
+}
 export const ALL_EMOTIONS = EMOTION_FAMILIES.flatMap((family) => family.items);

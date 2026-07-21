@@ -7,18 +7,16 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
-import { EmotionPicker } from "@/components/emotion-picker";
-import { MoodFaces, MoodTrend } from "@/components/mood-tracker";
+import { MoodCard, MoodSheet } from "@/components/mood-dial";
+import { MoodStats } from "@/components/mood-stats";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { listAppointments, type Appointment } from "@/lib/appointments";
 import { listClients, listMyBookings, type Client, type Mood } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
-import { mascotSrc, MOOD_LABEL, useAnimal } from "@/lib/mascots";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { getWorkHours } from "@/lib/schedule";
 import { Disclosure } from "@/components/ui";
-import { emotionTone } from "@/lib/emotions";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
@@ -271,64 +269,19 @@ function QuietState({ icon, title, text, href, action }: { icon: IconName; title
 function MoodQuick({ today, moods }: { today?: Mood; moods: Mood[] }) {
   const qc = useQueryClient();
   const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
-  const [open, setOpen] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const [stats, setStats] = useState(false);
-  const [animal] = useAnimal();
-  const todayMood = today?.mood;
-  const picked = today?.emotions ?? [];
-  const expanded = open || !todayMood;
-
-  const top = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const entry of moods) for (const name of entry.emotions ?? []) counts.set(name, (counts.get(name) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-  }, [moods]);
 
   return (
-    <section className="overflow-hidden rounded-[20px] p-4" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
-      <div className="flex items-center gap-2.5">
-        <button onClick={() => { tap(); setOpen(!open); setStats(false); }} className="flex flex-1 items-center gap-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" aria-expanded={expanded}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="mood" width={19} weight="bold" /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-black leading-tight">Как вы сегодня себя чувствуете?</span>
-            <span className="block truncate text-[11px] font-semibold text-[var(--muted)]">{todayMood ? [MOOD_LABEL[todayMood], ...picked].join(" · ") : "Отметьте состояние — точнее, чем просто оценка"}</span>
-          </span>
-          {todayMood ? <img src={mascotSrc(animal, todayMood)} alt="" className="h-10 w-10 shrink-0 object-contain" /> : null}
-        </button>
-        <button onClick={() => { tap(); setStats(!stats); setOpen(false); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white transition-transform active:scale-90" style={{ border: "var(--bw) solid var(--amber-edge)" }} aria-label="Статистика" aria-pressed={stats}>
-          <Icon name="chart" width={17} weight="bold" />
-        </button>
-      </div>
-
-      <Disclosure open={expanded && !stats} autoScroll={false}>
-        <div className="mt-3 space-y-3">
-          <MoodFaces todayMood={todayMood} onMood={(value) => save.mutate({ mood: value })} />
-          <div className="rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
-            <EmotionPicker value={picked} onChange={(next) => save.mutate({ mood: todayMood ?? 3, emotions: next })} />
-          </div>
-        </div>
-      </Disclosure>
-
+    <section className="space-y-2.5">
+      <MoodCard mood={today?.mood} emotions={today?.emotions} onOpen={() => setSheet(true)} />
+      <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full bg-white py-2 text-[12px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={stats}>
+        <Icon name="chart" width={15} weight="bold" /> {stats ? "Скрыть статистику" : "Статистика настроения"}
+      </button>
       <Disclosure open={stats} autoScroll={false}>
-        <div className="mt-3 space-y-3">
-          <div className="rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
-            <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Динамика за 7 дней</p>
-            <MoodTrend moods={moods.slice(-7)} />
-          </div>
-          <div className="rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
-            <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Чаще всего вы отмечали</p>
-            {top.length ? (
-              <div className="flex flex-wrap gap-1.5">
-                {top.map(([name, count]) => (
-                  <span key={name} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: `var(--${emotionTone(name)})`, border: `var(--bw) solid var(--${emotionTone(name)}-edge)` }}>{name} · {count}</span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[11px] font-semibold text-[var(--muted)]">Пока нет отметок — выберите состояния, и здесь появится картина недели.</p>
-            )}
-          </div>
-        </div>
+        <MoodStats moods={moods} title="Ваша динамика" />
       </Disclosure>
+      <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={(mood, emotions) => save.mutate({ mood, emotions })} />
     </section>
   );
 }

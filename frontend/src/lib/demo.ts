@@ -71,7 +71,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v7";
+const KEY = "psy_demo_db_v8";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -108,9 +108,18 @@ function seed(): DB {
     { id: 52, clientId: 1, text: "Практика «5-4-3-2-1» при нарастании тревоги.", status: "doing", sentAt: iso(-2, 10, 0) },
     { id: 53, clientId: 3, text: "Список источников энергии — минимум 10 пунктов.", status: "assigned", sentAt: iso(-1, 12, 0) },
   ];
+  // 30 дней отметок с эмоциями — чтобы динамика и календарь были живыми
+  const moodSeries = (values: number[], sets: string[][]): Mood[] =>
+    values.map((mood, i) => ({ date: day(i - values.length + 1), mood, emotions: sets[i % sets.length] }));
   const moods: Record<number, Mood[]> = {
-    1: [3, 3, 2, 4, 3, 4, 4].map((m, i) => ({ date: day(i - 6), mood: m })),
-    3: [2, 2, 3, 2, 3, 3, 2].map((m, i) => ({ date: day(i - 6), mood: m })),
+    1: moodSeries(
+      [2, 3, 2, 3, 3, 4, 3, 2, 3, 4, 4, 3, 3, 2, 3, 4, 4, 5, 4, 3, 3, 4, 4, 4, 3, 4, 5, 4, 4, 4],
+      [["тревога", "напряжение"], ["спокойствие"], ["усталость", "скука"], ["интерес", "благодарность"], ["радость", "опора"]],
+    ),
+    3: moodSeries(
+      [3, 2, 2, 3, 2, 2, 3, 3, 2, 2, 3, 2, 3, 3, 2, 3, 2, 2, 3, 3, 3, 2, 3, 3, 2, 3, 3, 2, 3, 2],
+      [["опустошение", "усталость"], ["раздражение"], ["грусть", "одиночество"], ["сосредоточенность"], ["тревога"]],
+    ),
   };
   const wheel: Record<number, WheelResult | null> = {
     1: null,

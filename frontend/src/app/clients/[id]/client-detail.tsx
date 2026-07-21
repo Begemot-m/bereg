@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { SectionTitle } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { InviteButton } from "@/components/invite";
+import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { Reveal } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
@@ -138,22 +139,11 @@ export function ClientDetail() {
         </div>
       </Reveal>
 
-      {/* Настроение за неделю — цветные столбики */}
+      {/* Настроение: динамика, календарь и частые эмоции — как видит клиент */}
       {moods.length > 0 && (
         <Reveal delay={0.08}>
           <div className="mt-3">
-            <Card className="!p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-[13px] font-extrabold">Настроение</p>
-                <div className="flex gap-1 rounded-full p-0.5 stroke" style={{ background: "#fff" }}>
-                  {["Неделя", "Месяц"].map((t, i) => (
-                    <span key={t} className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={i === 0 ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted-2)" }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-              <MoodBars moods={moods} />
-              <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">Отметки клиента за 7 дней · тёплое — тяжело, зелёное — хорошо</p>
-            </Card>
+            <MoodStats moods={moods} title="Настроение клиента" />
           </div>
         </Reveal>
       )}
@@ -240,37 +230,6 @@ function MoodTrendMini({ moods }: { moods: Mood[] }) {
   return <span className="flex h-8 shrink-0 items-center gap-1 rounded-[10px] bg-white px-2.5 text-[13px] font-black stroke" style={{ color: meta.c }}>{meta.a} {meta.w}</span>;
 }
 
-const moodColor = (m: number) => `var(--mood-${Math.min(5, Math.max(1, m))})`;
-const moodEdge = (m: number) => `color-mix(in srgb, var(--mood-${Math.min(5, Math.max(1, m))}) 62%, var(--ink))`;
-
-/* Столбики настроения: цвет по значению (тёплое — тяжело, зелёное — хорошо) */
-function MoodBars({ moods }: { moods: Mood[] }) {
-  const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "short" });
-  return (
-    <div className="flex items-end justify-between gap-2">
-      {moods.map((m, i) => (
-        <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-          <span className="text-[10px] font-extrabold text-[var(--muted)]">{m.mood}</span>
-          <div className="flex h-24 w-full items-end">
-            <div
-              className="w-full rounded-t-[10px] transition-[height] duration-500"
-              style={{
-                height: `${20 + (m.mood / 5) * 80}%`,
-                background: moodColor(m.mood),
-                border: `var(--bw) solid ${moodEdge(m.mood)}`,
-                borderBottom: "none",
-                transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)",
-              }}
-            />
-          </div>
-          <span className="text-[9px] font-bold uppercase text-[var(--muted-2)]">{dayF.format(new Date(m.date))}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* Домашки: статусы + редактирование текста */
 function HomeworkBlock({ clientId, items, onChanged }: { clientId: number; items: Homework[]; onChanged: () => void }) {
   const [text, setText] = useState("");
   const send = useMutation({
