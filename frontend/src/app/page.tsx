@@ -8,7 +8,6 @@ import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodCard, MoodSheet } from "@/components/mood-dial";
-import { MoodStats } from "@/components/mood-stats";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { listAppointments, type Appointment } from "@/lib/appointments";
 import { listClients, listMyBookings, type Client, type Mood } from "@/lib/clients";
@@ -117,7 +116,7 @@ function PersonHome({ guest }: { guest: boolean }) {
       subtitle={guest ? "Начните с подходящего специалиста" : cap(dateF.format(now))}
       focus={<BookingFocus booking={next} guest={guest} />}
     >
-      {guest ? <GuestStart /> : <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />}
+      {guest ? <GuestStart /> : <MoodQuick today={todayEntry} />}
 
       {!guest && !next && <TherapistCta therapist={therapist} />}
 
@@ -266,21 +265,13 @@ function QuietState({ icon, title, text, href, action }: { icon: IconName; title
   return href ? <Link href={href} onClick={tap} className="block transition-transform active:scale-[0.99]">{content}</Link> : content;
 }
 
-function MoodQuick({ today, moods }: { today?: Mood; moods: Mood[] }) {
+function MoodQuick({ today }: { today?: Mood }) {
   const qc = useQueryClient();
   const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
   const [sheet, setSheet] = useState(false);
-  const [stats, setStats] = useState(false);
-
   return (
-    <section className="space-y-2.5">
+    <section>
       <MoodCard mood={today?.mood} emotions={today?.emotions} onOpen={() => setSheet(true)} />
-      <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full bg-white py-2 text-[12px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={stats}>
-        <Icon name="chart" width={15} weight="bold" /> {stats ? "Скрыть статистику" : "Статистика настроения"}
-      </button>
-      <Disclosure open={stats} autoScroll={false}>
-        <MoodStats moods={moods} title="Ваша динамика" />
-      </Disclosure>
       <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={(mood, emotions) => save.mutate({ mood, emotions })} />
     </section>
   );

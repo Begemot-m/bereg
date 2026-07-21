@@ -126,14 +126,22 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
   );
 }
 
-// Настроение: миниатюра → окно с диском, ниже — динамика и календарь.
+// Настроение: миниатюра → окно с диском; статистика разворачивается кнопкой.
 function MoodModule({ today, moods, onSave }: { today?: Mood; moods: Mood[]; onSave: (mood: number, emotions: string[]) => void }) {
   const [sheet, setSheet] = useState(false);
+  const [stats, setStats] = useState(false);
   return (
     <div className="space-y-2.5">
       <MoodCard mood={today?.mood} emotions={today?.emotions} onOpen={() => setSheet(true)} />
-      <MoodStats moods={moods} title="Динамика настроения" />
-      <p className="px-1 text-[10px] font-semibold text-[var(--muted-2)]">Отметки видит ваш терапевт — они помогают заметить, что меняется между встречами.</p>
+      <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full bg-white py-2.5 text-[12.5px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={stats}>
+        <Icon name="chart" width={15} weight="bold" /> {stats ? "Свернуть статистику" : "Статистика настроения"}
+      </button>
+      <Disclosure open={stats}>
+        <div className="space-y-2.5">
+          <MoodStats moods={moods} title="Динамика настроения" />
+          <p className="px-1 text-[10px] font-semibold text-[var(--muted-2)]">Отметки видит ваш терапевт — они помогают заметить, что меняется между встречами.</p>
+        </div>
+      </Disclosure>
       <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={onSave} />
     </div>
   );
