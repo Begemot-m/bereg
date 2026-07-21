@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { DemoFrame } from "@/components/demo-frame";
+import { TelegramInit } from "@/components/telegram-init";
 import { Providers } from "./providers";
 import { APP_NAME } from "@/lib/brand";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* afterInteractive: скрипт Telegram навешивает стили на <html> ПОСЛЕ гидрации,
             иначе получаем hydration mismatch и падение при переходах. */}
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
+        <TelegramInit />
         <Providers>
           {DEMO ? (
             <DemoFrame>

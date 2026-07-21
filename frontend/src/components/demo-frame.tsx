@@ -1,12 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
+import { isTelegram } from "@/components/telegram-init";
 
 import { APP_NAME } from "@/lib/brand";
 
 // Рамка-телефон для десктопа: показывает, как приложение выглядит в Telegram.
 // На мобильном — на весь экран.
 export function DemoFrame({ children }: { children: ReactNode }) {
+  const [inTelegram, setInTelegram] = useState(false);
+  useEffect(() => { const id = window.setTimeout(() => setInTelegram(isTelegram()), 400); return () => window.clearTimeout(id); }, []);
+  if (inTelegram) return <>{children}</>;
   return (
     <div
       className="md:flex md:min-h-[100dvh] md:items-center md:justify-center md:p-8"
@@ -22,7 +27,7 @@ export function DemoFrame({ children }: { children: ReactNode }) {
         </span>
         <button
           onClick={() => {
-            localStorage.removeItem("psy_demo_db_v7");
+            localStorage.removeItem("psy_demo_db_v8");
             localStorage.removeItem("psy_demo_role");
             localStorage.removeItem("bereg_onboarded");
             localStorage.removeItem("bereg_psy_profile");
