@@ -20,17 +20,17 @@ const EMPTY_PROFILE: PsyProfile = {
 };
 
 type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "preview";
-type StepDefinition = { id: StepId; title: string; short: string; icon: IconName; tone: string; optional?: boolean };
+type StepDefinition = { id: StepId; title: string; short: string; icon: IconName; tone: string; filter: string; optional?: boolean };
 
 const STEPS: StepDefinition[] = [
-  { id: "identity", title: "Фото и основное", short: "Имя, фото, язык и связь", icon: "user", tone: "var(--purple-soft)" },
-  { id: "topics", title: "Запросы клиентов", short: "С чем вы работаете", icon: "heart", tone: "var(--salmon-soft)" },
-  { id: "methods", title: "Методы работы", short: "Основной и дополнительные", icon: "therapy", tone: "var(--green-soft)" },
-  { id: "format", title: "Формат и адрес", short: "Онлайн, очно и приватность", icon: "pin", tone: "var(--sky)" },
-  { id: "conditions", title: "Условия встречи", short: "Цена и длительность", icon: "clock", tone: "var(--amber-soft)" },
-  { id: "experience", title: "Опыт и образование", short: "Практика и квалификация", icon: "book", tone: "var(--green-soft)" },
-  { id: "story", title: "О вас", short: "Подход и первая встреча", icon: "spark", tone: "var(--coral-soft)" },
-  { id: "preview", title: "Предпросмотр", short: "Как профиль увидит клиент", icon: "check", tone: "var(--purple-soft)" },
+  { id: "identity", title: "Фото и основное", short: "Имя, фото, язык и связь", icon: "user", tone: "var(--purple-soft)", filter: "Фильтры «пол» и «язык», карточка в каталоге" },
+  { id: "topics", title: "Запросы клиентов", short: "С чем вы работаете", icon: "heart", tone: "var(--salmon-soft)", filter: "Фильтр «запрос» — главный в подборе" },
+  { id: "methods", title: "Методы работы", short: "Основной и дополнительные", icon: "therapy", tone: "var(--green-soft)", filter: "Фильтр «метод»" },
+  { id: "format", title: "Формат и адрес", short: "Онлайн, очно и приватность", icon: "pin", tone: "var(--sky)", filter: "Фильтры «формат» и «город»" },
+  { id: "conditions", title: "Условия встречи", short: "Цена и длительность", icon: "clock", tone: "var(--amber-soft)", filter: "Фильтр «бюджет» и сортировка по цене" },
+  { id: "experience", title: "Опыт и образование", short: "Практика и квалификация", icon: "book", tone: "var(--green-soft)", filter: "Фильтр «опыт» и сортировка по стажу" },
+  { id: "story", title: "О вас", short: "Подход и первая встреча", icon: "spark", tone: "var(--coral-soft)", filter: "Поиск по словам и страница профиля" },
+  { id: "preview", title: "Предпросмотр", short: "Как профиль увидит клиент", icon: "check", tone: "var(--purple-soft)", filter: "Итоговая карточка в каталоге" },
 ];
 
 export function ProfileEditor({ embedded = false, professional = true, roleControl }: { embedded?: boolean; professional?: boolean; roleControl?: ReactNode }) {
@@ -50,6 +50,7 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
         </div>
       </div>
       {roleControl}
+      {professional && <ProfileProgress profile={profile} onContinue={() => { tap(); setEditing(true); }} />}
       <div className="flex items-center gap-2">
         {professional && <button onClick={() => { tap(); setPreview(true); }} className="shrink-0 rounded-full px-3 py-2 text-[11px] font-bold text-[var(--muted)] transition-colors hover:text-[var(--ink)]">Как видят мой профиль</button>}
         <button onClick={() => { tap(); setEditing(true); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white py-2 text-[11px] font-bold stroke"><Icon name="note" width={13} weight="regular" /> Редактировать профиль</button>
@@ -63,6 +64,33 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
       <PublicProfilePreview profile={profile} name={name} photo={photo} />
     </ProfileSheet>
   </>;
+}
+
+// Заполненность анкеты + подсказка, зачем её доводить до конца.
+function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; onContinue: () => void }) {
+  const merged = mergeProfile(profile);
+  const steps = STEPS.slice(0, -1);
+  const done = steps.filter((item) => isComplete(item.id, merged)).length;
+  const percent = Math.round((done / steps.length) * 100);
+  const gap = steps.find((item) => !isComplete(item.id, merged));
+  const full = percent === 100;
+
+  return (
+    <button onClick={onContinue} className="block w-full rounded-[18px] p-3.5 text-left transition-transform active:scale-[.99]" style={{ background: full ? "var(--green-soft)" : "var(--amber-soft)", border: `var(--bw-lg) solid var(--${full ? "green" : "amber"}-edge)` }}>
+      <div className="flex items-end justify-between gap-3">
+        <p className="text-[13px] font-black leading-tight">Профиль заполнен на {percent}%</p>
+        <span className="tnum text-[15px] font-black">{done}/{steps.length}</span>
+      </div>
+      <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+        <motion.div className="h-full rounded-full" style={{ background: full ? "var(--green)" : "var(--amber)" }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
+      </div>
+      <p className="mt-2 text-[10.5px] font-semibold leading-relaxed text-[var(--muted)]">
+        {full
+          ? "Все поля заполнены — вас находят по всем параметрам каталога: запрос, метод, формат, город, бюджет, опыт, язык."
+          : `Каждое поле анкеты — это фильтр в каталоге. Чем полнее профиль, тем по большему числу параметров вас находят.${gap ? ` Осталось: ${gap.title.toLowerCase()}.` : ""}`}
+      </p>
+    </button>
+  );
 }
 
 function ProfileSheet({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: ReactNode }) {
@@ -118,7 +146,11 @@ function PreviewEmpty({ text }: { text: string }) { return <div className="round
 
 function ProfileForm({ onDone }: { onDone: () => void }) {
   const [draft, setDraft] = useState<PsyProfile>(() => mergeProfile(getPsyProfile()));
-  const [step, setStep] = useState<number | null>(null);
+  const [step, setStep] = useState<number>(() => {
+    const profile = mergeProfile(getPsyProfile());
+    const firstGap = STEPS.slice(0, -1).findIndex((item) => !isComplete(item.id, profile));
+    return firstGap < 0 ? STEPS.length - 1 : firstGap;
+  });
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -141,14 +173,13 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const update = (patch: Partial<PsyProfile>) => setDraft((current) => ({ ...current, ...patch }));
   const updateLocation = (patch: Partial<PsyProfile["location"]>) => setDraft((current) => ({ ...current, location: { ...current.location, ...patch } }));
 
-  const openStep = (index: number) => { tap(); setError(""); setStep(index); };
+  const openStep = (target: number) => { tap(); setError(""); setStep(target); };
   const next = () => {
-    if (step == null) return;
     const message = validateStep(STEPS[step].id, draft);
     if (message) { setError(message); return; }
     select(); setError(""); setStep(Math.min(STEPS.length - 1, step + 1));
   };
-  const back = () => { tap(); setError(""); setStep((current) => current == null || current === 0 ? null : current - 1); };
+  const back = () => { tap(); setError(""); setStep((current) => Math.max(0, current - 1)); };
   const save = () => {
     const firstInvalid = STEPS.slice(0, -1).findIndex((item) => validateStep(item.id, draft));
     if (firstInvalid >= 0) { setStep(firstInvalid); setError(validateStep(STEPS[firstInvalid].id, draft)); return; }
@@ -157,13 +188,36 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
     success(); onDone();
   };
 
-  if (step == null) return <ProfileOverview draft={draft} percent={percent} onOpen={openStep} onPreview={() => openStep(STEPS.length - 1)} />;
+  const current = STEPS[step ?? 0];
+  const index = step ?? 0;
 
-  const current = STEPS[step];
   return <div>
+    {/* Прогресс + шаги: можно вернуться на любой пройденный и дозаполнить позже */}
     <div className="mb-4 overflow-hidden rounded-[22px] bg-white stroke-lg">
-      <div className="h-1.5 bg-[var(--surface-2)]"><motion.div className="h-full bg-[var(--ink)]" animate={{ width: `${((step + 1) / STEPS.length) * 100}%` }} /></div>
-      <div className="flex items-center gap-3 p-3"><span className="flex h-10 w-10 items-center justify-center rounded-[13px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span><div><p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Шаг {step + 1} из {STEPS.length}</p><h3 className="font-tight text-[19px] font-black">{current.title}</h3></div></div>
+      <div className="h-1.5 bg-[var(--surface-2)]"><motion.div className="h-full bg-[var(--ink)]" animate={{ width: `${((index + 1) / STEPS.length) * 100}%` }} /></div>
+      <div className="flex items-center gap-3 p-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Шаг {index + 1} из {STEPS.length} · заполнено {percent}%</p>
+          <h3 className="font-tight text-[19px] font-black leading-tight">{current.title}</h3>
+        </div>
+      </div>
+      <div className="flex gap-1 border-t px-3 py-2.5" style={{ borderColor: "var(--edge-neutral)" }}>
+        {STEPS.map((item, itemIndex) => {
+          const done = itemIndex < STEPS.length - 1 && isComplete(item.id, draft);
+          const active = itemIndex === index;
+          return (
+            <button
+              key={item.id}
+              onClick={() => openStep(itemIndex)}
+              aria-label={`${itemIndex + 1}. ${item.title}`}
+              aria-current={active}
+              className="h-2.5 flex-1 rounded-full transition-colors"
+              style={{ background: active ? "var(--ink)" : done ? "var(--green)" : "var(--surface-2)", border: `1.5px solid ${active ? "var(--ink)" : done ? "var(--green-edge)" : "var(--edge-neutral)"}` }}
+            />
+          );
+        })}
+      </div>
     </div>
 
     <AnimatePresence mode="wait" initial={false}><motion.div key={current.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: .2, ease: [.16, 1, .3, 1] }}>
@@ -177,17 +231,23 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       {current.id === "preview" && <PublicProfilePreview profile={draft} name={draft.name || displayName()} photo={draft.photos[0] ?? displayPhoto()} />}
     </motion.div></AnimatePresence>
 
-    {error && <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[14px] bg-[var(--salmon-soft)] px-3 py-2 text-[12px] font-bold stroke" style={{ borderColor: "var(--salmon-edge)" }}>{error}</motion.p>}
-    <div className="sticky bottom-0 z-10 -mx-4 mt-5 flex gap-2 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}><Button variant="soft" onClick={back}>{step === 0 ? "К разделам" : "Назад"}</Button>{step === STEPS.length - 1 ? <Button className="flex-1" onClick={save}>Сохранить профиль</Button> : <Button className="flex-1" onClick={next}>Продолжить</Button>}</div>
-  </div>;
-}
+    <p className="mt-3 flex items-start gap-1.5 px-1 text-[10.5px] font-semibold leading-relaxed text-[var(--muted-2)]">
+      <Icon name="compass" width={13} className="mt-[1px] shrink-0" /> {current.filter}
+    </p>
 
-function ProfileOverview({ draft, percent, onOpen, onPreview }: { draft: PsyProfile; percent: number; onOpen: (index: number) => void; onPreview: () => void }) {
-  return <div className="space-y-4">
-    <div className="chunk overflow-hidden bg-white"><div className="p-4" style={{ background: "var(--green-soft)" }}><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Анкета специалиста</p><div className="mt-1 flex items-end justify-between gap-3"><h3 className="font-tight text-[24px] font-black leading-tight">Профиль заполнен на {percent}%</h3><span className="tnum text-[22px] font-black">{percent}%</span></div><div className="mt-3 h-3 overflow-hidden rounded-full bg-white stroke"><motion.div className="h-full rounded-full bg-[var(--green)]" animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} /></div><p className="mt-2 text-[11px] font-semibold text-[var(--muted)]">Поля совпадают с подбором в каталоге — клиент увидит только актуальные условия.</p></div></div>
-    <div className="space-y-2">{STEPS.slice(0, -1).map((item, index) => { const complete = isComplete(item.id, draft); return <button key={item.id} onClick={() => onOpen(index)} className="flex w-full items-center gap-3 rounded-[18px] bg-white p-3 text-left transition-transform active:scale-[.99] stroke"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] stroke" style={{ background: item.tone }}><Icon name={item.icon} width={20} weight="bold" /></span><span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{item.title}</span><span className="block truncate text-[11px] font-semibold text-[var(--muted)]">{item.short}</span></span><span className="rounded-full px-2 py-1 text-[9px] font-black" style={complete ? { background: "var(--green-soft)", border: "1.5px solid var(--green-edge)" } : { background: "var(--amber-soft)", border: "1.5px solid var(--amber-edge)" }}>{complete ? "готово" : item.optional ? "необязательно" : "заполнить"}</span></button>; })}</div>
-    <Button variant="soft" className="w-full" onClick={onPreview}><Icon name="user" width={16} /> Посмотреть глазами клиента</Button>
-    <p className="text-center text-[10px] font-semibold text-[var(--muted-2)]">Черновик сохраняется автоматически на этом устройстве.</p>
+    {error && <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[14px] bg-[var(--salmon-soft)] px-3 py-2 text-[12px] font-bold stroke" style={{ borderColor: "var(--salmon-edge)" }}>{error}</motion.p>}
+
+    <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
+      <div className="flex gap-2">
+        <Button variant="soft" onClick={back} disabled={index === 0}>Назад</Button>
+        {index === STEPS.length - 1
+          ? <Button className="flex-1" onClick={save}>Опубликовать профиль</Button>
+          : <Button className="flex-1" onClick={next}>Продолжить</Button>}
+      </div>
+      <button onClick={() => { tap(); onDone(); }} className="mx-auto mt-2 block py-1 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">
+        Заполню позже — черновик сохранён
+      </button>
+    </div>
   </div>;
 }
 
