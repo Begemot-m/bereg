@@ -89,6 +89,6 @@ export function wheelBand(pct: number): WheelBand {
 }
 
 export const getMyTherapy = () => apiFetch<TherapyState>("/my/therapy");
-export const updateMyTherapy = (patch: { mood?: number; wheel?: WheelAnswers; tutorialSeen?: boolean }) =>
+export const updateMyTherapy = (patch: { mood?: number; emotions?: string[]; wheel?: WheelAnswers; tutorialSeen?: boolean }) =>
   apiFetch<TherapyState>("/my/therapy", { method: "PATCH", body: JSON.stringify(patch) });
 export const getClientTherapy = (clientId: number) => apiFetch<TherapyState>(`/clients/${clientId}/therapy`);

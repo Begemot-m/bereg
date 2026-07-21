@@ -41,13 +41,13 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   client: [
     { href: "/", label: "Главная", icon: "home" },
-    { href: "/sessions", label: "Сессии", icon: "calendar" },
+    { href: "/catalog", label: "Каталог", icon: "compass" },
     { href: "/therapy", label: "Терапия", icon: "therapy" },
     { href: "/tools", label: "Инструменты", icon: "tools" },
   ],
   guest: [
     { href: "/", label: "Главная", icon: "home" },
-    { href: "/sessions", label: "Сессии", icon: "calendar" },
+    { href: "/catalog", label: "Каталог", icon: "compass" },
     { href: "/tools", label: "Инструменты", icon: "tools" },
   ],
 };

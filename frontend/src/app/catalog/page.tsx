@@ -23,6 +23,7 @@ import {
   nextSlotLabel,
   personalSelection,
   publishedCatalog,
+  PSYS,
   reasonsFor,
   sortCatalog,
   type CatalogFilters,
@@ -80,11 +81,21 @@ export default function CatalogPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Psy | null>(null);
 
+  // Прямой переход на страницу специалиста: /catalog?psy=<id>
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get("psy"));
+    if (id) {
+      const psy = PSYS.find((item) => item.id === id);
+      if (psy) { setSelected(psy); setSurveyOpen(false); }
+    }
+  }, []);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(PREFS_KEY);
       if (saved) setPrefs({ ...EMPTY_PREFS, ...(JSON.parse(saved) as CatalogPrefs) });
-      if (!localStorage.getItem(SEEN_KEY)) setTimeout(() => setSurveyOpen(true), 260);
+      const deep = new URLSearchParams(window.location.search).get("psy");
+      if (!deep && !localStorage.getItem(SEEN_KEY)) setTimeout(() => setSurveyOpen(true), 260);
     } catch { setSurveyOpen(true); }
   }, []);
 

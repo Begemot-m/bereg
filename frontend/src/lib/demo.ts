@@ -29,7 +29,7 @@ type Appointment = {
 };
 
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
-type Mood = { date: string; mood: number }; // 1..5
+type Mood = { date: string; mood: number; emotions?: string[] }; // 1..5 + отмеченные состояния
 type WheelResult = { answers: Record<string, number[]>; completedAt: string };
 type Support = { id: number; kind: string; text: string; createdAt: string };
 type NotifRole = "psychologist" | "client";
@@ -320,13 +320,15 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   if (clean === "/my/therapy") {
     const id = 1;
     if (method === "PATCH") {
-      if (body.mood !== undefined) {
+      if (body.mood !== undefined || body.emotions !== undefined) {
         const today = new Date(); today.setHours(12, 0, 0, 0);
         const key = today.toISOString().slice(0, 10);
         const entries = db.moods[id] ?? [];
         const found = entries.find((entry) => entry.date.slice(0, 10) === key);
-        if (found) found.mood = Math.min(5, Math.max(1, Number(body.mood)));
-        else entries.push({ date: today.toISOString(), mood: Math.min(5, Math.max(1, Number(body.mood))) });
+        const target = found ?? { date: today.toISOString(), mood: 3 };
+        if (body.mood !== undefined) target.mood = Math.min(5, Math.max(1, Number(body.mood)));
+        if (Array.isArray(body.emotions)) target.emotions = (body.emotions as unknown[]).map(String).slice(0, 12);
+        if (!found) entries.push(target);
         db.moods[id] = entries.slice(-30);
       }
       if (body.wheel && typeof body.wheel === "object") {

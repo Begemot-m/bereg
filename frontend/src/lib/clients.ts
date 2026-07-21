@@ -34,7 +34,7 @@ export function statusReason(c: Pick<Client, "sessionsDone" | "nextAt" | "lastAt
 }
 
 export type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
-export type Mood = { date: string; mood: number };
+export type Mood = { date: string; mood: number; emotions?: string[] };
 
 export const STATUS_LABEL: Record<ClientStatus, string> = {
   therapy: "В терапии",

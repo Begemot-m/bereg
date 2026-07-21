@@ -7,17 +7,19 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
-import { MoodFaces } from "@/components/mood-tracker";
+import { EmotionPicker } from "@/components/emotion-picker";
+import { MoodFaces, MoodTrend } from "@/components/mood-tracker";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { listAppointments, type Appointment } from "@/lib/appointments";
-import { listClients, listMyBookings, type Client } from "@/lib/clients";
+import { listClients, listMyBookings, type Client, type Mood } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { mascotSrc, MOOD_LABEL, useAnimal } from "@/lib/mascots";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { getWorkHours } from "@/lib/schedule";
 import { Disclosure } from "@/components/ui";
-import { getMyTherapy, updateMyTherapy, wheelPercent } from "@/lib/therapy";
+import { emotionTone } from "@/lib/emotions";
+import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 const dateTimeF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -108,10 +110,8 @@ function PersonHome({ guest }: { guest: boolean }) {
   const now = new Date();
   const todayKey = localDay(now);
   const next = [...bookings].filter((b) => new Date(b.startsAt) > now).sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0];
-  const todayMood = therapy ? [...therapy.moods].reverse().find((entry) => localDay(new Date(entry.date)) === todayKey)?.mood : undefined;
-  const recentMoodMarks = therapy?.moods.filter((entry) => Date.now() - new Date(entry.date).getTime() < 7 * 86400000).length ?? 0;
-  const doneSessions = bookings.filter((booking) => new Date(booking.startsAt) < now).length;
-  const balance = wheelPercent(therapy?.wheel ?? null);
+  const todayEntry = therapy ? [...therapy.moods].reverse().find((entry) => localDay(new Date(entry.date)) === todayKey) : undefined;
+  const therapist = [...bookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)).at(-1)?.psyName ?? null;
 
   return (
     <HomeFrame
@@ -119,18 +119,9 @@ function PersonHome({ guest }: { guest: boolean }) {
       subtitle={guest ? "Начните с подходящего специалиста" : cap(dateF.format(now))}
       focus={<BookingFocus booking={next} guest={guest} />}
     >
-      {guest ? (
-        <GuestStart />
-      ) : (
-        <>
-          <MoodQuick todayMood={todayMood} />
-          <PulseStrip items={[
-            { icon: "balance", value: therapy?.wheel ? `${balance}%` : "—", label: "баланс" },
-            { icon: "mood", value: String(recentMoodMarks), label: "отметок за 7 дней" },
-            { icon: "check", value: String(doneSessions), label: "встреч" },
-          ]} />
-        </>
-      )}
+      {guest ? <GuestStart /> : <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />}
+
+      {!guest && !next && <TherapistCta therapist={therapist} />}
 
       <HomeRoutes items={guest ? [
         { title: "Каталог", detail: "подобрать психолога", icon: "compass", href: "/catalog" },
@@ -138,9 +129,9 @@ function PersonHome({ guest }: { guest: boolean }) {
         { title: "Кабинет", detail: "профиль и настройки", icon: "user", href: "/cabinet" },
       ] : [
         { title: "Терапия", detail: "прогресс и задания", icon: "therapy", href: "/therapy" },
-        { title: "Сессии", detail: "встречи со специалистом", icon: "calendar", href: "/sessions" },
-        { title: "Инструменты", detail: "практики для себя", icon: "tools", href: "/tools" },
         { title: "Каталог", detail: "подобрать специалиста", icon: "compass", href: "/catalog" },
+        { title: "Инструменты", detail: "практики для себя", icon: "tools", href: "/tools" },
+        { title: "Кабинет", detail: "профиль и настройки", icon: "user", href: "/cabinet" },
       ]} />
 
       {!guest && <InviteBanner variant="client" />}
@@ -196,6 +187,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
 
 function BookingFocus({ booking, guest }: { booking?: { psyName: string; startsAt: string; format: "online" | "offline" }; guest: boolean }) {
   if (!booking) {
+    if (!guest) return null;
     return (
       <Link href="/catalog" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
         <FocusIcon icon="compass" />
@@ -210,7 +202,7 @@ function BookingFocus({ booking, guest }: { booking?: { psyName: string; startsA
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/sessions" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+    <Link href="/therapy" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
       <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)] text-[21px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{booking.psyName.charAt(0)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
@@ -276,24 +268,92 @@ function QuietState({ icon, title, text, href, action }: { icon: IconName; title
   return href ? <Link href={href} onClick={tap} className="block transition-transform active:scale-[0.99]">{content}</Link> : content;
 }
 
-function MoodQuick({ todayMood }: { todayMood?: number }) {
+function MoodQuick({ today, moods }: { today?: Mood; moods: Mood[] }) {
   const qc = useQueryClient();
-  const save = useMutation({ mutationFn: (mood: number) => updateMyTherapy({ mood }), onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
+  const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
   const [open, setOpen] = useState(false);
+  const [stats, setStats] = useState(false);
   const [animal] = useAnimal();
+  const todayMood = today?.mood;
+  const picked = today?.emotions ?? [];
   const expanded = open || !todayMood;
+
+  const top = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entry of moods) for (const name of entry.emotions ?? []) counts.set(name, (counts.get(name) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [moods]);
+
   return (
     <section className="overflow-hidden rounded-[20px] p-4" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
-      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" aria-expanded={expanded}>
-        <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="mood" width={19} weight="bold" /></span>
-        <span className="flex-1"><span className="block text-[14px] font-black">Как вы сегодня?</span><span className="block text-[11px] font-semibold text-[var(--muted)]">{todayMood ? `Отмечено: ${MOOD_LABEL[todayMood]}` : "Одна короткая отметка помогает видеть динамику"}</span></span>
-        {todayMood ? <img src={mascotSrc(animal, todayMood)} alt="" className="h-10 w-10 object-contain" /> : null}
-        <span className="text-[15px] font-black text-[var(--muted-2)] transition-transform" style={{ transform: expanded ? "rotate(180deg)" : "none" }}>⌄</span>
-      </button>
-      <Disclosure open={expanded} autoScroll={false}>
-        <div className="mt-3"><MoodFaces todayMood={todayMood} onMood={(value) => { save.mutate(value); setOpen(false); }} /></div>
+      <div className="flex items-center gap-2.5">
+        <button onClick={() => { tap(); setOpen(!open); setStats(false); }} className="flex flex-1 items-center gap-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" aria-expanded={expanded}>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="mood" width={19} weight="bold" /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-black leading-tight">Как вы сегодня себя чувствуете?</span>
+            <span className="block truncate text-[11px] font-semibold text-[var(--muted)]">{todayMood ? [MOOD_LABEL[todayMood], ...picked].join(" · ") : "Отметьте состояние — точнее, чем просто оценка"}</span>
+          </span>
+          {todayMood ? <img src={mascotSrc(animal, todayMood)} alt="" className="h-10 w-10 shrink-0 object-contain" /> : null}
+        </button>
+        <button onClick={() => { tap(); setStats(!stats); setOpen(false); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white transition-transform active:scale-90" style={{ border: "var(--bw) solid var(--amber-edge)" }} aria-label="Статистика" aria-pressed={stats}>
+          <Icon name="chart" width={17} weight="bold" />
+        </button>
+      </div>
+
+      <Disclosure open={expanded && !stats} autoScroll={false}>
+        <div className="mt-3 space-y-3">
+          <MoodFaces todayMood={todayMood} onMood={(value) => save.mutate({ mood: value })} />
+          <div className="rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
+            <EmotionPicker value={picked} onChange={(next) => save.mutate({ mood: todayMood ?? 3, emotions: next })} />
+          </div>
+        </div>
+      </Disclosure>
+
+      <Disclosure open={stats} autoScroll={false}>
+        <div className="mt-3 space-y-3">
+          <div className="rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Динамика за 7 дней</p>
+            <MoodTrend moods={moods.slice(-7)} />
+          </div>
+          <div className="rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Чаще всего вы отмечали</p>
+            {top.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {top.map(([name, count]) => (
+                  <span key={name} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: `var(--${emotionTone(name)})`, border: `var(--bw) solid var(--${emotionTone(name)}-edge)` }}>{name} · {count}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] font-semibold text-[var(--muted)]">Пока нет отметок — выберите состояния, и здесь появится картина недели.</p>
+            )}
+          </div>
+        </div>
       </Disclosure>
     </section>
+  );
+}
+
+// Нет терапевта — пунктирное окно с плюсом. Есть, но без записи — предложение записаться.
+function TherapistCta({ therapist }: { therapist: string | null }) {
+  if (!therapist) {
+    return (
+      <Link href="/catalog" onClick={tap} className="flex flex-col items-center justify-center gap-2 rounded-[22px] px-4 py-7 text-center transition-transform active:scale-[0.99]" style={{ background: "var(--green-soft)", border: "2.5px dashed var(--green-edge)" }}>
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[26px] font-black leading-none" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>+</span>
+        <span className="block text-[15px] font-black">Найти терапевта</span>
+        <span className="block max-w-[240px] text-[11px] font-semibold text-[var(--muted)]">Короткий подбор — и увидите специалистов под ваш запрос</span>
+      </Link>
+    );
+  }
+  return (
+    <Link href="/catalog" onClick={tap} className="flex items-center gap-3 rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" }}>
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-[18px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>{therapist.charAt(0)}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</span>
+        <span className="block truncate text-[15px] font-black">{therapist}</span>
+        <span className="block text-[11px] font-semibold text-[var(--muted)]">Следующая встреча не назначена — выберите окно</span>
+      </span>
+      <span className="shrink-0 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white">Записаться</span>
+    </Link>
   );
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
@@ -68,8 +68,15 @@ export default function CabinetPage() {
         <div>
           <SectionTitle>Настройки</SectionTitle>
           <Card className="space-y-3">
-            <ToggleRow label="Уведомления о заданиях" defaultOn />
-            <ToggleRow label="Тихие часы (22:00–8:00)" />
+            <NotifyGroup icon="calendar" title="Сессии" subtitle="Напоминания и изменения по записям">
+              <ToggleRow label="Напоминание за сутки" storageKey="notify:session:day" defaultOn />
+              <ToggleRow label="Напоминание за час" storageKey="notify:session:hour" defaultOn />
+              <ToggleRow label="Перенос и отмена" storageKey="notify:session:changes" defaultOn />
+            </NotifyGroup>
+            <NotifyGroup icon="note" title="Задания" subtitle="Домашняя работа между встречами">
+              <ToggleRow label="Новое задание от терапевта" storageKey="notify:task:new" defaultOn />
+              <ToggleRow label="Напоминание о невыполненном" storageKey="notify:task:pending" />
+            </NotifyGroup>
             {role === "psychologist" && <CancelLockRow />}
             <button onClick={() => { tap(); resetOnboarding(); }} className="w-full pt-1 text-left text-[13px] font-semibold text-[var(--muted)] hover:text-[var(--ink)]">
               Пройти знакомство заново
@@ -133,11 +140,33 @@ function CancelLockRow() {
   );
 }
 
-function ToggleRow({ label, defaultOn }: { label: string; defaultOn?: boolean }) {
-  const [on, setOn] = useState(!!defaultOn);
+// Группа настроек уведомлений: заголовок с иконкой + переключатели.
+function NotifyGroup({ icon, title, subtitle, children }: { icon: IconName; title: string; subtitle: string; children: ReactNode }) {
   return (
-    <button onClick={() => { select(); setOn(!on); }} className="flex w-full items-center justify-between">
-      <span className="text-[13px]">{label}</span>
+    <div className="rounded-[16px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--edge-neutral)" }}>
+      <div className="mb-2.5 flex items-center gap-2.5">
+        <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><Icon name={icon} width={16} weight="bold" /></span>
+        <span><span className="block text-[13px] font-black leading-none">{title}</span><span className="mt-0.5 block text-[11px] font-semibold text-[var(--muted)]">{subtitle}</span></span>
+      </div>
+      <div className="space-y-2.5">{children}</div>
+    </div>
+  );
+}
+
+function ToggleRow({ label, defaultOn, storageKey }: { label: string; defaultOn?: boolean; storageKey?: string }) {
+  const [on, setOn] = useState(!!defaultOn);
+  useEffect(() => {
+    if (!storageKey) return;
+    const saved = localStorage.getItem(storageKey);
+    if (saved !== null) setOn(saved === "1");
+  }, [storageKey]);
+  const toggle = () => {
+    select();
+    setOn((cur) => { const next = !cur; if (storageKey) localStorage.setItem(storageKey, next ? "1" : "0"); return next; });
+  };
+  return (
+    <button onClick={toggle} className="flex w-full items-center justify-between">
+      <span className="text-[13px] font-semibold">{label}</span>
       <span className={`flex h-6 w-10 items-center rounded-full p-0.5 transition-colors duration-200 ${on ? "" : "bg-[#e2e0d8]"}`} style={on ? { background: "var(--a1)" } : undefined}>
         <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${on ? "translate-x-4" : ""}`} style={{ transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)" }} />
       </span>

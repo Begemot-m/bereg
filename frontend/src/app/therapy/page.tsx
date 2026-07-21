@@ -4,24 +4,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import Image from "next/image";
+
 import { WheelFlow } from "@/components/balance-flow";
 import { Icon } from "@/components/icons";
 import { MoodFaces, MoodTrend } from "@/components/mood-tracker";
 import { WellbeingCard } from "@/components/wellbeing-card";
+import { MyBookingsManager } from "@/components/my-bookings";
 import { Button, Disclosure, SkeletonRow, Textarea } from "@/components/ui";
-import { listMyBookings, type MyBooking, type Mood } from "@/lib/clients";
+import { HW_LABEL, listHomework, updateHomework, type Homework, type HwStatus, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { MOOD_LABEL } from "@/lib/mascots";
+import { asset } from "@/lib/asset";
+import { PSYS } from "@/lib/catalog";
 import { getSubscription, startSubscription } from "@/lib/subscription";
 import { select, success, tap } from "@/lib/haptics";
 
-type TherapyTask = { id: number; text: string; done: boolean };
-const TASK_KEY = "bereg_therapy_tasks";
-const DEFAULT_TASKS: TherapyTask[] = [
-  { id: 1, text: "Отмечать уровень тревоги вечером", done: true },
-  { id: 2, text: "Записать три автоматические мысли", done: false },
-  { id: 3, text: "Практика дыхания — 5 минут", done: false },
-];
+const ME = 1; // в демо клиент «я» — карточка №1
 const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
 export default function TherapyPage() {
@@ -40,7 +39,6 @@ export default function TherapyPage() {
 
 function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapist: string; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const [tab, setTab] = useState<"общее" | "терапевт">("общее");
-  const [tasks, setTasks] = useState(DEFAULT_TASKS);
   const [messageOpen, setMessageOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
@@ -49,10 +47,11 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const buySub = useMutation({ mutationFn: () => startSubscription("client"), onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; } });
 
-  useEffect(() => { const raw = localStorage.getItem(TASK_KEY); if (raw) try { setTasks(JSON.parse(raw)); } catch { localStorage.removeItem(TASK_KEY); } }, []);
-  const toggleTask = (id: number) => { select(); setTasks((cur) => { const nextTasks = cur.map((t) => t.id === id ? { ...t, done: !t.done } : t); localStorage.setItem(TASK_KEY, JSON.stringify(nextTasks)); return nextTasks; }); };
-  const done = tasks.filter((t) => t.done).length;
-  const taskProgress = Math.round(done / tasks.length * 100);
+  const qc = useQueryClient();
+  const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(ME) });
+  const invHomework = () => qc.invalidateQueries({ queryKey: ["my-homework"] });
+  const done = homework.filter((h) => h.status === "done").length;
+  const taskProgress = homework.length ? Math.round(done / homework.length * 100) : 0;
   const completedSessions = bookings.filter((b) => new Date(b.startsAt) < new Date()).length;
   const todayMood = [...therapy.moods].reverse().find((e) => e.date.slice(0, 10) === new Date().toISOString().slice(0, 10))?.mood;
   const startFlow = () => { tap(); setShowGuide(!therapy.tutorialSeen); setFlowOpen(true); };
@@ -66,17 +65,10 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
             <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--purple)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="therapy" width={20} weight="fill" /></span>
             <div className="leading-none"><h1 className="font-tight text-[20px] font-black">Терапия</h1><p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">Ваш путь между сессиями</p></div>
           </div>
-          <Link href="/sessions" className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>Все сессии</Link>
         </div>
 
-        {/* Карточка терапевта */}
-        <div className="mt-5 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[15px] bg-[var(--green)] text-[20px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>{therapist.charAt(0)}</div>
-            <div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p><p className="truncate text-[16px] font-black">{therapist}</p><p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p></div>
-          </div>
-          <Link href="/sessions" className="mt-3 flex items-center justify-center gap-1.5 rounded-[14px] bg-[var(--amber)] py-2.5 text-[13px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="calendar" width={16} weight="bold" /> Записаться на сессию</Link>
-        </div>
+        {/* Карточка терапевта — как в каталоге, с переходом на его страницу */}
+        <TherapistCard name={therapist} next={next} />
       </header>
 
       <main className="relative -mt-9 rounded-t-[30px] bg-[#fffaf0] px-4 pb-8 pt-5 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
@@ -89,30 +81,41 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
           </div>
         ) : (
           <div className="mt-4 space-y-3">
+            {/* Прогресс с терапевтом — крупная цифра встреч */}
             <section className="rounded-[22px] bg-[var(--green-soft)] p-4" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
               <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Прогресс с терапевтом</p>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <Metric value={`${completedSessions}`} label="встреч" edge="var(--green-edge)" />
-                <Metric value={`${taskProgress}%`} label="заданий" edge="var(--coral-edge)" bg="var(--coral-soft)" />
-                <Metric value={next ? "1" : "0"} label="впереди" edge="var(--amber-edge)" bg="var(--amber-soft)" />
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex h-[74px] w-[74px] shrink-0 flex-col items-center justify-center rounded-[20px] bg-white" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
+                  <span className="font-tight tnum text-[30px] font-black leading-none">{completedSessions}</span>
+                  <span className="mt-1 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{plural(completedSessions, "встреча", "встречи", "встреч")}</span>
+                </div>
+                <div className="grid flex-1 grid-cols-2 gap-2">
+                  <Metric value={`${taskProgress}%`} label="заданий" edge="var(--coral-edge)" bg="var(--coral-soft)" />
+                  <Metric value={next ? "1" : "0"} label="впереди" edge="var(--amber-edge)" bg="var(--amber-soft)" />
+                </div>
               </div>
               <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">{next ? `Ближайшая: ${dateTime.format(new Date(next.startsAt))}` : "Новая встреча пока не назначена"}</p>
             </section>
 
-            <section className="rounded-[22px] bg-[#fffdf7] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-              <div className="flex items-center justify-between"><h2 className="text-[13px] font-black uppercase tracking-[.06em]">Задания от терапевта</h2><span className="text-[11px] font-black">{done}/{tasks.length}</span></div>
-              <div className="mt-3 space-y-1.5">
-                {tasks.map((task) => (
-                  <button key={task.id} onClick={() => toggleTask(task.id)} className="flex w-full items-center gap-2 rounded-[13px] bg-white p-2 text-left" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px]" style={{ background: task.done ? "var(--green)" : "#fff", border: `var(--bw) solid ${task.done ? "var(--green-edge)" : "var(--edge-neutral)"}` }}><Icon name="check" width={15} weight={task.done ? "fill" : "regular"} /></span>
-                    <span className={task.done ? "text-[12px] font-bold leading-tight line-through opacity-55" : "text-[12px] font-bold leading-tight"}>{task.text}</span>
-                  </button>
-                ))}
+            {/* Домашние задания — тот же блок, что видит психолог */}
+            <section>
+              <div className="mb-2 flex items-center justify-between px-1">
+                <h2 className="text-[13px] font-black uppercase tracking-[.06em]">Домашние задания</h2>
+                <span className="text-[11px] font-black text-[var(--muted)]">{done}/{homework.length}</span>
+              </div>
+              <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+                <ClientHomework items={homework} onChanged={invHomework} />
               </div>
             </section>
 
+            {/* Управление записью: перенести, отменить, записаться */}
+            <section>
+              <h2 className="mb-2 px-1 text-[13px] font-black uppercase tracking-[.06em]">Ваши записи</h2>
+              <MyBookingsManager />
+            </section>
+
             <section className="overflow-hidden rounded-[22px] bg-[#fffdf7]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-              <div className="flex gap-2 p-3"><Button className="flex-1" onClick={() => { tap(); setMessageOpen(!messageOpen); setSent(false); }}>Написать терапевту</Button><Link href="/sessions"><Button variant="soft">Сессии</Button></Link></div>
+              <div className="p-3"><Button className="w-full" onClick={() => { tap(); setMessageOpen(!messageOpen); setSent(false); }}>Написать терапевту</Button></div>
               <Disclosure open={messageOpen}><div className="border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>{sent ? <div className="rounded-[14px] bg-[var(--green-soft)] p-3 text-[12px] font-bold" style={{ border: "var(--bw) solid var(--green-edge)" }}>Сообщение сохранено для терапевта.</div> : <div className="space-y-2"><Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} placeholder="Коротко опишите, что хотите обсудить" /><div className="flex justify-end"><Button size="sm" disabled={!message.trim()} onClick={() => { success(); setSent(true); setMessage(""); }}>Отправить</Button></div></div>}</div></Disclosure>
             </section>
           </div>
@@ -154,3 +157,81 @@ function Metric({ value, label, edge, bg = "var(--green-soft)" }: { value: strin
 }
 
 function EmptyTherapy() { return <div className="mx-auto max-w-sm py-8 text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--purple-soft)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="therapy" width={30} weight="fill" /></div><h2 className="font-tight mt-4 text-2xl font-extrabold">Здесь появится ваша терапия</h2><p className="mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-[var(--muted)]">После записи здесь будут встречи, задания и ваш прогресс между сессиями.</p><Link href="/" className="mt-5 inline-block"><Button arrow>Найти терапевта на главной</Button></Link></div>; }
+
+// Карточка терапевта в стиле каталога — с переходом на его страницу и записью.
+function TherapistCard({ name, next }: { name: string; next: MyBooking | null }) {
+  const psy = PSYS.find((item) => item.name === name);
+  const href = psy ? `/catalog?psy=${psy.id}` : "/catalog";
+  const portrait = psy ? asset(psy.portrait) : null;
+  return (
+    <div className="mt-5 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+      <div className="flex gap-3">
+        {portrait ? (
+          <div className="relative h-[104px] w-[88px] shrink-0 overflow-hidden rounded-[16px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)", background: "var(--purple-soft)" }}>
+            <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="88px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
+          </div>
+        ) : (
+          <div className="flex h-[104px] w-[88px] shrink-0 items-center justify-center rounded-[16px] bg-[var(--green)] text-[24px] font-black" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>{name.charAt(0)}</div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-[16px] font-black">{name}</p>
+            {psy?.verified && <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green)] text-[9px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }} title="Профиль подтверждён">✓</span>}
+          </div>
+          {psy && <p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">{psy.method} · {psy.minutes} мин · {psy.price.toLocaleString("ru-RU")} ₽</p>}
+          <p className="mt-1 text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p>
+          <Link href={href} onClick={tap} className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white transition-transform active:scale-95">
+            <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const HW_FLOW: HwStatus[] = ["assigned", "doing", "done"];
+const HW_TONE: Record<HwStatus, string> = { assigned: "amber", doing: "purple", done: "green" };
+
+// Задания от терапевта — тот же блок с историей и процессом, что у психолога.
+function ClientHomework({ items, onChanged }: { items: Homework[]; onChanged: () => void }) {
+  if (!items.length) return <p className="px-1 py-2 text-[12px] font-semibold text-[var(--muted-2)]">Заданий пока нет — терапевт пришлёт их после встречи.</p>;
+  return (
+    <div className="space-y-2">
+      {items.map((hw) => (
+        <HomeworkRow key={hw.id} hw={hw} onChanged={onChanged} />
+      ))}
+    </div>
+  );
+}
+
+function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void }) {
+  const save = useMutation({ mutationFn: (status: HwStatus) => updateHomework(hw.id, { status }), onSuccess: onChanged });
+  const tone = HW_TONE[hw.status];
+  return (
+    <div className="rounded-[16px] bg-white p-3" style={{ border: `var(--bw) solid var(--${tone}-edge)` }}>
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 h-8 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${tone})` }} />
+        <p className={`flex-1 text-[12.5px] font-bold leading-snug ${hw.status === "done" ? "opacity-55 line-through" : ""}`}>{hw.text}</p>
+      </div>
+      <div className="mt-2.5 flex gap-1.5">
+        {HW_FLOW.map((status) => {
+          const on = hw.status === status;
+          return (
+            <button key={status} onClick={() => { select(); save.mutate(status); }} className="flex-1 rounded-full py-1.5 text-[10.5px] font-black transition-colors" style={{ background: on ? `var(--${HW_TONE[status]})` : "#fff", border: `var(--bw) solid var(--${on ? `${HW_TONE[status]}-edge` : "edge-neutral"})`, color: on ? "var(--ink)" : "var(--muted-2)" }}>
+              {HW_LABEL[status]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
