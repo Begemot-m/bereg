@@ -22,22 +22,48 @@ import { select, success, tap } from "@/lib/haptics";
 
 const ME = 1; // в демо клиент «я» — карточка №1
 const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+const THERAPISTS_KEY = "bereg_my_therapists_v1";
+
+// Прикреплённые терапевты: список + активный + удалённые (чтобы удаление держалось).
+type TherapistStore = { list: string[]; removed: string[]; active: string | null };
+function useMyTherapists(bookingNames: string[]) {
+  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null });
+  useEffect(() => {
+    let base: TherapistStore = { list: [], removed: [], active: null };
+    try { const raw = localStorage.getItem(THERAPISTS_KEY); if (raw) base = { ...base, ...JSON.parse(raw) }; } catch { /* ignore */ }
+    // Терапевты из записей добавляются автоматически (кроме удалённых вручную).
+    const merged = [...new Set([...base.list, ...bookingNames.filter((n) => !base.removed.includes(n))])];
+    const active = base.active && merged.includes(base.active) ? base.active : merged[0] ?? null;
+    setStore({ ...base, list: merged, active });
+  }, [bookingNames.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+  const persist = (nextStore: TherapistStore) => { setStore(nextStore); try { localStorage.setItem(THERAPISTS_KEY, JSON.stringify(nextStore)); } catch { /* ignore */ } };
+  return {
+    list: store.list,
+    active: store.active,
+    setActive: (name: string) => { select(); persist({ ...store, active: name }); },
+    remove: (name: string) => { tap(); const list = store.list.filter((n) => n !== name); persist({ list, removed: [...new Set([...store.removed, name])], active: store.active === name ? list[0] ?? null : store.active }); },
+  };
+}
 
 export default function TherapyPage() {
   const qc = useQueryClient();
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const { data: therapy, isLoading: therapyLoading } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
   const ordered = useMemo(() => [...bookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)), [bookings]);
-  const next = ordered.find((item) => new Date(item.startsAt) > new Date()) ?? null;
-  const therapist = next?.psyName ?? ordered.at(-1)?.psyName ?? null;
+  const bookingNames = useMemo(() => [...new Set(ordered.map((b) => b.psyName))], [ordered]);
+  const therapists = useMyTherapists(bookingNames);
+  const active = therapists.active;
+  const next = ordered.find((item) => item.psyName === active && new Date(item.startsAt) > new Date())
+    ?? ordered.find((item) => new Date(item.startsAt) > new Date()) ?? null;
   const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
 
-  if (bookingsLoading || therapyLoading) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
-  if (!therapist || !therapy) return <EmptyTherapy />;
-  return <TherapyDashboard therapist={therapist} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />;
+  if (bookingsLoading || therapyLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
+  // Интерфейс терапии показывается всегда — статистика копится независимо от терапевта.
+  return <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />;
 }
 
-function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapist: string; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
+function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
+  const therapist = therapists.active;
   const [tab, setTab] = useState<"общее" | "терапевт">("общее");
   const [messageOpen, setMessageOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -67,8 +93,28 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
           </div>
         </div>
 
-        {/* Карточка терапевта — как в каталоге, с переходом на его страницу */}
-        <TherapistCard name={therapist} next={next} />
+        {/* Терапевты: подбор (если нет) или переключатель + карточка активного */}
+        {therapists.list.length === 0 ? (
+          <FindTherapistBlock />
+        ) : (
+          <>
+            {therapists.list.length > 1 && (
+              <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
+                {therapists.list.map((name) => {
+                  const on = name === therapist;
+                  return (
+                    <span key={name} className="inline-flex shrink-0 items-center overflow-hidden rounded-full" style={{ background: on ? "var(--purple)" : "#fff", border: `var(--bw) solid var(--${on ? "purple-edge" : "edge-neutral"})` }}>
+                      <button onClick={() => therapists.setActive(name)} className="py-1.5 pl-3 pr-1.5 text-[12px] font-black">{name}</button>
+                      <button onClick={() => therapists.remove(name)} className="flex h-7 w-7 items-center justify-center text-[13px] font-black text-[var(--muted)]" aria-label={`Убрать ${name}`}>×</button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {therapist && <TherapistCard name={therapist} next={next} onRemove={therapists.list.length === 1 ? () => therapists.remove(therapist) : undefined} />}
+            <Link href="/catalog" onClick={tap} className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-white/70 py-2 text-[11px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="compass" width={14} weight="bold" /> Добавить ещё терапевта</Link>
+          </>
+        )}
       </header>
 
       <main className="relative -mt-9 rounded-t-[30px] bg-[#fffaf0] px-4 pb-8 pt-5 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
@@ -79,6 +125,8 @@ function TherapyDashboard({ therapist, next, bookings, therapy, onMood, onGuideS
             <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
             <MoodModule today={todayEntry} moods={therapy.moods} onSave={onMood} />
           </div>
+        ) : !therapist ? (
+          <div className="mt-4"><FindTherapistBlock /></div>
         ) : (
           <div className="mt-4 space-y-3">
             {/* Прогресс с терапевтом — крупная цифра встреч */}
@@ -162,10 +210,22 @@ function Metric({ value, label, edge, bg = "var(--green-soft)" }: { value: strin
   return <div className="rounded-[15px] p-2.5 text-center" style={{ background: bg, border: `var(--bw) solid ${edge}` }}><p className="font-tight tnum text-[20px] font-black leading-none">{value}</p><p className="mt-1 text-[9px] font-black uppercase tracking-[.05em]">{label}</p></div>;
 }
 
-function EmptyTherapy() { return <div className="mx-auto max-w-sm py-8 text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--purple-soft)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="therapy" width={30} weight="fill" /></div><h2 className="font-tight mt-4 text-2xl font-extrabold">Здесь появится ваша терапия</h2><p className="mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-[var(--muted)]">После записи здесь будут встречи, задания и ваш прогресс между сессиями.</p><Link href="/" className="mt-5 inline-block"><Button arrow>Найти терапевта на главной</Button></Link></div>; }
+// Блок подбора терапевта в шапке терапии (когда никого ещё не прикреплено).
+function FindTherapistBlock() {
+  return (
+    <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[20px] bg-[#fffdf7] p-3.5 transition-transform active:scale-[0.99]" style={{ border: "2.5px dashed var(--purple-edge)" }}>
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}><Icon name="compass" width={24} weight="bold" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-black">Найти терапевта</span>
+        <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания. Ваша статистика уже собирается ниже.</span>
+      </span>
+      <span className="shrink-0 rounded-full bg-[var(--purple)] px-3 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>Подобрать</span>
+    </Link>
+  );
+}
 
 // Карточка терапевта в стиле каталога — с переходом на его страницу и записью.
-function TherapistCard({ name, next }: { name: string; next: MyBooking | null }) {
+function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking | null; onRemove?: () => void }) {
   const psy = PSYS.find((item) => item.name === name);
   const href = psy ? `/catalog?psy=${psy.id}` : "/catalog";
   const portrait = psy ? asset(psy.portrait) : null;
@@ -187,9 +247,12 @@ function TherapistCard({ name, next }: { name: string; next: MyBooking | null })
           </div>
           {psy && <p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">{psy.method} · {psy.minutes} мин · {psy.price.toLocaleString("ru-RU")} ₽</p>}
           <p className="mt-1 text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p>
-          <Link href={href} onClick={tap} className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white transition-transform active:scale-95">
-            <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться
-          </Link>
+          <div className="mt-2 flex items-center gap-2">
+            <Link href={href} onClick={tap} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white transition-transform active:scale-95">
+              <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться
+            </Link>
+            {onRemove && <button onClick={onRemove} className="rounded-full px-3 py-2 text-[11px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>Открепить</button>}
+          </div>
         </div>
       </div>
     </div>
