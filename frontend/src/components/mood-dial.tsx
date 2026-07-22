@@ -120,12 +120,12 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
         <span className="w-10" />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-        <div className="relative h-[clamp(220px,31vh,270px)] w-full overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">
+        <div className="relative h-[clamp(220px,31vh,270px)] w-full shrink-0 overflow-hidden">
           <MoodHead value={value} />
         </div>
 
-        <div className="px-4 pt-2">
+        <div className="flex-1 px-4 pb-3 pt-2" style={{ backgroundColor: tint }}>
           <h2 className="text-center font-tight text-[clamp(27px,7.8vw,36px)] font-black uppercase leading-[0.9] tracking-[-0.04em]">
             Как ваше настроение сегодня?
           </h2>
@@ -193,7 +193,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
         </div>
       </div>
 
-      <div className="shrink-0 bg-white px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-2" style={{ borderTop: "var(--bw) solid var(--edge-neutral)" }}>
+      <div className="shrink-0 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-2" style={{ backgroundColor: tint, borderTop: "var(--bw) solid rgba(32,28,24,.32)" }}>
         <button
           onClick={() => { success(); onSave(level, picked); close(); }}
           className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform active:scale-[0.98]"
