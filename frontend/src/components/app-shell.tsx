@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!onboarded) return <Onboarding />;
 
   return (
-    <div data-accent={accent} className="@container min-h-[100dvh]" style={{ background: "var(--page)" }}>
+    <div data-accent={accent} className="@container" style={{ background: "var(--page)" }}>
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>
@@ -130,22 +130,25 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      {/* Мобайл: верхняя панель — закреплена сверху, не двигается со скроллом */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease", boxShadow: "0 6px 14px -12px rgba(32,28,24,.55)" }}>
-        <Wordmark small />
-        <div className="flex items-center gap-2">
-          <NotificationBell />
-          <AvatarLink />
+      {/* Колонка приложения: фиксированная высота, скроллится только контент —
+          шапка и нижнее меню закреплены и не катаются (в т.ч. в Telegram). */}
+      <div className="flex h-[100dvh] flex-col @md:ml-[248px]">
+        {/* Мобайл: верхняя панель — вне зоны прокрутки */}
+        <header className="z-50 flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
+          <Wordmark small />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <AvatarLink />
+          </div>
+        </header>
+
+        {/* Контент — единственная прокручиваемая область */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="mx-auto w-full max-w-3xl px-4 pb-8 pt-2 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
         </div>
-      </header>
 
-      {/* Контент */}
-      <div className="@md:ml-[248px]">
-        <div className="mx-auto w-full max-w-3xl px-4 pb-32 pt-2 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
-      </div>
-
-      {/* Мобайл: нижние табы — приподняты повыше над краем экрана */}
-      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+18px)] pt-1 @md:hidden">
+        {/* Мобайл: нижние табы — вне зоны прокрутки */}
+        <div className="z-40 shrink-0 px-3 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-1 @md:hidden">
         <nav className="mx-auto max-w-md rounded-[26px] px-2 py-2" style={{ background: "var(--nav)", border: "var(--bw-lg) solid var(--nav-edge)" }}>
           <div className="relative flex">
             {activeIndex >= 0 && tabs[activeIndex]?.href !== centerHref && (
@@ -180,6 +183,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </div>
         </nav>
+        </div>
       </div>
     </div>
   );

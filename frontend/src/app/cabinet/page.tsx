@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
@@ -11,6 +10,7 @@ import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
 import { RemindersModule } from "@/components/reminders";
 import { SubscriptionBlock } from "@/components/subscription-block";
+import { WorkHoursEditor } from "@/components/work-hours";
 import { Card } from "@/components/ui";
 import { useCancelLockDays } from "@/lib/cancel-policy";
 import { select, tap } from "@/lib/haptics";
@@ -45,11 +45,9 @@ export default function CabinetPage() {
       <div className="-mx-4 min-h-[64vh] space-y-6 rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
 
         {role === "psychologist" && (
-          <Link href="/sessions" onClick={tap} className="group flex items-center gap-3 rounded-[18px] p-3.5 transition-transform active:scale-[0.99]" style={{ background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" }}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={19} weight="bold" /></span>
-            <span className="min-w-0 flex-1"><span className="block text-[13px] font-black">Рабочие часы — в Сессиях</span><span className="block text-[11px] font-semibold text-[var(--muted)]">Настройте дни, окна и длительность встреч</span></span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white transition-transform group-hover:rotate-12" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="gear" width={17} weight="bold" /></span>
-          </Link>
+          <Foldable icon="clock" title="Настроить график" subtitle="Дни, свободные окна и длительность встреч">
+            <WorkHoursEditor onSaved={() => {}} />
+          </Foldable>
         )}
 
         {role === "psychologist" && (

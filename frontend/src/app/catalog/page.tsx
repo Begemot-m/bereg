@@ -157,37 +157,63 @@ function AllControls({ filters, setFilters, sort, setSort, activeFilters, openFi
   return <Reveal delay={.03}><div className="mt-4 space-y-2"><label className="flex items-center gap-2 rounded-[15px] bg-white px-3.5 py-2.5 stroke"><Icon name="compass" width={16} color="var(--muted)" /><input value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder="Имя, подход или запрос" className="min-w-0 flex-1 bg-transparent text-[13px] font-bold outline-none placeholder:font-semibold placeholder:text-[var(--muted-2)]" />{filters.query && <button onClick={() => setFilters({ ...filters, query: "" })} className="font-black text-[var(--muted)]" aria-label="Очистить поиск">×</button>}</label><div className="flex gap-2"><button onClick={openFilters} className="relative flex flex-1 items-center justify-center gap-1.5 rounded-[13px] bg-white px-3 py-2 text-[11px] font-black stroke"><Icon name="filter" width={15} weight="bold" /> Фильтры{activeFilters > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--coral)] px-1 text-[10px] stroke">{activeFilters}</span>}</button><label className="flex flex-[1.35] items-center gap-1.5 rounded-[13px] bg-white px-3 py-2 stroke"><Icon name="sort" width={15} weight="bold" /><select value={sort} onChange={(event) => setSort(event.target.value as SortMode)} className="min-w-0 flex-1 bg-transparent text-[11px] font-black outline-none">{SORTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label></div></div></Reveal>;
 }
 
+// Звёзды рейтинга: заполненные до значения, остальные приглушённые.
+function Stars({ value }: { value: number }) {
+  const rounded = Math.round(value);
+  return <span className="inline-flex items-center gap-[1px]" aria-hidden>
+    {[1, 2, 3, 4, 5].map((i) => <Icon key={i} name="star" width={12} weight={i <= rounded ? "fill" : "regular"} color={i <= rounded ? "var(--amber-edge)" : "var(--muted-2)"} />)}
+  </span>;
+}
+
+// Миниатюра специалиста — премиальная карточка: фото, рейтинг, суть и запись.
 function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogPrefs; showReason: boolean; onOpen: () => void }) {
-  const reasons = reasonsFor(psy, prefs);
+  // Повод-ленту берём по совпадению запроса, а не по окну — окно и так в футере.
+  const reason = showReason ? reasonsFor(psy, prefs).find((r) => !/окно|неделе|сегодня|завтра/i.test(r)) : undefined;
   const place = catalogLocation(psy);
   const portrait = asset(psy.portrait);
-  const topics = topicsForCard(psy, prefs);
-  return <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform active:scale-[.99] stroke-lg">
-    <div className="flex gap-3 p-3">
-      <div className="relative h-[128px] w-[104px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="104px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} /></div>
-      <div className="flex min-w-0 flex-1 flex-col py-0.5">
-        <div className="flex items-start gap-1">
-          <h3 className="min-w-0 flex-1 text-[16px] font-black leading-[1.05]">{psy.name}</h3>
-          {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
+  const topics = topicsForCard(psy, prefs).slice(0, 3);
+  const soon = psy.nextDays <= 3;
+
+  return (
+    <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform duration-200 active:scale-[.99]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
+      {/* Персональный повод — тонкой лентой сверху */}
+      {reason && <div className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" /> {reason}</div>}
+
+      <div className="flex gap-3.5 p-3.5">
+        <div className="relative h-[140px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
+          <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
         </div>
-        <div className="mt-1 flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-start gap-1">
+            <h3 className="min-w-0 flex-1 text-[17px] font-black leading-[1.06]">{psy.name}</h3>
+            {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }} title="Профиль подтверждён"><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
+          </div>
           {psy.reviews >= 3
-            ? <span className="inline-flex items-center gap-1"><Icon name="star" width={13} weight="fill" color="var(--amber-edge)" /><span className="tnum text-[12px] font-black">{psy.rating}</span><span className="text-[10px] font-bold text-[var(--muted-2)]">({psy.reviews})</span></span>
-            : <span className="rounded-full bg-[var(--olive-soft)] px-2 py-0.5 text-[9px] font-black" style={{ border: "1.5px solid var(--olive-edge)" }}>новый специалист</span>}
-        </div>
-        <p className="mt-1.5 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
-        <div className="mt-1.5 flex flex-wrap gap-1">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: "var(--olive-soft)", border: "1.5px solid var(--olive-edge)" }}>{topic}</span>)}</div>
-        {/* Единая инфо-строка: цена, формат/место, ближайшее окно — без повторов */}
-        <div className="mt-auto space-y-1 pt-2">
-          <p className="text-[13px] font-black">{psy.price.toLocaleString("ru-RU")} ₽ <span className="text-[11px] font-bold text-[var(--muted)]">/ {psy.minutes} мин</span></p>
-          <p className="flex items-center gap-1 truncate text-[10px] font-bold text-[var(--muted)]"><Icon name={psy.format === "online" ? "video" : "pin"} width={12} /> {place}</p>
-          <p className="flex items-center gap-1 text-[10px] font-black" style={{ color: "var(--olive-edge)" }}><Icon name="calendar" width={12} weight="bold" /> {nextSlotLabel(psy.nextDays)}</p>
+            ? <span className="mt-1 inline-flex items-center gap-1.5"><Stars value={psy.rating} /><span className="tnum text-[12px] font-black">{psy.rating}</span><span className="text-[10px] font-bold text-[var(--muted-2)]">· {psy.reviews} отзывов</span></span>
+            : <span className="mt-1 inline-flex w-fit rounded-full bg-[var(--olive-soft)] px-2 py-0.5 text-[9px] font-black" style={{ border: "1.5px solid var(--olive-edge)" }}>новый специалист</span>}
+          <p className="mt-1.5 text-[12px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
+          {psy.about && <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-snug text-[var(--muted)]">{psy.about}</p>}
+          <div className="mt-auto flex flex-wrap gap-1 pt-2">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9.5px] font-black" style={{ background: "var(--olive-soft)", border: "1.5px solid var(--olive-edge)" }}>{topic}</span>)}</div>
         </div>
       </div>
-    </div>
-    {showReason && reasons.length > 0 && <div className="mx-3 flex flex-wrap gap-1.5 border-t pt-2.5" style={{ borderColor: "var(--edge-neutral)" }}>{reasons.map((reason) => <span key={reason} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2 py-1 text-[9px] font-black" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={10} weight="bold" /> {reason}</span>)}</div>}
-    <div className="mt-2.5 px-3 pb-3"><span className="flex w-full items-center justify-center gap-1 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white">Открыть профиль →</span></div>
-  </button>;
+
+      {/* Доверие: сессии, ответ, формат — без повторов */}
+      <div className="mx-3.5 flex items-center gap-3 border-t py-2 text-[10px] font-bold text-[var(--muted)]" style={{ borderColor: "var(--edge-neutral)" }}>
+        {psy.sessions > 0 && <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap"><Icon name="check" width={11} weight="bold" color="var(--olive-edge)" /> {psy.sessions}+ сессий</span>}
+        <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap"><Icon name="clock" width={11} weight="bold" /> ответ ~{psy.responseHrs} ч</span>
+        <span className="inline-flex min-w-0 flex-1 items-center gap-1"><Icon name={psy.format === "online" ? "video" : "pin"} width={11} weight="bold" className="shrink-0" /> <span className="truncate">{psy.format === "online" ? "онлайн" : place}</span></span>
+      </div>
+
+      {/* Запись: цена + ближайшее окно + переход */}
+      <div className="flex items-center gap-2 px-3.5 pb-3.5 pt-1">
+        <div className="min-w-0">
+          <p className="text-[15px] font-black leading-none">{psy.price.toLocaleString("ru-RU")} ₽<span className="text-[11px] font-bold text-[var(--muted)]"> / {psy.minutes} мин</span></p>
+          <p className="mt-1 flex items-center gap-1 text-[10px] font-black" style={{ color: soon ? "var(--olive-edge)" : "var(--muted)" }}><Icon name="calendar" width={11} weight="bold" /> {nextSlotLabel(psy.nextDays)}</p>
+        </div>
+        <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Профиль →</span>
+      </div>
+    </button>
+  );
 }
 
 function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: () => void }) {
