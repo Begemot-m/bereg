@@ -121,14 +121,12 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
 
 const MOOD_BODY_MASK = asset("/mood/character-body-mask.png");
 const MOOD_EYES = asset("/mood/character-eyes.png");
-const MOOD_MOUTHS = [1, 2, 3, 4, 5].map((level) => asset(`/mood/character-mouth-${level}.png`));
-const MOOD_MOUTH_WIDTH = [44, 40, 34, 52, 58];
+const MOOD_MOUTHS = [1, 2, 3, 4, 5].map((level) => asset(`/mood/character-mouth-v2-${level}.png`));
+const MOOD_MOUTH_WIDTH = [26, 17, 16, 23, 24];
 
 export function MoodHead({ value }: { value: number }) {
   const position = Math.min(4, Math.max(0, value - 1));
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  const blend = position - lower;
+  const mouthIndex = Math.round(position);
   const [blinking, setBlinking] = useState(false);
   const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reopenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -150,9 +148,6 @@ export function MoodHead({ value }: { value: number }) {
     };
   }, []);
 
-  const mouthFrames = lower === upper
-    ? [{ index: lower, opacity: 1 }]
-    : [{ index: lower, opacity: 1 - blend }, { index: upper, opacity: blend }];
   const eyeTilt = (position - 2) * -1.2;
 
   return (
@@ -194,17 +189,15 @@ export function MoodHead({ value }: { value: number }) {
         />
       </div>
 
-      <div aria-hidden="true" className="absolute left-1/2 top-[65%] h-[29%] w-[62%] -translate-x-1/2">
-        {mouthFrames.map(({ index, opacity }) => (
-          <img
-            key={MOOD_MOUTHS[index]}
-            src={MOOD_MOUTHS[index]}
-            alt=""
-            draggable={false}
-            className="pointer-events-none absolute left-1/2 top-0 h-auto -translate-x-1/2 select-none"
-            style={{ opacity, width: `${MOOD_MOUTH_WIDTH[index]}%`, willChange: "opacity" }}
-          />
-        ))}
+      <div aria-hidden="true" className="absolute inset-x-0 top-[72%] flex justify-center">
+        <img
+          key={MOOD_MOUTHS[mouthIndex]}
+          src={MOOD_MOUTHS[mouthIndex]}
+          alt=""
+          draggable={false}
+          className="pointer-events-none block h-auto select-none"
+          style={{ width: `${MOOD_MOUTH_WIDTH[mouthIndex]}%` }}
+        />
       </div>
     </div>
   );

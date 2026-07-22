@@ -34,3 +34,15 @@ export function suggestFamilies(mood: number): EmotionFamily[] {
   const keys = BY_LEVEL[Math.min(5, Math.max(1, Math.round(mood)))] ?? [];
   return keys.map((key) => EMOTION_FAMILIES.find((family) => family.key === key)!).filter(Boolean);
 }
+
+const SUGGESTIONS_BY_LEVEL: Record<number, string[]> = {
+  1: ["скорбь", "ужас", "ярость", "отвращение", "печаль", "страх", "гнев", "неприязнь"],
+  2: ["печаль", "страх", "досада", "скука", "задумчивость", "опасение", "неприязнь", "гнев"],
+  3: ["растерянность", "удивление", "интерес", "задумчивость", "принятие", "досада", "готовность", "скука"],
+  4: ["радость", "доверие", "интерес", "предвкушение", "принятие", "удивление", "готовность", "безмятежность"],
+  5: ["восторг", "радость", "восхищение", "доверие", "предвкушение", "безмятежность", "готовность", "интерес"],
+};
+
+export function suggestEmotions(mood: number): string[] {
+  return SUGGESTIONS_BY_LEVEL[Math.min(5, Math.max(1, Math.round(mood)))] ?? [];
+}
