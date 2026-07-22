@@ -34,6 +34,14 @@
   --salmon-edge: #d1725b;
   --pink: #f1b3aa;
   --sky: #a7cfdf;
+  /* Олива — для сессий и каталога терапевтов */
+  --olive: #b7c079;
+  --olive-soft: #dde3b9;
+  --olive-edge: #7d8a3e;
+  /* Персик — для инструментов */
+  --peach: #f4c19c;
+  --peach-soft: #fadecb;
+  --peach-edge: #d69a6c;
 
   /* Окна по времени суток (под реф): утро — светло-жёлтое, день — персиковый, вечер — фиолетовый.
      Тона мягкие/приглушённые, обводка — тот же цвет чуть темнее. */
@@ -72,6 +80,8 @@
 [data-accent="purple"] { --head: var(--purple); --head-soft: var(--purple-soft); --accent: var(--purple); --edge: var(--purple-edge); --page: color-mix(in srgb, var(--purple) 46%, #fbf8ef); }
 [data-accent="coral"]  { --head: var(--coral);  --head-soft: var(--coral-soft);  --accent: var(--coral);  --edge: var(--coral-edge);  --page: color-mix(in srgb, var(--coral) 44%, #fbf7ee); }
 [data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); --edge: var(--salmon-edge); --page: color-mix(in srgb, var(--salmon) 44%, #fbf7ee); }
+[data-accent="olive"]  { --head: var(--olive);  --head-soft: var(--olive-soft);  --accent: var(--olive);  --edge: var(--olive-edge);  --page: color-mix(in srgb, var(--olive) 42%, #fbf8ef); }
+[data-accent="peach"]  { --head: var(--peach);  --head-soft: var(--peach-soft);  --accent: var(--peach);  --edge: var(--peach-edge);  --page: color-mix(in srgb, var(--peach) 46%, #fbf7ee); }
 :root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --edge: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
 
 /* Совместимость со старыми токенами — плоский bold-стиль */

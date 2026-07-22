@@ -9,23 +9,6 @@ import { Reveal } from "@/components/motion";
 import { TechniqueRunner, type TechKey } from "@/components/techniques";
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
-import { useRole } from "@/lib/role";
-
-// Бесплатные инструменты психолога — быстрый переход в раздел.
-const PSY_FREE: { icon: IconName; title: string; desc: string; href: string }[] = [
-  { icon: "users", title: "Клиенты и карточки", desc: "База, заметки, прогресс", href: "/clients" },
-  { icon: "calendar", title: "Сессии и записи", desc: "Ближайшие, неделя, календарь", href: "/sessions" },
-  { icon: "clock", title: "Расписание и окна", desc: "Часы работы, форматы приёма", href: "/cabinet" },
-  { icon: "balance", title: "Колесо баланса клиента", desc: "Смотреть в карточке клиента", href: "/clients" },
-];
-
-// По подписке PRO — затемнены (данные о подписке не показываем, только метку).
-const PSY_PRO: { icon: IconName; title: string; desc: string }[] = [
-  { icon: "book", title: "Шаблоны техник", desc: "Готовые домашки: КПТ, ACT" },
-  { icon: "chart", title: "Тесты и шкалы", desc: "PHQ-9, GAD-7 с автоподсчётом" },
-  { icon: "spark", title: "Аналитика практики", desc: "Динамика, удержание, доход" },
-  { icon: "note", title: "Экспорт заметок", desc: "PDF-отчёты по клиенту" },
-];
 
 // Инструменты клиента: часть бесплатна, часть — по подписке «Вдох+». Интерактивные — с tech.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
@@ -38,8 +21,7 @@ const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: stri
 type PracticeHistory = { tech: TechKey; completedAt: string; before?: number; after?: number }[];
 
 export default function ToolsPage() {
-  const [role] = useRole();
-  if (role === "psychologist") return <PsyTools />;
+  // Инструменты у психолога и клиента одинаковые — общий набор практик.
   return <ClientTools />;
 }
 
@@ -72,11 +54,11 @@ function ClientTools() {
 
       <Reveal y={10}>
         <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-          <section className="overflow-hidden rounded-[23px] bg-[var(--amber-soft)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+          <section className="overflow-hidden rounded-[23px] bg-[var(--peach-soft)]" style={{ border: "var(--bw-lg) solid var(--peach-edge)" }}>
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[.07em]" style={{ border: "var(--bw) solid var(--amber-edge)" }}>Что поможет сейчас</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[.07em]" style={{ border: "var(--bw) solid var(--peach-edge)" }}>Что поможет сейчас</span>
                   <span className="text-[11px] font-bold text-[var(--muted)]">Вдох+</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">{recommendation.title}</h2>
@@ -84,9 +66,9 @@ function ClientTools() {
               </div>
               <img src={asset(recommendation.image)} alt="" className="h-[92px] w-[92px] shrink-0 object-contain" />
             </div>
-            <div className="flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--amber-edge)" }}>
+            <div className="flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--peach-edge)" }}>
               <button onClick={() => { tap(); setTech(recommendation.tech); }} className="flex-1 rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[.98]">Начать · {recommendation.time}</button>
-              <span className="rounded-full bg-white px-3 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{weekly ? `${weekly} за неделю` : "без спешки"}</span>
+              <span className="rounded-full bg-white px-3 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--peach-edge)" }}>{weekly ? `${weekly} за неделю` : "без спешки"}</span>
             </div>
           </section>
 
@@ -130,45 +112,6 @@ function ClientTools() {
       </Reveal>
 
       {tech && <TechniqueRunner tech={tech} onClose={() => setTech(null)} />}
-    </div>
-  );
-}
-
-function PsyTools() {
-  return (
-    <div>
-      <PageHead title="Инструменты" sub="Всё для практики" />
-
-      <Reveal y={10}>
-        <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-          <p className="mb-2 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Быстрый доступ</p>
-          <div className="space-y-2">
-            {PSY_FREE.map((t, i) => (
-              <Reveal key={t.title} delay={0.03 + i * 0.04}>
-                <Link href={t.href} className="flex items-center gap-3 rounded-[16px] bg-white p-3 transition-transform active:scale-[0.99]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}><Icon name={t.icon} width={18} weight="bold" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{t.title}</span><span className="block text-[12px] font-semibold text-[var(--muted)]">{t.desc}</span></span>
-                  <span className="text-[18px] font-black text-[var(--muted-2)]">›</span>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
-
-          <p className="mb-2 mt-6 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">По подписке PRO</p>
-          <div className="space-y-2">
-            {PSY_PRO.map((t, i) => (
-              <Reveal key={t.title} delay={0.03 + i * 0.04}>
-                <div className="flex items-center gap-3 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)", opacity: 0.6 }}>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--edge-neutral)" }}><Icon name={t.icon} width={18} weight="bold" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{t.title}</span><span className="block text-[12px] font-semibold text-[var(--muted)]">{t.desc}</span></span>
-                  <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[.04em] text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>PRO</span>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-          <p className="mt-4 text-center text-[11px] font-semibold text-[var(--muted-2)]">Открывается на тарифе PRO — подключить можно в <Link href="/cabinet" className="font-black text-[var(--edge)]">кабинете</Link>.</p>
-        </div>
-      </Reveal>
     </div>
   );
 }

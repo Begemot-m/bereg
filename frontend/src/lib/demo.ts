@@ -71,7 +71,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v8";
+const KEY = "psy_demo_db_v9";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -137,7 +137,7 @@ function seed(): DB {
     moods,
     wheel,
     therapyTutorialSeen: false,
-    myBookings: [{ id: 71, psyName: "Ирина Верещагина", startsAt: iso(2, 17, 0), durationMin: 60, format: "online" }],
+    myBookings: [],
     work: {
       hours: {},
       sessionMinutes: 50,

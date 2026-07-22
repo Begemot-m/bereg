@@ -35,8 +35,8 @@ type NavItem = { href: string; label: string; icon: IconName };
 const NAV: Record<Role, NavItem[]> = {
   psychologist: [
     { href: "/", label: "Главная", icon: "home" },
-    { href: "/sessions", label: "Сессии", icon: "calendar" },
     { href: "/clients", label: "Клиенты", icon: "users" },
+    { href: "/sessions", label: "Сессии", icon: "calendar" },
     { href: "/tools", label: "Инструменты", icon: "tools" },
   ],
   client: [
@@ -55,11 +55,11 @@ const NAV: Record<Role, NavItem[]> = {
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
 function accentFor(pathname: string) {
-  if (pathname.startsWith("/sessions")) return "green";
+  if (pathname.startsWith("/sessions")) return "olive";
   if (pathname.startsWith("/therapy")) return "purple";
   if (pathname.startsWith("/clients")) return "purple";
-  if (pathname.startsWith("/tools")) return "coral";
-  if (pathname.startsWith("/catalog")) return "salmon";
+  if (pathname.startsWith("/tools")) return "peach";
+  if (pathname.startsWith("/catalog")) return "olive";
   return "amber";
 }
 
@@ -83,6 +83,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const accent = accentFor(pathname);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
   const activeIndex = tabs.findIndex((t) => isActive(pathname, t.href));
+  // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
+  const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;
+  const centerTone = role === "psychologist" ? "olive" : "purple";
 
   if (onboarded === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
   if (!onboarded) return <Onboarding />;
@@ -141,11 +144,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto w-full max-w-3xl px-4 pb-32 pt-2 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
       </div>
 
-      {/* Мобайл: нижние табы — жёлтая пилюля с обводкой, активная иконка в чёрном квадрате */}
-      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-1 @md:hidden">
+      {/* Мобайл: нижние табы — приподняты повыше над краем экрана */}
+      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+18px)] pt-1 @md:hidden">
         <nav className="mx-auto max-w-md rounded-[26px] px-2 py-2" style={{ background: "var(--nav)", border: "var(--bw-lg) solid var(--nav-edge)" }}>
           <div className="relative flex">
-            {activeIndex >= 0 && tabs[activeIndex]?.href !== "/therapy" && (
+            {activeIndex >= 0 && tabs[activeIndex]?.href !== centerHref && (
               <motion.div
                 aria-hidden
                 className="pointer-events-none absolute top-0 flex h-full items-center justify-center"
@@ -159,11 +162,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
-              // Терапия — акцентная кнопка по центру меню.
-              if (it.href === "/therapy") return (
+              // Центральная вкладка — акцентная, но ровно на уровне остальных.
+              if (it.href === centerHref) return (
                 <Link key={it.href} href={it.href} onClick={select} className="relative z-[2] flex flex-1 items-center justify-center py-0.5" aria-label={it.label}>
-                  <span className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-150 active:scale-90" style={{ background: active ? "var(--ink)" : "var(--purple)", border: `var(--bw-lg) solid ${active ? "var(--ink)" : "var(--purple-edge)"}`, boxShadow: "0 8px 18px -8px rgba(32,28,24,.5)" }}>
-                    <Icon name={it.icon} width={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-150 active:scale-90" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}` }}>
+                    <Icon name={it.icon} width={23} weight="fill" color={active ? "#fff" : "var(--ink)"} />
                   </span>
                 </Link>
               );

@@ -27,6 +27,7 @@ import {
   Funnel,
   SlidersHorizontal,
   Star,
+  Question,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -59,7 +60,8 @@ export type IconName =
   | "therapy"
   | "filter"
   | "sort"
-  | "star";
+  | "star"
+  | "question";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -90,6 +92,7 @@ const MAP: Record<IconName, PhIcon> = {
   filter: Funnel,
   sort: SlidersHorizontal,
   star: Star,
+  question: Question,
 };
 
 export function Icon({

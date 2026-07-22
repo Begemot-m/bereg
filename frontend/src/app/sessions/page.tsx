@@ -52,6 +52,14 @@ function dateHeader(ymd: string): string {
   const rel = relLabel(ymd);
   return `${dayShort.format(d)} · ${rel ? rel + " · " : ""}${weekdayF.format(d)}`;
 }
+// Относительный день с цветом: сегодня — персик, завтра — олива, вчера — коралл.
+function relTone(ymd: string): { label: string; tone: string } | null {
+  const rel = relLabel(ymd);
+  if (rel === "Сегодня") return { label: rel, tone: "peach" };
+  if (rel === "Завтра") return { label: rel, tone: "olive" };
+  if (rel === "Вчера") return { label: rel, tone: "coral" };
+  return null;
+}
 
 type View = "soon" | "week" | "cal";
 
@@ -127,7 +135,7 @@ function PsySessions() {
             <Icon name="gear" width={13} color="currentColor" />
           </button>
           <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
-            <Icon name="spark" width={13} /> Как это работает?
+            <Icon name="question" width={14} weight="bold" color="var(--edge)" /> Как это работает?
           </button>
         </div>
         {scheduleReady && (
@@ -161,8 +169,9 @@ function PsySessions() {
                 const y = ymdLocal(d);
                 return (
                   <div key={y}>
-                    <div className="mb-2 border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
-                      <span className="text-[14px] font-extrabold capitalize">{dateHeader(y)}</span>
+                    <div className="mb-2 flex items-center gap-2 border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
+                      {(() => { const r = relTone(y); return r && <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: `var(--${r.tone}-soft)`, border: `var(--bw) solid var(--${r.tone}-edge)` }}>{r.label}</span>; })()}
+                      <span className="text-[14px] font-extrabold capitalize">{dayShort.format(new Date(y + "T00:00:00"))} · {weekdayF.format(new Date(y + "T00:00:00"))}</span>
                     </div>
                     <DaySlots date={d} bookedOnly />
                   </div>
@@ -229,8 +238,8 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
       {firstVisit && (
         <div className="fixed inset-0 z-[85] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3 @md:items-center" onClick={onLater}>
           <section onClick={(e) => e.stopPropagation()} className="chunk w-full max-w-md overflow-hidden p-0" style={{ background: "var(--surface)" }}>
-            <div className="p-5" style={{ background: "var(--green)", borderBottom: "var(--bw-lg) solid var(--green-edge)" }}>
-              <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="clock" width={23} weight="bold" /></span>
+            <div className="p-5" style={{ background: "var(--olive)", borderBottom: "var(--bw-lg) solid var(--olive-edge)" }}>
+              <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="clock" width={23} weight="bold" /></span>
               <p className="mt-3 text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Первый шаг</p>
               <h2 className="font-tight mt-1 text-[20px] font-black leading-tight">Настройте рабочие часы</h2>
               <p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Клиенты увидят только свободные окна, а занятые сессии появятся в календаре автоматически.</p>
@@ -238,8 +247,8 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
             <div className="p-5">
               <div className="grid grid-cols-3 gap-1.5">
                 {["Выберите дни", "Добавьте окна", "Сохраните"].map((label, index) => (
-                  <div key={label} className="rounded-[13px] px-2 py-2.5 text-center" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
-                    <span className="tnum block text-[11px] font-black text-[var(--green-edge)]">0{index + 1}</span>
+                  <div key={label} className="rounded-[13px] px-2 py-2.5 text-center" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}>
+                    <span className="tnum block text-[11px] font-black text-[var(--olive-edge)]">0{index + 1}</span>
                     <span className="mt-0.5 block text-[10px] font-extrabold leading-tight">{label}</span>
                   </div>
                 ))}
@@ -258,7 +267,7 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
         <div className="mt-3 rounded-[22px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><p className="text-[14px] font-black">Рабочие часы</p><p className="text-[11px] font-semibold text-[var(--muted)]">{summary} · нажмите на шкалу дня, чтобы добавить окно</p></div>
-            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="spark" width={16} /></button>}
+            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
           </div>
           <WorkHoursEditor onSaved={onSaved} />
           <button onClick={onToggle} className="mt-3 w-full py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Свернуть настройку</button>

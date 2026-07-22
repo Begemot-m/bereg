@@ -64,14 +64,14 @@ export function InviteBanner({ variant }: { variant: Variant }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => { tap(); setOpen(true); }} className="flex w-full items-center gap-3 rounded-[20px] p-4 text-left transition-transform active:scale-[0.99]" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[var(--amber)]" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="spark" width={20} weight="fill" /></span>
+      <button onClick={() => { tap(); setOpen(true); }} className="flex w-full items-center gap-3 rounded-[20px] p-4 text-left transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "var(--bw-lg) solid var(--olive-edge)" }}>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[var(--olive)]" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="heart" width={20} weight="fill" /></span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Приглашайте друзей</p>
-          <p className="text-[14px] font-black leading-tight">{variant === "psy" ? "Зовите клиентов и коллег" : "Поделитесь «Вдох» с другом"}</p>
-          <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">За приглашения — подарки и бонусы</p>
+          <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Приведите друга</p>
+          <p className="text-[14px] font-black leading-tight">{variant === "psy" ? "Позовите коллег во «Вдох»" : "Подарите другу неделю «Вдох+»"}</p>
+          <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">{variant === "psy" ? "Коллеге — месяц PRO, вам — бонус" : "Другу — 7 дней бесплатно, вам — бонус к подписке"}</p>
         </div>
-        <span className="text-[18px] font-black text-[var(--amber-edge)]">›</span>
+        <span className="text-[18px] font-black text-[var(--olive-edge)]">›</span>
       </button>
       <AnimatePresence>{open && <InviteSheet variant={variant} onClose={() => setOpen(false)} />}</AnimatePresence>
     </>

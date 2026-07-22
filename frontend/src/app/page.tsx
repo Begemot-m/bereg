@@ -10,7 +10,7 @@ import { InviteBanner } from "@/components/invite";
 import { MoodCard, MoodSheet } from "@/components/mood-dial";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { listAppointments, type Appointment } from "@/lib/appointments";
-import { listClients, listMyBookings, type Client, type Mood } from "@/lib/clients";
+import { listClients, listMyBookings, type Client, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
@@ -88,7 +88,7 @@ function PsyHome() {
         )}
       </section>
 
-      <HomeRoutes items={[
+      <HomeRoutesCarousel items={[
         { title: "Сессии", detail: "окна и записи", icon: "calendar", href: "/sessions" },
         { title: "Клиенты", detail: "карточки и прогресс", icon: "users", href: "/clients" },
         { title: "Инструменты", detail: "материалы для практики", icon: "tools", href: "/tools" },
@@ -114,13 +114,16 @@ function PersonHome({ guest }: { guest: boolean }) {
     <HomeFrame
       title={`${greeting()}${name && !guest ? `, ${name}` : ""}`}
       subtitle={guest ? "Начните с подходящего специалиста" : cap(dateF.format(now))}
-      focus={<BookingFocus booking={next} guest={guest} />}
     >
-      {guest ? <GuestStart /> : <MoodQuick today={todayEntry} />}
+      {guest ? <GuestStart /> : <>
+        {/* а) ближайшая сессия или блок «сессий нет» */}
+        <NextSession booking={next} therapist={therapist} />
+        {/* б) настроение дня */}
+        <MoodQuick today={todayEntry} />
+      </>}
 
-      {!guest && !next && <TherapistCta therapist={therapist} />}
-
-      <HomeRoutes items={guest ? [
+      {/* в) разделы — листающаяся вбок карусель */}
+      <HomeRoutesCarousel items={guest ? [
         { title: "Каталог", detail: "подобрать психолога", icon: "compass", href: "/catalog" },
         { title: "Инструменты", detail: "практики для себя", icon: "tools", href: "/tools" },
         { title: "Кабинет", detail: "профиль и настройки", icon: "user", href: "/cabinet" },
@@ -136,7 +139,48 @@ function PersonHome({ guest }: { guest: boolean }) {
   );
 }
 
-function HomeFrame({ title, subtitle, focus, children }: { title: string; subtitle: string; focus: React.ReactNode; children: React.ReactNode }) {
+// а) Ближайшая сессия. Нет записи, но есть терапевт → записаться. Нет терапевта → подобрать.
+function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: string | null }) {
+  if (!booking) {
+    if (!therapist) {
+      return (
+        <Link href="/catalog" onClick={tap} className="flex flex-col items-center justify-center gap-2 rounded-[22px] px-4 py-7 text-center transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "2.5px dashed var(--olive-edge)" }}>
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[26px] font-black leading-none" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>+</span>
+          <span className="block text-[15px] font-black">Подобрать терапевта</span>
+          <span className="block max-w-[250px] text-[11px] font-semibold text-[var(--muted)]">У вас пока нет специалиста. Короткий подбор — и увидите тех, кто подходит под запрос.</span>
+        </Link>
+      );
+    }
+    return (
+      <Link href="/catalog" onClick={tap} className="flex items-center gap-3 rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="calendar" width={22} weight="bold" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайших сессий нет</span>
+          <span className="block truncate text-[15px] font-black">{therapist}</span>
+          <span className="block text-[11px] font-semibold text-[var(--muted)]">Выберите удобное окно для встречи</span>
+        </span>
+        <span className="shrink-0 rounded-full bg-white px-3.5 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>Записаться</span>
+      </Link>
+    );
+  }
+  const date = new Date(booking.startsAt);
+  return (
+    <Link href="/therapy" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)] text-[21px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{booking.psyName.charAt(0)}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайшая сессия</span>
+          {(() => { const b = whenBadge(booking.startsAt); return b && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase" style={{ background: `var(--${b.tone}-soft)`, border: `var(--bw) solid var(--${b.tone}-edge)` }}>{b.label}</span>; })()}
+        </span>
+        <span className="mt-1 block truncate text-[18px] font-black leading-tight">{booking.psyName}</span>
+        <span className="block truncate text-[12px] font-bold text-[var(--muted)]">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span>
+      </span>
+      <Arrow />
+    </Link>
+  );
+}
+
+function HomeFrame({ title, subtitle, focus, children }: { title: string; subtitle: string; focus?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <PageHead title={title} sub={subtitle}>{focus}</PageHead>
@@ -149,6 +193,10 @@ function HomeFrame({ title, subtitle, focus, children }: { title: string; subtit
       </div>
     </div>
   );
+}
+
+function FocusIcon({ icon }: { icon: IconName }) {
+  return <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)]" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name={icon} width={24} weight="bold" /></span>;
 }
 
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
@@ -172,7 +220,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайшая сессия</span>
-          {whenBadge(appointment.startsAt) && <span className="rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-[9px] font-black uppercase" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{whenBadge(appointment.startsAt)}</span>}
+          {(() => { const b = whenBadge(appointment.startsAt); return b && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase" style={{ background: `var(--${b.tone}-soft)`, border: `var(--bw) solid var(--${b.tone}-edge)` }}>{b.label}</span>; })()}
         </span>
         <span className="mt-1 block truncate text-[18px] font-black leading-tight">{appointment.client.name}</span>
         <span className="block truncate text-[12px] font-bold text-[var(--muted)]">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span>
@@ -182,44 +230,8 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   );
 }
 
-function BookingFocus({ booking, guest }: { booking?: { psyName: string; startsAt: string; format: "online" | "offline" }; guest: boolean }) {
-  if (!booking) {
-    if (!guest) return null;
-    return (
-      <Link href="/catalog" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
-        <FocusIcon icon="compass" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{guest ? "Начало пути" : "Следующий шаг"}</span>
-          <span className="mt-0.5 block text-[16px] font-black">Подобрать психолога</span>
-          <span className="block text-[12px] font-semibold text-[var(--muted)]">Короткий опрос поможет сузить выбор</span>
-        </span>
-        <Arrow />
-      </Link>
-    );
-  }
-  const date = new Date(booking.startsAt);
-  return (
-    <Link href="/therapy" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)] text-[21px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{booking.psyName.charAt(0)}</span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайшая встреча</span>
-          {whenBadge(booking.startsAt) && <span className="rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-[9px] font-black uppercase" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{whenBadge(booking.startsAt)}</span>}
-        </span>
-        <span className="mt-1 block truncate text-[18px] font-black leading-tight">{booking.psyName}</span>
-        <span className="block truncate text-[12px] font-bold text-[var(--muted)]">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span>
-      </span>
-      <Arrow />
-    </Link>
-  );
-}
-
-function FocusIcon({ icon }: { icon: IconName }) {
-  return <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)]" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name={icon} width={24} weight="bold" /></span>;
-}
-
 function Arrow() {
-  return <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-[20px] font-black text-white transition-transform duration-200 group-hover:translate-x-0.5">›</span>;
+  return <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--amber-soft)] text-[19px] font-black text-[var(--amber-edge)] transition-transform duration-200 group-hover:translate-x-0.5" style={{ border: "var(--bw) solid var(--amber-edge)" }}>›</span>;
 }
 
 function PulseStrip({ items }: { items: { icon: IconName; value: string; label: string }[] }) {
@@ -277,30 +289,6 @@ function MoodQuick({ today }: { today?: Mood }) {
   );
 }
 
-// Нет терапевта — пунктирное окно с плюсом. Есть, но без записи — предложение записаться.
-function TherapistCta({ therapist }: { therapist: string | null }) {
-  if (!therapist) {
-    return (
-      <Link href="/catalog" onClick={tap} className="flex flex-col items-center justify-center gap-2 rounded-[22px] px-4 py-7 text-center transition-transform active:scale-[0.99]" style={{ background: "var(--green-soft)", border: "2.5px dashed var(--green-edge)" }}>
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[26px] font-black leading-none" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>+</span>
-        <span className="block text-[15px] font-black">Найти терапевта</span>
-        <span className="block max-w-[240px] text-[11px] font-semibold text-[var(--muted)]">Короткий подбор — и увидите специалистов под ваш запрос</span>
-      </Link>
-    );
-  }
-  return (
-    <Link href="/catalog" onClick={tap} className="flex items-center gap-3 rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" }}>
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-[18px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>{therapist.charAt(0)}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</span>
-        <span className="block truncate text-[15px] font-black">{therapist}</span>
-        <span className="block text-[11px] font-semibold text-[var(--muted)]">Следующая встреча не назначена — выберите окно</span>
-      </span>
-      <span className="shrink-0 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white">Записаться</span>
-    </Link>
-  );
-}
-
 function GuestStart() {
   const steps = [
     ["1", "Ответьте на несколько вопросов", "Уточним запрос, формат и важные предпочтения."],
@@ -323,18 +311,18 @@ function GuestStart() {
   );
 }
 
-const ROUTE_TONE: Record<string, string> = { "/sessions": "green", "/clients": "purple", "/tools": "amber", "/cabinet": "salmon", "/therapy": "purple", "/catalog": "salmon" };
+const ROUTE_TONE: Record<string, string> = { "/sessions": "olive", "/clients": "purple", "/tools": "peach", "/cabinet": "salmon", "/therapy": "purple", "/catalog": "olive" };
 
-// Разделы — плиткой (бенто 2 в ряд), рамки в тон заливки.
-function HomeRoutes({ items }: { items: { title: string; detail: string; icon: IconName; href: string }[] }) {
+// Разделы — листающаяся вбок карусель.
+function HomeRoutesCarousel({ items }: { items: { title: string; detail: string; icon: IconName; href: string }[] }) {
   return (
     <section>
       <SectionTitle>Разделы</SectionTitle>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 @md:mx-0 @md:px-0">
         {items.map((item) => {
           const t = ROUTE_TONE[item.href] ?? "amber";
           return (
-            <Link key={item.href} href={item.href} onClick={tap} className="rounded-[18px] p-3.5 transition-transform active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ background: `var(--${t})`, border: `var(--bw-lg) solid var(--${t}-edge)` }}>
+            <Link key={item.href} href={item.href} onClick={tap} className="w-[150px] shrink-0 snap-start rounded-[18px] p-3.5 transition-transform active:scale-[0.98]" style={{ background: `var(--${t})`, border: `var(--bw-lg) solid var(--${t}-edge)` }}>
               <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-white" style={{ border: `var(--bw) solid var(--${t}-edge)` }}><Icon name={item.icon} width={19} weight="bold" /></span>
               <span className="mt-4 block text-[14px] font-black leading-tight">{item.title}</span>
               <span className="mt-0.5 block text-[11px] font-semibold text-[var(--muted)]">{item.detail}</span>
@@ -363,14 +351,16 @@ function cap(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function whenBadge(iso: string): string | undefined {
+// Относительный день с цветом: сегодня — персик, завтра — олива, вчера — коралл.
+function whenBadge(iso: string): { label: string; tone: string } | undefined {
   const date = new Date(iso);
   const now = new Date();
   const today = new Date(now); today.setHours(0, 0, 0, 0);
   const target = new Date(date); target.setHours(0, 0, 0, 0);
   const diff = Math.round((target.getTime() - today.getTime()) / 86400000);
-  if (diff === 0) return `сегодня · ${timeF.format(date)}`;
-  if (diff === 1) return `завтра · ${timeF.format(date)}`;
+  if (diff === 0) return { label: `сегодня · ${timeF.format(date)}`, tone: "peach" };
+  if (diff === 1) return { label: `завтра · ${timeF.format(date)}`, tone: "olive" };
+  if (diff === -1) return { label: `вчера · ${timeF.format(date)}`, tone: "coral" };
   return undefined;
 }
 
