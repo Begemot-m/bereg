@@ -397,6 +397,11 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     save(db);
     return delay(h as T);
   }
+  if (hwId && method === "DELETE") {
+    db.homework = db.homework.filter((x) => x.id !== Number(hwId));
+    save(db);
+    return delay({ ok: true } as T);
+  }
 
   // appointments (психолог)
   if (clean === "/appointments" && method === "GET") {

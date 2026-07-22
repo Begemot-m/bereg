@@ -20,6 +20,7 @@ import { PSYS } from "@/lib/catalog";
 import { getSubscription, startSubscription } from "@/lib/subscription";
 import { select, success, tap } from "@/lib/haptics";
 import { loadTherapists, saveTherapists, type TherapistStore } from "@/lib/therapists";
+import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
 
 const ME = 1; // в демо клиент «я» — карточка №1
 const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -57,9 +58,16 @@ export default function TherapyPage() {
     ?? ordered.find((item) => new Date(item.startsAt) > new Date()) ?? null;
   const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
 
+  // Пошаговый гайд при первом заходе в раздел.
+  const [guideOpen, setGuideOpen] = useState(false);
+  useEffect(() => { if (!therapyGuideSeen()) setGuideOpen(true); }, []);
+
   if (bookingsLoading || therapyLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
   // Интерфейс терапии показывается всегда — статистика копится независимо от терапевта.
-  return <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />;
+  return <>
+    <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
+    {guideOpen && <TherapyGuide onClose={() => setGuideOpen(false)} />}
+  </>;
 }
 
 function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {

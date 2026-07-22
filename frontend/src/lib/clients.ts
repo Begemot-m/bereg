@@ -69,6 +69,9 @@ export const sendHomework = (clientId: number, text: string) =>
 export const updateHomework = (id: number, patch: Partial<Pick<Homework, "text" | "status">>) =>
   apiFetch<Homework>(`/homework/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 
+export const deleteHomework = (id: number) =>
+  apiFetch<{ ok: boolean }>(`/homework/${id}`, { method: "DELETE" });
+
 export const listMoods = (clientId: number) => apiFetch<Mood[]>(`/clients/${clientId}/moods`);
 
 export type MyBooking = { id: number; psyName: string; startsAt: string; durationMin: number; format: "online" | "offline" };

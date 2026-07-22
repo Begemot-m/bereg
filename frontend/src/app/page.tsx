@@ -8,15 +8,15 @@ import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
+import { WorkStats } from "@/components/work-stats";
 import { motion } from "motion/react";
 
 import { Stagger, StaggerItem } from "@/components/motion";
 import { listAppointments, type Appointment } from "@/lib/appointments";
-import { listClients, listMyBookings, type Client, type Mood, type MyBooking } from "@/lib/clients";
+import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
-import { getWorkHours } from "@/lib/schedule";
 import { Disclosure } from "@/components/ui";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 
@@ -46,8 +46,6 @@ export default function Home() {
 function PsyHome() {
   const name = useName();
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const { data: therapy } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
   const now = new Date();
   const todayKey = localDay(now);
@@ -61,9 +59,6 @@ function PsyHome() {
     [appts, todayKey],
   );
   const next = upcoming[0];
-  const activeClients = clients.filter((c) => c.status === "therapy").length;
-  const weekday = (now.getDay() + 6) % 7;
-  const freeToday = Math.max(0, (work?.hours?.[weekday]?.length ?? 0) - today.length);
 
   return (
     <HomeFrame
@@ -72,15 +67,9 @@ function PsyHome() {
       subIcon="calendar"
       focus={<SessionFocus appointment={next} />}
     >
-      <PulseStrip
-        items={[
-          { icon: "calendar", value: String(today.length), label: "сессии" },
-          { icon: "clock", value: String(freeToday), label: "свободно" },
-          { icon: "users", value: String(activeClients), label: "в терапии" },
-        ]}
-      />
-
       <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />
+
+      <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" tone="olive" />
 
       <section>
         <SectionTitle action={<Link href="/sessions" onClick={tap} className="text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Все сессии →</Link>}>Ваш день</SectionTitle>
@@ -259,23 +248,6 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
 
 function Arrow() {
   return <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--amber-soft)] text-[19px] font-black text-[var(--amber-edge)] transition-transform duration-200 group-hover:translate-x-0.5" style={{ border: "var(--bw) solid var(--amber-edge)" }}>›</span>;
-}
-
-function PulseStrip({ items }: { items: { icon: IconName; value: string; label: string }[] }) {
-  return (
-    <section>
-      <SectionTitle>В двух словах</SectionTitle>
-      <div className="grid grid-cols-3 overflow-hidden rounded-[20px]" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
-        {items.map((item, index) => (
-          <div key={item.label} className="min-w-0 px-2.5 py-3.5 text-center" style={index ? { borderLeft: "var(--bw) solid var(--amber-edge)" } : undefined}>
-            <Icon name={item.icon} width={16} weight="bold" className="mx-auto" />
-            <p className="font-tight tnum mt-1 text-[22px] font-black leading-none">{item.value}</p>
-            <p className="mx-auto mt-1 max-w-[92px] text-[9px] font-black uppercase leading-tight tracking-[.045em] text-[var(--muted)]">{item.label}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
 }
 
 function SessionRow({ appointment, divided }: { appointment: Appointment; divided: boolean }) {
