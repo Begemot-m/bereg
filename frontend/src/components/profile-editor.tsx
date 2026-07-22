@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { Badge, Button, Input, Textarea } from "@/components/ui";
-import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, METHOD_DESCRIPTIONS, TOPICS } from "@/lib/catalog";
+import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, type PsyProfile } from "@/lib/profile";
 
@@ -129,7 +129,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
     {location && <section className="chunk p-4"><SectionTitle icon="pin" title="Формат и место" /><p className="text-[13px] font-bold">{location}</p>{profile?.format !== "online" && profile?.location.address && !profile.location.publicExactAddress && <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Точный адрес клиент получит после подтверждения очной встречи.</p>}</section>}
     {(profile?.languages?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Языки консультации</p><div className="flex flex-wrap gap-1.5">{profile!.languages.map((language) => <Tag key={language}>{language}</Tag>)}</div></section>}
     {(profile?.topics?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем можно обратиться</p><div className="flex flex-wrap gap-1.5">{profile!.topics.map((topic) => <Tag key={topic}>{topic}</Tag>)}</div></section>}
-    {methods.length > 0 && <section className="chunk space-y-2 p-4"><SectionTitle icon="therapy" title="Как я работаю" />{methods.map((method) => <div key={method} className="rounded-[15px] bg-[var(--surface-2)] p-3 stroke"><p className="text-[13px] font-black">{method}</p><p className="mt-1 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{METHOD_DESCRIPTIONS[method] ?? "Метод подбирается под запрос и задачи клиента."}</p></div>)}</section>}
+    {methods.length > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Методы и подходы</p><div className="flex flex-wrap gap-1.5">{methods.map((method) => <Tag key={method}>{method === profile?.primaryMethod ? `★ ${method}` : method}</Tag>)}</div></section>}
     {profile?.about ? <section className="chunk p-4"><SectionTitle icon="spark" title="О специалисте" /><p className="text-[14px] leading-relaxed">{profile.about}</p></section> : <PreviewEmpty text="Добавьте рассказ о себе — он появится здесь." />}
     {profile?.firstSession && <section className="chunk p-4"><SectionTitle icon="compass" title="Как проходит первая встреча" /><p className="text-[14px] leading-relaxed">{profile.firstSession}</p></section>}
     {(profile?.education?.length ?? 0) > 0 && <section className="chunk p-4"><SectionTitle icon="book" title="Образование" /><ul className="space-y-2">{profile!.education.map((item, index) => <li key={`${item}-${index}`} className="flex gap-2 text-[13px]"><Icon name="check" width={16} className="mt-0.5 shrink-0" />{item}</li>)}</ul></section>}
@@ -174,11 +174,8 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const updateLocation = (patch: Partial<PsyProfile["location"]>) => setDraft((current) => ({ ...current, location: { ...current.location, ...patch } }));
 
   const openStep = (target: number) => { tap(); setError(""); setStep(target); };
-  const next = () => {
-    const message = validateStep(STEPS[step].id, draft);
-    if (message) { setError(message); return; }
-    select(); setError(""); setStep(Math.min(STEPS.length - 1, step + 1));
-  };
+  // Пролистывать можно всегда — незаполненные шаги подсвечены цветом в полосе сверху.
+  const next = () => { select(); setError(""); setStep(Math.min(STEPS.length - 1, step + 1)); };
   const back = () => { tap(); setError(""); setStep((current) => Math.max(0, current - 1)); };
   const save = () => {
     const firstInvalid = STEPS.slice(0, -1).findIndex((item) => validateStep(item.id, draft));
@@ -204,16 +201,20 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       </div>
       <div className="flex gap-1 border-t px-3 py-2.5" style={{ borderColor: "var(--edge-neutral)" }}>
         {STEPS.map((item, itemIndex) => {
-          const done = itemIndex < STEPS.length - 1 && isComplete(item.id, draft);
+          const isPreview = itemIndex === STEPS.length - 1;
+          const done = !isPreview && isComplete(item.id, draft);
           const active = itemIndex === index;
+          // Заполненные — зелёные, недозаполненные — янтарные (сигнал), текущий — тёмная обводка.
+          const bg = isPreview ? "var(--surface-2)" : done ? "var(--green)" : "var(--amber)";
+          const edge = isPreview ? "var(--edge-neutral)" : done ? "var(--green-edge)" : "var(--amber-edge)";
           return (
             <button
               key={item.id}
               onClick={() => openStep(itemIndex)}
-              aria-label={`${itemIndex + 1}. ${item.title}`}
+              aria-label={`${itemIndex + 1}. ${item.title}${done ? " — заполнено" : ""}`}
               aria-current={active}
               className="h-2.5 flex-1 rounded-full transition-colors"
-              style={{ background: active ? "var(--ink)" : done ? "var(--green)" : "var(--surface-2)", border: `1.5px solid ${active ? "var(--ink)" : done ? "var(--green-edge)" : "var(--edge-neutral)"}` }}
+              style={{ background: bg, border: `2px solid ${active ? "var(--ink)" : edge}` }}
             />
           );
         })}
@@ -268,13 +269,73 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
 function TopicsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="С чем к вам можно обратиться" hint="Выберите конкретные запросы. В карточке покажем два наиболее подходящих под выбор клиента."><div className="flex flex-wrap gap-2">{TOPICS.map((topic) => <Choice key={topic} active={draft.topics.includes(topic)} onClick={() => update({ topics: toggle(draft.topics, topic) })}>{topic}</Choice>)}</div><p className="text-[11px] font-semibold text-[var(--muted)]">Выбрано: {draft.topics.length}. Оптимально 3–7 запросов.</p></StepCard>; }
 
 function MethodsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
-  const choosePrimary = (method: string) => update({ primaryMethod: method, approach: method, methods: draft.methods.includes(method) ? draft.methods : [method, ...draft.methods] });
-  return <StepCard title="Как вы работаете" hint="Основной метод стоит рядом с именем. Дополнительные раскрываются на странице профиля."><Field label="Основной метод"><div className="flex flex-wrap gap-2">{METHODS.map((method) => <Choice key={method} active={draft.primaryMethod === method} onClick={() => choosePrimary(method)}>{method}</Choice>)}</div></Field><Field label="Дополнительные методы"><div className="space-y-2">{METHODS.map((method) => { const active = draft.methods.includes(method); return <button key={method} onClick={() => { const methods = toggle(draft.methods, method); update({ methods, primaryMethod: draft.primaryMethod === method && !methods.includes(method) ? "" : draft.primaryMethod, approach: draft.primaryMethod === method && !methods.includes(method) ? "" : draft.primaryMethod }); }} className="flex w-full items-start gap-3 rounded-[16px] bg-white p-3 text-left stroke"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full stroke" style={active ? { background: "var(--ink)", color: "white", borderColor: "var(--ink)" } : undefined}>{active ? "✓" : ""}</span><span><span className="block text-[13px] font-black">{method}</span><span className="mt-0.5 block text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{METHOD_DESCRIPTIONS[method]}</span></span></button>; })}</div></Field></StepCard>;
+  const [custom, setCustom] = useState("");
+  // Отметить/снять метод. Первый отмеченный автоматически становится основным.
+  const toggleMethod = (method: string) => {
+    const methods = toggle(draft.methods, method);
+    const primaryMethod = methods.includes(draft.primaryMethod) ? draft.primaryMethod : (methods[0] ?? "");
+    update({ methods, primaryMethod, approach: primaryMethod });
+  };
+  const setPrimary = (method: string) => update({ primaryMethod: method, approach: method });
+  const addCustom = () => {
+    const value = custom.trim();
+    if (!value || draft.methods.includes(value)) { setCustom(""); return; }
+    const methods = [...draft.methods, value];
+    update({ methods, primaryMethod: draft.primaryMethod || value, approach: draft.primaryMethod || value });
+    setCustom(""); tap();
+  };
+  const options = [...new Set([...METHODS, ...draft.methods])];
+  return <StepCard title="В каких подходах работаете" hint="Отметьте свои школы — можно несколько. Первый становится основным (рядом с именем), его сменить можно тапом по звёздочке.">
+    <div className="flex flex-wrap gap-2">
+      {options.map((method) => {
+        const active = draft.methods.includes(method);
+        const primary = draft.primaryMethod === method;
+        return (
+          <span key={method} className="inline-flex items-center overflow-hidden rounded-full" style={{ border: `var(--bw) solid var(--${active ? "olive-edge" : "edge-neutral"})`, background: active ? "var(--olive)" : "#fff" }}>
+            <button onClick={() => { select(); toggleMethod(method); }} className="py-2 pl-3 pr-1.5 text-[11px] font-black" style={{ color: "var(--ink)" }}>{method}</button>
+            {active && <button onClick={() => { select(); setPrimary(method); }} className="flex h-7 w-7 items-center justify-center" aria-label={primary ? "Основной метод" : "Сделать основным"}><Icon name="star" width={14} weight={primary ? "fill" : "regular"} color={primary ? "var(--amber-edge)" : "var(--muted)"} /></button>}
+          </span>
+        );
+      })}
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="flex flex-1 items-center gap-2 rounded-[14px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={custom} onChange={(event) => setCustom(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustom(); } }} placeholder="Свой подход" className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
+      <button onClick={addCustom} disabled={!custom.trim()} className="shrink-0 rounded-[13px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
+    </div>
+    {draft.primaryMethod && <p className="text-[11px] font-semibold text-[var(--muted)]">Основной метод: <span className="font-black text-[var(--ink)]">{draft.primaryMethod}</span></p>}
+  </StepCard>;
 }
 
 function FormatStep({ draft, update, updateLocation }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void; updateLocation: (patch: Partial<PsyProfile["location"]>) => void }) {
-  const offline = draft.format !== "online";
-  return <StepCard title="Где проходят встречи" hint="Точный адрес скрыт по умолчанию. Вы сами решаете, показывать ли его всем посетителям профиля."><div className="grid grid-cols-3 gap-2"><Choice active={draft.format === "online"} onClick={() => update({ format: "online" })}>Онлайн</Choice><Choice active={draft.format === "offline"} onClick={() => update({ format: "offline" })}>Очно</Choice><Choice active={draft.format === "both"} onClick={() => update({ format: "both" })}>Оба</Choice></div>{offline && <div className="space-y-3 rounded-[18px] bg-white p-3 stroke"><div className="grid grid-cols-2 gap-2"><Field label="Город"><Input value={draft.location.city} onChange={(event) => updateLocation({ city: event.target.value })} placeholder="Москва" /></Field><Field label="Район"><Input value={draft.location.district} onChange={(event) => updateLocation({ district: event.target.value })} placeholder="Хамовники" /></Field></div><Field label="Метро или ориентир"><Input value={draft.location.metro} onChange={(event) => updateLocation({ metro: event.target.value })} placeholder="м. Фрунзенская" /></Field><Field label="Точный адрес"><Input value={draft.location.address} onChange={(event) => updateLocation({ address: event.target.value })} placeholder="Улица, дом, кабинет" /></Field><label className="flex cursor-pointer items-start gap-3 rounded-[15px] bg-[var(--amber-soft)] p-3 stroke" style={{ borderColor: "var(--amber-edge)" }}><button role="switch" aria-checked={draft.location.publicExactAddress} onClick={(event) => { event.preventDefault(); select(); updateLocation({ publicExactAddress: !draft.location.publicExactAddress }); }} className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full stroke" style={{ background: draft.location.publicExactAddress ? "var(--ink)" : "white" }}><motion.span animate={{ x: draft.location.publicExactAddress ? 20 : 2 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white stroke" /></button><span><span className="block text-[12px] font-black">Показывать точный адрес в профиле</span><span className="mt-0.5 block text-[10px] font-semibold leading-relaxed text-[var(--muted)]">Если выключено, клиент увидит только город, район и метро. Адрес откроется после подтверждения записи.</span></span></label></div>}</StepCard>;
+  const online = draft.format === "online" || draft.format === "both";
+  const offline = draft.format === "offline" || draft.format === "both";
+  // Мультиформат: можно выбрать оба. Хотя бы один остаётся включённым.
+  const toggleFormat = (which: "online" | "offline") => {
+    const nextOnline = which === "online" ? !online : online;
+    const nextOffline = which === "offline" ? !offline : offline;
+    if (!nextOnline && !nextOffline) return;
+    update({ format: nextOnline && nextOffline ? "both" : nextOnline ? "online" : "offline" });
+  };
+  return <StepCard title="Как проходят встречи" hint="Можно выбрать сразу оба формата. Точный адрес по умолчанию скрыт — вы сами решаете, показывать ли его.">
+    <div className="grid grid-cols-2 gap-2">
+      <FormatToggle active={online} icon="video" label="Онлайн" onClick={() => toggleFormat("online")} />
+      <FormatToggle active={offline} icon="pin" label="Очно" onClick={() => toggleFormat("offline")} />
+    </div>
+    {offline && <div className="space-y-3 rounded-[18px] bg-white p-3 stroke">
+      <Field label="Город"><Input value={draft.location.city} onChange={(event) => updateLocation({ city: event.target.value })} placeholder="Москва" /></Field>
+      <Field label="Метро или ориентир"><Input value={draft.location.metro} onChange={(event) => updateLocation({ metro: event.target.value })} placeholder="м. Фрунзенская" /></Field>
+      <Field label="Точный адрес"><Input value={draft.location.address} onChange={(event) => updateLocation({ address: event.target.value })} placeholder="Улица, дом, кабинет" /></Field>
+      <label className="flex cursor-pointer items-start gap-3 rounded-[15px] bg-[var(--amber-soft)] p-3 stroke" style={{ borderColor: "var(--amber-edge)" }}><button role="switch" aria-checked={draft.location.publicExactAddress} onClick={(event) => { event.preventDefault(); select(); updateLocation({ publicExactAddress: !draft.location.publicExactAddress }); }} className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full stroke" style={{ background: draft.location.publicExactAddress ? "var(--ink)" : "white" }}><motion.span animate={{ x: draft.location.publicExactAddress ? 20 : 2 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white stroke" /></button><span><span className="block text-[12px] font-black">Показывать точный адрес в профиле</span><span className="mt-0.5 block text-[10px] font-semibold leading-relaxed text-[var(--muted)]">Если выключено, клиент увидит только город и метро. Точный адрес откроется после подтверждения записи.</span></span></label>
+    </div>}
+  </StepCard>;
+}
+
+function FormatToggle({ active, icon, label, onClick }: { active: boolean; icon: IconName; label: string; onClick: () => void }) {
+  return (
+    <button onClick={() => { select(); onClick(); }} className="flex items-center justify-center gap-2 rounded-[15px] py-3 text-[13px] font-black transition-transform active:scale-[0.98]" style={{ background: active ? "var(--olive)" : "#fff", border: `var(--bw) solid var(--${active ? "olive-edge" : "edge-neutral"})`, color: "var(--ink)" }}>
+      <Icon name={icon} width={17} weight="bold" /> {label}
+    </button>
+  );
 }
 
 function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Условия одной встречи" hint="Именно эти значения используются в фильтрах и на карточке каталога."><Field label="Стоимость, ₽"><Input type="number" min={0} step={100} value={draft.sessionPrice} onChange={(event) => update({ sessionPrice: Number(event.target.value) })} /></Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: Math.max(30, draft.sessionMinutes - 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[13px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes} мин</span></div><button onClick={() => { select(); update({ sessionMinutes: Math.min(120, draft.sessionMinutes + 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><div className="rounded-[16px] bg-[var(--green-soft)] p-3 text-[11px] font-semibold leading-relaxed stroke" style={{ borderColor: "var(--green-edge)" }}>Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</div></StepCard>; }
@@ -287,7 +348,7 @@ function ExperienceStep({ draft, update }: { draft: PsyProfile; update: (patch: 
 function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Помогите почувствовать, каково с вами" hint="Без обещаний результата: спокойно расскажите о стиле работы и первой встрече."><Field label="О себе и подходе"><Textarea value={draft.about} onChange={(event) => update({ about: event.target.value })} placeholder="Как вы строите работу, что для вас важно в контакте…" rows={5} /><Counter value={draft.about} recommended="400–900 знаков" /></Field><Field label="Как проходит первая встреча"><Textarea value={draft.firstSession} onChange={(event) => update({ firstSession: event.target.value })} placeholder="Что обсудите, как определите запрос и следующий шаг…" rows={5} /><Counter value={draft.firstSession} recommended="250–600 знаков" /></Field></StepCard>; }
 
 function StepCard({ title, hint, children }: { title: string; hint: string; children: ReactNode }) { return <section className="chunk space-y-4 bg-[var(--surface-2)] p-4"><div><h4 className="font-tight text-[18px] font-black">{title}</h4><p className="mt-1 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{hint}</p></div>{children}</section>; }
-function Choice({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) { return <button onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black transition-transform active:scale-95 stroke" style={active ? { background: "var(--ink)", color: "white", borderColor: "var(--ink)" } : { background: "white" }}>{active ? "✓ " : ""}{children}</button>; }
+function Choice({ active, onClick, children, tone = "olive" }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string }) { return <button onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black transition-transform active:scale-95" style={active ? { background: `var(--${tone})`, color: "var(--ink)", border: `var(--bw) solid var(--${tone}-edge)` } : { background: "white", border: "var(--bw) solid var(--edge-neutral)" }}>{children}</button>; }
 function Counter({ value, recommended }: { value: string; recommended: string }) { return <p className="mt-1 text-right text-[10px] font-semibold text-[var(--muted-2)]">{value.length} · рекомендуем {recommended}</p>; }
 
 function BasicProfileForm({ onDone }: { onDone: () => void }) {

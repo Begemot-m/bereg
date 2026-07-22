@@ -75,7 +75,7 @@ export const EMPTY_PREFS: CatalogPrefs = { topics: [], format: "any", city: "", 
 export const EMPTY_FILTERS: CatalogFilters = { query: "", topics: [], methods: [], format: "any", city: "", maxPrice: null, gender: "any", language: "any", minYears: 0, verifiedOnly: false, thisWeek: false };
 
 export const TOPICS = ["тревога", "выгорание", "отношения", "самооценка", "травма", "утрата", "стресс", "сон", "прокрастинация", "одиночество"];
-export const METHODS = ["КПТ", "ACT", "EMDR", "Схема-терапия", "Гештальт", "DBT", "Психоанализ"];
+export const METHODS = ["КПТ", "ACT", "DBT", "Схема-терапия", "EMDR", "Гештальт", "Психоанализ", "Психодрама", "Экзистенциальная", "Юнгианский анализ", "Системная семейная", "Транзактный анализ", "Нарративная", "Клиент-центрированная", "Телесно-ориентированная", "Арт-терапия", "КПТ третьей волны", "IFS (Внутренние семьи)", "Майндфулнес", "Гипнотерапия"];
 export const LANGUAGES = ["русский", "английский", "татарский", "казахский", "армянский"];
 export const EXPERIENCE_OPTIONS = [0, 3, 7] as const;
 export const METHOD_DESCRIPTIONS: Record<string, string> = {
