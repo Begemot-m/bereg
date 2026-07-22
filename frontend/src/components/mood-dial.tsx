@@ -98,7 +98,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
       {/* Голова-блок: цвет заливает всю страницу, крона стоит на белой шапке */}
       <div className="flex flex-1 flex-col overflow-y-auto bg-white">
         <MoodHead value={value} />
-        <div className="flex flex-1 flex-col px-4 pb-8" style={{ background: tint, transition: "background 260ms ease" }}>
+        <div className="flex flex-1 flex-col px-4 pb-8" style={{ background: tint }}>
           <h2 className="text-center font-tight text-[28px] font-black uppercase leading-[0.95] tracking-tight">Какое у вас<br />настроение сегодня?</h2>
           <p className="mt-2 text-center text-[20px] font-black capitalize">{MOOD_LABEL[level]}</p>
 

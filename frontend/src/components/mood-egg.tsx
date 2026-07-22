@@ -117,49 +117,33 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
   );
 }
 
-// Голова-блок для окна настроения: облако-крона во всю ширину, БЕЗ обводки —
-// заливка = цвет страницы, так что контур головы становится границей блока.
-// Верх со скруглёнными бугорками читается на белой шапке.
+// Голова-блок для окна настроения: облако-крона ВО ВСЮ ШИРИНУ, без обводки —
+// заливка = цвет страницы, контур головы = верхняя граница блока.
+// Лицо статичное: меняются только рот и цвет, плавно по шкале.
 export function MoodHead({ value }: { value: number }) {
   const t = Math.min(1, Math.max(0, (value - 1) / 4));
   const fill = mix(t);
-  const happy = smooth((t - 0.5) / 0.42);
-  const cx1 = 150, cx2 = 240, cy = 150;
+  const cx1 = 152, cx2 = 238, cy = 122;
 
-  // Рот: мягкий фрован → широкая открытая улыбка с зубиком.
-  const frown = `M 172 200 Q 195 ${192 - (1 - t) * 10} 218 200`;
-  const smile = `M 158 186 Q 195 ${208 + happy * 34} 232 186 Q 195 ${200 + happy * 14} 158 186 Z`;
+  // Рот: единая дуга, контрольная точка плавно едет вниз (улыбка) / вверх (грусть).
+  const mx = 195, my = 176, half = 28 + t * 8;
+  const ctrlY = my + (t - 0.5) * 74; // t=1 → улыбка, t=0 → грусть
+  const mouth = `M ${mx - half} ${my} Q ${mx} ${ctrlY} ${mx + half} ${my}`;
 
   return (
-    <svg viewBox="0 0 390 260" width="100%" className="block" role="img" aria-label={`Настроение: ${Math.round(value)} из 5`} style={{ height: "auto" }}>
-      {/* Облако-крона: заливка совпадает с фоном страницы, границы нет */}
+    <svg viewBox="0 0 390 236" width="100%" className="block" role="img" aria-label={`Настроение: ${Math.round(value)} из 5`} style={{ height: "auto" }}>
+      {/* Пять бугорков-полукругов ровно на всю ширину, бока — по краям экрана */}
       <path
-        d="M0 260 L0 168 C 0 132 34 106 66 118 C 60 78 116 66 138 106 C 146 60 208 58 220 104 C 242 64 306 70 314 112 C 336 74 392 92 384 138 L390 168 L390 260 Z"
+        d="M0 236 L0 72 A 39 39 0 0 1 78 72 A 39 39 0 0 1 156 72 A 39 39 0 0 1 234 72 A 39 39 0 0 1 312 72 A 39 39 0 0 1 390 72 L390 236 Z"
         fill={fill}
       />
-      <ellipse cx="96" cy="120" rx="20" ry="26" fill="#fff" opacity=".16" transform="rotate(-18 96 120)" />
-
-      {/* Глаза — крупные белые с чёрным зрачком */}
-      <ellipse cx={cx1} cy={cy} rx="26" ry="28" fill="#fff" />
-      <ellipse cx={cx2} cy={cy} rx="26" ry="28" fill="#fff" />
-      <circle cx={cx1} cy={cy + 3 - happy * 4} r="11.5" fill="var(--ink)" />
-      <circle cx={cx2} cy={cy + 3 - happy * 4} r="11.5" fill="var(--ink)" />
-      {/* Счастливые полукруглые глаза при радости */}
-      <g opacity={happy}>
-        <path d={`M ${cx1 - 22} ${cy + 2} Q ${cx1} ${cy - 24} ${cx1 + 22} ${cy + 2}`} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" />
-        <path d={`M ${cx2 - 22} ${cy + 2} Q ${cx2} ${cy - 24} ${cx2 + 22} ${cy + 2}`} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" />
-      </g>
-
-      {/* Щёчки при радости */}
-      <g opacity={happy}>
-        <ellipse cx="112" cy="184" rx="15" ry="9" fill="#e58a7a" opacity=".5" />
-        <ellipse cx="278" cy="184" rx="15" ry="9" fill="#e58a7a" opacity=".5" />
-      </g>
-
-      {/* Рот */}
-      <path d={frown} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" opacity={1 - happy} />
-      <path d={smile} fill="var(--ink)" opacity={happy} />
-      <rect x="188" y="188" width="14" height="9" rx="3" fill="#fff" opacity={happy} />
+      {/* Статичные глаза — крупные белые с чёрным зрачком */}
+      <circle cx={cx1} cy={cy} r="25" fill="#fff" />
+      <circle cx={cx2} cy={cy} r="25" fill="#fff" />
+      <circle cx={cx1} cy={cy + 2} r="11" fill="var(--ink)" />
+      <circle cx={cx2} cy={cy + 2} r="11" fill="var(--ink)" />
+      {/* Рот — единственная меняющаяся часть */}
+      <path d={mouth} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" />
     </svg>
   );
 }
