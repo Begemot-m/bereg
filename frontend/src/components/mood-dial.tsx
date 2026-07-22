@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import { Icon } from "@/components/icons";
 import { MoodBlob, MoodHead, moodColor } from "@/components/mood-egg";
 import { suggestFamilies } from "@/lib/emotions";
-import { select, success, tap, tickSteps } from "@/lib/haptics";
+import { primeTick, select, success, tap, tickSteps } from "@/lib/haptics";
 import { MOOD_LABEL } from "@/lib/mascots";
 
 const STEPS = 41;     // 1.0 … 5.0 с шагом 0.1
@@ -53,6 +53,8 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
   const lastStep = useRef(Math.round(((mood ?? 3) - 1) * 10));
   const moodScroll = useRef<HTMLElement>(null);
   const resetFrame = useRef(0);
+  const dragFrame = useRef(0);
+  const pendingStep = useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
   const level = Math.round(value);
 
@@ -63,9 +65,14 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
     setScreen("mood");
     lastStep.current = Math.round(((mood ?? 3) - 1) * 10);
     drag.current = null;
+    pendingStep.current = null;
+    cancelAnimationFrame(dragFrame.current);
     cancelAnimationFrame(resetFrame.current);
     resetFrame.current = requestAnimationFrame(() => moodScroll.current?.scrollTo({ top: 0 }));
-    return () => cancelAnimationFrame(resetFrame.current);
+    return () => {
+      cancelAnimationFrame(resetFrame.current);
+      cancelAnimationFrame(dragFrame.current);
+    };
   }, [open, mood, emotions]);
 
   const applyStep = (step: number, tactile = true) => {
@@ -85,16 +92,26 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    primeTick();
     drag.current = { x: event.clientX, step: lastStep.current };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return;
-    applyStep(drag.current.step + (event.clientX - drag.current.x) / PX_PER_STEP);
+    pendingStep.current = drag.current.step + (event.clientX - drag.current.x) / PX_PER_STEP;
+    if (dragFrame.current) return;
+    dragFrame.current = requestAnimationFrame(() => {
+      dragFrame.current = 0;
+      if (pendingStep.current !== null) applyStep(pendingStep.current);
+    });
   };
 
   const stopDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (pendingStep.current !== null) applyStep(pendingStep.current);
+    pendingStep.current = null;
+    cancelAnimationFrame(dragFrame.current);
+    dragFrame.current = 0;
     drag.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
@@ -153,9 +170,9 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
               onPointerUp={stopDrag}
               onPointerCancel={stopDrag}
               onKeyDown={onMoodKey}
-              className="relative mt-1 h-[clamp(270px,40vh,340px)] shrink-0 cursor-grab touch-none select-none overflow-hidden outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/40"
+              className="relative mt-1 h-[clamp(260px,38vh,320px)] shrink-0 cursor-grab touch-none select-none overflow-hidden outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/40"
             >
-              <div className="absolute bottom-0 left-1/2 h-[145%] w-[118%] -translate-x-1/2">
+              <div className="absolute inset-0">
                 <MoodHead value={value} />
               </div>
             </div>

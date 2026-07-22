@@ -10,8 +10,12 @@ type TgHaptic = {
 
 function tg(): TgHaptic | null {
   if (typeof window === "undefined") return null;
-  // @ts-expect-error — глобал Telegram задан снаружи
-  return window.Telegram?.WebApp?.HapticFeedback ?? null;
+  const telegram = window as unknown as {
+    Telegram?: { WebApp?: { HapticFeedback?: TgHaptic; isVersionAtLeast?: (version: string) => boolean } };
+  };
+  const webApp = telegram.Telegram?.WebApp;
+  if (!webApp || (webApp.isVersionAtLeast && !webApp.isVersionAtLeast("6.1"))) return null;
+  return webApp.HapticFeedback ?? null;
 }
 
 function vibrate(pattern: number | number[]) {
@@ -39,7 +43,7 @@ export function success() {
   else vibrate([10, 40, 14]);
 }
 
-// Щелчок диска: короткий клик через WebAudio + микровибрация.
+// Щелчок шкалы: короткий клик через WebAudio + микровибрация.
 let ctx: AudioContext | null = null;
 let muted = false;
 
@@ -53,44 +57,72 @@ export function tickMuted(): boolean {
   return localStorage.getItem("bereg:tick-muted") === "1";
 }
 
-/** Щелчок при прокрутке диска — как у механического таймера. */
-export function tick() {
-  select();
-  if (typeof window === "undefined" || muted || tickMuted()) return;
+function audioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
   try {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return;
+    if (!Ctor) return null;
     ctx = ctx ?? new Ctor();
-    if (ctx.state === "suspended") void ctx.resume();
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    return ctx;
+  } catch {
+    return null;
+  }
+}
+
+export function primeTick() {
+  const audio = audioContext();
+  if (audio?.state === "suspended") void audio.resume();
+}
+
+function soundAt(audio: AudioContext, when: number) {
+  try {
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
     osc.type = "square";
-    osc.frequency.setValueAtTime(1750, now);
-    osc.frequency.exponentialRampToValueAtTime(760, now + 0.02);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.07, now + 0.003);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.04);
+    osc.frequency.setValueAtTime(1660, when);
+    osc.frequency.exponentialRampToValueAtTime(820, when + 0.018);
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.052, when + 0.0025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.028);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(when);
+    osc.stop(when + 0.032);
   } catch { /* звук не критичен */ }
 }
 
-let queuedUntil = 0;
+/** Щелчок при прокрутке шкалы — как у механического таймера. */
+export function tick() {
+  select();
+  if (typeof window === "undefined" || muted || tickMuted()) return;
+  const audio = audioContext();
+  if (!audio) return;
+  if (audio.state === "suspended") void audio.resume();
+  soundAt(audio, audio.currentTime);
+}
 
 /**
- * Проигрывает отдельный механический отклик для каждого пересечённого деления.
- * Очередь не даёт быстрым свайпам схлопнуть несколько щелчков в один звук.
+ * Проигрывает отдельный отклик для каждого пересечённого деления текущего кадра.
+ * Весь короткий burst укладывается максимум в 80 мс и не доигрывает старую очередь.
  */
 export function tickSteps(count: number) {
   if (typeof window === "undefined") return;
   const total = Math.max(0, Math.floor(count));
   if (!total) return;
-  const now = Date.now();
-  const start = Math.max(now, queuedUntil);
-  for (let index = 0; index < total; index += 1) {
-    window.setTimeout(tick, start - now + index * 18);
+
+  const haptic = tg();
+  if (haptic?.selectionChanged) {
+    for (let index = 0; index < total; index += 1) haptic.selectionChanged();
+  } else {
+    const pattern = Array.from({ length: total * 2 - 1 }, (_, index) => index % 2 === 0 ? 3 : 5);
+    vibrate(pattern);
   }
-  queuedUntil = start + total * 18;
+
+  if (muted || tickMuted()) return;
+  const audio = audioContext();
+  if (!audio) return;
+  if (audio.state === "suspended") void audio.resume();
+  const gap = Math.min(0.014, 0.08 / total);
+  for (let index = 0; index < total; index += 1) {
+    soundAt(audio, audio.currentTime + index * gap);
+  }
 }

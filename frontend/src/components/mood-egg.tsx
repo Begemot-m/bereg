@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { asset } from "@/lib/asset";
 
@@ -119,35 +119,93 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
   );
 }
 
-const MOOD_CHARACTERS = [1, 2, 3, 4, 5].map((level) => asset(`/mood/character-${level}.png`));
+const MOOD_BODY_MASK = asset("/mood/character-body-mask.png");
+const MOOD_EYES = asset("/mood/character-eyes.png");
+const MOOD_MOUTHS = [1, 2, 3, 4, 5].map((level) => asset(`/mood/character-mouth-${level}.png`));
+const MOOD_MOUTH_WIDTH = [44, 40, 34, 52, 58];
 
-// Полноэкранный персонаж собран из пяти согласованных растровых выражений.
-// Между соседними кадрами идёт перекрёстное растворение, поэтому глаза, рот и
-// цвет продолжают меняться даже на дробных значениях шкалы.
 export function MoodHead({ value }: { value: number }) {
   const position = Math.min(4, Math.max(0, value - 1));
   const lower = Math.floor(position);
   const upper = Math.ceil(position);
   const blend = position - lower;
+  const [blinking, setBlinking] = useState(false);
+  const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reopenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const schedule = () => {
+      blinkTimer.current = setTimeout(() => {
+        setBlinking(true);
+        reopenTimer.current = setTimeout(() => {
+          setBlinking(false);
+          schedule();
+        }, 115);
+      }, 2600 + Math.random() * 2600);
+    };
+    schedule();
+    return () => {
+      if (blinkTimer.current) clearTimeout(blinkTimer.current);
+      if (reopenTimer.current) clearTimeout(reopenTimer.current);
+    };
+  }, []);
+
+  const mouthFrames = lower === upper
+    ? [{ index: lower, opacity: 1 }]
+    : [{ index: lower, opacity: 1 - blend }, { index: upper, opacity: blend }];
+  const eyeTilt = (position - 2) * -1.2;
 
   return (
-    <div className="relative h-full w-full" role="img" aria-label={`Настроение: ${value.toFixed(1)} из 5`}>
-      {MOOD_CHARACTERS.map((src, index) => {
-        const opacity = lower === upper ? (index === lower ? 1 : 0) : index === lower ? 1 - blend : index === upper ? blend : 0;
-        return (
-          <motion.img
-            key={src}
-            src={src}
+    <div className="relative h-full w-full overflow-hidden" role="img" aria-label={`Настроение: ${value.toFixed(1)} из 5`}>
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-[-1px] bottom-0 top-4 will-change-[background-color]"
+        style={{
+          backgroundColor: moodColor(value),
+          WebkitMaskImage: `url(${MOOD_BODY_MASK})`,
+          maskImage: `url(${MOOD_BODY_MASK})`,
+          WebkitMaskPosition: "center",
+          maskPosition: "center",
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskSize: "100% 100%",
+          maskSize: "100% 100%",
+        }}
+      />
+
+      <div
+        aria-hidden="true"
+        data-testid="mood-eyes"
+        className="absolute left-1/2 top-[49%] w-[55%] -translate-x-1/2 -translate-y-1/2"
+        style={{ clipPath: "inset(0 0 18% 0)" }}
+      >
+        <img
+          src={MOOD_EYES}
+          alt=""
+          draggable={false}
+          className="block h-auto w-full select-none will-change-transform"
+          style={{
+            transform: `translateY(${eyeTilt}px) scaleY(${blinking ? 0.055 : 0.78})`,
+            transformOrigin: "50% 58%",
+            transition: blinking
+              ? "transform 58ms cubic-bezier(.5,0,1,1)"
+              : "transform 92ms cubic-bezier(0,0,.2,1)",
+          }}
+        />
+      </div>
+
+      <div aria-hidden="true" className="absolute left-1/2 top-[65%] h-[29%] w-[62%] -translate-x-1/2">
+        {mouthFrames.map(({ index, opacity }) => (
+          <img
+            key={MOOD_MOUTHS[index]}
+            src={MOOD_MOUTHS[index]}
             alt=""
-            aria-hidden="true"
             draggable={false}
-            className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain object-bottom"
-            initial={false}
-            animate={{ opacity, scale: 1 + Math.abs(position - 2) * 0.006 }}
-            transition={{ opacity: { duration: 0.12, ease: "linear" }, scale: { type: "spring", stiffness: 260, damping: 26 } }}
+            className="pointer-events-none absolute left-1/2 top-0 h-auto -translate-x-1/2 select-none"
+            style={{ opacity, width: `${MOOD_MOUTH_WIDTH[index]}%`, willChange: "opacity" }}
           />
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }

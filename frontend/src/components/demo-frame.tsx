@@ -42,6 +42,7 @@ export function DemoFrame({ children }: { children: ReactNode }) {
 
       <div className="md:rounded-[3rem] md:border md:border-[color:var(--hairline)] md:bg-white md:p-2.5 md:shadow-[0_50px_120px_-30px_rgba(44,46,49,0.4)]">
         <div
+          data-testid="phone-screen"
           className="relative md:h-[min(864px,90vh)] md:w-[400px] md:overflow-hidden md:rounded-[2.4rem] md:[transform:translateZ(0)]"
           style={{ background: "var(--bg)" }}
         >

@@ -1,56 +1,61 @@
-# Design QA — клиентские практики
+# Design QA — экран настроения
 
 ## Artifacts
 
-- Source visual truth: `C:/Users/matve/Desktop/Рефы визуала/590abfaa45d213c9d952d28b2fc142ee.jpg` and Bereg Icon Pack at `C:/Users/matve/Desktop/Bereg Icon Pack — Generated/preview-ui.png`.
-- Browser-rendered implementation: `C:/Users/matve/psy-platform/qa-tools-mobile.png`.
-- Combined comparison evidence: `C:/Users/matve/psy-platform/qa-tools-comparison.png`.
-- Viewport: 390 × 844 CSS pixels.
-- State: client Tools screen with one saved thought-diary draft and one completed GAD-7 check.
+- Source visual truth: `C:/Users/matve/psy-platform/docs/qa/mood-reference-v2.png`.
+- Browser-rendered implementation: `C:/Users/matve/psy-platform/docs/qa/mood-implementation-v2.png`.
+- Combined comparison evidence: `C:/Users/matve/psy-platform/docs/qa/mood-comparison-v2.png`.
+- Source pixels: 298 × 539, supplied framed-phone reference.
+- Implementation pixels and CSS size: 400 × 648 at device scale factor 1, captured from the desktop demo phone viewport.
+- Comparison canvas: 860 × 710; the source was proportionally enlarged without cropping, the implementation remained at native CSS-pixel density.
+- State: mood 5.0, joyful expression, first step of the mood check-in.
 
 ## Full-view comparison evidence
 
-The reference and implementation were placed into one 1590 × 900 comparison image before judging. The implementation carries across the reference system rather than its sample content: flat pastel fields, warm white cards, heavy dark display type, compact uppercase labels, large outlined radii, high-contrast black actions, four distinct semantic colors, and a fixed rounded navigation surface. The four real raster illustrations use the supplied Bereg icon pack and remain sharp at their displayed size.
+The source and implementation were placed in the same comparison image before judging. The generated character now uses the reference's five-lobed cloud silhouette, wide edge-to-edge body, paired white eyes with low black pupils, and open black mouth with two white teeth. The explicitly requested product deviations are preserved: the screen background remains white, the character uses the Bereg mood palette instead of orange, and the existing product controls sit below the character rather than on a full-screen colored field.
 
 ## Focused region evidence
 
-The 390 × 844 implementation is preserved at native CSS-pixel size inside the combined comparison, so the hero, card grid, type hierarchy, outlines, icon crops, buttons, and navigation remain readable without a separate crop. A separate breathing-flow capture was visually inspected in-browser at the same viewport: the colored header, white practice surface, 220 px illustration, evidence note, and primary action showed no clipping or alignment defect.
+A separate crop was not needed. The character face occupies more than half of the 400 px implementation width and remains clearly readable in the native-size full-view comparison. The low-resolution source does not contain additional face detail that a larger crop would reveal.
 
 ## Findings
 
 - No actionable P0/P1/P2 differences remain.
-- Fonts and typography: the existing Bereg rounded family and its 800–900 weights reproduce the playful, compact hierarchy of the reference. Headlines wrap intentionally at 390 px; no button or card label is clipped.
-- Spacing and layout rhythm: 16 px page margins, 2 × 2 practice grid, 2–2.5 px outline ladder, 18–24 px radii, and white lower card panels produce the same dense but readable rhythm as the reference. Persistent navigation overlaps only the scrollable continuation area, not the active primary action in a practice.
-- Colors and visual tokens: sky, lilac, green, coral, amber, ink, and warm white are mapped to existing product tokens. There are no gradients or heavy shadows; selected and active states retain sufficient contrast.
-- Image quality and asset fidelity: all four practice images are original 512 px PNG assets from the supplied Bereg pack, placed with `object-contain` and no stretching, placeholder art, CSS illustration, inline SVG illustration, or transparency halo.
-- Copy and content: instructions are short, non-diagnostic, and usable without clinical knowledge. GAD-7 explicitly says it is screening rather than diagnosis; the impairment question does not affect the score; grounding does not force text input.
-- Icons: actions use one Phosphor icon family at consistent 16–21 px optical size. Illustrative icons come only from the supplied raster pack.
-- Accessibility and motion: primary controls are at least 40 px high, native buttons and inputs expose labels, decorative images have empty alt text, the full-screen shell prevents background scroll, and reduced-motion mode removes shell, progress, intro, and breathing-image motion.
+- Fonts and typography: the existing Bereg heavy rounded display type keeps the reference's compact, playful hierarchy. The Russian headline wraps into three balanced lines without clipping; small labels and the primary action remain readable.
+- Spacing and layout rhythm: the body reaches both horizontal edges, the five lobes are centered, the face sits in the lower half of the character, and the full CTA remains visible in the 400 × 648 phone viewport.
+- Colors and visual tokens: the white background and continuous five-stop mood palette match the approved direction. Text and controls retain the existing ink and neutral tokens.
+- Image quality and asset fidelity: the body mask and eye layer were generated from the supplied reference, chroma-keyed, cropped, and optimized for the actual slot. Mouth states are real raster assets derived from the existing generated character set. No placeholder, emoji, inline SVG illustration, or CSS-drawn mascot is used.
+- Copy and content: all established product copy and the two-step save flow are preserved.
+- Motion and performance: only one eye layer and one or two adjacent mouth layers render at a time. At the tested fractional state 2.4 the slider contained three images and eight descendant nodes, replacing five simultaneous full-character Motion images. Moods are updated at most once per animation frame.
+- Accessibility: the character remains labelled as an image, the interaction remains an ARIA slider with value 1–5, keyboard arrows change the value by 0.1, and focus remains visible.
 
 ## Primary interactions tested
 
-- Opened all four client-only practice entry points at 390 × 844.
-- Started breathing in the default 4/6 rhythm, checked the optional 4/7/8 caution, started the timer, paused it, and verified early completion is available.
-- Entered a thought-diary situation, reloaded the page, reopened the practice, and confirmed the exact draft and step were restored. The home recommendation changed to “continue draft”.
-- Started grounding and confirmed it presents one object at a time with optional text plus “noticed” and “skip” actions.
-- Completed all seven GAD-7 questions with score 7, answered the separate impairment question, and verified the “light” band and non-diagnostic support copy.
-- Checked the browser console: no application errors. Only the known Telegram WebApp haptic warning appears outside Telegram.
-- Ran two successful optimized production builds with TypeScript validation and static page generation.
+- Keyboard step changed the slider from 4.0 to 3.9.
+- A horizontal drag changed the value continuously to 2.4 and displayed the blended intermediate expression.
+- The independent blink was observed after 2365 ms with the eye layer closing to `scaleY(0.055)` and reopening.
+- The joyful quick state produced the reference-like open mouth and two teeth.
+- “Дальше” opened the emotion-selection step; “Назад к настроению” returned to the character without losing the selected value.
+- At fractional values the runtime kept only three image nodes in the interactive character.
+- Browser console contained no application errors. Remaining warnings are the known Telegram WebApp 6.0 capability notices from the desktop demo harness; unsupported haptic calls are now bypassed.
+- `bun run build` completed successfully with TypeScript validation and all 25 pages generated.
 
 ## Comparison history
 
-- First pass P2: a fresh account recommended grounding while the supporting copy described a calm breathing rhythm. Fixed the no-history branch to recommend breathing.
-- First pass P2: saved form drafts restored after reopening, but the Tools cards did not expose that state. Fixed by prioritizing the saved draft in “What helps now” and changing the card action to “continue draft”.
-- First pass P3: the thought diary intro duplicated a generic primary action and two format choices. Removed the redundant action and left two explicit equal-weight choices.
-- Post-fix evidence: `C:/Users/matve/psy-platform/qa-tools-mobile.png` and `C:/Users/matve/psy-platform/qa-tools-comparison.png` show the corrected recommendation, draft label, and stable 2 × 2 card hierarchy.
+- First pass P1: the previous implementation used five simultaneous 500 KB full-character PNGs, producing lag and slow expression updates. Replaced with one generated raster body mask, one eye layer, and adjacent mouth layers only.
+- First pass P1: the character had visible side margins and a tall composition. Rebuilt the body to touch both edges and reduced the scene to `clamp(260px, 38vh, 320px)`.
+- First pass P1: small scale divisions could queue feedback after the gesture. Replaced the timer queue with a frame-local WebAudio burst capped at 80 ms and primed the audio context on pointer down.
+- Second pass P2: eyes were too small and the pupils were over-clipped. Increased the eye pair to 55% width, adjusted the crop, and restored the reference's low pupil placement.
+- Second pass P2: the joyful mouth was oversized and clipped at the body edge. Reduced its relative width from 90% to 58% of the face slot.
+- Second pass P2: the primary action touched the bottom edge of the demo phone. Reduced the character scene height while preserving full-width geometry; the CTA now fits completely.
+- Post-fix evidence: `docs/qa/mood-implementation-v2.png` and `docs/qa/mood-comparison-v2.png`.
 
 ## Open questions
 
-- None blocking. Practice history and drafts are intentionally local in this version; therapist sharing remains off until a separate consented data flow is designed.
+- None blocking.
 
 ## Follow-up polish
 
-- [P3] When a backend is introduced, sync only explicit user-approved summaries and keep raw journal text private by default.
-- [P3] Add a user-controlled cue volume if audio settings expand beyond the current quiet on/off phase signal.
+- [P3] A future sound setting can expose the existing click mute preference if the product adds a general sound-controls section.
 
 final result: passed
