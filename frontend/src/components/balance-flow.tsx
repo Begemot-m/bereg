@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
@@ -72,6 +72,10 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
   const [testing, setTesting] = useState(!guide);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<WheelAnswers>(initAnswers);
+  const persisted = useRef(false);
+  const summaryReached = step === WHEEL.length;
+  // Результат сохраняется сразу при показе — не зависит от того, какую кнопку нажмут.
+  useEffect(() => { if (summaryReached && !persisted.current) { persisted.current = true; onSave(answers); } }, [summaryReached, answers, onSave]);
   if (!testing) return <HelpDeck title="Колесо баланса" pages={WHEEL_HELP} onClose={onClose} doneLabel="Пройти колесо" onDone={() => { onGuideSeen(); setTesting(true); }} />;
 
   const summary = step === WHEEL.length;
@@ -105,7 +109,7 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
 
           <div className="p-5">
             {summary ? (
-              <ResultView answers={answers} pct={pct} band={band} locked={locked} onSave={() => { success(); onSave(answers); onClose(); }} onUnlock={onUnlock} />
+              <ResultView answers={answers} pct={pct} band={band} locked={locked} onSave={() => { success(); onClose(); }} onUnlock={onUnlock} />
             ) : (
               <>
                 <motion.div key={domain.key} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="space-y-4">
@@ -156,15 +160,14 @@ function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers:
         <StatCard title="Внимание" items={weak} />
       </div>
 
-      {locked ? (
+      {/* Результат уже сохранён автоматически; кнопка просто закрывает окно */}
+      <Button className="w-full" onClick={onSave}>Готово — результат сохранён</Button>
+      {locked && (
         <div className="rounded-[18px] p-4" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
-          <div className="flex items-center gap-2"><Icon name="therapy" width={18} weight="fill" /><p className="text-[13px] font-black">Полный разбор в Вдох+</p></div>
+          <div className="flex items-center gap-2"><Icon name="therapy" width={18} weight="fill" /><p className="text-[13px] font-black">Больше в Вдох+</p></div>
           <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Детальный радар по 10 сферам, история и динамика от встречи к встрече — по подписке 390 ₽/мес.</p>
           <button onClick={() => { tap(); onUnlock?.(); }} className="mt-3 w-full rounded-[13px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98]">Открыть Вдох+ · 390 ₽/мес</button>
-          <button onClick={onSave} className="mt-2 w-full text-center text-[12px] font-bold text-[var(--muted)]">Пока сохранить базовый результат</button>
         </div>
-      ) : (
-        <Button className="w-full" onClick={onSave}>Сохранить результат</Button>
       )}
       <p className="text-center text-[10px] font-semibold text-[var(--muted-2)]">Самооценка для разговора с терапевтом · не диагноз.</p>
     </div>

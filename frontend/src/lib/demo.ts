@@ -240,6 +240,20 @@ function withStats(db: DB, c: Client) {
   };
 }
 
+// Демо-расписание специалистов каталога: будни + суббота, разные форматы.
+// Клиент видит именно эти окна при записи (свои часы психолога тут ни при чём).
+const CATALOG_WORK: WorkHours = {
+  sessionMinutes: 50,
+  hours: {
+    0: [{ t: "10:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "offline" }, { t: "18:00", d: 50, fmt: "online" }],
+    1: [{ t: "11:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "online" }, { t: "19:00", d: 50, fmt: "offline" }],
+    2: [{ t: "10:00", d: 50, fmt: "offline" }, { t: "14:00", d: 50, fmt: "online" }, { t: "17:00", d: 50, fmt: "online" }],
+    3: [{ t: "12:00", d: 50, fmt: "online" }, { t: "15:00", d: 50, fmt: "online" }, { t: "18:30", d: 50, fmt: "offline" }],
+    4: [{ t: "10:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }],
+    5: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }],
+  },
+};
+
 // Вычислить свободные слоты на дату из выбранных часов минус занятые времена.
 function slotsFor(work: WorkHours, dateStr: string, takenISO: string[], overrides: Record<string, SlotOverride>): { start: string; taken: boolean; fmt: ApptFormat }[] {
   const d = new Date(dateStr + "T00:00:00");
@@ -447,7 +461,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const taken = isClient
       ? db.myBookings.map((b) => b.startsAt)
       : db.appts.filter((a) => a.status !== "cancelled").map((a) => a.startsAt);
-    return delay(slotsFor(db.work, date, taken, db.overrides) as T);
+    return delay(slotsFor(isClient ? CATALOG_WORK : db.work, date, taken, db.overrides) as T);
   }
 
   // корректировки конкретных дат (убрать окно / сменить формат)
@@ -474,7 +488,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       const d = new Date(base); d.setDate(d.getDate() + i);
       const p = (n: number) => String(n).padStart(2, "0");
       const ymd = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-      const slots = slotsFor(db.work, ymd, taken, db.overrides);
+      const slots = slotsFor(isClient ? CATALOG_WORK : db.work, ymd, taken, db.overrides);
       if (slots.length === 0) continue;
       out[ymd] = slots.some((s) => !s.taken) ? "free" : "full";
     }

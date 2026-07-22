@@ -19,24 +19,24 @@ import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { getSubscription, startSubscription } from "@/lib/subscription";
 import { select, success, tap } from "@/lib/haptics";
+import { loadTherapists, saveTherapists, type TherapistStore } from "@/lib/therapists";
 
 const ME = 1; // в демо клиент «я» — карточка №1
 const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
-const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
-// Прикреплённые терапевты: список + активный + удалённые (чтобы удаление держалось).
-type TherapistStore = { list: string[]; removed: string[]; active: string | null };
+// Прикреплённые терапевты: общий стор (каталог добавляет) + автодобавление из записей.
 function useMyTherapists(bookingNames: string[]) {
   const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null });
-  useEffect(() => {
-    let base: TherapistStore = { list: [], removed: [], active: null };
-    try { const raw = localStorage.getItem(THERAPISTS_KEY); if (raw) base = { ...base, ...JSON.parse(raw) }; } catch { /* ignore */ }
-    // Терапевты из записей добавляются автоматически (кроме удалённых вручную).
+  const sync = () => {
+    const base = loadTherapists();
     const merged = [...new Set([...base.list, ...bookingNames.filter((n) => !base.removed.includes(n))])];
     const active = base.active && merged.includes(base.active) ? base.active : merged[0] ?? null;
-    setStore({ ...base, list: merged, active });
-  }, [bookingNames.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
-  const persist = (nextStore: TherapistStore) => { setStore(nextStore); try { localStorage.setItem(THERAPISTS_KEY, JSON.stringify(nextStore)); } catch { /* ignore */ } };
+    const next = { ...base, list: merged, active };
+    setStore(next);
+    if (merged.length !== base.list.length || active !== base.active) saveTherapists(next);
+  };
+  useEffect(() => { sync(); const on = () => sync(); window.addEventListener("bereg:therapists", on); return () => window.removeEventListener("bereg:therapists", on); }, [bookingNames.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+  const persist = (nextStore: TherapistStore) => { setStore(nextStore); saveTherapists(nextStore); };
   return {
     list: store.list,
     active: store.active,

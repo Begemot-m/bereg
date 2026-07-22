@@ -35,6 +35,7 @@ import { select, success, tap } from "@/lib/haptics";
 import { bookSlot } from "@/lib/mybookings";
 import { useProfile } from "@/lib/profile";
 import { getSubscription } from "@/lib/subscription";
+import { attachTherapist, isAttached } from "@/lib/therapists";
 
 const PREFS_KEY = "bereg_catalog_prefs_v1";
 const SEEN_KEY = "bereg_catalog_survey_seen_v1";
@@ -196,6 +197,17 @@ function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: 
 
 function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
 
+// Кнопка «добавить терапевта в мой раздел Терапия» — вверху анкеты.
+function AttachTherapistButton({ name }: { name: string }) {
+  const [attached, setAttached] = useState(() => isAttached(name));
+  const add = () => { if (attached) return; success(); attachTherapist(name); setAttached(true); };
+  return (
+    <button onClick={add} disabled={attached} className="flex w-full items-center justify-center gap-2 rounded-[16px] py-3.5 text-[14px] font-black transition-transform active:scale-[0.99] disabled:active:scale-100" style={attached ? { background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" } : { background: "var(--olive)", border: "var(--bw-lg) solid var(--olive-edge)" }}>
+      {attached ? <><Icon name="check" width={17} weight="bold" color="var(--green-edge)" /> В вашей терапии</> : <><Icon name="plus" width={17} weight="bold" /> Добавить в мою терапию</>}
+    </button>
+  );
+}
+
 function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; onBack: () => void }) {
   const tone = T[psy.tone];
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
@@ -208,6 +220,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       <div className="flex items-center gap-3"><Portrait psy={psy} size={98} /><div className="min-w-0 flex-1"><div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div><div className="mt-2 flex items-center gap-1"><Icon name="star" width={15} weight="fill" color="var(--amber-edge)" /><span className="text-[13px] font-black">{psy.reviews >= 3 ? psy.rating : "Новый"}</span><span className="text-[10px] font-bold text-[var(--muted)]">· {psy.reviews} оценок</span></div><p className="mt-1 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p></div></div>
     </div>
     <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] bg-[#fffaf0] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <AttachTherapistButton name={psy.name} />
       <div className="grid grid-cols-3 gap-2"><Stat value={`${psy.price.toLocaleString("ru-RU")} ₽`} label="одна встреча" tone="var(--amber-soft)" /><Stat value={`${psy.minutes} мин`} label="длительность" tone="var(--green-soft)" /><Stat value={nextSlotLabel(psy.nextDays)} label="ближайшее окно" tone="var(--purple-soft)" /></div>
       {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} />}
       {reasons.length > 0 && <Section title="Почему подходит вам"><div className="flex flex-wrap gap-1.5">{reasons.map((reason) => <span key={reason} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1.5 text-[10px] font-black" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={11} weight="bold" />{reason}</span>)}</div></Section>}
