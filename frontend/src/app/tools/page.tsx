@@ -13,9 +13,7 @@ import { tap } from "@/lib/haptics";
 // Инструменты клиента: часть бесплатна, часть — по подписке «Вдох+». Интерактивные — с tech.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
   { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.png", bg: "#d9edf3", edge: "#5f95ab" },
-  { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики", time: "2–7 мин", image: "/practices/automatic-thoughts.png", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
-  { tech: "grounding", title: "Вернуться в момент", desc: "Мягко переключить внимание на ощущения", time: "2–4 мин", image: "/practices/grounding-54321.png", bg: "var(--green-soft)", edge: "var(--green-edge)" },
-  { tech: "gad7", title: "Проверить тревогу", desc: "Скрининг состояния за две недели", time: "2 мин", image: "/practices/tests-scales.png", bg: "var(--coral-soft)", edge: "var(--coral-edge)" },
+  { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики и вести историю", time: "2–7 мин", image: "/practices/automatic-thoughts.png", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
 ];
 
 type PracticeHistory = { tech: TechKey; completedAt: string; before?: number; after?: number }[];
@@ -32,7 +30,7 @@ function ClientTools() {
 
   useEffect(() => {
     try { setHistory(JSON.parse(localStorage.getItem("bereg-practice-history-v1") || "[]")); } catch { setHistory([]); }
-    setDrafts((["breathing", "thought", "grounding", "gad7"] as TechKey[]).filter((key) => Boolean(localStorage.getItem(`bereg-practice-draft-v1:${key}`))));
+    setDrafts((["breathing", "thought"] as TechKey[]).filter((key) => Boolean(localStorage.getItem(`bereg-practice-draft-v1:${key}`))));
   }, [tech]);
 
   const weekly = useMemo(() => {
@@ -42,7 +40,7 @@ function ClientTools() {
   const recommended = useMemo(() => {
     if (drafts.length) return drafts[0];
     if (!history.length) return "breathing";
-    const order: TechKey[] = ["breathing", "grounding", "thought", "gad7"];
+    const order: TechKey[] = ["breathing", "thought"];
     const last = history[0]?.tech;
     return order[(Math.max(0, order.indexOf(last as TechKey)) + 1) % order.length];
   }, [drafts, history]);
@@ -73,7 +71,7 @@ function ClientTools() {
           </section>
 
           <div className="mb-2 mt-6 flex items-end justify-between">
-            <div><p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Четыре практики</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted-2)]">Выбирайте по состоянию, не ради серии</p></div>
+            <div><p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Две практики</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted-2)]">Выбирайте по состоянию, не ради серии</p></div>
             <span className="rounded-full bg-[var(--purple-soft)] px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>доступ открыт</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
