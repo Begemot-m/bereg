@@ -61,20 +61,15 @@ export function MoodEgg({ value, size = 180, still }: { value: number; size?: nu
   );
 }
 
-// Персонаж-блоб в духе рефа: пухлое «облако» на всю ширину, мимика и цвет
-// плавно едут по шкале 1..5. value дробное — лицо меняется во время кручения.
+// Персонаж-блоб: пухлое «облако» с обводкой — для миниатюр (мимика и цвет по шкале).
 export function MoodBlob({ value, size = 220, still }: { value: number; size?: number; still?: boolean }) {
   const gradientId = `blob-${useId()}`;
-  const t = Math.min(1, Math.max(0, (value - 1) / 4)); // 0..1
+  const t = Math.min(1, Math.max(0, (value - 1) / 4));
   const fill = mix(t);
-  const happy = smooth((t - 0.5) / 0.42);   // 0 → 1 к радости
-  const sad = smooth((0.42 - t) / 0.42);    // 0 → 1 к тяжести
-
-  // Рот: тонкий фрован снизу → широкая открытая улыбка сверху.
+  const happy = smooth((t - 0.5) / 0.42);
+  const sad = smooth((0.42 - t) / 0.42);
   const frown = `M 78 118 Q 100 ${112 - sad * 12} 122 118`;
   const smile = `M 74 108 Q 100 ${118 + happy * 30} 126 108 Q 100 ${118 + happy * 12} 74 108 Z`;
-
-  // Глаза чуть сходятся к переносице при тяжести (обеспокоенность).
   const eyeGap = 30 - sad * 2;
 
   return (
@@ -94,8 +89,6 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
           <stop offset="100%" stopColor={fill} />
         </linearGradient>
       </defs>
-
-      {/* Тело — пухлое облако с бугорками сверху */}
       <path
         d="M22 150 C 8 118 12 78 34 66 C 30 44 52 30 68 42 C 74 22 104 20 112 42 C 130 28 158 40 152 66 C 176 74 178 116 160 138 C 168 150 150 168 100 168 C 52 168 28 168 22 150 Z"
         fill={`url(#${gradientId})`}
@@ -103,49 +96,71 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
         strokeWidth="4.5"
         strokeLinejoin="round"
       />
-
-      {/* Спортивная повязка со струйками пота — проступает при тяжести */}
-      <g opacity={sad}>
-        <path d="M40 58 C 62 40 138 40 160 58 L 156 70 C 134 54 66 54 44 70 Z" fill="#f4f1e8" stroke="var(--ink)" strokeWidth="4" strokeLinejoin="round" />
-        <path d="M52 60 C 74 47 126 47 148 60" fill="none" stroke="var(--coral-edge)" strokeWidth="3" strokeLinecap="round" />
-        <path d="M52 66 C 74 54 126 54 148 66" fill="none" stroke="var(--green-edge)" strokeWidth="3" strokeLinecap="round" />
-      </g>
-
-      {/* Блик */}
       <ellipse cx="60" cy="70" rx="16" ry="20" fill="#fff" opacity=".22" transform="rotate(-18 60 70)" />
-
-      {/* Глаза — крупные, белые, с чёрным зрачком */}
       <g>
         <ellipse cx={100 - eyeGap} cy="92" rx="17" ry="18" fill="#fff" stroke="var(--ink)" strokeWidth="3.5" />
         <ellipse cx={100 + eyeGap} cy="92" rx="17" ry="18" fill="#fff" stroke="var(--ink)" strokeWidth="3.5" />
         <circle cx={100 - eyeGap} cy={94 - happy * 3} r="7.5" fill="var(--ink)" />
         <circle cx={100 + eyeGap} cy={94 - happy * 3} r="7.5" fill="var(--ink)" />
-        {/* Счастливые полукруглые глаза перекрывают круглые при радости */}
         <g opacity={happy}>
           <path d={`M ${100 - eyeGap - 15} 94 Q ${100 - eyeGap} 78 ${100 - eyeGap + 15} 94`} fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
           <path d={`M ${100 + eyeGap - 15} 94 Q ${100 + eyeGap} 78 ${100 + eyeGap + 15} 94`} fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
         </g>
       </g>
-
-      {/* Бровки-домиком при тяжести */}
-      <g opacity={sad}>
-        <path d={`M ${100 - eyeGap - 14} 70 L ${100 - eyeGap + 6} 76`} stroke="var(--ink)" strokeWidth="4" strokeLinecap="round" />
-        <path d={`M ${100 + eyeGap + 14} 70 L ${100 + eyeGap - 6} 76`} stroke="var(--ink)" strokeWidth="4" strokeLinecap="round" />
-      </g>
-
-      {/* Щёчки при радости */}
       <g opacity={happy}>
         <ellipse cx="62" cy="116" rx="11" ry="7" fill="#e58a7a" opacity=".55" />
         <ellipse cx="138" cy="116" rx="11" ry="7" fill="#e58a7a" opacity=".55" />
       </g>
-
-      {/* Слеза при тяжести */}
-      <path d="M158 96 C 158 108 150 112 150 102 C 150 98 154 92 154 92 Z" fill="var(--sky)" stroke="var(--ink)" strokeWidth="2.5" strokeLinejoin="round" opacity={sad} />
-
-      {/* Рот: открытая улыбка поверх фрована */}
       <path d={frown} fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" opacity={1 - happy} />
       <path d={smile} fill="var(--ink)" opacity={happy} />
     </motion.svg>
+  );
+}
+
+// Голова-блок для окна настроения: облако-крона во всю ширину, БЕЗ обводки —
+// заливка = цвет страницы, так что контур головы становится границей блока.
+// Верх со скруглёнными бугорками читается на белой шапке.
+export function MoodHead({ value }: { value: number }) {
+  const t = Math.min(1, Math.max(0, (value - 1) / 4));
+  const fill = mix(t);
+  const happy = smooth((t - 0.5) / 0.42);
+  const cx1 = 150, cx2 = 240, cy = 150;
+
+  // Рот: мягкий фрован → широкая открытая улыбка с зубиком.
+  const frown = `M 172 200 Q 195 ${192 - (1 - t) * 10} 218 200`;
+  const smile = `M 158 186 Q 195 ${208 + happy * 34} 232 186 Q 195 ${200 + happy * 14} 158 186 Z`;
+
+  return (
+    <svg viewBox="0 0 390 260" width="100%" className="block" role="img" aria-label={`Настроение: ${Math.round(value)} из 5`} style={{ height: "auto" }}>
+      {/* Облако-крона: заливка совпадает с фоном страницы, границы нет */}
+      <path
+        d="M0 260 L0 168 C 0 132 34 106 66 118 C 60 78 116 66 138 106 C 146 60 208 58 220 104 C 242 64 306 70 314 112 C 336 74 392 92 384 138 L390 168 L390 260 Z"
+        fill={fill}
+      />
+      <ellipse cx="96" cy="120" rx="20" ry="26" fill="#fff" opacity=".16" transform="rotate(-18 96 120)" />
+
+      {/* Глаза — крупные белые с чёрным зрачком */}
+      <ellipse cx={cx1} cy={cy} rx="26" ry="28" fill="#fff" />
+      <ellipse cx={cx2} cy={cy} rx="26" ry="28" fill="#fff" />
+      <circle cx={cx1} cy={cy + 3 - happy * 4} r="11.5" fill="var(--ink)" />
+      <circle cx={cx2} cy={cy + 3 - happy * 4} r="11.5" fill="var(--ink)" />
+      {/* Счастливые полукруглые глаза при радости */}
+      <g opacity={happy}>
+        <path d={`M ${cx1 - 22} ${cy + 2} Q ${cx1} ${cy - 24} ${cx1 + 22} ${cy + 2}`} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" />
+        <path d={`M ${cx2 - 22} ${cy + 2} Q ${cx2} ${cy - 24} ${cx2 + 22} ${cy + 2}`} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" />
+      </g>
+
+      {/* Щёчки при радости */}
+      <g opacity={happy}>
+        <ellipse cx="112" cy="184" rx="15" ry="9" fill="#e58a7a" opacity=".5" />
+        <ellipse cx="278" cy="184" rx="15" ry="9" fill="#e58a7a" opacity=".5" />
+      </g>
+
+      {/* Рот */}
+      <path d={frown} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" opacity={1 - happy} />
+      <path d={smile} fill="var(--ink)" opacity={happy} />
+      <rect x="188" y="188" width="14" height="9" rx="3" fill="#fff" opacity={happy} />
+    </svg>
   );
 }
 
