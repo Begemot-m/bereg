@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "@phosphor-icons/react";
+import { motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { Icon } from "@/components/icons";
@@ -8,6 +9,53 @@ import { MoodBlob, MoodHead, moodColor } from "@/components/mood-egg";
 import { emotionTone, suggestEmotions } from "@/lib/emotions";
 import { primeTick, select, success, tap, tickSteps } from "@/lib/haptics";
 import { MOOD_LABEL } from "@/lib/mascots";
+import type { Mood } from "@/lib/clients";
+
+// Динамичный блок настроения для главной: «дышащий» персонаж + мини-график недели.
+export function MoodHomeCard({ mood, moods, onOpen }: { mood?: number; moods: Mood[]; onOpen: () => void }) {
+  const value = mood ?? 3;
+  const recent = moods.slice(-7);
+  const tint = moodColor(value);
+  return (
+    <button
+      onClick={() => { tap(); onOpen(); }}
+      className="relative w-full overflow-hidden rounded-[24px] p-4 text-left transition-transform duration-200 active:scale-[0.99]"
+      style={{ background: mood ? `${tint}2e` : "var(--amber-soft)", border: `var(--bw-lg) solid ${mood ? tint : "var(--amber-edge)"}` }}
+    >
+      {/* мягкая пульсация фона-пятна */}
+      <motion.span aria-hidden className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full" style={{ background: mood ? tint : "var(--amber)", opacity: 0.22 }} animate={{ scale: [1, 1.18, 1], opacity: [0.16, 0.28, 0.16] }} transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }} />
+      <div className="relative flex items-center gap-3">
+        <motion.span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
+          <MoodBlob value={value} size={70} still />
+        </motion.span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Настроение дня</span>
+          <span className="block text-[16px] font-black leading-tight">Какое у вас настроение?</span>
+          {recent.length >= 2 && <MiniMoodTrend moods={recent} />}
+        </span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[18px] font-black" style={{ background: mood ? `${tint}55` : "var(--amber-soft)", border: `var(--bw) solid ${mood ? tint : "var(--amber-edge)"}`, color: "var(--ink)" }}>›</span>
+      </div>
+    </button>
+  );
+}
+
+// Мини-график: столбики настроения за неделю в цвет значения.
+function MiniMoodTrend({ moods }: { moods: Mood[] }) {
+  return (
+    <span className="mt-2 flex items-end gap-1" aria-hidden>
+      {moods.map((entry, index) => (
+        <motion.span
+          key={index}
+          className="w-[7px] shrink-0 rounded-full"
+          style={{ background: moodColor(entry.mood), border: "1px solid rgba(32,28,24,.18)" }}
+          initial={{ height: 6 }}
+          animate={{ height: 8 + ((entry.mood - 1) / 4) * 20 }}
+          transition={{ delay: index * 0.05, type: "spring", stiffness: 220, damping: 18 }}
+        />
+      ))}
+    </span>
+  );
+}
 
 const STEPS = 41;     // 1.0 … 5.0 с шагом 0.1
 const MAX_EMOTIONS = 4;

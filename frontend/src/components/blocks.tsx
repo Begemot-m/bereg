@@ -8,7 +8,7 @@ import { tap } from "@/lib/haptics";
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
-export function PageHead({ title, sub, right, children }: { title: string; sub?: string; right?: ReactNode; children?: ReactNode }) {
+export function PageHead({ title, sub, subIcon, right, children }: { title: string; sub?: string; subIcon?: IconName; right?: ReactNode; children?: ReactNode }) {
   return (
     <div
       className="mb-5 -mx-4 px-5 pb-3 pt-1 @md:mx-0 @md:px-1 @md:pt-4"
@@ -17,7 +17,11 @@ export function PageHead({ title, sub, right, children }: { title: string; sub?:
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-tight text-[24px] font-extrabold leading-tight @md:text-3xl">{title}</h1>
-          {sub && <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>}
+          {sub && (
+            subIcon
+              ? <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[12px] font-black capitalize" style={{ border: "var(--bw) solid var(--edge)", color: "var(--edge)" }}><Icon name={subIcon} width={13} weight="bold" /> {sub}</span>
+              : <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>
+          )}
         </div>
         {right}
       </div>

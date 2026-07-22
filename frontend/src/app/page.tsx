@@ -7,7 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
-import { MoodCard, MoodSheet } from "@/components/mood-dial";
+import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
+import { motion } from "motion/react";
+
 import { Stagger, StaggerItem } from "@/components/motion";
 import { listAppointments, type Appointment } from "@/lib/appointments";
 import { listClients, listMyBookings, type Client, type Mood, type MyBooking } from "@/lib/clients";
@@ -46,8 +48,10 @@ function PsyHome() {
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
+  const { data: therapy } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
   const now = new Date();
   const todayKey = localDay(now);
+  const todayEntry = therapy ? [...therapy.moods].reverse().find((entry) => localDay(new Date(entry.date)) === todayKey) : undefined;
   const upcoming = useMemo(
     () => appts.filter((a) => a.status === "scheduled" && new Date(a.startsAt) > now).sort(byStart),
     [appts, todayKey],
@@ -65,6 +69,7 @@ function PsyHome() {
     <HomeFrame
       title={`${greeting()}${name ? `, ${name}` : ""}`}
       subtitle={cap(dateF.format(now))}
+      subIcon="calendar"
       focus={<SessionFocus appointment={next} />}
     >
       <PulseStrip
@@ -74,6 +79,8 @@ function PsyHome() {
           { icon: "users", value: String(activeClients), label: "в терапии" },
         ]}
       />
+
+      <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />
 
       <section>
         <SectionTitle action={<Link href="/sessions" onClick={tap} className="text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Все сессии →</Link>}>Ваш день</SectionTitle>
@@ -114,13 +121,14 @@ function PersonHome({ guest }: { guest: boolean }) {
     <HomeFrame
       title={`${greeting()}${name && !guest ? `, ${name}` : ""}`}
       subtitle={guest ? "Начните с подходящего специалиста" : cap(dateF.format(now))}
+      subIcon={guest ? undefined : "calendar"}
     >
-      {guest ? <GuestStart /> : <>
+      {guest ? <GuestStart /> : <div className="space-y-5">
         {/* а) ближайшая сессия или блок «сессий нет» */}
         <NextSession booking={next} therapist={therapist} />
         {/* б) настроение дня */}
-        <MoodQuick today={todayEntry} />
-      </>}
+        <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />
+      </div>}
 
       {/* в) разделы — листающаяся вбок карусель */}
       <HomeRoutesCarousel items={guest ? [
@@ -142,15 +150,7 @@ function PersonHome({ guest }: { guest: boolean }) {
 // а) Ближайшая сессия. Нет записи, но есть терапевт → записаться. Нет терапевта → подобрать.
 function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: string | null }) {
   if (!booking) {
-    if (!therapist) {
-      return (
-        <Link href="/catalog" onClick={tap} className="flex flex-col items-center justify-center gap-2 rounded-[22px] px-4 py-7 text-center transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "2.5px dashed var(--olive-edge)" }}>
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[26px] font-black leading-none" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>+</span>
-          <span className="block text-[15px] font-black">Подобрать терапевта</span>
-          <span className="block max-w-[250px] text-[11px] font-semibold text-[var(--muted)]">У вас пока нет специалиста. Короткий подбор — и увидите тех, кто подходит под запрос.</span>
-        </Link>
-      );
-    }
+    if (!therapist) return <FindTherapistCard />;
     return (
       <Link href="/catalog" onClick={tap} className="flex items-center gap-3 rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="calendar" width={22} weight="bold" /></span>
@@ -180,10 +180,37 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   );
 }
 
-function HomeFrame({ title, subtitle, focus, children }: { title: string; subtitle: string; focus?: React.ReactNode; children: React.ReactNode }) {
+// Анимированный блок подбора терапевта: плавающие пузырьки-аватары и пульс кнопки.
+function FindTherapistCard() {
+  const bubbles = [
+    { x: "12%", y: "18%", d: 0, tone: "green" },
+    { x: "74%", y: "14%", d: 0.6, tone: "purple" },
+    { x: "84%", y: "58%", d: 1.1, tone: "amber" },
+    { x: "20%", y: "64%", d: 1.6, tone: "coral" },
+  ];
+  return (
+    <Link href="/catalog" onClick={tap} className="group relative block overflow-hidden rounded-[24px] px-5 py-7 text-center transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "2.5px dashed var(--olive-edge)" }}>
+      {bubbles.map((b, i) => (
+        <motion.span key={i} aria-hidden className="pointer-events-none absolute flex h-9 w-9 items-center justify-center rounded-full bg-white" style={{ left: b.x, top: b.y, border: `var(--bw) solid var(--${b.tone}-edge)` }}
+          animate={{ y: [0, -8, 0], opacity: [0.5, 0.9, 0.5] }} transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: "easeInOut", delay: b.d }}>
+          <span className="h-4 w-4 rounded-full" style={{ background: `var(--${b.tone})` }} />
+        </motion.span>
+      ))}
+      <motion.span className="relative z-[1] mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}
+        animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+        <Icon name="compass" width={26} weight="bold" color="var(--olive-edge)" />
+      </motion.span>
+      <span className="relative z-[1] mt-3 block text-[16px] font-black">Подобрать терапевта</span>
+      <span className="relative z-[1] mx-auto mt-1 block max-w-[250px] text-[11px] font-semibold text-[var(--muted)]">У вас пока нет специалиста. Короткий подбор — и увидите тех, кто подходит под запрос.</span>
+      <span className="relative z-[1] mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--olive)] px-4 py-2 text-[12px] font-black transition-transform group-active:scale-95" style={{ border: "var(--bw) solid var(--olive-edge)" }}>Начать подбор →</span>
+    </Link>
+  );
+}
+
+function HomeFrame({ title, subtitle, subIcon, focus, children }: { title: string; subtitle: string; subIcon?: IconName; focus?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <PageHead title={title} sub={subtitle}>{focus}</PageHead>
+      <PageHead title={title} sub={subtitle} subIcon={subIcon}>{focus}</PageHead>
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-7 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
@@ -277,13 +304,13 @@ function QuietState({ icon, title, text, href, action }: { icon: IconName; title
   return href ? <Link href={href} onClick={tap} className="block transition-transform active:scale-[0.99]">{content}</Link> : content;
 }
 
-function MoodQuick({ today }: { today?: Mood }) {
+function MoodQuick({ today, moods }: { today?: Mood; moods: Mood[] }) {
   const qc = useQueryClient();
   const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
   const [sheet, setSheet] = useState(false);
   return (
     <section>
-      <MoodCard mood={today?.mood} emotions={today?.emotions} onOpen={() => setSheet(true)} />
+      <MoodHomeCard mood={today?.mood} moods={moods} onOpen={() => setSheet(true)} />
       <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={(mood, emotions) => save.mutate({ mood, emotions })} />
     </section>
   );
