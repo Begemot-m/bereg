@@ -130,8 +130,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      {/* Мобайл: верхняя панель — sticky, ровно держится сверху и не дёргается при скролле */}
-      <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
+      {/* Мобайл: верхняя панель — закреплена сверху, не двигается со скроллом */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease", boxShadow: "0 6px 14px -12px rgba(32,28,24,.55)" }}>
         <Wordmark small />
         <div className="flex items-center gap-2">
           <NotificationBell />

@@ -129,7 +129,7 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      <main className="relative -mt-8 min-h-[72vh] rounded-t-[30px] px-4 pb-9 pt-4 @md:px-9" style={{ background: "var(--page)", borderTop: "var(--bw-lg) solid var(--olive-edge)" }}>
+      <main className="relative -mt-8 min-h-[72vh] rounded-t-[30px] bg-[#fffdf7] px-4 pb-9 pt-4 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <div className="grid grid-cols-2 gap-1 rounded-full bg-white p-1 stroke-lg">
           {([{ id: "personal", label: "Для вас" }, { id: "all", label: "Все специалисты" }] as { id: CatalogMode; label: string }[]).map((tab) => <button key={tab.id} onClick={() => switchMode(tab.id)} className="rounded-full px-2 py-2 text-[11px] font-black transition-colors" style={mode === tab.id ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{tab.label}</button>)}
         </div>
@@ -157,14 +157,13 @@ function AllControls({ filters, setFilters, sort, setSort, activeFilters, openFi
 }
 
 function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogPrefs; showReason: boolean; onOpen: () => void }) {
-  const tone = T[psy.tone];
   const reasons = reasonsFor(psy, prefs);
   const place = catalogLocation(psy);
   const portrait = asset(psy.portrait);
   const topics = topicsForCard(psy, prefs);
   return <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform active:scale-[.99] stroke-lg">
     <div className="flex gap-3 p-3">
-      <div className="relative h-[128px] w-[104px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="104px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} /></div>
+      <div className="relative h-[128px] w-[104px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="104px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} /></div>
       <div className="flex min-w-0 flex-1 flex-col py-0.5">
         <div className="flex items-start gap-1">
           <h3 className="min-w-0 flex-1 text-[16px] font-black leading-[1.05]">{psy.name}</h3>
@@ -176,7 +175,7 @@ function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogP
             : <span className="rounded-full bg-[var(--olive-soft)] px-2 py-0.5 text-[9px] font-black" style={{ border: "1.5px solid var(--olive-edge)" }}>новый специалист</span>}
         </div>
         <p className="mt-1.5 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
-        <div className="mt-1.5 flex flex-wrap gap-1">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: tone.soft, border: `1.5px solid ${tone.edge}` }}>{topic}</span>)}</div>
+        <div className="mt-1.5 flex flex-wrap gap-1">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: "var(--olive-soft)", border: "1.5px solid var(--olive-edge)" }}>{topic}</span>)}</div>
         {/* Единая инфо-строка: цена, формат/место, ближайшее окно — без повторов */}
         <div className="mt-auto space-y-1 pt-2">
           <p className="text-[13px] font-black">{psy.price.toLocaleString("ru-RU")} ₽ <span className="text-[11px] font-bold text-[var(--muted)]">/ {psy.minutes} мин</span></p>

@@ -263,6 +263,15 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
         </div>
       )}
 
+      {/* Свёрнутый блок — по клику раскрывается так же, как при нажатии шестерни */}
+      {!firstVisit && !open && (
+        <button onClick={onOpen} className="flex w-full items-center gap-3 rounded-[18px] bg-[#fbfaf6] p-3.5 text-left transition-transform active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="clock" width={19} weight="bold" /></span>
+          <span className="min-w-0 flex-1"><span className="block text-[13px] font-black">Рабочие часы</span><span className="block truncate text-[11px] font-semibold text-[var(--muted)]">{summary}</span></span>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[var(--muted-2)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><Icon name="gear" width={14} color="currentColor" /></span>
+        </button>
+      )}
+
       <Disclosure open={open}>
         <div className="mt-3 rounded-[22px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
           <div className="mb-3 flex items-center justify-between gap-3">

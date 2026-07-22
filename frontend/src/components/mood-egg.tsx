@@ -128,8 +128,18 @@ export function MoodHead({ value }: { value: number }) {
   const position = Math.min(4, Math.max(0, value - 1));
   const mouthIndex = Math.round(position);
   const [blinking, setBlinking] = useState(false);
+  // Пока PNG-маска тела не загрузилась, не показываем цветной слой —
+  // иначе мелькает прямоугольная полоса до применения маски.
+  const [maskReady, setMaskReady] = useState(false);
   const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reopenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const img = new window.Image();
+    img.onload = () => setMaskReady(true);
+    img.src = MOOD_BODY_MASK;
+    if (img.complete) setMaskReady(true);
+  }, []);
 
   useEffect(() => {
     const schedule = () => {
@@ -151,12 +161,13 @@ export function MoodHead({ value }: { value: number }) {
   const eyeTilt = (position - 2) * -1.2;
 
   return (
-    <div className="relative h-full w-full overflow-hidden" role="img" aria-label={`Настроение: ${value.toFixed(1)} из 5`}>
+    <div className="relative h-full w-full overflow-hidden" role="img" aria-label={`Настроение: ${value.toFixed(1)} из 5`} style={{ opacity: maskReady ? 1 : 0, transition: "opacity .18s ease" }}>
       <div
         aria-hidden="true"
         className="absolute inset-x-[-1px] bottom-0 top-4 will-change-[background-color]"
         style={{
           backgroundColor: moodColor(value),
+          opacity: maskReady ? 1 : 0,
           WebkitMaskImage: `url(${MOOD_BODY_MASK})`,
           maskImage: `url(${MOOD_BODY_MASK})`,
           WebkitMaskPosition: "center",

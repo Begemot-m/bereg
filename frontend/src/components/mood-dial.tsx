@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "@phosphor-icons/react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { Icon } from "@/components/icons";
@@ -183,34 +183,41 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
           </div>
 
           <div className="relative mt-3">
-            <div
-              ref={track}
-              data-testid="mood-roulette"
-              role="slider"
-              tabIndex={0}
-              aria-label="Настроение от тяжёлого до отличного"
-              aria-valuemin={1}
-              aria-valuemax={5}
-              aria-valuenow={Number(value.toFixed(1))}
-              aria-valuetext={MOOD_LABEL[level]}
-              onPointerDown={primeTick}
-              onScroll={onScroll}
-              onKeyDown={onMoodKey}
-              className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain py-1 outline-none focus-visible:ring-2 focus-visible:ring-black/30"
-            >
-              <span className="shrink-0" style={{ width: `calc(50% - ${TICK_WIDTH / 2}px)` }} />
-              {Array.from({ length: STEPS }).map((_, index) => {
-                const major = index % 10 === 0;
-                return (
-                  <span key={index} className="flex h-11 shrink-0 snap-center items-center justify-center" style={{ width: TICK_WIDTH }}>
-                    <i className="block rounded-full" style={{ width: major ? 3 : 2, height: major ? 30 : 14, background: major ? "var(--ink)" : "var(--muted-2)", opacity: major ? 0.9 : 0.42 }} />
-                  </span>
-                );
-              })}
-              <span className="shrink-0" style={{ width: `calc(50% - ${TICK_WIDTH / 2}px)` }} />
+            {/* Рулетка: лента рисок с затуханием к краям и подсвеченным центром */}
+            <div className="relative overflow-hidden rounded-[20px] bg-white/55 py-1" style={{ border: "var(--bw) solid rgba(32,28,24,.16)", WebkitMaskImage: "linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)", maskImage: "linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)" }}>
+              <div
+                ref={track}
+                data-testid="mood-roulette"
+                role="slider"
+                tabIndex={0}
+                aria-label="Настроение от тяжёлого до отличного"
+                aria-valuemin={1}
+                aria-valuemax={5}
+                aria-valuenow={Number(value.toFixed(1))}
+                aria-valuetext={MOOD_LABEL[level]}
+                onPointerDown={primeTick}
+                onScroll={onScroll}
+                onKeyDown={onMoodKey}
+                className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain py-1 outline-none"
+              >
+                <span className="shrink-0" style={{ width: `calc(50% - ${TICK_WIDTH / 2}px)` }} />
+                {Array.from({ length: STEPS }).map((_, index) => {
+                  const major = index % 10 === 0;
+                  const dist = Math.abs(index / 10 + 1 - value); // близость к центру
+                  const near = Math.max(0, 1 - dist / 1.4);
+                  return (
+                    <span key={index} className="flex h-12 shrink-0 snap-center items-center justify-center" style={{ width: TICK_WIDTH }}>
+                      <i className="block rounded-full transition-[height,background-color] duration-150" style={{ width: major ? 3 : 2.5, height: major ? 32 : 15 + near * 12, background: near > 0.6 ? moodColor(index / 10 + 1) : major ? "var(--ink)" : "var(--muted-2)", opacity: major ? 0.95 : 0.4 + near * 0.5 }} />
+                    </span>
+                  );
+                })}
+                <span className="shrink-0" style={{ width: `calc(50% - ${TICK_WIDTH / 2}px)` }} />
+              </div>
             </div>
-            <span className="pointer-events-none absolute left-1/2 top-0 h-[52px] w-1 -translate-x-1/2 rounded-full" style={{ background: tint, boxShadow: "0 0 0 2px var(--ink)" }} />
-            <div className="mt-1 flex justify-between px-1 text-[10px] font-black uppercase tracking-[.08em] text-[var(--muted-2)]">
+            {/* Центральный указатель */}
+            <span className="pointer-events-none absolute left-1/2 top-1/2 h-14 w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: tint, boxShadow: "0 0 0 2.5px var(--ink), 0 4px 10px -3px rgba(32,28,24,.5)" }} />
+            <span className="pointer-events-none absolute left-1/2 top-1/2 -mt-[38px] h-0 w-0 -translate-x-1/2" style={{ borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "8px solid var(--ink)" }} />
+            <div className="mt-1.5 flex justify-between px-1 text-[10px] font-black uppercase tracking-[.08em] text-[var(--muted-2)]">
               <span>тяжело</span><span>отлично</span>
             </div>
           </div>
@@ -220,28 +227,35 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
               <p className="text-[11px] font-black uppercase tracking-[.1em]">Что вы чувствуете?</p>
               <p className="text-[10px] font-semibold text-[var(--muted-2)]">до {MAX_EMOTIONS}</p>
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {suggestions.map((name) => {
-                const on = picked.includes(name);
-                const tone = emotionTone(name);
-                return (
-                  <button
-                    key={name}
-                    onClick={() => toggle(name)}
-                    aria-pressed={on}
-                    className="rounded-full px-3 py-1.5 text-[11.5px] font-black transition-transform active:scale-95"
-                    style={{ background: on ? `var(--${tone})` : "#fff", border: `var(--bw) solid var(--${on ? `${tone}-edge` : "edge-neutral"})`, color: on ? "var(--ink)" : "var(--muted)" }}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
+            <motion.div layout className="mt-2 flex flex-wrap gap-1.5">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {suggestions.map((name) => {
+                  const on = picked.includes(name);
+                  const tone = emotionTone(name);
+                  return (
+                    <motion.button
+                      key={name}
+                      layout
+                      initial={{ opacity: 0, scale: 0.7 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.7 }}
+                      transition={{ type: "spring", stiffness: 460, damping: 30 }}
+                      onClick={() => toggle(name)}
+                      aria-pressed={on}
+                      className="rounded-full px-3 py-1.5 text-[11.5px] font-black"
+                      style={{ background: on ? `var(--${tone})` : "#fff", border: `var(--bw) solid var(--${on ? `${tone}-edge` : "edge-neutral"})`, color: on ? "var(--ink)" : "var(--muted)" }}
+                    >
+                      {name}
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
           </div>
         </div>
       </div>
 
-      <div className="shrink-0 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-2" style={{ backgroundColor: tint, borderTop: "var(--bw) solid rgba(32,28,24,.32)" }}>
+      <div className="shrink-0 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-2" style={{ backgroundColor: tint }}>
         <button
           onClick={() => { success(); onSave(level, picked); close(); }}
           className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform active:scale-[0.98]"
