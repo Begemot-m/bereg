@@ -76,3 +76,21 @@ export function tick() {
     osc.stop(now + 0.04);
   } catch { /* звук не критичен */ }
 }
+
+let queuedUntil = 0;
+
+/**
+ * Проигрывает отдельный механический отклик для каждого пересечённого деления.
+ * Очередь не даёт быстрым свайпам схлопнуть несколько щелчков в один звук.
+ */
+export function tickSteps(count: number) {
+  if (typeof window === "undefined") return;
+  const total = Math.max(0, Math.floor(count));
+  if (!total) return;
+  const now = Date.now();
+  const start = Math.max(now, queuedUntil);
+  for (let index = 0; index < total; index += 1) {
+    window.setTimeout(tick, start - now + index * 18);
+  }
+  queuedUntil = start + total * 18;
+}

@@ -3,6 +3,8 @@
 import { motion } from "motion/react";
 import { useId } from "react";
 
+import { asset } from "@/lib/asset";
+
 // Персонаж-яйцо: мимика плавно едет от 1 (тяжело) к 5 (отлично).
 // value — дробное 1..5, чтобы лицо менялось прямо во время кручения диска.
 export function MoodEgg({ value, size = 180, still }: { value: number; size?: number; still?: boolean }) {
@@ -117,34 +119,36 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
   );
 }
 
-// Голова-блок для окна настроения: облако-крона ВО ВСЮ ШИРИНУ, без обводки —
-// заливка = цвет страницы, контур головы = верхняя граница блока.
-// Лицо статичное: меняются только рот и цвет, плавно по шкале.
-export function MoodHead({ value }: { value: number }) {
-  const t = Math.min(1, Math.max(0, (value - 1) / 4));
-  const fill = mix(t);
-  const cx1 = 152, cx2 = 238, cy = 122;
+const MOOD_CHARACTERS = [1, 2, 3, 4, 5].map((level) => asset(`/mood/character-${level}.png`));
 
-  // Рот: единая дуга, контрольная точка плавно едет вниз (улыбка) / вверх (грусть).
-  const mx = 195, my = 176, half = 28 + t * 8;
-  const ctrlY = my + (t - 0.5) * 74; // t=1 → улыбка, t=0 → грусть
-  const mouth = `M ${mx - half} ${my} Q ${mx} ${ctrlY} ${mx + half} ${my}`;
+// Полноэкранный персонаж собран из пяти согласованных растровых выражений.
+// Между соседними кадрами идёт перекрёстное растворение, поэтому глаза, рот и
+// цвет продолжают меняться даже на дробных значениях шкалы.
+export function MoodHead({ value }: { value: number }) {
+  const position = Math.min(4, Math.max(0, value - 1));
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  const blend = position - lower;
 
   return (
-    <svg viewBox="0 0 390 236" width="100%" className="block" role="img" aria-label={`Настроение: ${Math.round(value)} из 5`} style={{ height: "auto" }}>
-      {/* Пять бугорков-полукругов ровно на всю ширину, бока — по краям экрана */}
-      <path
-        d="M0 236 L0 72 A 39 39 0 0 1 78 72 A 39 39 0 0 1 156 72 A 39 39 0 0 1 234 72 A 39 39 0 0 1 312 72 A 39 39 0 0 1 390 72 L390 236 Z"
-        fill={fill}
-      />
-      {/* Статичные глаза — крупные белые с чёрным зрачком */}
-      <circle cx={cx1} cy={cy} r="25" fill="#fff" />
-      <circle cx={cx2} cy={cy} r="25" fill="#fff" />
-      <circle cx={cx1} cy={cy + 2} r="11" fill="var(--ink)" />
-      <circle cx={cx2} cy={cy + 2} r="11" fill="var(--ink)" />
-      {/* Рот — единственная меняющаяся часть */}
-      <path d={mouth} fill="none" stroke="var(--ink)" strokeWidth="7" strokeLinecap="round" />
-    </svg>
+    <div className="relative h-full w-full" role="img" aria-label={`Настроение: ${value.toFixed(1)} из 5`}>
+      {MOOD_CHARACTERS.map((src, index) => {
+        const opacity = lower === upper ? (index === lower ? 1 : 0) : index === lower ? 1 - blend : index === upper ? blend : 0;
+        return (
+          <motion.img
+            key={src}
+            src={src}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain object-bottom"
+            initial={false}
+            animate={{ opacity, scale: 1 + Math.abs(position - 2) * 0.006 }}
+            transition={{ opacity: { duration: 0.12, ease: "linear" }, scale: { type: "spring", stiffness: 260, damping: 26 } }}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -153,7 +157,7 @@ function smooth(x: number): number {
   return c * c * (3 - 2 * c);
 }
 
-const STOPS = ["#e08a76", "#e9a978", "#e8c877", "#c9d081", "#8ec295"];
+const STOPS = ["#e08a76", "#eeb079", "#f0d284", "#c3cf8e", "#8ec295"];
 
 function mix(t: number): string {
   const pos = t * (STOPS.length - 1);
