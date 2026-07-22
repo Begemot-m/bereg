@@ -30,7 +30,7 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
             {mood ? [MOOD_LABEL[Math.round(value)], ...(emotions ?? [])].join(" · ") : "Покрутите диск — и отметьте эмоцию дня"}
           </span>
         </span>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-[18px] font-black text-white">›</span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[18px] font-black" style={{ background: mood ? `${moodColor(value)}55` : "var(--amber-soft)", border: `var(--bw) solid ${mood ? moodColor(value) : "var(--amber-edge)"}`, color: "var(--ink)" }}>›</span>
       </div>
     </button>
   );

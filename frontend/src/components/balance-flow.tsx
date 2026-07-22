@@ -6,7 +6,8 @@ import { useRef, useState, type ReactNode } from "react";
 import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
-import { WHEEL, WHEEL_QUESTION_COUNT, wheelBand, type WheelAnswers } from "@/lib/therapy";
+import { WHEEL, WHEEL_QUESTION_COUNT, wheelBand, type WheelAnswers, type WheelResult } from "@/lib/therapy";
+import { WheelChart } from "@/components/wheel-chart";
 import { select, success, tap } from "@/lib/haptics";
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -129,29 +130,24 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
   );
 }
 
-// Экран результата: круговая стата, сильные/слабые сферы и (для клиента без Вдох+) оплата.
+// Экран результата: круглое колесо (радар), сильные/слабые сферы и (для клиента без Вдох+) оплата.
 function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers: WheelAnswers; pct: number; band: ReturnType<typeof wheelBand>; locked: boolean; onSave: () => void; onUnlock?: () => void }) {
   const per = WHEEL.map((d) => ({ d, v: d.questions.reduce((s, _, i) => s + answers[d.key][i], 0) / d.questions.length })).sort((a, b) => b.v - a.v);
   const tone = band.tone === "green" ? "var(--green)" : band.tone === "amber" ? "var(--amber)" : "var(--salmon)";
   const edge = band.tone === "green" ? "var(--green-edge)" : band.tone === "amber" ? "var(--amber-edge)" : "var(--salmon-edge)";
-  const R = 34, C = 2 * Math.PI * R;
   const strong = per.slice(0, 2), weak = per.slice(-2).reverse();
+  const result: WheelResult = { answers, completedAt: new Date().toISOString() };
 
   return (
     <div className="space-y-4">
-      {/* Круговая стата */}
-      <div className="flex items-center gap-4 rounded-[18px] p-4" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
-        <div className="relative h-[86px] w-[86px] shrink-0">
-          <svg viewBox="0 0 86 86" className="h-full w-full -rotate-90">
-            <circle cx="43" cy="43" r={R} fill="none" stroke="#fff" strokeWidth="9" />
-            <motion.circle cx="43" cy="43" r={R} fill="none" stroke={tone} strokeWidth="9" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - pct / 100) }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="font-tight tnum text-[22px] font-black leading-none">{pct}%</span></div>
+      {/* Круглое колесо баланса — как на странице терапии */}
+      <div className="rounded-[18px] p-3 pt-4" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
+        <WheelChart result={result} size={252} />
+        <div className="mt-2 flex items-center justify-center gap-2">
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase" style={{ background: tone, border: `var(--bw) solid ${edge}` }}>{band.label}</span>
+          <span className="tnum text-[13px] font-black">{pct}%</span>
         </div>
-        <div className="min-w-0 flex-1">
-          <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: tone, border: `var(--bw) solid ${edge}` }}>{band.label}</span>
-          <p className="mt-1.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{band.hint}</p>
-        </div>
+        <p className="mt-1.5 text-center text-[11px] font-semibold leading-snug text-[var(--muted)]">{band.hint}</p>
       </div>
 
       {/* Сильные / слабые сферы */}

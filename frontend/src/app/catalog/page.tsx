@@ -19,7 +19,6 @@ import {
   METHOD_DESCRIPTIONS,
   filterCatalog,
   formatLabel,
-  matchScore,
   nextSlotLabel,
   personalSelection,
   publishedCatalog,
@@ -39,7 +38,7 @@ import { getSubscription } from "@/lib/subscription";
 
 const PREFS_KEY = "bereg_catalog_prefs_v1";
 const SEEN_KEY = "bereg_catalog_survey_seen_v1";
-type CatalogMode = "personal" | "all" | "wait";
+type CatalogMode = "personal" | "all";
 
 const T: Record<Tone, { bg: string; soft: string; edge: string }> = {
   green: { bg: "var(--green)", soft: "var(--green-soft)", edge: "var(--green-edge)" },
@@ -102,10 +101,9 @@ export default function CatalogPage() {
   const catalog = useMemo(() => publishedCatalog(profile, subscription), [profile, subscription]);
   const personal = useMemo(() => personalSelection(prefs, catalog), [prefs, catalog]);
   const allFiltered = useMemo(() => sortCatalog(filterCatalog(filters, catalog), sort, prefs), [filters, sort, prefs, catalog]);
-  const waiting = useMemo(() => catalog.filter((psy) => psy.nextDays > 14).sort((a, b) => matchScore(b, prefs) - matchScore(a, prefs)), [catalog, prefs]);
   const pageCount = Math.max(1, Math.ceil(allFiltered.length / 10));
   const allPage = allFiltered.slice(page * 10, page * 10 + 10);
-  const visible = mode === "personal" ? personal : mode === "wait" ? waiting : allPage;
+  const visible = mode === "personal" ? personal : allPage;
   const activeFilters = filters.topics.length + filters.methods.length + Number(filters.format !== "any") + Number(filters.maxPrice != null) + Number(filters.gender !== "any") + Number(filters.minYears > 0) + Number(filters.verifiedOnly) + Number(filters.thisWeek) + Number(Boolean(filters.city.trim())) + Number(filters.language !== "any");
   const countFilters = useCallback((value: CatalogFilters) => filterCatalog(value, catalog).length, [catalog]);
 
@@ -124,7 +122,7 @@ export default function CatalogPage() {
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
-      <header className="bg-[var(--salmon)] px-4 pb-14 pt-8 @md:px-9" style={{ borderBottom: "var(--bw-lg) solid var(--salmon-edge)" }}>
+      <header className="bg-[var(--olive)] px-4 pb-14 pt-8 @md:px-9" style={{ borderBottom: "var(--bw-lg) solid var(--olive-edge)" }}>
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><h1 className="font-tight mt-1 text-[31px] font-black leading-none">Каталог</h1><p className="mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Не рейтинг лучших, а специалисты, которые подходят именно вам.</p></div>
           <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[#fffdf7] stroke-lg" aria-label="Настроить подборку"><Icon name="sort" width={23} weight="bold" /></button>
@@ -132,15 +130,15 @@ export default function CatalogPage() {
       </header>
 
       <main className="relative -mt-8 min-h-[72vh] rounded-t-[30px] bg-[#fffaf0] px-4 pb-9 pt-4 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-        <div className="grid grid-cols-3 gap-1 rounded-full bg-white p-1 stroke-lg">
-          {([{ id: "personal", label: "Для вас" }, { id: "all", label: "Все" }, { id: "wait", label: "Можно подождать" }] as { id: CatalogMode; label: string }[]).map((tab) => <button key={tab.id} onClick={() => switchMode(tab.id)} className="rounded-full px-2 py-2 text-[11px] font-black transition-colors" style={mode === tab.id ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{tab.label}</button>)}
+        <div className="grid grid-cols-2 gap-1 rounded-full bg-white p-1 stroke-lg">
+          {([{ id: "personal", label: "Для вас" }, { id: "all", label: "Все специалисты" }] as { id: CatalogMode; label: string }[]).map((tab) => <button key={tab.id} onClick={() => switchMode(tab.id)} className="rounded-full px-2 py-2 text-[11px] font-black transition-colors" style={mode === tab.id ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{tab.label}</button>)}
         </div>
 
         {mode === "all" && <AllControls filters={filters} setFilters={(next) => { setFilters(next); setPage(0); }} sort={sort} setSort={(next) => { setSort(next); setPage(0); }} activeFilters={activeFilters} openFilters={() => setFiltersOpen(true)} />}
 
         <div className="mb-3 mt-5 flex items-end justify-between gap-3">
-          <div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{mode === "personal" ? "Персональная подборка" : mode === "all" ? `${allFiltered.length} специалистов` : "Без ближайших окон"}</p><h2 className="font-tight mt-0.5 text-[21px] font-black">{mode === "personal" ? "6 специалистов для вас" : mode === "all" ? `Десятка ${Math.min(page + 1, pageCount)} из ${pageCount}` : "Подходят, если готовы подождать"}</h2></div>
-          {mode === "personal" && <button onClick={() => setSurveyOpen(true)} className="shrink-0 rounded-full bg-[var(--salmon-soft)] px-3 py-1.5 text-[10px] font-black stroke">Изменить</button>}
+          <div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{mode === "personal" ? "Персональная подборка" : `${allFiltered.length} специалистов`}</p><h2 className="font-tight mt-0.5 text-[21px] font-black">{mode === "personal" ? "Специалисты для вас" : `Страница ${Math.min(page + 1, pageCount)} из ${pageCount}`}</h2></div>
+          {mode === "personal" && <button onClick={() => setSurveyOpen(true)} className="shrink-0 rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[10px] font-black stroke">Изменить</button>}
         </div>
 
         {visible.length ? <Stagger className="space-y-3">{visible.map((psy) => <StaggerItem key={psy.id}><PsyCard psy={psy} prefs={prefs} showReason={mode !== "all" || sort === "recommended"} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
@@ -166,18 +164,29 @@ function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogP
   const topics = topicsForCard(psy, prefs);
   return <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform active:scale-[.99] stroke-lg">
     <div className="flex gap-3 p-3">
-      <div className="relative h-[132px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} /></div>
-      <div className="min-w-0 flex-1 py-0.5">
-        <div className="flex items-start gap-1"><h3 className="min-w-0 flex-1 text-[16px] font-black leading-[1.05]">{psy.name}</h3>{psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}</div>
-        <div className="mt-1.5 flex items-center gap-1"><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /><span className="tnum text-[12px] font-black">{psy.reviews >= 3 ? psy.rating : "Новый"}</span><span className="text-[10px] font-bold text-[var(--muted-2)]">· {psy.reviews} оценок</span></div>
-        <p className="mt-2 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
-        <div className="mt-2 flex flex-wrap gap-1">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: tone.soft, border: `1.5px solid ${tone.edge}` }}>{topic}</span>)}</div>
-        <p className="mt-2 text-[11px] font-black">{psy.price.toLocaleString("ru-RU")} ₽ <span className="font-bold text-[var(--muted)]">· {psy.minutes} мин</span></p>
-        <p className="mt-1 flex items-center gap-1 truncate text-[10px] font-bold text-[var(--muted)]"><Icon name={psy.format === "online" ? "video" : "pin"} width={12} /> {place}</p>
+      <div className="relative h-[128px] w-[104px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="104px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} /></div>
+      <div className="flex min-w-0 flex-1 flex-col py-0.5">
+        <div className="flex items-start gap-1">
+          <h3 className="min-w-0 flex-1 text-[16px] font-black leading-[1.05]">{psy.name}</h3>
+          {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
+        </div>
+        <div className="mt-1 flex items-center gap-2">
+          {psy.reviews >= 3
+            ? <span className="inline-flex items-center gap-1"><Icon name="star" width={13} weight="fill" color="var(--amber-edge)" /><span className="tnum text-[12px] font-black">{psy.rating}</span><span className="text-[10px] font-bold text-[var(--muted-2)]">({psy.reviews})</span></span>
+            : <span className="rounded-full bg-[var(--olive-soft)] px-2 py-0.5 text-[9px] font-black" style={{ border: "1.5px solid var(--olive-edge)" }}>новый специалист</span>}
+        </div>
+        <p className="mt-1.5 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
+        <div className="mt-1.5 flex flex-wrap gap-1">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9px] font-black" style={{ background: tone.soft, border: `1.5px solid ${tone.edge}` }}>{topic}</span>)}</div>
+        {/* Единая инфо-строка: цена, формат/место, ближайшее окно — без повторов */}
+        <div className="mt-auto space-y-1 pt-2">
+          <p className="text-[13px] font-black">{psy.price.toLocaleString("ru-RU")} ₽ <span className="text-[11px] font-bold text-[var(--muted)]">/ {psy.minutes} мин</span></p>
+          <p className="flex items-center gap-1 truncate text-[10px] font-bold text-[var(--muted)]"><Icon name={psy.format === "online" ? "video" : "pin"} width={12} /> {place}</p>
+          <p className="flex items-center gap-1 text-[10px] font-black" style={{ color: "var(--olive-edge)" }}><Icon name="calendar" width={12} weight="bold" /> {nextSlotLabel(psy.nextDays)}</p>
+        </div>
       </div>
     </div>
     {showReason && reasons.length > 0 && <div className="mx-3 flex flex-wrap gap-1.5 border-t pt-2.5" style={{ borderColor: "var(--edge-neutral)" }}>{reasons.map((reason) => <span key={reason} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2 py-1 text-[9px] font-black" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={10} weight="bold" /> {reason}</span>)}</div>}
-    <div className="mt-3 flex items-center justify-between gap-2 px-3 pb-3"><div className="min-w-0"><p className="text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Ближайшее окно</p><p className="truncate text-[12px] font-black">{nextSlotLabel(psy.nextDays)} · {formatLabel(psy.format)}</p></div><span className="shrink-0 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white">Профиль →</span></div>
+    <div className="mt-2.5 px-3 pb-3"><span className="flex w-full items-center justify-center gap-1 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white">Открыть профиль →</span></div>
   </button>;
 }
 
