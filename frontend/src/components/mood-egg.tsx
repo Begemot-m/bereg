@@ -61,6 +61,99 @@ export function MoodEgg({ value, size = 180, still }: { value: number; size?: nu
   );
 }
 
+// Персонаж-блоб в духе рефа: пухлое «облако» на всю ширину, мимика и цвет
+// плавно едут по шкале 1..5. value дробное — лицо меняется во время кручения.
+export function MoodBlob({ value, size = 220, still }: { value: number; size?: number; still?: boolean }) {
+  const gradientId = `blob-${useId()}`;
+  const t = Math.min(1, Math.max(0, (value - 1) / 4)); // 0..1
+  const fill = mix(t);
+  const happy = smooth((t - 0.5) / 0.42);   // 0 → 1 к радости
+  const sad = smooth((0.42 - t) / 0.42);    // 0 → 1 к тяжести
+
+  // Рот: тонкий фрован снизу → широкая открытая улыбка сверху.
+  const frown = `M 78 118 Q 100 ${112 - sad * 12} 122 118`;
+  const smile = `M 74 108 Q 100 ${118 + happy * 30} 126 108 Q 100 ${118 + happy * 12} 74 108 Z`;
+
+  // Глаза чуть сходятся к переносице при тяжести (обеспокоенность).
+  const eyeGap = 30 - sad * 2;
+
+  return (
+    <motion.svg
+      width={size}
+      height={size * 0.86}
+      viewBox="0 0 200 172"
+      role="img"
+      aria-label={`Настроение: ${Math.round(value)} из 5`}
+      animate={still ? undefined : { y: (0.5 - Math.abs(t - 0.5)) * -5, rotate: (t - 0.5) * 3 }}
+      transition={{ type: "spring", stiffness: 200, damping: 18 }}
+      style={{ overflow: "visible" }}
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={lighten(fill)} />
+          <stop offset="100%" stopColor={fill} />
+        </linearGradient>
+      </defs>
+
+      {/* Тело — пухлое облако с бугорками сверху */}
+      <path
+        d="M22 150 C 8 118 12 78 34 66 C 30 44 52 30 68 42 C 74 22 104 20 112 42 C 130 28 158 40 152 66 C 176 74 178 116 160 138 C 168 150 150 168 100 168 C 52 168 28 168 22 150 Z"
+        fill={`url(#${gradientId})`}
+        stroke="var(--ink)"
+        strokeWidth="4.5"
+        strokeLinejoin="round"
+      />
+
+      {/* Спортивная повязка со струйками пота — проступает при тяжести */}
+      <g opacity={sad}>
+        <path d="M40 58 C 62 40 138 40 160 58 L 156 70 C 134 54 66 54 44 70 Z" fill="#f4f1e8" stroke="var(--ink)" strokeWidth="4" strokeLinejoin="round" />
+        <path d="M52 60 C 74 47 126 47 148 60" fill="none" stroke="var(--coral-edge)" strokeWidth="3" strokeLinecap="round" />
+        <path d="M52 66 C 74 54 126 54 148 66" fill="none" stroke="var(--green-edge)" strokeWidth="3" strokeLinecap="round" />
+      </g>
+
+      {/* Блик */}
+      <ellipse cx="60" cy="70" rx="16" ry="20" fill="#fff" opacity=".22" transform="rotate(-18 60 70)" />
+
+      {/* Глаза — крупные, белые, с чёрным зрачком */}
+      <g>
+        <ellipse cx={100 - eyeGap} cy="92" rx="17" ry="18" fill="#fff" stroke="var(--ink)" strokeWidth="3.5" />
+        <ellipse cx={100 + eyeGap} cy="92" rx="17" ry="18" fill="#fff" stroke="var(--ink)" strokeWidth="3.5" />
+        <circle cx={100 - eyeGap} cy={94 - happy * 3} r="7.5" fill="var(--ink)" />
+        <circle cx={100 + eyeGap} cy={94 - happy * 3} r="7.5" fill="var(--ink)" />
+        {/* Счастливые полукруглые глаза перекрывают круглые при радости */}
+        <g opacity={happy}>
+          <path d={`M ${100 - eyeGap - 15} 94 Q ${100 - eyeGap} 78 ${100 - eyeGap + 15} 94`} fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
+          <path d={`M ${100 + eyeGap - 15} 94 Q ${100 + eyeGap} 78 ${100 + eyeGap + 15} 94`} fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
+        </g>
+      </g>
+
+      {/* Бровки-домиком при тяжести */}
+      <g opacity={sad}>
+        <path d={`M ${100 - eyeGap - 14} 70 L ${100 - eyeGap + 6} 76`} stroke="var(--ink)" strokeWidth="4" strokeLinecap="round" />
+        <path d={`M ${100 + eyeGap + 14} 70 L ${100 + eyeGap - 6} 76`} stroke="var(--ink)" strokeWidth="4" strokeLinecap="round" />
+      </g>
+
+      {/* Щёчки при радости */}
+      <g opacity={happy}>
+        <ellipse cx="62" cy="116" rx="11" ry="7" fill="#e58a7a" opacity=".55" />
+        <ellipse cx="138" cy="116" rx="11" ry="7" fill="#e58a7a" opacity=".55" />
+      </g>
+
+      {/* Слеза при тяжести */}
+      <path d="M158 96 C 158 108 150 112 150 102 C 150 98 154 92 154 92 Z" fill="var(--sky)" stroke="var(--ink)" strokeWidth="2.5" strokeLinejoin="round" opacity={sad} />
+
+      {/* Рот: открытая улыбка поверх фрована */}
+      <path d={frown} fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" opacity={1 - happy} />
+      <path d={smile} fill="var(--ink)" opacity={happy} />
+    </motion.svg>
+  );
+}
+
+function smooth(x: number): number {
+  const c = Math.min(1, Math.max(0, x));
+  return c * c * (3 - 2 * c);
+}
+
 const STOPS = ["#e08a76", "#e9a978", "#e8c877", "#c9d081", "#8ec295"];
 
 function mix(t: number): string {

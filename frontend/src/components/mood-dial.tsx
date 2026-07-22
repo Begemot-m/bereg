@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/icons";
-import { MoodEgg, moodColor } from "@/components/mood-egg";
+import { MoodBlob, moodColor } from "@/components/mood-egg";
 import { suggestFamilies } from "@/lib/emotions";
 import { select, success, tap, tick } from "@/lib/haptics";
 import { MOOD_LABEL } from "@/lib/mascots";
@@ -22,7 +22,7 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
       style={{ background: mood ? `${moodColor(value)}33` : "var(--amber-soft)", border: `var(--bw-lg) solid ${mood ? moodColor(value) : "var(--amber-edge)"}` }}
     >
       <div className="flex items-center gap-3">
-        <span className="shrink-0"><MoodEgg value={value} size={62} still /></span>
+        <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center"><MoodBlob value={value} size={64} still /></span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-black leading-tight">Какое у вас настроение сегодня?</span>
           <span className="mt-1 block truncate text-[11.5px] font-bold text-[var(--muted)]">
@@ -88,21 +88,19 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col" style={{ background: "var(--surface)" }}>
-      {/* Подсветка сверху — в цвет выбранного настроения */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[46%]" style={{ background: `linear-gradient(180deg, ${tint} 0%, transparent 100%)`, opacity: 0.42 }} />
-
-      <div className="relative flex items-center justify-between px-4 pt-4">
-        <button onClick={() => { tap(); close(); }} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-[20px] font-black stroke" aria-label="Закрыть">‹</button>
-        <p className="text-[11px] font-black uppercase tracking-[.12em] text-[var(--muted)]">Эмоция дня</p>
-        <span className="w-10" />
+      {/* Персонаж-баннер во всю ширину — цвет и мимика по шкале */}
+      <div className="relative flex flex-col items-center overflow-hidden px-4 pb-5 pt-4" style={{ background: tint, transition: "background 260ms ease" }}>
+        <div className="flex w-full items-center justify-between">
+          <button onClick={() => { tap(); close(); }} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-[20px] font-black stroke" aria-label="Закрыть">‹</button>
+          <p className="text-[11px] font-black uppercase tracking-[.12em]" style={{ color: "rgba(32,28,24,.6)" }}>Эмоция дня</p>
+          <span className="w-10" />
+        </div>
+        <div className="mt-1"><MoodBlob value={value} size={210} /></div>
+        <h2 className="mt-1 text-center font-tight text-[27px] font-black uppercase leading-[0.95] tracking-tight">Какое у вас<br />настроение сегодня?</h2>
       </div>
 
-      <div className="relative flex flex-1 flex-col overflow-y-auto px-4 pb-8">
-        <h2 className="mt-4 text-center font-tight text-[26px] font-black leading-tight">Какое у вас настроение<br />сегодня?</h2>
-
-        <div className="mt-2 flex justify-center"><MoodEgg value={value} size={172} /></div>
-
-        <p className="mt-1 text-center text-[20px] font-black capitalize">{MOOD_LABEL[level]}</p>
+      <div className="relative flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-4">
+        <p className="text-center text-[20px] font-black capitalize">{MOOD_LABEL[level]}</p>
 
         {/* Диск-скролл: влево — тяжело, вправо — хорошо */}
         <div className="relative mt-4">
