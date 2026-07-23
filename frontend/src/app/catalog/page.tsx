@@ -7,10 +7,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { CatalogFiltersSheet, CatalogSurvey } from "@/components/catalog-controls";
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
-import { Button, Input } from "@/components/ui";
+import { Button, Disclosure, Input } from "@/components/ui";
 import { asset } from "@/lib/asset";
 import { listMyBookings } from "@/lib/clients";
 import {
@@ -157,60 +157,56 @@ function AllControls({ filters, setFilters, sort, setSort, activeFilters, openFi
   return <Reveal delay={.03}><div className="mt-4 space-y-2"><label className="flex items-center gap-2 rounded-[15px] bg-white px-3.5 py-2.5 stroke"><Icon name="compass" width={16} color="var(--muted)" /><input value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder="Имя, подход или запрос" className="min-w-0 flex-1 bg-transparent text-[13px] font-bold outline-none placeholder:font-semibold placeholder:text-[var(--muted-2)]" />{filters.query && <button onClick={() => setFilters({ ...filters, query: "" })} className="font-black text-[var(--muted)]" aria-label="Очистить поиск">×</button>}</label><div className="flex gap-2"><button onClick={openFilters} className="relative flex flex-1 items-center justify-center gap-1.5 rounded-[13px] bg-white px-3 py-2 text-[11px] font-black stroke"><Icon name="filter" width={15} weight="bold" /> Фильтры{activeFilters > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--coral)] px-1 text-[10px] stroke">{activeFilters}</span>}</button><label className="flex flex-[1.35] items-center gap-1.5 rounded-[13px] bg-white px-3 py-2 stroke"><Icon name="sort" width={15} weight="bold" /><select value={sort} onChange={(event) => setSort(event.target.value as SortMode)} className="min-w-0 flex-1 bg-transparent text-[11px] font-black outline-none">{SORTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label></div></div></Reveal>;
 }
 
-// Звёзды рейтинга: заполненные до значения, остальные приглушённые.
-function Stars({ value }: { value: number }) {
-  const rounded = Math.round(value);
-  return <span className="inline-flex items-center gap-[1px]" aria-hidden>
-    {[1, 2, 3, 4, 5].map((i) => <Icon key={i} name="star" width={12} weight={i <= rounded ? "fill" : "regular"} color={i <= rounded ? "var(--amber-edge)" : "var(--muted-2)"} />)}
-  </span>;
+// Две причины «почему подходит»: сначала по подбору, затем — сильные стороны специалиста.
+function cardReasons(psy: Psy, prefs: CatalogPrefs): string[] {
+  const merged = [...reasonsFor(psy, prefs)];
+  const extra: string[] = [];
+  if (psy.nextDays <= 1) extra.push("есть свободное окно уже завтра");
+  else if (psy.nextDays <= 7) extra.push("есть окно на этой неделе");
+  if (psy.years >= 10) extra.push(`${psy.years} ${yearsWord(psy.years)} практики`);
+  extra.push(`основной подход — ${psy.method}`);
+  if (psy.format !== "offline") extra.push("можно онлайн");
+  for (const e of extra) { if (merged.length >= 2) break; if (!merged.includes(e)) merged.push(e); }
+  return merged.slice(0, 2);
 }
 
 // Миниатюра специалиста — премиальная карточка: фото, рейтинг, суть и запись.
 function PsyCard({ psy, prefs, showReason, onOpen }: { psy: Psy; prefs: CatalogPrefs; showReason: boolean; onOpen: () => void }) {
-  // Повод-ленту берём по совпадению запроса, а не по окну — окно и так в футере.
-  const reason = showReason ? reasonsFor(psy, prefs).find((r) => !/окно|неделе|сегодня|завтра/i.test(r)) : undefined;
-  const place = catalogLocation(psy);
   const portrait = asset(psy.portrait);
-  const topics = topicsForCard(psy, prefs).slice(0, 3);
+  const helps = psy.helps ?? psy.topics.slice(0, 3).join(", ");
+  const reasons = showReason ? cardReasons(psy, prefs) : [];
   const soon = psy.nextDays <= 3;
 
   return (
     <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform duration-200 active:scale-[.99]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
-      {/* Персональный повод — тонкой лентой сверху */}
-      {reason && <div className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" /> {reason}</div>}
-
-      <div className="flex gap-3.5 p-3.5">
-        <div className="relative h-[140px] w-[112px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
-          <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="112px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
+      <div className="flex gap-3.5 p-4">
+        <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
+          <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="106px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-start gap-1">
-            <h3 className="min-w-0 flex-1 text-[17px] font-black leading-[1.06]">{psy.name}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="min-w-0 text-[17px] font-black leading-[1.06]">{psy.name}</h3>
             {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }} title="Профиль подтверждён"><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
           </div>
-          {psy.reviews >= 3
-            ? <span className="mt-1 inline-flex items-center gap-1.5"><Stars value={psy.rating} /><span className="tnum text-[12px] font-black">{psy.rating}</span><span className="text-[10px] font-bold text-[var(--muted-2)]">· {psy.reviews} отзывов</span></span>
-            : <span className="mt-1 inline-flex w-fit rounded-full bg-[var(--olive-soft)] px-2 py-0.5 text-[9px] font-black" style={{ border: "1.5px solid var(--olive-edge)" }}>новый специалист</span>}
-          <p className="mt-1.5 text-[12px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
-          {psy.about && <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-snug text-[var(--muted)]">{psy.about}</p>}
-          <div className="mt-auto flex flex-wrap gap-1 pt-2">{topics.map((topic) => <span key={topic} className="rounded-full px-2 py-0.5 text-[9.5px] font-black" style={{ background: "var(--olive-soft)", border: "1.5px solid var(--olive-edge)" }}>{topic}</span>)}</div>
+          <p className="mt-1.5 text-[12.5px] font-bold leading-snug"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
+          {psy.quote && <p className="mt-2 border-l-2 pl-2.5 text-[11.5px] font-semibold italic leading-snug text-[var(--muted)]" style={{ borderColor: "var(--olive-edge)" }}>«{psy.quote}»</p>}
         </div>
       </div>
 
-      {/* Доверие: сессии, ответ, формат — без повторов */}
-      <div className="mx-3.5 flex items-center gap-3 border-t py-2 text-[10px] font-bold text-[var(--muted)]" style={{ borderColor: "var(--edge-neutral)" }}>
-        {psy.sessions > 0 && <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap"><Icon name="check" width={11} weight="bold" color="var(--olive-edge)" /> {psy.sessions}+ сессий</span>}
-        <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap"><Icon name="clock" width={11} weight="bold" /> ответ ~{psy.responseHrs} ч</span>
-        <span className="inline-flex min-w-0 flex-1 items-center gap-1"><Icon name={psy.format === "online" ? "video" : "pin"} width={11} weight="bold" className="shrink-0" /> <span className="truncate">{psy.format === "online" ? "онлайн" : place}</span></span>
-      </div>
+      {/* Две причины, почему подходит именно вам */}
+      {reasons.length > 0 && (
+        <div className="flex flex-col gap-1 px-4 pb-1">
+          {reasons.map((r) => <span key={r} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--muted)]"><Icon name="check" width={12} weight="bold" color="var(--green-edge)" className="shrink-0" /> {r}</span>)}
+        </div>
+      )}
 
-      {/* Запись: цена + ближайшее окно + переход */}
-      <div className="flex items-center gap-2 px-3.5 pb-3.5 pt-1">
+      {/* Стоимость + ближайшее окно + переход к профилю */}
+      <div className="mt-1 flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
         <div className="min-w-0">
           <p className="text-[15px] font-black leading-none">{psy.price.toLocaleString("ru-RU")} ₽<span className="text-[11px] font-bold text-[var(--muted)]"> / {psy.minutes} мин</span></p>
           <p className="mt-1 flex items-center gap-1 text-[10px] font-black" style={{ color: soon ? "var(--olive-edge)" : "var(--muted)" }}><Icon name="calendar" width={11} weight="bold" /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
-        <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Профиль →</span>
+        <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Посмотреть и записаться →</span>
       </div>
     </button>
   );
@@ -240,45 +236,131 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
   const wasInTherapy = bookings.some((booking) => booking.psyName === psy.name);
   const reasons = reasonsFor(psy, prefs);
   const details = detailLocation(psy);
+  const helps = psy.helps ?? psy.topics.slice(0, 3).join(", ");
+  const firstSession = psy.firstSession ?? "На первой встрече знакомимся, обсуждаем ваш запрос и то, какой поддержки вы ждёте. В конце сверяемся — комфортно ли вам продолжать. Ничего решать сразу не нужно.";
+  const toBooking = () => { tap(); document.getElementById("book-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+
   return <div>
     <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
       <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-[13px] font-bold text-[var(--muted)]">← Каталог</button>
-      <div className="flex items-center gap-3"><Portrait psy={psy} size={98} /><div className="min-w-0 flex-1"><div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div><div className="mt-2 flex items-center gap-1"><Icon name="star" width={15} weight="fill" color="var(--amber-edge)" /><span className="text-[13px] font-black">{psy.reviews >= 3 ? psy.rating : "Новый"}</span><span className="text-[10px] font-bold text-[var(--muted)]">· {psy.reviews} оценок</span></div><p className="mt-1 text-[11px] font-black">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p></div></div>
+      <div className="flex items-center gap-3">
+        <Portrait psy={psy} size={98} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
+          <p className="mt-1.5 text-[11px] font-black text-[var(--muted)]">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
+          {psy.style && <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black" style={{ border: `1.5px solid ${tone.edge}` }}><Icon name="spark" width={11} weight="fill" /> стиль: {psy.style}</span>}
+        </div>
+      </div>
     </div>
+
     <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] bg-[#fffaf0] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
       <AttachTherapistButton name={psy.name} />
+
+      {/* Почему предложен именно этому пользователю */}
+      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="rounded-[18px] bg-[var(--green-soft)] p-3.5 stroke-lg" style={{ borderColor: "var(--green-edge)" }}><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="flex items-start gap-2 text-[12.5px] font-bold"><Icon name="check" width={14} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
+
+      {/* С какими ситуациями специалист особенно хорошо работает */}
+      <Section title="Особенно хорошо помогает"><div className="rounded-[18px] bg-white p-4 stroke-lg"><p className="text-[14px] font-black leading-snug">Помогаю с {helps}.</p><div className="mt-2.5 flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-[var(--olive-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: `1.5px solid var(--olive-edge)` }}>{topic}</span>)}</div></div></Section>
+
+      {/* Когда можно начать и сколько стоит */}
       <div className="grid grid-cols-3 gap-2"><Stat value={`${psy.price.toLocaleString("ru-RU")} ₽`} label="одна встреча" tone="var(--amber-soft)" /><Stat value={`${psy.minutes} мин`} label="длительность" tone="var(--green-soft)" /><Stat value={nextSlotLabel(psy.nextDays)} label="ближайшее окно" tone="var(--purple-soft)" /></div>
+      <button onClick={toBooking} className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform active:scale-[0.99]"><Icon name="calendar" width={16} weight="bold" color="#fff" /> Посмотреть свободные окна</button>
+
+      {/* Как проходит первая встреча */}
+      <Section title="Как проходит первая встреча"><div className="rounded-[18px] bg-[var(--purple-soft)] p-4 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}><p className="text-[13px] font-semibold leading-relaxed">{firstSession}</p></div></Section>
+
+      {/* Голосовое приветствие (демо-слот) */}
+      <VoiceGreeting name={psy.name.split(" ")[0]} />
+
+      {/* Подход и пример работы — без обещаний результата */}
+      {psy.about && <Section title="Как я работаю"><p className="text-[13px] font-semibold leading-relaxed">{psy.about}</p></Section>}
+      <Section title="Методы"><div className="space-y-2">{psy.methods.map((method) => <div key={method} className="rounded-[17px] bg-white p-3 stroke"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke" style={{ background: tone.soft, borderColor: tone.edge }}><Icon name="therapy" width={14} weight="bold" /></span><p className="text-[13px] font-black">{method}{method === psy.method ? " · основной" : ""}</p></div><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{METHOD_DESCRIPTIONS[method] ?? "Метод подбирается под запрос и задачи клиента."}</p></div>)}</div></Section>
+
       {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} />}
-      {reasons.length > 0 && <Section title="Почему подходит вам"><div className="flex flex-wrap gap-1.5">{reasons.map((reason) => <span key={reason} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1.5 text-[10px] font-black" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={11} weight="bold" />{reason}</span>)}</div></Section>}
-      <Section title="С чем помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ border: `var(--bw) solid ${tone.edge}` }}>{topic}</span>)}</div></Section>
-      <Section title="Методы работы"><div className="space-y-2">{psy.methods.map((method) => <div key={method} className="rounded-[17px] bg-white p-3 stroke"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke" style={{ background: tone.soft, borderColor: tone.edge }}><Icon name="therapy" width={14} weight="bold" /></span><p className="text-[13px] font-black">{method}{method === psy.method ? " · основной" : ""}</p></div><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{METHOD_DESCRIPTIONS[method] ?? "Метод подбирается под запрос и задачи клиента."}</p></div>)}</div></Section>
+
       <Section title="Формат и место"><div className="rounded-[18px] bg-white p-4 stroke-lg"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--head-soft)] stroke"><Icon name={psy.format === "online" ? "video" : "pin"} width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p>{psy.format !== "online" && psy.privateAddressAvailable && <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Точный адрес станет доступен после подтверждения очной записи.</p>}</div></div></div></Section>
-      {psy.about && <Section title="О специалисте"><p className="text-[13px] font-semibold leading-relaxed">{psy.about}</p></Section>}
-      {psy.firstSession && <Section title="Как проходит первая встреча"><div className="rounded-[18px] bg-[var(--purple-soft)] p-4 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}><p className="text-[13px] font-semibold leading-relaxed">{psy.firstSession}</p></div></Section>}
-      {psy.education.length > 0 && <Section title="Образование"><ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul></Section>}
+
+      {/* Образование с раскрываемой проверкой документов */}
+      {psy.education.length > 0 && <EducationBlock psy={psy} />}
+
+      {/* Темы, с которыми специалист не работает */}
+      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="rounded-[18px] bg-white p-4 stroke-lg"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-bold text-[var(--muted)]" style={{ border: "1.5px solid var(--edge-neutral)" }}>{topic}</span>)}</div><p className="mt-2.5 text-[10.5px] font-semibold text-[var(--muted-2)]">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></div></Section>}
+
+      {/* Отзывы — только после подтверждённых встреч */}
       <RatingBlock psy={psy} canRate={wasInTherapy} />
-      <Section title="Записаться · ближайшие окна"><div className="rounded-[18px] bg-white p-4 stroke-lg"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section>
-      <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из платформы «Вдох» — хочу записаться на консультацию.")}`} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white"><Icon name="spark" width={16} weight="fill" /> Написать специалисту</a>
+
+      {/* Правила отмены и связи между сессиями */}
+      <RulesSection minutes={psy.minutes} />
+
+      {/* Постоянная запись */}
+      <div id="book-section"><Section title="Записаться · ближайшие окна"><div className="rounded-[18px] bg-white p-4 stroke-lg"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section></div>
+      <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из платформы «Вдох» — хочу записаться на консультацию.")}`} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-[16px] py-3.5 text-[14px] font-black" style={{ border: "var(--bw-lg) solid var(--ink)" }}><Icon name="spark" width={16} weight="fill" /> Задать вопрос в Telegram</a>
     </div>
   </div>;
+}
+
+// Голосовое приветствие — демо-слот под будущее аудио специалиста.
+function VoiceGreeting({ name }: { name: string }) {
+  return (
+    <Section title="Голос специалиста">
+      <div className="flex items-center gap-3 rounded-[18px] bg-white p-3.5 stroke-lg">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--olive)]" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}><Icon name="pulse" width={20} weight="fill" /></span>
+        <div className="flex min-w-0 flex-1 items-center gap-[3px]">
+          {[10, 18, 13, 22, 16, 26, 14, 20, 11, 24, 15, 19, 12].map((h, k) => <span key={k} className="w-[3px] rounded-full bg-[var(--olive-edge)]" style={{ height: h, opacity: 0.5 + (k % 3) * 0.2 }} />)}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-[11px] font-black leading-none">приветствие</p>
+          <p className="mt-1 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">скоро · {name}</p>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+// Образование + раскрываемая проверка документов.
+function EducationBlock({ psy }: { psy: Psy }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Section title="Образование">
+      <div className="rounded-[18px] bg-white p-4 stroke-lg">
+        <ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul>
+        <button onClick={() => { tap(); setOpen((v) => !v); }} className="mt-3 flex items-center gap-1.5 text-[11px] font-black text-[var(--muted)]" aria-expanded={open}>
+          <Icon name="check" width={13} weight="bold" color="var(--green-edge)" /> Как проверяются документы <span className="transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+        </button>
+        <Disclosure open={open}>
+          <p className="mt-2 rounded-[12px] bg-[var(--green-soft)] p-3 text-[11px] font-semibold leading-relaxed" style={{ border: "1.5px solid var(--green-edge)" }}>Дипломы и сертификаты специалист загружает при регистрации, платформа проверяет их до публикации профиля. Значок «подтверждён» — результат этой проверки, а не оплаты.</p>
+        </Disclosure>
+      </div>
+    </Section>
+  );
+}
+
+// Правила отмены и связи между сессиями.
+function RulesSection({ minutes }: { minutes: number }) {
+  const rules: { icon: IconName; title: string; text: string }[] = [
+    { icon: "clock", title: "Отмена и перенос", text: "Бесплатно за 24 часа до встречи. Позже — сессия считается состоявшейся." },
+    { icon: "note", title: "Связь между сессиями", text: `Короткие сообщения по договорённости, ответ в рабочее время. Разбор вопросов — на встрече (${minutes} мин).` },
+    { icon: "heart", title: "Это не экстренная помощь", text: "Чат со специалистом не заменяет кризисную линию. При острой ситуации обратитесь в неотложную службу." },
+  ];
+  return (
+    <Section title="Правила отмены и связи">
+      <div className="space-y-2">
+        {rules.map((r) => (
+          <div key={r.title} className="flex items-start gap-3 rounded-[16px] bg-white p-3.5 stroke">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--head-soft)] stroke"><Icon name={r.icon} width={15} weight="bold" /></span>
+            <div><p className="text-[12.5px] font-black">{r.title}</p><p className="mt-0.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{r.text}</p></div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
 }
 
 function PhotoGallery({ psy }: { psy: Psy }) {
   return <Section title="Фотографии"><div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">{psy.photos!.map((photo, index) => { const src = asset(photo); return <div key={`${photo.slice(0, 24)}-${index}`} className="relative h-[174px] w-[132px] shrink-0 snap-start overflow-hidden rounded-[18px] bg-white stroke-lg"><Image src={src} alt={`${psy.name}, фотография ${index + 1}`} fill sizes="132px" className="object-cover" unoptimized={isInlineImage(src)} /></div>; })}</div></Section>;
 }
 
-function topicsForCard(psy: Psy, prefs: CatalogPrefs) {
-  const matching = prefs.topics.filter((topic) => psy.topics.includes(topic));
-  return [...new Set([...matching, ...psy.topics])].slice(0, 2);
-}
-
 function isInlineImage(src: string) { return /^(data:|blob:)/i.test(src); }
-
-function catalogLocation(psy: Psy) {
-  if (psy.format === "online") return "Онлайн";
-  const place = [psy.city, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : psy.district].filter(Boolean).join(" · ");
-  return [formatLabel(psy.format), place].filter(Boolean).join(" · ");
-}
 
 function detailLocation(psy: Psy) {
   if (psy.format === "online") return "Онлайн — можно подключиться из любой точки";
