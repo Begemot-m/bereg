@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       tools: trialActive || paidActive,
       promo: trialActive || (paidActive && sub?.plan === "pro"),
       clientPro: false,
-      pendingPlan: sub?.status === "pending" ? "all" : null,
+      pendingPlan: sub?.status === "pending" ? "catalog" : null,
     });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });

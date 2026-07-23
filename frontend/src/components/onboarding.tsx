@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { MoodEgg } from "@/components/mood-egg";
-import { Button } from "@/components/ui";
+import { asset } from "@/lib/asset";
 import { APP_NAME } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { completeOnboarding, tgUser } from "@/lib/profile";
@@ -13,53 +13,131 @@ import { setRole, type Role } from "@/lib/role";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-type Slide = { key: string; title: string; lead: string; icon: IconName; tone: string; screen: ReactNode; note?: string };
+// ——— Постер: крупная капс-подача + слот под картинку/скриншот ———
+
+type Poster = {
+  key: string;
+  tone: string;      // фон постера
+  dark?: boolean;    // тёмный фон → белый текст
+  mark: string;      // цвет подчёркивания акцентного слова
+  kicker: string;    // мелкая подпись сверху
+  head: ReactNode;   // заголовок капсом (с <U> для акцента)
+  img?: string;      // путь к картинке/скриншоту в /public (можно заменить)
+  fallback: ReactNode;
+};
+
+// Акцентное слово с рукописным подчёркиванием.
+function U({ children, color }: { children: ReactNode; color: string }) {
+  return (
+    <span className="relative inline-block whitespace-nowrap">
+      {children}
+      <svg className="pointer-events-none absolute -bottom-1.5 left-0 w-full" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden>
+        <path d="M2 7 Q 48 13 98 5" stroke={color} strokeWidth="5" fill="none" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+// Слот под изображение: если файла нет — показываем схематичный экран в рамке телефона.
+function Shot({ src, tone, children }: { src?: string; tone: string; children: ReactNode }) {
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={asset(src)} alt="" onError={() => setBroken(true)} className="max-h-full w-auto object-contain drop-shadow-[0_24px_44px_rgba(32,28,24,0.4)]" />
+    );
+  }
+  return <Phone tone={tone}>{children}</Phone>;
+}
 
 export function Onboarding() {
+  const [phase, setPhase] = useState<"intro" | "role" | "benefits">("intro");
   const [role, setLocalRole] = useState<Role | null>(null);
-  const [index, setIndex] = useState(0);
+  const [i, setIndex] = useState(0);
   const tg = tgUser();
-  const slides = role ? SLIDES[role] : [];
-  const last = index === slides.length - 1;
 
+  const posters = phase === "intro" ? INTRO : phase === "benefits" && role ? ROLE_POSTERS[role] : [];
+  const cur = posters[i];
+  const dark = phase === "role" ? false : cur?.dark;
+  const tone = phase === "role" ? "var(--purple-soft)" : cur?.tone ?? "var(--amber)";
+
+  const total = phase === "role" ? 0 : posters.length;
   const finish = () => { success(); completeOnboarding(); };
-  const next = () => { if (last) finish(); else { select(); setIndex(index + 1); } };
-  const back = () => { tap(); if (index === 0) { setLocalRole(null); setIndex(0); } else setIndex(index - 1); };
+
+  const next = () => {
+    if (phase === "intro") {
+      if (i < INTRO.length - 1) { select(); setIndex(i + 1); }
+      else { select(); setPhase("role"); setIndex(0); }
+    } else if (phase === "benefits") {
+      if (i < posters.length - 1) { select(); setIndex(i + 1); }
+      else finish();
+    }
+  };
+  const back = () => {
+    tap();
+    if (phase === "intro") { if (i > 0) setIndex(i - 1); }
+    else if (phase === "role") { setPhase("intro"); setIndex(INTRO.length - 1); }
+    else if (phase === "benefits") {
+      if (i > 0) setIndex(i - 1);
+      else { setPhase("role"); setLocalRole(null); setIndex(0); }
+    }
+  };
+
+  const ink = dark ? "#fff" : "var(--ink)";
+  const muted = dark ? "rgba(255,255,255,.72)" : "var(--muted)";
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--page)" }} data-accent="purple">
-      <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-6 pb-8 pt-7">
-        <div className="mb-6 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[15px] font-black text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>{APP_NAME.charAt(0)}</span>
+    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: tone, transition: "background-color .45s ease" }}>
+      <div className="mx-auto flex h-full w-full max-w-md flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-[calc(env(safe-area-inset-top)+18px)]">
+        {/* Верх: прогресс + пропустить */}
+        <div className="flex items-center gap-3">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[9px] text-[13px] font-black stroke" style={{ background: dark ? "#fff" : "var(--ink)", color: dark ? "var(--ink)" : "var(--bg)" }}>{APP_NAME.charAt(0)}</span>
           <div className="flex flex-1 gap-1.5">
-            {(role ? slides : [null]).map((_, itemIndex) => (
-              <span key={itemIndex} className="h-2 flex-1 rounded-full stroke transition-colors duration-300" style={{ background: role && itemIndex <= index ? "var(--purple)" : "#fff" }} />
+            {Array.from({ length: Math.max(total, 1) }).map((_, k) => (
+              <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: total && k <= i ? ink : dark ? "rgba(255,255,255,.28)" : "rgba(32,28,24,.16)" }} />
             ))}
           </div>
-          {role && <button onClick={finish} className="shrink-0 text-[11px] font-black text-[var(--muted-2)] hover:text-[var(--ink)]">Пропустить</button>}
+          <button onClick={finish} className="shrink-0 text-[11px] font-black" style={{ color: muted }}>Пропустить</button>
         </div>
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={role ? `${role}-${index}` : "role"}
-            initial={{ opacity: 0, x: 22 }}
+            key={phase === "role" ? "role" : `${phase}-${i}`}
+            initial={{ opacity: 0, x: 26 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -22 }}
-            transition={{ duration: 0.26, ease: EASE }}
+            exit={{ opacity: 0, x: -26 }}
+            transition={{ duration: 0.28, ease: EASE }}
             className="flex flex-1 flex-col"
           >
-            {!role ? (
-              <RoleStep firstName={tg?.first_name} onPick={(picked) => { select(); setLocalRole(picked); setRole(picked); setIndex(0); }} />
-            ) : (
-              <SlideView slide={slides[index]} />
-            )}
+            {phase === "role" ? (
+              <RolePicker firstName={tg?.first_name} onPick={(picked) => { select(); setLocalRole(picked); setRole(picked); setPhase("benefits"); setIndex(0); }} />
+            ) : cur ? (
+              <div className="flex flex-1 flex-col">
+                <p className="mt-7 text-[11px] font-black uppercase tracking-[.18em]" style={{ color: muted }}>{cur.kicker}</p>
+                <h1 className="font-tight mt-3 text-[33px] font-black uppercase leading-[1.05] tracking-[-0.01em]" style={{ color: ink }}>{cur.head}</h1>
+                <div className="flex min-h-0 flex-1 items-center justify-center py-4">
+                  <Shot src={cur.img} tone={cur.tone}>{cur.fallback}</Shot>
+                </div>
+              </div>
+            ) : null}
           </motion.div>
         </AnimatePresence>
 
-        {role && (
-          <div className="mt-6 flex gap-2">
-            <Button variant="soft" onClick={back}>Назад</Button>
-            <Button className="flex-1" onClick={next}>{last ? "Начать" : "Дальше"}</Button>
+        {/* Низ: назад + стрелка вперёд (постеры) */}
+        {phase !== "role" && (
+          <div className="flex items-center justify-between">
+            <button onClick={back} className="flex h-11 items-center gap-1.5 px-2 text-[13px] font-black" style={{ color: muted }} aria-label="Назад">
+              <span className="text-[18px]">‹</span> Назад
+            </button>
+            <motion.button
+              onClick={next}
+              whileTap={{ scale: 0.9 }}
+              className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg"
+              style={{ background: dark ? "#fff" : "var(--ink)", color: dark ? "var(--ink)" : "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }}
+              aria-label={phase === "benefits" && i === posters.length - 1 ? "Начать" : "Дальше"}
+            >
+              <span className="text-[24px] leading-none">→</span>
+            </motion.button>
           </div>
         )}
       </div>
@@ -67,7 +145,7 @@ export function Onboarding() {
   );
 }
 
-function RoleStep({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
+function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
   const roles: { role: Role; title: string; desc: string; icon: IconName; fill: string }[] = [
     { role: "psychologist", title: "Я психолог", desc: "Веду практику: клиенты, записи, задания", icon: "users", fill: "fill-green" },
     { role: "client", title: "Я в терапии или ищу специалиста", desc: "Отслеживать состояние и работать с психологом", icon: "heart", fill: "fill-purple" },
@@ -75,20 +153,15 @@ function RoleStep({ firstName, onPick }: { firstName?: string; onPick: (role: Ro
   ];
   return (
     <div className="flex flex-1 flex-col">
-      <h1 className="font-tight text-[31px] font-extrabold leading-[1.06]">
-        {firstName ? `${firstName}, это` : "Это"} {APP_NAME} —<br />среда психологической<br />помощи
-      </h1>
-      <p className="mt-3 text-[14px] font-semibold leading-snug text-[var(--muted)]">
-        Психолог ведёт практику, человек находит своего специалиста, и между встречами обе стороны видят, что на самом деле меняется.
-      </p>
-      <p className="mt-5 text-[11px] font-black uppercase tracking-[.1em] text-[var(--muted-2)]">Кто вы здесь?</p>
-      <div className="mt-2.5 space-y-3">
-        {roles.map((item, itemIndex) => (
+      <h1 className="font-tight mt-8 text-[30px] font-black leading-[1.08]">{firstName ? `${firstName}, кто` : "Кто"} вы<br />здесь?</h1>
+      <p className="mt-3 text-[13.5px] font-semibold leading-snug text-[var(--muted)]">Дальше покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
+      <div className="mt-6 space-y-3">
+        {roles.map((item, k) => (
           <motion.button
             key={item.role}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.06 + itemIndex * 0.07, duration: 0.4, ease: EASE }}
+            transition={{ delay: 0.06 + k * 0.07, duration: 0.4, ease: EASE }}
             onClick={() => onPick(item.role)}
             className={`chunk ${item.fill} flex w-full items-center gap-3.5 p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]`}
           >
@@ -107,32 +180,16 @@ function RoleStep({ firstName, onPick }: { firstName?: string; onPick: (role: Ro
   );
 }
 
-function SlideView({ slide }: { slide: Slide }) {
-  return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex justify-center py-1"><Phone tone={slide.tone}>{slide.screen}</Phone></div>
-      <div className="mt-5 flex items-center gap-2.5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] stroke" style={{ background: slide.tone }}><Icon name={slide.icon} width={20} weight="bold" /></span>
-        <h2 className="font-tight text-[23px] font-black leading-[1.08]">{slide.title}</h2>
-      </div>
-      <p className="mt-2.5 text-[13.5px] font-semibold leading-relaxed text-[var(--muted)]">{slide.lead}</p>
-      {slide.note && (
-        <p className="mt-3 rounded-[14px] px-3 py-2.5 text-[11.5px] font-bold leading-relaxed" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--edge-neutral)" }}>{slide.note}</p>
-      )}
-    </div>
-  );
-}
-
-// Схематичный экран приложения — понятнее скриншота и не устаревает при правках вёрстки.
+// Рамка телефона под схематичный экран (fallback, пока нет реального скриншота).
 function Phone({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <div className="w-[188px] overflow-hidden rounded-[26px] bg-white p-2 stroke-lg" style={{ boxShadow: "0 24px 44px -26px rgba(32,28,24,.5)" }}>
-      <div className="overflow-hidden rounded-[19px]" style={{ background: tone }}>
+    <div className="w-[204px] overflow-hidden rounded-[28px] bg-white p-2 stroke-lg" style={{ boxShadow: "0 26px 46px -24px rgba(32,28,24,.5)" }}>
+      <div className="overflow-hidden rounded-[21px]" style={{ background: tone }}>
         <div className="flex items-center gap-1 px-2.5 pb-1.5 pt-2">
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--ink)] opacity-40" />
           <span className="h-1 w-8 rounded-full bg-[var(--ink)] opacity-20" />
         </div>
-        <div className="min-h-[214px] rounded-t-[16px] bg-[#fffdf7] p-2.5" style={{ borderTop: "1.5px solid rgba(32,28,24,.14)" }}>{children}</div>
+        <div className="min-h-[224px] rounded-t-[16px] bg-[#fffdf7] p-2.5" style={{ borderTop: "1.5px solid rgba(32,28,24,.14)" }}>{children}</div>
       </div>
     </div>
   );
@@ -146,7 +203,7 @@ const Box = ({ children, tone = "#fff", edge = "rgba(32,28,24,.16)" }: { childre
   <div className="rounded-[11px] p-2" style={{ background: tone, border: `1.5px solid ${edge}` }}>{children}</div>
 );
 
-// ——— Экраны-макеты ———
+// ——— Схематичные экраны (fallback) ———
 
 const MoodScreen = (
   <div className="space-y-2">
@@ -286,92 +343,71 @@ const ProfileScreen = (
   </div>
 );
 
-const ChecklistScreen = (
-  <div className="space-y-1">
-    {["Фото и имя", "Запросы, с которыми работаете", "Основной метод", "Формат и город", "Цена и длительность", "Опыт и образование", "Рассказ о себе"].map((label, index) => (
-      <div key={label} className="flex items-center gap-1.5 rounded-[9px] bg-white p-1.5" style={{ border: `1.5px solid ${index < 2 ? "var(--green-edge)" : "rgba(32,28,24,.16)"}` }}>
-        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-[7px] font-black" style={{ background: index < 2 ? "var(--green)" : "#fff", border: "1.5px solid rgba(32,28,24,.2)" }}>{index < 2 ? "✓" : ""}</span>
-        <span className="text-[7.5px] font-black">{label}</span>
-      </div>
-    ))}
-  </div>
-);
+// ——— Постеры ———
 
-// ——— Слайды по ролям ———
+const INTRO: Poster[] = [
+  {
+    key: "intro-quality", tone: "var(--amber)", mark: "var(--coral-edge)", kicker: `${APP_NAME} · терапия и прогресс`,
+    head: <>КАЧЕСТВЕННАЯ<br /><U color="var(--coral-edge)">РАБОТА</U> В ТЕРАПИИ</>,
+    img: "/onboarding/intro-1.webp", fallback: ClientCardScreen,
+  },
+  {
+    key: "intro-progress", tone: "var(--ink)", dark: true, mark: "var(--amber)", kicker: "видно, что меняется",
+    head: <>ВИДНО КАЖДЫЙ<br />ШАГ <U color="var(--amber)">ПРОГРЕССА</U></>,
+    img: "/onboarding/intro-2.webp", fallback: DynamicsScreen,
+  },
+];
 
-const SLIDES: Record<Role, Slide[]> = {
+const ROLE_POSTERS: Record<Role, Poster[]> = {
   psychologist: [
     {
-      key: "schedule",
-      title: "Практика без пяти чатов",
-      lead: "Вы задаёте рабочие окна — клиенты сами занимают свободные. Перенос и отмена приходят уведомлением, а не сообщением, которое легко потерять.",
-      icon: "calendar", tone: "var(--green-soft)", screen: ScheduleScreen,
+      key: "psy-practice", tone: "var(--green)", mark: "var(--purple-edge)", kicker: "для психолога",
+      head: <>ВСЯ ПРАКТИКА<br />В <U color="var(--purple-edge)">ОДНОМ</U> ЭКРАНЕ</>,
+      img: "/onboarding/psy-1.webp", fallback: ScheduleScreen,
     },
     {
-      key: "client",
-      title: "Видно, что между встречами",
-      lead: "В карточке клиента — сколько встреч и часов пройдено, как менялось состояние, что с домашними заданиями. Опора и для сессии, и для супервизии.",
-      icon: "users", tone: "var(--purple-soft)", screen: ClientCardScreen,
+      key: "psy-between", tone: "var(--purple)", mark: "var(--green-edge)", kicker: "карточка клиента",
+      head: <>ВИДНО, ЧТО<br /><U color="var(--green-edge)">МЕЖДУ</U> ВСТРЕЧАМИ</>,
+      img: "/onboarding/psy-2.webp", fallback: ClientCardScreen,
     },
     {
-      key: "profile",
-      title: "Клиенты находят вас по параметрам",
-      lead: "Каталог подбирает специалиста под запрос человека. Каждое поле анкеты — это фильтр: запрос, метод, формат, город, бюджет, опыт, язык.",
-      icon: "compass", tone: "var(--amber-soft)", screen: ProfileScreen,
-      note: "Заполнять прямо сейчас не нужно. Осмотритесь, а анкету откроете в Кабинете, когда будет время — черновик сохраняется сам.",
-    },
-    {
-      key: "todo",
-      title: "Что понадобится для каталога",
-      lead: "Семь коротких шагов: Кабинет → «Редактировать профиль». Пока анкета не закончена, профиль виден только вам — в каталог он не попадает.",
-      icon: "check", tone: "var(--green-soft)", screen: ChecklistScreen,
-      note: "Начать лучше с рабочих окон в разделе «Сессии»: без них клиент не сможет записаться, даже найдя вас.",
+      key: "psy-catalog", tone: "var(--amber)", mark: "var(--purple-edge)", kicker: "каталог · 500 ₽",
+      head: <>КЛИЕНТЫ<br />НАХОДЯТ ВАС <U color="var(--purple-edge)">САМИ</U></>,
+      img: "/onboarding/psy-3.webp", fallback: ProfileScreen,
     },
   ],
   client: [
     {
-      key: "mood",
-      title: "Отмечайте, как вы сегодня",
-      lead: "Полминуты в день: покрутите диск и выберите, что именно чувствуете. Эмоции — базовые, из научной классификации, а не «хорошо / плохо».",
-      icon: "mood", tone: "var(--amber-soft)", screen: MoodScreen,
+      key: "cl-mood", tone: "var(--amber)", mark: "var(--coral-edge)", kicker: "для вас",
+      head: <>ОТМЕЧАЙТЕ,<br />КАК ВЫ <U color="var(--coral-edge)">СЕГОДНЯ</U></>,
+      img: "/onboarding/cl-1.webp", fallback: MoodScreen,
     },
     {
-      key: "catalog",
-      title: "Найдите своего специалиста",
-      lead: "Короткий подбор по запросу, формату, бюджету и опыту — и вы видите тех, кто действительно подходит, с ближайшими свободными окнами.",
-      icon: "compass", tone: "var(--salmon-soft)", screen: CatalogScreen,
+      key: "cl-dynamics", tone: "var(--purple)", mark: "var(--green-edge)", kicker: "прогресс",
+      head: <>ВИДНО, КАК<br /><U color="var(--green-edge)">МЕНЯЕТСЯ</U> ТЕРАПИЯ</>,
+      img: "/onboarding/cl-2.webp", fallback: DynamicsScreen,
     },
     {
-      key: "tools",
-      title: "Инструменты между сессиями",
-      lead: "Дыхание, работа с мыслями, заземление, короткие опросники — тогда, когда тяжело, а до встречи ещё несколько дней.",
-      icon: "tools", tone: "var(--coral-soft)", screen: ToolsScreen,
+      key: "cl-tools", tone: "var(--coral)", mark: "var(--ink)", kicker: "между сессиями",
+      head: <>ОПОРА, КОГДА<br /><U color="var(--ink)">ТЯЖЕЛО</U></>,
+      img: "/onboarding/cl-3.webp", fallback: ToolsScreen,
     },
     {
-      key: "dynamics",
-      title: "Видно, как меняется терапия",
-      lead: "График настроения, календарь по дням и частые эмоции. Терапевт видит ту же картину — на сессии не приходится вспоминать, каким был месяц.",
-      icon: "chart", tone: "var(--purple-soft)", screen: DynamicsScreen,
+      key: "cl-catalog", tone: "var(--green)", mark: "var(--purple-edge)", kicker: "каталог",
+      head: <>НАЙДИТЕ<br /><U color="var(--purple-edge)">СВОЕГО</U> СПЕЦИАЛИСТА</>,
+      img: "/onboarding/cl-4.webp", fallback: CatalogScreen,
     },
   ],
   guest: [
     {
-      key: "catalog",
-      title: "Посмотрите каталог",
-      lead: "Специалисты с подходами, ценами и свободными окнами. Без обязательств — просто чтобы понять, кто вообще есть.",
-      icon: "compass", tone: "var(--salmon-soft)", screen: CatalogScreen,
+      key: "guest-catalog", tone: "var(--green)", mark: "var(--purple-edge)", kicker: "осмотритесь",
+      head: <>ПОСМОТРИТЕ<br /><U color="var(--purple-edge)">КАТАЛОГ</U></>,
+      img: "/onboarding/cl-4.webp", fallback: CatalogScreen,
     },
     {
-      key: "tools",
-      title: "Попробуйте инструменты",
-      lead: "Практики самопомощи доступны сразу: дыхание, работа с мыслями, заземление.",
-      icon: "tools", tone: "var(--coral-soft)", screen: ToolsScreen,
-    },
-    {
-      key: "role",
-      title: "Роль можно сменить в любой момент",
-      lead: "В Кабинете переключитесь на психолога или клиента — интерфейс перестроится под вас.",
-      icon: "user", tone: "var(--purple-soft)", screen: ProfileScreen,
+      key: "guest-tools", tone: "var(--coral)", mark: "var(--ink)", kicker: "без обязательств",
+      head: <>ПОПРОБУЙТЕ<br /><U color="var(--ink)">ИНСТРУМЕНТЫ</U></>,
+      img: "/onboarding/cl-3.webp", fallback: ToolsScreen,
     },
   ],
 };

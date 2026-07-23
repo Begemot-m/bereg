@@ -14,8 +14,8 @@ const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
-  { id: "tools", name: "Практика", tag: "инструменты", perks: ["Расписание, клиенты, сессии", "Домашние задания и техники", "Колесо баланса и трекеры", "Инструменты для ваших клиентов", "Новые методики каждый месяц"] },
-  { id: "all", name: "Всё включено", tag: "инструменты + каталог", best: true, perks: ["Весь инструментарий «Практики»", "Подтверждённый профиль в каталоге", "Честная выдача без покупки рейтинга", "Статистика показов профиля"] },
+  { id: "tools", name: "Вдох PRO", tag: "рабочий кабинет", best: true, perks: ["Клиенты без ограничений", "Статистика и динамика по каждому", "Сводка недели клиента к сессии", "Домашние задания, техники, шаблоны", "Новые методики каждый месяц"] },
+  { id: "catalog", name: "Каталог", tag: "новые клиенты", perks: ["Подтверждённый профиль в каталоге", "Честная выдача без покупки рейтинга", "Статистика показов профиля", "Плата только за размещение — не за место"] },
 ];
 const CLIENT_PLAN: Plan = { id: "client", name: "Вдох+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
@@ -47,7 +47,7 @@ export const PRO_BENEFITS: HelpPage[] = [
         <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><motion.div className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7 }} style={{ background: c as string }} /></div></div>
     ))}</BFrame>
   ) },
-  { title: "Профиль появляется в каталоге", text: "На тарифе «Всё включено» подтверждённая анкета участвует в подборках на равных. Оплата не меняет рейтинг и место в выдаче.", illo: (
+  { title: "Профиль появляется в каталоге", text: "Размещение в каталоге — 500 ₽: подтверждённая анкета участвует в подборках на равных. Плата за размещение, а не за место — рейтинг и выдачу купить нельзя.", illo: (
     <BFrame>
       <div className="flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-2.5 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
         <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white" style={{ border: "1px solid var(--green-edge)" }}><Icon name="check" width={15} weight="bold" /></span>
@@ -101,7 +101,7 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
 
   const activeTools = variant === "psy" && sub.status === "active" && sub.tools;
   const clientActive = variant === "client" && sub.clientPro;
-  const shownPlans: Plan[] = variant === "client" ? [CLIENT_PLAN] : activeTools && !sub.promo ? PSY_PLANS.filter((p) => p.id === "all") : PSY_PLANS;
+  const shownPlans: Plan[] = variant === "client" ? [CLIENT_PLAN] : activeTools && !sub.promo ? PSY_PLANS.filter((p) => p.id === "catalog") : PSY_PLANS;
 
   return (
     <section className="overflow-hidden rounded-[24px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
@@ -158,7 +158,7 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     };
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
-  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: sub.promo ? "Всё включено активно" : "Практика активна", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
+  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: sub.promo ? "PRO + каталог активны" : "Вдох PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
   return { badge: null, title: "Триал закончился", subtitle: "Подключите тариф, чтобы продолжить работу.", progress: null };
 }
 
@@ -177,7 +177,7 @@ function PlanCard({ plan, onPick, loading, defaultOpen = false }: { plan: Plan; 
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="relative rounded-[18px]" style={{ background: best ? "var(--purple-soft)" : "#fff", border: `var(--bw-lg) solid ${best ? "var(--purple-edge)" : "var(--edge-neutral)"}` }}>
-      {best && <span className="absolute -top-2.5 left-4 z-[1] rounded-full bg-[var(--ink)] px-2.5 py-0.5 text-[9px] font-black uppercase text-white">{plan.id === "client" ? "рекомендуем" : "выгоднее"}</span>}
+      {best && <span className="absolute -top-2.5 left-4 z-[1] rounded-full bg-[var(--ink)] px-2.5 py-0.5 text-[9px] font-black uppercase text-white">{plan.id === "client" ? "рекомендуем" : "основной"}</span>}
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2 p-3.5 text-left" aria-expanded={open}>
         <div className="flex-1"><p className="text-[15px] font-black">{plan.name}</p><p className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">{plan.tag}</p></div>
         <div className="text-right"><p className="font-tight text-[20px] font-black leading-none">{rub(PLAN_PRICE[plan.id])}</p><p className="text-[10px] font-bold text-[var(--muted)]">в месяц</p></div>

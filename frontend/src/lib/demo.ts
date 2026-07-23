@@ -66,7 +66,7 @@ type DB = {
     tools: boolean;
     promo: boolean;
     clientPro: boolean;
-    pendingPlan: "tools" | "all" | "client" | null;
+    pendingPlan: "tools" | "catalog" | "client" | null;
     pendingSince: number | null;
   };
 };
@@ -205,7 +205,7 @@ function resolveSub(db: DB) {
     const end = new Date();
     end.setDate(end.getDate() + 30);
     if (s.pendingPlan === "tools") s.tools = true;
-    else if (s.pendingPlan === "all") { s.tools = true; s.promo = true; }
+    else if (s.pendingPlan === "catalog") s.promo = true;
     else if (s.pendingPlan === "client") s.clientPro = true;
     s.status = "active";
     s.currentPeriodEnd = end.toISOString();
@@ -552,7 +552,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     return delay({ status, trialEndsAt, currentPeriodEnd, tools, promo, clientPro, pendingPlan } as T);
   }
   if (clean === "/billing/subscribe" && method === "POST") {
-    const plan = (["tools", "all", "client"].includes(String(body.plan)) ? body.plan : "tools") as "tools" | "all" | "client";
+    const plan = (["tools", "catalog", "client"].includes(String(body.plan)) ? body.plan : "tools") as "tools" | "catalog" | "client";
     db.sub = { ...db.sub, status: "pending", pendingPlan: plan, pendingSince: Date.now() };
     save(db);
     return delay({ confirmation_url: "/billing/return" } as T);
