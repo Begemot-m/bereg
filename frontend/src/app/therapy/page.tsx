@@ -106,21 +106,23 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
           <FindTherapistBlock />
         ) : (
           <>
-            {therapists.list.length > 1 && (
-              <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
+            {/* Компактный переключатель + добавить — незаметно, без лишнего места */}
+            {(therapists.list.length > 1 || true) && (
+              <div className="no-scrollbar mt-4 flex items-center gap-1.5 overflow-x-auto">
                 {therapists.list.map((name) => {
                   const on = name === therapist;
+                  const psy = PSYS.find((p) => p.name === name);
                   return (
-                    <span key={name} className="inline-flex shrink-0 items-center overflow-hidden rounded-full" style={{ background: on ? "var(--purple)" : "#fff", border: `var(--bw) solid var(--${on ? "purple-edge" : "edge-neutral"})` }}>
-                      <button onClick={() => therapists.setActive(name)} className="py-1.5 pl-3 pr-1.5 text-[12px] font-black">{name}</button>
-                      <button onClick={() => therapists.remove(name)} className="flex h-7 w-7 items-center justify-center text-[13px] font-black text-[var(--muted)]" aria-label={`Убрать ${name}`}>×</button>
-                    </span>
+                    <button key={name} onClick={() => therapists.setActive(name)} className="inline-flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-[11px] font-black transition-colors" style={{ background: on ? "var(--purple)" : "#fff", border: `var(--bw) solid var(--${on ? "purple-edge" : "edge-neutral"})` }}>
+                      <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-[var(--purple-soft)] text-[9px] font-black">{psy ? <Image src={asset(psy.portrait)} alt="" width={20} height={20} className="h-5 w-5 object-cover" unoptimized={/^(data:|blob:)/i.test(asset(psy.portrait))} /> : name.charAt(0)}</span>
+                      {name.split(" ")[0]}
+                    </button>
                   );
                 })}
+                <Link href="/catalog" onClick={tap} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[var(--purple-edge)]" style={{ border: "var(--bw) solid var(--purple-edge)" }} aria-label="Добавить терапевта"><Icon name="plus" width={14} weight="bold" color="currentColor" /></Link>
               </div>
             )}
-            {therapist && <TherapistCard name={therapist} next={next} onRemove={therapists.list.length === 1 ? () => therapists.remove(therapist) : undefined} />}
-            <Link href="/catalog" onClick={tap} className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-white/70 py-2 text-[11px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="compass" width={14} weight="bold" /> Добавить ещё терапевта</Link>
+            {therapist && <TherapistCard name={therapist} next={next} onRemove={() => therapists.remove(therapist)} />}
           </>
         )}
       </header>
@@ -238,8 +240,11 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
   const href = psy ? `/catalog?psy=${psy.id}` : "/catalog";
   const portrait = psy ? asset(psy.portrait) : null;
   return (
-    <div className="mt-5 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
-      <div className="flex gap-3">
+    <div className="relative mt-3 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+      {/* Открепить — незаметная иконка в углу */}
+      {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}?`)) onRemove(); }} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black text-[var(--muted-2)] hover:text-[var(--ink)]" aria-label="Открепить терапевта">×</button>}
+      {/* Тап по карточке — на страницу терапевта */}
+      <Link href={href} onClick={tap} className="flex gap-3">
         {portrait ? (
           <div className="relative h-[104px] w-[88px] shrink-0 overflow-hidden rounded-[16px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)", background: "var(--purple-soft)" }}>
             <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="88px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
@@ -248,21 +253,18 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
           <div className="flex h-[104px] w-[88px] shrink-0 items-center justify-center rounded-[16px] bg-[var(--green)] text-[24px] font-black" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>{name.charAt(0)}</div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p>
+          <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт · открыть профиль ›</p>
           <div className="flex items-center gap-1.5">
             <p className="truncate text-[16px] font-black">{name}</p>
             {psy?.verified && <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green)] text-[9px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }} title="Профиль подтверждён">✓</span>}
           </div>
           {psy && <p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">{psy.method} · {psy.minutes} мин · {psy.price.toLocaleString("ru-RU")} ₽</p>}
           <p className="mt-1 text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <Link href={href} onClick={tap} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white transition-transform active:scale-95">
-              <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться
-            </Link>
-            {onRemove && <button onClick={onRemove} className="rounded-full px-3 py-2 text-[11px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>Открепить</button>}
-          </div>
         </div>
-      </div>
+      </Link>
+      <Link href={href} onClick={tap} className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white transition-transform active:scale-[0.98]">
+        <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться на сессию
+      </Link>
     </div>
   );
 }

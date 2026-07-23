@@ -55,8 +55,20 @@ export type PsyProfile = {
   photos: string[];            // до 3 фото, первое — основное
   sessionMinutes: number;      // длительность сессии
   tg: string;                  // ник в Telegram для связи (без @)
+  specialistType: string;      // психолог / психотерапевт / психиатр / коуч …
+  links: { kind: LinkKind; url: string }[]; // сайт и соцсети
   status: "review" | "approved";
 };
+
+export type LinkKind = "site" | "telegram" | "instagram" | "vk" | "youtube";
+export const LINK_META: Record<LinkKind, { label: string; icon: import("@/components/icons").IconName }> = {
+  site: { label: "Сайт", icon: "compass" },
+  telegram: { label: "Telegram", icon: "spark" },
+  instagram: { label: "Instagram", icon: "heart" },
+  vk: { label: "ВКонтакте", icon: "users" },
+  youtube: { label: "YouTube", icon: "video" },
+};
+export const SPECIALIST_TYPES = ["Психолог", "Психотерапевт", "Психиатр", "Клинический психолог", "Коуч", "Гештальт-терапевт"];
 
 /** Ник Telegram из привязанной учётки (без @). */
 export function tgUsername(): string {
@@ -120,7 +132,7 @@ const EMPTY: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], status: "review",
 };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).

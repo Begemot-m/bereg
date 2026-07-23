@@ -7,7 +7,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { Badge, Button, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, type LinkKind, type PsyProfile } from "@/lib/profile";
 
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
@@ -16,7 +16,7 @@ const EMPTY_PROFILE: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], status: "review",
 };
 
 type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "preview";
@@ -117,7 +117,8 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
   return <article className="space-y-4">
     <div className="chunk overflow-hidden bg-white">
       <div className="p-4" style={{ background: "var(--purple-soft)" }}>
-        <div className="flex items-center gap-3"><ProfilePhoto photo={photo} name={name} size="lg" /><div className="min-w-0"><div className="flex items-center gap-1.5"><h3 className="font-tight text-[22px] font-extrabold leading-tight">{name}</h3><Icon name="check" width={17} weight="fill" color="var(--green-edge)" /></div><p className="mt-1 text-[13px] font-bold text-[var(--muted)]">{[profile?.primaryMethod, profile?.experienceYears ? `${profile.experienceYears} ${yearsLabel(profile.experienceYears)} практики` : ""].filter(Boolean).join(" · ") || "Психолог платформы"}</p></div></div>
+        <div className="flex items-center gap-3"><ProfilePhoto photo={photo} name={name} size="lg" /><div className="min-w-0"><div className="flex items-center gap-1.5"><h3 className="font-tight text-[22px] font-extrabold leading-tight">{name}</h3><Icon name="check" width={17} weight="fill" color="var(--green-edge)" /></div><p className="mt-1 text-[13px] font-bold text-[var(--muted)]">{[profile?.specialistType, profile?.primaryMethod, profile?.experienceYears ? `${profile.experienceYears} ${yearsLabel(profile.experienceYears)} практики` : ""].filter(Boolean).join(" · ") || "Психолог платформы"}</p></div></div>
+        {(profile?.links?.filter((l) => l.url.trim()).length ?? 0) > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{profile!.links.filter((l) => l.url.trim()).map((link, i) => <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white stroke" title={LINK_META[link.kind].label}><Icon name={LINK_META[link.kind].icon} width={15} weight="bold" /></a>)}</div>}
       </div>
       <div className="grid grid-cols-3 gap-2 p-3">
         <PreviewStat label="Стоимость" value={`${(profile?.sessionPrice ?? 3500).toLocaleString("ru-RU")} ₽`} />
@@ -260,10 +261,32 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => onFile(event.target.files?.[0])} />
     <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[17px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[17px] bg-white text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
     <Field label="Имя и фамилия"><Input value={draft.name} onChange={(event) => update({ name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
+    <Field label="Кто вы"><div className="flex flex-wrap gap-2">{SPECIALIST_TYPES.map((type) => <Choice key={type} active={draft.specialistType === type} onClick={() => update({ specialistType: type })}>{type}</Choice>)}</div></Field>
     <Field label="Пол"><div className="grid grid-cols-3 gap-2"><Choice active={draft.gender === "woman"} onClick={() => update({ gender: "woman" })}>Женщина</Choice><Choice active={draft.gender === "man"} onClick={() => update({ gender: "man" })}>Мужчина</Choice><Choice active={draft.gender === "unspecified"} onClick={() => update({ gender: "unspecified" })}>Не указывать</Choice></div></Field>
     <Field label="Языки консультации"><div className="flex flex-wrap gap-2">{LANGUAGES.map((language) => <Choice key={language} active={draft.languages.includes(language)} onClick={() => update({ languages: toggle(draft.languages, language) })}>{language}</Choice>)}</div></Field>
     <Field label="Telegram для связи"><div className="flex items-center gap-2 rounded-[14px] bg-white px-3 stroke"><span className="font-black text-[var(--muted-2)]">@</span><input value={draft.tg} onChange={(event) => update({ tg: event.target.value.replace(/^@/, "") })} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none" /></div></Field>
+    <Field label="Сайт и соцсети"><LinksEditor links={draft.links} onChange={(links) => update({ links })} /></Field>
   </StepCard>;
+}
+
+// Ссылки на сайт и соцсети — с выбором типа; в профиле показываем мини-иконками.
+function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange: (links: PsyProfile["links"]) => void }) {
+  const kinds = Object.keys(LINK_META) as LinkKind[];
+  const setAt = (i: number, patch: Partial<PsyProfile["links"][number]>) => onChange(links.map((l, idx) => idx === i ? { ...l, ...patch } : l));
+  return (
+    <div className="space-y-2">
+      {links.map((link, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <select value={link.kind} onChange={(e) => setAt(i, { kind: e.target.value as LinkKind })} className="shrink-0 rounded-[12px] bg-white px-2 py-2.5 text-[12px] font-black stroke outline-none">
+            {kinds.map((k) => <option key={k} value={k}>{LINK_META[k].label}</option>)}
+          </select>
+          <Input value={link.url} onChange={(e) => setAt(i, { url: e.target.value })} placeholder="https://…" />
+          <button onClick={() => onChange(links.filter((_, idx) => idx !== i))} className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-[12px] bg-white stroke" aria-label="Удалить">×</button>
+        </div>
+      ))}
+      <button onClick={() => onChange([...links, { kind: "site", url: "" }])} className="flex w-full items-center justify-center gap-1.5 rounded-[12px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить ссылку</button>
+    </div>
+  );
 }
 
 function TopicsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="С чем к вам можно обратиться" hint="Выберите конкретные запросы. В карточке покажем два наиболее подходящих под выбор клиента."><div className="flex flex-wrap gap-2">{TOPICS.map((topic) => <Choice key={topic} active={draft.topics.includes(topic)} onClick={() => update({ topics: toggle(draft.topics, topic) })}>{topic}</Choice>)}</div><p className="text-[11px] font-semibold text-[var(--muted)]">Выбрано: {draft.topics.length}. Оптимально 3–7 запросов.</p></StepCard>; }
