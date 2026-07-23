@@ -82,7 +82,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
-  const activeIndex = tabs.findIndex((t) => isActive(pathname, t.href));
   // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;
   const centerTone = role === "psychologist" ? "olive" : "purple";
@@ -147,42 +146,29 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mx-auto w-full max-w-3xl px-4 pb-8 pt-2 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
         </div>
 
-        {/* Мобайл: нижние табы — вне зоны прокрутки */}
-        <div className="z-40 shrink-0 px-3 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-1 @md:hidden">
-        <nav className="mx-auto max-w-md rounded-[26px] px-2 py-2" style={{ background: "var(--nav)", border: "var(--bw-lg) solid var(--nav-edge)" }}>
-          <div className="relative flex">
-            {activeIndex >= 0 && tabs[activeIndex]?.href !== centerHref && (
-              <motion.div
-                aria-hidden
-                className="pointer-events-none absolute top-0 flex h-full items-center justify-center"
-                style={{ width: `${100 / tabs.length}%` }}
-                initial={false}
-                animate={{ left: `${(activeIndex * 100) / tabs.length}%` }}
-                transition={{ type: "spring", stiffness: 520, damping: 30 }}
-              >
-                <span className="h-11 w-11 rounded-full" style={{ background: "var(--page)", border: "var(--bw) solid var(--edge)", transition: "border-color .4s ease, background-color .4s ease" }} />
-              </motion.div>
-            )}
+        {/* Мобайл: нижние табы — без сплошной полоски, парящие иконки, акцентная середина */}
+        <div className="z-40 shrink-0 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-1 @md:hidden">
+          <nav className="mx-auto flex max-w-md items-center justify-between rounded-[30px] bg-white/80 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.10)", boxShadow: "0 12px 30px -14px rgba(32,28,24,.4)" }}>
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
-              // Центральная вкладка — акцентная, но ровно на уровне остальных.
+              // Центральная вкладка — приподнятая акцентная кнопка.
               if (it.href === centerHref) return (
-                <Link key={it.href} href={it.href} onClick={select} className="relative z-[2] flex flex-1 items-center justify-center py-0.5" aria-label={it.label}>
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-150 active:scale-90" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}` }}>
-                    <Icon name={it.icon} width={23} weight="fill" color={active ? "#fff" : "var(--ink)"} />
-                  </span>
+                <Link key={it.href} href={it.href} onClick={select} className="relative z-[2] flex flex-1 items-center justify-center" aria-label={it.label}>
+                  <motion.span whileTap={{ scale: 0.9 }} className="-mt-7 flex h-14 w-14 items-center justify-center rounded-[20px]" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw-lg) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}`, boxShadow: `0 10px 20px -8px ${active ? "rgba(32,28,24,.5)" : `var(--${centerTone}-edge)`}` }}>
+                    <Icon name={it.icon} width={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
+                  </motion.span>
                 </Link>
               );
               return (
-                <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 items-center justify-center py-0.5">
-                  <span className="flex h-11 w-11 items-center justify-center transition-transform duration-150 active:scale-90">
-                    <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color="var(--ink)" />
-                  </span>
+                <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 flex-col items-center gap-0.5 py-1">
+                  <motion.span whileTap={{ scale: 0.85 }} className="flex h-9 w-9 items-center justify-center rounded-full transition-colors" style={active ? { background: "var(--head-soft)" } : undefined}>
+                    <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
+                  </motion.span>
+                  <span className="h-1 w-1 rounded-full" style={{ background: active ? "var(--edge)" : "transparent" }} />
                 </Link>
               );
             })}
-          </div>
-        </nav>
+          </nav>
         </div>
       </div>
     </div>

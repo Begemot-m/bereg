@@ -22,7 +22,6 @@ import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 const dateTimeF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -54,10 +53,6 @@ function PsyHome() {
     () => appts.filter((a) => a.status === "scheduled" && new Date(a.startsAt) > now).sort(byStart),
     [appts, todayKey],
   );
-  const today = useMemo(
-    () => appts.filter((a) => a.status !== "cancelled" && localDay(new Date(a.startsAt)) === todayKey).sort(byStart),
-    [appts, todayKey],
-  );
   const next = upcoming[0];
 
   return (
@@ -70,19 +65,6 @@ function PsyHome() {
       <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />
 
       <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" tone="olive" />
-
-      <section>
-        <SectionTitle action={<Link href="/sessions" onClick={tap} className="text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Все сессии →</Link>}>Ваш день</SectionTitle>
-        {today.length ? (
-          <div className="chunk overflow-hidden">
-            {today.slice(0, 3).map((appointment, index) => (
-              <SessionRow key={appointment.id} appointment={appointment} divided={index > 0} />
-            ))}
-          </div>
-        ) : (
-          <QuietState icon="sun" title="Сегодня без встреч" text="Можно оставить день свободным или проверить открытые окна." href="/sessions" action="Открыть расписание" />
-        )}
-      </section>
 
       <HomeRoutesCarousel items={[
         { title: "Сессии", detail: "окна и записи", icon: "calendar", href: "/sessions" },
@@ -230,13 +212,20 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
     );
   }
   const date = new Date(appointment.startsAt);
+  const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href="/sessions" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)] text-[21px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>{appointment.client.name.charAt(0)}</span>
-      <span className="min-w-0 flex-1">
+    <Link href="/sessions" onClick={tap} className="group relative flex items-center gap-3 overflow-hidden rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+      {/* живое пятно-подсветка */}
+      <motion.span aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-[var(--amber)]" animate={{ scale: [1, 1.2, 1], opacity: [0.14, 0.26, 0.14] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
+      <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)] text-[21px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>
+        {appointment.client.name.charAt(0)}
+        {/* пульсирующая точка «скоро» */}
+        <motion.span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-[var(--coral)]" style={{ border: "2px solid #fff" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
+      </span>
+      <span className="relative min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайшая сессия</span>
-          {(() => { const b = whenBadge(appointment.startsAt); return b && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase" style={{ background: `var(--${b.tone}-soft)`, border: `var(--bw) solid var(--${b.tone}-edge)` }}>{b.label}</span>; })()}
+          {badge && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase" style={{ background: `var(--${badge.tone}-soft)`, border: `var(--bw) solid var(--${badge.tone}-edge)` }}>{badge.label}</span>}
         </span>
         <span className="mt-1 block truncate text-[18px] font-black leading-tight">{appointment.client.name}</span>
         <span className="block truncate text-[12px] font-bold text-[var(--muted)]">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span>
@@ -248,32 +237,6 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
 
 function Arrow() {
   return <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--amber-soft)] text-[19px] font-black text-[var(--amber-edge)] transition-transform duration-200 group-hover:translate-x-0.5" style={{ border: "var(--bw) solid var(--amber-edge)" }}>›</span>;
-}
-
-function SessionRow({ appointment, divided }: { appointment: Appointment; divided: boolean }) {
-  const date = new Date(appointment.startsAt);
-  const past = date < new Date() || appointment.status === "done";
-  return (
-    <Link href="/sessions" onClick={tap} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--head-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[var(--ink)]" style={divided ? { borderTop: "var(--bw) solid var(--edge-neutral)" } : undefined}>
-      <span className="tnum w-12 shrink-0 text-[17px] font-black">{timeF.format(date)}</span>
-      <span className="min-w-0 flex-1">
-        <span className={`block truncate text-[14px] font-extrabold ${past ? "line-through opacity-60" : ""}`}>{appointment.client.name}</span>
-        <span className="block text-[11px] font-semibold text-[var(--muted)]">{formatLabel(appointment.format)} · {appointment.durationMin} мин</span>
-      </span>
-      <span className="text-[11px] font-extrabold text-[var(--muted)]">{past ? "проведена" : "впереди"}</span>
-    </Link>
-  );
-}
-
-function QuietState({ icon, title, text, href, action }: { icon: IconName; title: string; text: string; href?: string; action?: string }) {
-  const content = (
-    <div className="flex items-center gap-3 rounded-[18px] bg-[#fbfaf6] p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white stroke"><Icon name={icon} width={19} weight="bold" /></span>
-      <span className="min-w-0 flex-1"><span className="block text-[14px] font-black">{title}</span><span className="block text-[11px] font-semibold text-[var(--muted)]">{text}</span></span>
-      {action && <span className="max-w-[82px] text-right text-[11px] font-black">{action} →</span>}
-    </div>
-  );
-  return href ? <Link href={href} onClick={tap} className="block transition-transform active:scale-[0.99]">{content}</Link> : content;
 }
 
 function MoodQuick({ today, moods }: { today?: Mood; moods: Mood[] }) {
@@ -357,9 +320,10 @@ function whenBadge(iso: string): { label: string; tone: string } | undefined {
   const today = new Date(now); today.setHours(0, 0, 0, 0);
   const target = new Date(date); target.setHours(0, 0, 0, 0);
   const diff = Math.round((target.getTime() - today.getTime()) / 86400000);
-  if (diff === 0) return { label: `сегодня · ${timeF.format(date)}`, tone: "peach" };
-  if (diff === 1) return { label: `завтра · ${timeF.format(date)}`, tone: "olive" };
-  if (diff === -1) return { label: `вчера · ${timeF.format(date)}`, tone: "coral" };
+  // Только относительный день — точное время уже показано в основной строке.
+  if (diff === 0) return { label: "сегодня", tone: "peach" };
+  if (diff === 1) return { label: "завтра", tone: "olive" };
+  if (diff === -1) return { label: "вчера", tone: "coral" };
   return undefined;
 }
 

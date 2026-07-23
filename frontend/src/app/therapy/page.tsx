@@ -8,7 +8,7 @@ import Image from "next/image";
 
 import { WheelFlow } from "@/components/balance-flow";
 import { Icon } from "@/components/icons";
-import { MoodCard, MoodSheet } from "@/components/mood-dial";
+import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { MyBookingsManager } from "@/components/my-bookings";
@@ -188,7 +188,7 @@ function MoodModule({ today, moods, onSave }: { today?: Mood; moods: Mood[]; onS
   const [stats, setStats] = useState(false);
   return (
     <div className="space-y-2.5">
-      <MoodCard mood={today?.mood} emotions={today?.emotions} onOpen={() => setSheet(true)} />
+      <MoodHomeCard mood={today?.mood} moods={moods} onOpen={() => setSheet(true)} />
       <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full bg-white py-2.5 text-[12.5px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={stats}>
         <Icon name="chart" width={15} weight="bold" /> {stats ? "Свернуть статистику" : "Статистика настроения"}
       </button>

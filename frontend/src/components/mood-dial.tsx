@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { Icon } from "@/components/icons";
@@ -155,7 +155,10 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
 
   if (!open) return null;
 
-  const suggestions = Array.from(new Set([...picked, ...suggestEmotions(level)]));
+  // Порядок стабилен (сначала подсказки уровня, отмеченные вне списка — в конец),
+  // чтобы при выборе чипы не переставлялись и не «лагали».
+  const base = suggestEmotions(level);
+  const suggestions = [...base, ...picked.filter((p) => !base.includes(p))];
   const tint = moodColor(value);
 
   return (
@@ -227,30 +230,23 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
               <p className="text-[11px] font-black uppercase tracking-[.1em]">Что вы чувствуете?</p>
               <p className="text-[10px] font-semibold text-[var(--muted-2)]">до {MAX_EMOTIONS}</p>
             </div>
-            <motion.div layout className="mt-2 flex flex-wrap gap-1.5">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {suggestions.map((name) => {
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {suggestions.map((name) => {
                   const on = picked.includes(name);
                   const tone = emotionTone(name);
                   return (
-                    <motion.button
+                    <button
                       key={name}
-                      layout
-                      initial={{ opacity: 0, scale: 0.7 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.7 }}
-                      transition={{ type: "spring", stiffness: 460, damping: 30 }}
                       onClick={() => toggle(name)}
                       aria-pressed={on}
-                      className="rounded-full px-3 py-1.5 text-[11.5px] font-black"
+                      className="rounded-full px-3 py-1.5 text-[11.5px] font-black transition-[background-color,color,border-color] duration-150 active:scale-95"
                       style={{ background: on ? `var(--${tone})` : "#fff", border: `var(--bw) solid var(--${on ? `${tone}-edge` : "edge-neutral"})`, color: on ? "var(--ink)" : "var(--muted)" }}
                     >
                       {name}
-                    </motion.button>
+                    </button>
                   );
                 })}
-              </AnimatePresence>
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>
