@@ -132,15 +132,29 @@ function PsySessions() {
       </PageHead>
 
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-        <div className="mb-3 flex items-center gap-2">
-          {/* Быстрая запись — плюс левее настроек */}
-          <button onClick={() => { tap(); setQuickAdd((v) => !v); setScheduleOpen(false); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--olive-edge)]" style={{ background: quickAdd ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }} aria-label="Быстрая запись" aria-expanded={quickAdd}>
-            <Icon name="plus" width={17} weight="bold" color={quickAdd ? "var(--ink)" : "var(--olive-edge)"} />
+        <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          {/* Слева — настройка графика */}
+          <button onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex w-fit items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={scheduleOpen}>
+            <Icon name="gear" width={13} color="currentColor" /> График
           </button>
-          <button onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={scheduleOpen}>
-            <Icon name="gear" width={13} color="currentColor" /> Настроить график
-          </button>
-          <button onClick={() => { tap(); setHelp(true); }} className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
+
+          {/* Центр — весёлый зелёный крестик быстрой записи */}
+          <motion.button
+            onClick={() => { tap(); setQuickAdd((v) => !v); setScheduleOpen(false); }}
+            whileTap={{ scale: 0.85 }}
+            whileHover={{ scale: 1.06 }}
+            animate={quickAdd ? { rotate: 45 } : { rotate: 0, y: [0, -3, 0] }}
+            transition={quickAdd ? { type: "spring", stiffness: 400, damping: 14 } : { rotate: { type: "spring", stiffness: 400, damping: 14 }, y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" } }}
+            className="flex h-11 w-11 items-center justify-center rounded-[16px]"
+            style={{ background: quickAdd ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw-lg) solid var(--olive-edge)", boxShadow: quickAdd ? "0 6px 16px -6px var(--olive-edge)" : "0 8px 18px -8px var(--olive-edge)" }}
+            aria-label="Быстрая запись"
+            aria-expanded={quickAdd}
+          >
+            <Icon name="plus" width={22} weight="bold" color="var(--olive-edge)" />
+          </motion.button>
+
+          {/* Справа — помощь */}
+          <button onClick={() => { tap(); setHelp(true); }} className="flex w-fit items-center gap-1.5 justify-self-end rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
             <Icon name="question" width={14} weight="bold" color="var(--edge)" /> Как это работает?
           </button>
         </div>
