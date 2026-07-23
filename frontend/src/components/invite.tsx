@@ -17,8 +17,8 @@ const PERKS: Record<Variant, { need: number; reward: string }[]> = {
     { need: 5, reward: "Значок «Амбассадор» в профиле" },
   ],
   client: [
-    { need: 1, reward: "Неделя «Вдох+» в подарок" },
-    { need: 3, reward: "Месяц «Вдох+» бесплатно" },
+    { need: 1, reward: "Неделя «Клубок+» в подарок" },
+    { need: 3, reward: "Месяц «Клубок+» бесплатно" },
     { need: 5, reward: "Персональный набор практик" },
   ],
 };
@@ -26,13 +26,13 @@ const PERKS: Record<Variant, { need: number; reward: string }[]> = {
 const COPY: Record<Variant, { title: string; sub: string; share: string }> = {
   psy: {
     title: "Приглашайте — получайте плюшки",
-    sub: "Зовите клиентов и коллег во «Вдох». За каждого приглашённого — приятные бонусы.",
-    share: "Веду практику во «Вдох» — удобные инструменты и забота о клиентах между сессиями. Присоединяйтесь:",
+    sub: "Зовите клиентов и коллег во «Клубок». За каждого приглашённого — приятные бонусы.",
+    share: "Веду практику во «Клубок» — удобные инструменты и забота о клиентах между сессиями. Присоединяйтесь:",
   },
   client: {
     title: "Поделитесь заботой",
-    sub: "Позовите друга во «Вдох». Вам — подарки, другу — тёплый старт.",
-    share: "Забочусь о себе во «Вдох»: настроение, практики, колесо баланса. Попробуй и ты:",
+    sub: "Позовите друга во «Клубок». Вам — подарки, другу — тёплый старт.",
+    share: "Забочусь о себе во «Клубок»: настроение, практики, колесо баланса. Попробуй и ты:",
   },
 };
 
@@ -68,7 +68,7 @@ export function InviteBanner({ variant }: { variant: Variant }) {
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[var(--olive)]" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="heart" width={20} weight="fill" /></span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Приведите друга</p>
-          <p className="text-[14px] font-black leading-tight">{variant === "psy" ? "Позовите коллег во «Вдох»" : "Подарите другу неделю «Вдох+»"}</p>
+          <p className="text-[14px] font-black leading-tight">{variant === "psy" ? "Позовите коллег во «Клубок»" : "Подарите другу неделю «Клубок+»"}</p>
           <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">{variant === "psy" ? "Коллеге — месяц PRO, вам — бонус" : "Другу — 7 дней бесплатно, вам — бонус к подписке"}</p>
         </div>
         <span className="text-[18px] font-black text-[var(--olive-edge)]">›</span>

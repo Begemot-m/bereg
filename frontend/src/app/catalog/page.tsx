@@ -294,7 +294,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
 
       {/* Постоянная запись */}
       <div id="book-section"><Section title="Записаться · ближайшие окна"><div className="rounded-[18px] bg-white p-4 stroke-lg"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section></div>
-      <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из платформы «Вдох» — хочу записаться на консультацию.")}`} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-[16px] py-3.5 text-[14px] font-black" style={{ border: "var(--bw-lg) solid var(--ink)" }}><Icon name="spark" width={16} weight="fill" /> Задать вопрос в Telegram</a>
+      <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из платформы «Клубок» — хочу записаться на консультацию.")}`} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-[16px] py-3.5 text-[14px] font-black" style={{ border: "var(--bw-lg) solid var(--ink)" }}><Icon name="spark" width={16} weight="fill" /> Задать вопрос в Telegram</a>
     </div>
   </div>;
 }

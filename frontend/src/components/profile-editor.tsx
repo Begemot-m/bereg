@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { Badge, Button, Input, Textarea } from "@/components/ui";
+import { Button, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
@@ -45,9 +45,10 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
       <div className="flex items-center gap-3">
         <ProfilePhoto photo={photo} name={name} size="sm" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2"><p className="truncate text-[17px] font-extrabold">{name}</p>{professional && profile && (profile.status === "approved" ? <Badge tone="active">✓</Badge> : <Badge tone="planned">на проверке</Badge>)}</div>
+          <p className="truncate text-[17px] font-extrabold">{name}</p>
           <p className="mt-0.5 text-[12px] font-semibold text-[var(--muted)]">{professional ? "Профиль психолога" : "Профиль клиента"}</p>
         </div>
+        {professional && profile && <VerifyChip status={profile.status} />}
       </div>
       {roleControl}
       {professional && <ProfileProgress profile={profile} onContinue={() => { tap(); setEditing(true); }} />}
@@ -66,7 +67,18 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
   </>;
 }
 
-// Заполненность анкеты + подсказка, зачем её доводить до конца.
+// Статус верификации профиля — компактный чип.
+function VerifyChip({ status }: { status: "review" | "approved" }) {
+  const approved = status === "approved";
+  const tone = approved ? "green" : "amber";
+  return (
+    <span className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)`, color: `var(--${tone}-edge)` }}>
+      <Icon name={approved ? "check" : "clock"} width={11} weight="bold" color={`var(--${tone}-edge)`} /> {approved ? "Проверен" : "На проверке"}
+    </span>
+  );
+}
+
+// Заполненность анкеты — компактный живой блок с иконкой и короткой подсказкой.
 function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; onContinue: () => void }) {
   const merged = mergeProfile(profile);
   const steps = STEPS.slice(0, -1);
@@ -74,21 +86,28 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const percent = Math.round((done / steps.length) * 100);
   const gap = steps.find((item) => !isComplete(item.id, merged));
   const full = percent === 100;
+  const tone = full ? "green" : "amber";
 
   return (
-    <button onClick={onContinue} className="block w-full rounded-[18px] p-3.5 text-left transition-transform active:scale-[.99]" style={{ background: full ? "var(--green-soft)" : "var(--amber-soft)", border: `var(--bw-lg) solid var(--${full ? "green" : "amber"}-edge)` }}>
-      <div className="flex items-end justify-between gap-3">
-        <p className="text-[13px] font-black leading-tight">Профиль заполнен на {percent}%</p>
-        <span className="tnum text-[15px] font-black">{done}/{steps.length}</span>
+    <button onClick={onContinue} className="flex w-full items-center gap-3 rounded-[18px] p-3 text-left transition-transform active:scale-[.99]" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
+      <motion.span
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-white stroke"
+        animate={full ? { scale: [1, 1.08, 1] } : { rotate: [0, -8, 8, 0] }}
+        transition={{ duration: full ? 2.4 : 3.6, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <Icon name={full ? "check" : "spark"} width={20} weight="bold" color={`var(--${tone}-edge)`} />
+      </motion.span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] font-black leading-tight">{full ? "Профиль заполнен" : `Профиль на ${percent}%`}</p>
+          <span className="tnum text-[12px] font-black">{done}/{steps.length}</span>
+        </div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+          <motion.div className="h-full rounded-full" style={{ background: `var(--${tone})` }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
+        </div>
+        <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">{full ? "Вас находят по всем фильтрам каталога" : gap ? `Дальше: ${gap.title.toLowerCase()}` : "Продолжить заполнение"}</p>
       </div>
-      <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-        <motion.div className="h-full rounded-full" style={{ background: full ? "var(--green)" : "var(--amber)" }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
-      </div>
-      <p className="mt-2 text-[10.5px] font-semibold leading-relaxed text-[var(--muted)]">
-        {full
-          ? "Все поля заполнены — вас находят по всем параметрам каталога: запрос, метод, формат, город, бюджет, опыт, язык."
-          : `Каждое поле анкеты — это фильтр в каталоге. Чем полнее профиль, тем по большему числу параметров вас находят.${gap ? ` Осталось: ${gap.title.toLowerCase()}.` : ""}`}
-      </p>
+      <span className="shrink-0 text-[var(--muted-2)]">›</span>
     </button>
   );
 }
@@ -115,6 +134,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
   const location = publicLocation(profile);
   const format = formatLabel(profile?.format ?? "online");
   return <article className="space-y-4">
+    <CatalogThumb profile={profile} name={name} photo={photo} />
     <div className="chunk overflow-hidden bg-white">
       <div className="p-4" style={{ background: "var(--purple-soft)" }}>
         <div className="flex items-center gap-3"><ProfilePhoto photo={photo} name={name} size="lg" /><div className="min-w-0"><div className="flex items-center gap-1.5"><h3 className="font-tight text-[22px] font-extrabold leading-tight">{name}</h3><Icon name="check" width={17} weight="fill" color="var(--green-edge)" /></div><p className="mt-1 text-[13px] font-bold text-[var(--muted)]">{[profile?.specialistType, profile?.primaryMethod, profile?.experienceYears ? `${profile.experienceYears} ${yearsLabel(profile.experienceYears)} практики` : ""].filter(Boolean).join(" · ") || "Психолог платформы"}</p>{profile?.style && <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black stroke"><Icon name="spark" width={11} weight="fill" /> стиль: {profile.style}</span>}</div></div>
@@ -139,6 +159,42 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
     <Button className="w-full" disabled>Записаться на сессию</Button>
     <p className="text-center text-[11px] text-[var(--muted-2)]">Предпросмотр публичной страницы специалиста.</p>
   </article>;
+}
+
+// Карточка-миниатюра ровно как в каталоге — «как видят мой профиль».
+function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; name: string; photo: string | null }) {
+  const topics = profile?.topics ?? [];
+  const helps = topics.length ? topics.slice(0, 3).join(", ") : "разными запросами";
+  const price = (profile?.sessionPrice ?? 3500).toLocaleString("ru-RU");
+  const minutes = profile?.sessionMinutes ?? 50;
+  const format = formatLabel(profile?.format ?? "online");
+  return (
+    <div>
+      <p className="mb-2 text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">Карточка в каталоге</p>
+      <div className="overflow-hidden rounded-[24px] bg-white" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
+        <div className="flex gap-3.5 p-4">
+          <div className="relative flex h-[132px] w-[106px] shrink-0 items-center justify-center overflow-hidden rounded-[18px] text-[30px] font-black" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
+            {photo ? <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo} alt="" className="h-full w-full object-cover" /></> : (name.trim().charAt(0).toUpperCase() || "П")}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-center gap-1.5">
+              <h3 className="min-w-0 text-[17px] font-black leading-[1.06]">{name}</h3>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>
+            </div>
+            <p className="mt-1.5 text-[12.5px] font-bold leading-snug"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
+            {profile?.quote && <p className="mt-2 border-l-2 pl-2.5 text-[11.5px] font-semibold italic leading-snug text-[var(--muted)]" style={{ borderColor: "var(--olive-edge)" }}>«{profile.quote}»</p>}
+          </div>
+        </div>
+        <div className="mt-1 flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
+          <div className="min-w-0">
+            <p className="text-[15px] font-black leading-none">{price} ₽<span className="text-[11px] font-bold text-[var(--muted)]"> / {minutes} мин</span></p>
+            <p className="mt-1 flex items-center gap-1 text-[10px] font-black text-[var(--muted)]"><Icon name="calendar" width={11} weight="bold" /> {format}</p>
+          </div>
+          <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Посмотреть и записаться →</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function PreviewStat({ label, value }: { label: string; value: string }) { return <div className="rounded-[14px] bg-[var(--surface-2)] p-2 text-center stroke"><p className="tnum truncate text-[12px] font-black">{value}</p><p className="mt-1 text-[8px] font-black uppercase tracking-[.04em] text-[var(--muted)]">{label}</p></div>; }
@@ -227,6 +283,8 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       </div>
     </div>
 
+    {/* Статичная минимальная высота — окно не «скачет» между шагами */}
+    <div className="min-h-[440px]">
     <AnimatePresence mode="wait" initial={false}><motion.div key={current.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: .2, ease: [.16, 1, .3, 1] }}>
       {current.id === "identity" && <IdentityStep draft={draft} update={update} fileRef={fileRef} />}
       {current.id === "topics" && <TopicsStep draft={draft} update={update} />}
@@ -237,6 +295,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       {current.id === "story" && <StoryStep draft={draft} update={update} />}
       {current.id === "preview" && <PublicProfilePreview profile={draft} name={draft.name || displayName()} photo={draft.photos[0] ?? displayPhoto()} />}
     </motion.div></AnimatePresence>
+    </div>
 
     <p className="mt-3 flex items-start gap-1.5 px-1 text-[10.5px] font-semibold leading-relaxed text-[var(--muted-2)]">
       <Icon name="compass" width={13} className="mt-[1px] shrink-0" /> {current.filter}
@@ -295,7 +354,9 @@ function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange
 }
 
 // Экран после публикации: профиль ушёл на проверку модератору.
+// На последнем шаге окно закрывается само — статус остаётся виден в кабинете.
 function PublishedScreen({ name, onDone }: { name: string; onDone: () => void }) {
+  useEffect(() => { const timer = window.setTimeout(onDone, 2200); return () => window.clearTimeout(timer); }, [onDone]);
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center py-6 text-center">
       <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="flex h-20 w-20 items-center justify-center rounded-[26px] bg-[var(--amber)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>

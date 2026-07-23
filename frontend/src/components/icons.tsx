@@ -28,6 +28,7 @@ import {
   SlidersHorizontal,
   Star,
   Question,
+  TelegramLogo,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -61,7 +62,8 @@ export type IconName =
   | "filter"
   | "sort"
   | "star"
-  | "question";
+  | "question"
+  | "telegram";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -93,6 +95,7 @@ const MAP: Record<IconName, PhIcon> = {
   sort: SlidersHorizontal,
   star: Star,
   question: Question,
+  telegram: TelegramLogo,
 };
 
 export function Icon({

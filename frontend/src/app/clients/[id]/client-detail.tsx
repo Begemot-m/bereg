@@ -222,7 +222,7 @@ function ClientConnect({ client, onChanged }: { client: Client; onChanged: () =>
   const [contact, setContact] = useState(client.contact ?? "");
   const [copied, setCopied] = useState(false);
   const link = inviteLink(client.id);
-  const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Веду вас во «Вдох» — подключите свой профиль, чтобы видеть записи, задания и практики:")}`;
+  const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Веду вас во «Клубок» — подключите свой профиль, чтобы видеть записи, задания и практики:")}`;
 
   const invite = useMutation({ mutationFn: () => inviteClient(client.id, contact.trim()), onSuccess: () => { success(); onChanged(); } });
   const saveContact = useMutation({ mutationFn: () => updateClient(client.id, { contact: contact.trim() }), onSuccess: () => { tap(); onChanged(); } });

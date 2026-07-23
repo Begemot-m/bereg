@@ -134,7 +134,7 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
   );
 }
 
-// Экран результата: круглое колесо (радар), сильные/слабые сферы и (для клиента без Вдох+) оплата.
+// Экран результата: круглое колесо (радар), сильные/слабые сферы и (для клиента без Клубок+) оплата.
 function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers: WheelAnswers; pct: number; band: ReturnType<typeof wheelBand>; locked: boolean; onSave: () => void; onUnlock?: () => void }) {
   const per = WHEEL.map((d) => ({ d, v: d.questions.reduce((s, _, i) => s + answers[d.key][i], 0) / d.questions.length })).sort((a, b) => b.v - a.v);
   const tone = band.tone === "green" ? "var(--green)" : band.tone === "amber" ? "var(--amber)" : "var(--salmon)";
@@ -164,9 +164,9 @@ function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers:
       <Button className="w-full" onClick={onSave}>Готово — результат сохранён</Button>
       {locked && (
         <div className="rounded-[18px] p-4" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
-          <div className="flex items-center gap-2"><Icon name="therapy" width={18} weight="fill" /><p className="text-[13px] font-black">Больше в Вдох+</p></div>
+          <div className="flex items-center gap-2"><Icon name="therapy" width={18} weight="fill" /><p className="text-[13px] font-black">Больше в Клубок+</p></div>
           <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Детальный радар по 10 сферам, история и динамика от встречи к встрече — по подписке 390 ₽/мес.</p>
-          <button onClick={() => { tap(); onUnlock?.(); }} className="mt-3 w-full rounded-[13px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98]">Открыть Вдох+ · 390 ₽/мес</button>
+          <button onClick={() => { tap(); onUnlock?.(); }} className="mt-3 w-full rounded-[13px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98]">Открыть Клубок+ · 390 ₽/мес</button>
         </div>
       )}
       <p className="text-center text-[10px] font-semibold text-[var(--muted-2)]">Самооценка для разговора с терапевтом · не диагноз.</p>

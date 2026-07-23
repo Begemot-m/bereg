@@ -14,10 +14,10 @@ const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
-  { id: "tools", name: "Вдох PRO", tag: "рабочий кабинет", best: true, perks: ["Клиенты без ограничений", "Статистика и динамика по каждому", "Сводка недели клиента к сессии", "Домашние задания, техники, шаблоны", "Новые методики каждый месяц"] },
+  { id: "tools", name: "Клубок PRO", tag: "рабочий кабинет", best: true, perks: ["Клиенты без ограничений", "Статистика и динамика по каждому", "Сводка недели клиента к сессии", "Домашние задания, техники, шаблоны", "Новые методики каждый месяц"] },
   { id: "catalog", name: "Каталог", tag: "новые клиенты", perks: ["Подтверждённый профиль в каталоге", "Честная выдача без покупки рейтинга", "Статистика показов профиля", "Плата только за размещение — не за место"] },
 ];
-const CLIENT_PLAN: Plan = { id: "client", name: "Вдох+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
+const CLIENT_PLAN: Plan = { id: "client", name: "Клубок+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
 const BFrame = ({ children }: { children: ReactNode }) => (
   <div className="flex min-h-[136px] flex-col justify-center gap-2 rounded-[16px] p-3" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>{children}</div>
@@ -146,7 +146,7 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
     <section className="overflow-hidden rounded-[24px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       <div className="relative p-5" style={{ background: "linear-gradient(150deg, var(--purple) 0%, var(--purple-soft) 100%)" }}>
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3 py-1 text-[11px] font-black text-white"><Icon name={variant === "client" ? "therapy" : "spark"} width={13} weight="fill" /> {variant === "client" ? "ВДОХ+" : "ВДОХ PRO"}</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3 py-1 text-[11px] font-black text-white"><Icon name={variant === "client" ? "therapy" : "spark"} width={13} weight="fill" /> {variant === "client" ? "КЛУБОК+" : "КЛУБОК PRO"}</span>
           {hero.badge}
         </div>
         <div className="mt-3">
@@ -171,7 +171,7 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
         {pending ? (
           <p className="py-2 text-center text-[13px] font-bold text-[var(--muted)]">Ждём подтверждение платежа…</p>
         ) : clientActive ? (
-          <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Вдох+ активен — все инструменты открыты.</p>
+          <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Клубок+ активен — все инструменты открыты.</p>
         ) : (
           <>
             {variant === "psy" && !activeTools && <div className="space-y-1.5"><p className="px-1 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Что входит</p><FreeVsPro /></div>}
@@ -182,7 +182,7 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
         )}
       </div>
 
-      {benefits && <HelpDeck title={variant === "client" ? "Возможности Вдох+" : "Возможности Вдох PRO"} pages={variant === "client" ? CLIENT_BENEFITS : PRO_BENEFITS} onClose={() => setBenefits(false)} doneLabel="Выбрать тариф" onDone={() => setBenefits(false)} />}
+      {benefits && <HelpDeck title={variant === "client" ? "Возможности Клубок+" : "Возможности Клубок PRO"} pages={variant === "client" ? CLIENT_BENEFITS : PRO_BENEFITS} onClose={() => setBenefits(false)} doneLabel="Выбрать тариф" onDone={() => setBenefits(false)} />}
     </section>
   );
 }
@@ -198,12 +198,12 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     };
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
-  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: sub.promo ? "PRO + каталог активны" : "Вдох PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
+  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: sub.promo ? "PRO + каталог активны" : "Клубок PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
   return { badge: null, title: "Триал закончился", subtitle: "Подключите тариф, чтобы продолжить работу.", progress: null };
 }
 
 function clientHero(sub: Subscription): { badge: ReactNode; title: string; subtitle: string; progress: ReactNode } {
-  if (sub.clientPro) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активен</span>, title: "Вдох+ подключён", subtitle: "Все инструменты для себя открыты. Спасибо, что заботитесь о себе!", progress: null };
+  if (sub.clientPro) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активен</span>, title: "Клубок+ подключён", subtitle: "Все инструменты для себя открыты. Спасибо, что заботитесь о себе!", progress: null };
   return {
     badge: <span className="rounded-full bg-[#fffdf7] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>390 ₽/мес</span>,
     title: "Инструменты для себя",

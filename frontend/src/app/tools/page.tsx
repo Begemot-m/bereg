@@ -10,7 +10,7 @@ import { TechniqueRunner, type TechKey } from "@/components/techniques";
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 
-// Инструменты клиента: часть бесплатна, часть — по подписке «Вдох+». Интерактивные — с tech.
+// Инструменты клиента: часть бесплатна, часть — по подписке «Клубок+». Интерактивные — с tech.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
   { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.png", bg: "#d9edf3", edge: "#5f95ab" },
   { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики и вести историю", time: "2–7 мин", image: "/practices/automatic-thoughts.png", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
@@ -57,7 +57,7 @@ function ClientTools() {
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[.07em]" style={{ border: "var(--bw) solid var(--peach-edge)" }}>Что поможет сейчас</span>
-                  <span className="text-[11px] font-bold text-[var(--muted)]">Вдох+</span>
+                  <span className="text-[11px] font-bold text-[var(--muted)]">Клубок+</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">{recommendation.title}</h2>
                 <p className="mt-1 max-w-[230px] text-[12px] font-semibold leading-snug text-[var(--muted)]">{drafts.includes(recommendation.tech) ? "Черновик сохранён — можно спокойно продолжить с того же шага." : history.length ? "Предлагаем сменить фокус после прошлой практики." : "Начните с мягкого способа вернуть спокойный ритм."}</p>
