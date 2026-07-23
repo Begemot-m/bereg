@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
 import { PageHead } from "@/components/blocks";
-import { DaySlots } from "@/components/day-slots";
+import { ClientPicker, DaySlots } from "@/components/day-slots";
 import { HelpDeck, SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
@@ -16,8 +16,9 @@ import { WeekStrip } from "@/components/week-strip";
 import { WeekWindows } from "@/components/week-windows";
 import { WorkHoursEditor } from "@/components/work-hours";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
-import { listAppointments, type ApptFormat } from "@/lib/appointments";
+import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
+import { listClients } from "@/lib/clients";
 import { useRole } from "@/lib/role";
 import { getMonthAvailability, getOverrides, getWorkHours, setOverride, WEEKDAYS, ymdLocal, type WorkHours } from "@/lib/schedule";
 
@@ -71,6 +72,7 @@ function PsySessions() {
   const [help, setHelp] = useState(false);
   const [scheduleHelp, setScheduleHelp] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [quickAdd, setQuickAdd] = useState(false);
   const [scheduleFirstVisit, setScheduleFirstVisit] = useState(false);
   const [scheduleReady, setScheduleReady] = useState(false);
 
@@ -130,14 +132,20 @@ function PsySessions() {
       </PageHead>
 
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-        <div className="mb-3 flex items-center justify-end gap-2">
-          <button onClick={() => { tap(); setScheduleOpen((v) => !v); }} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={scheduleOpen}>
+        <div className="mb-3 flex items-center gap-2">
+          {/* Быстрая запись — плюс левее настроек */}
+          <button onClick={() => { tap(); setQuickAdd((v) => !v); setScheduleOpen(false); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--olive-edge)]" style={{ background: quickAdd ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }} aria-label="Быстрая запись" aria-expanded={quickAdd}>
+            <Icon name="plus" width={17} weight="bold" color={quickAdd ? "var(--ink)" : "var(--olive-edge)"} />
+          </button>
+          <button onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={scheduleOpen}>
             <Icon name="gear" width={13} color="currentColor" /> Настроить график
           </button>
-          <button onClick={() => { tap(); setHelp(true); }} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
+          <button onClick={() => { tap(); setHelp(true); }} className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
             <Icon name="question" width={14} weight="bold" color="var(--edge)" /> Как это работает?
           </button>
         </div>
+
+        <QuickAddBooking open={quickAdd} onClose={() => setQuickAdd(false)} />
         {scheduleReady && (
           <ScheduleSetup
             work={work}
@@ -263,7 +271,7 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
         </div>
       )}
 
-      <Disclosure open={open}>
+      <Disclosure open={open} autoScroll={false}>
         <div className="mt-3 rounded-[22px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><p className="text-[14px] font-black">Рабочие часы</p><p className="text-[11px] font-semibold text-[var(--muted)]">{summary} · нажмите на шкалу дня, чтобы добавить окно</p></div>
@@ -327,6 +335,41 @@ function EmptyDayFree({ day }: { day: string }) {
         </div>
       </Disclosure>
     </div>
+  );
+}
+
+// Быстрая запись: сначала клиент (с поиском), затем свободное окно.
+function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const [client, setClient] = useState<{ id: number; name: string } | null>(null);
+  const book = useMutation({
+    mutationFn: ({ iso, format }: { iso: string; format: ApptFormat }) => createAppointment({ clientId: client!.id, startsAt: iso, format }),
+    onSuccess: () => { success(); setClient(null); onClose(); for (const k of ["appointments", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); },
+  });
+  const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
+
+  return (
+    <Disclosure open={open} autoScroll={false}>
+      <div className="mb-3 rounded-[18px] bg-white p-3" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[12px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
+          {client && <button onClick={() => setClient(null)} className="text-[11px] font-black text-[var(--muted)]">← другой клиент</button>}
+        </div>
+        {!client ? (
+          <ClientPicker clients={sorted} compact={false} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+        ) : (
+          <div>
+            <div className="mb-2 flex items-center gap-2 rounded-[12px] bg-[var(--green-soft)] px-3 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
+              <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
+              <span className="text-[13px] font-black">{client.name}</span>
+            </div>
+            <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
+            <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
+          </div>
+        )}
+      </div>
+    </Disclosure>
   );
 }
 

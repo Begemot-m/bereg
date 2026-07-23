@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useState } from "react";
 
 import { FmtSwitch } from "@/components/fmt-switch";
@@ -128,21 +128,8 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
               {!s.past && <FmtSwitch fmt={s.fmt} onToggle={() => setOv.mutate({ iso: s.iso, patch: { fmt: s.fmt === "online" ? "offline" : "online" } })} />}
               {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: true } })} className="flex h-6 w-6 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--salmon-edge)" }} aria-label="Закрыть окно">✕</button>}
             </div>
-            <Disclosure open={picking && !s.past}>
-              <div className="mt-1.5 rounded-[12px] p-2.5 stroke" style={{ background: "#fff" }}>
-                <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted-2)]">Клиент</p>
-                <div className="no-scrollbar flex max-h-40 flex-col gap-1 overflow-y-auto">
-                  <AnimatePresence>
-                    {sortedClients.map((c) => (
-                      <motion.button key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={SPRING} onClick={() => book.mutate({ clientId: c.id, iso: s.iso, format: s.fmt })} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-left active:scale-[0.99]">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
-                        <span className="flex-1 text-[13px] font-bold">{c.name}</span>
-                        {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--green-edge)]">терапия</span>}
-                      </motion.button>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
+            <Disclosure open={picking && !s.past} autoScroll={false}>
+              <ClientPicker clients={sortedClients} onPick={(clientId) => book.mutate({ clientId, iso: s.iso, format: s.fmt })} />
             </Disclosure>
           </motion.div>
         );
@@ -164,11 +151,14 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
     <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="rounded-[12px] stroke-lg" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
       <div className="flex items-center gap-2 px-3 py-2">
         <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bg, border: `1px solid ${st.bd}` }} />
-        <span className={`text-[13px] font-extrabold tnum ${past ? "line-through" : ""}`}>{timeF.format(new Date(appt.startsAt))}</span>
-        <span className="min-w-0 flex-1">
-          <span className={`block truncate text-[13px] font-bold ${past ? "line-through" : ""}`}>{appt.client.name}</span>
-          {past && <span className="block text-[9px] font-extrabold uppercase tracking-wide text-[var(--muted)]">выполнено</span>}
-        </span>
+        {/* Тап по строке разворачивает управление — как по шестерне */}
+        <button onClick={() => { tap(); setManage(!manage); }} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={manage}>
+          <span className={`text-[13px] font-extrabold tnum ${past ? "line-through" : ""}`}>{timeF.format(new Date(appt.startsAt))}</span>
+          <span className="min-w-0 flex-1">
+            <span className={`block truncate text-[13px] font-bold ${past ? "line-through" : ""}`}>{appt.client.name}</span>
+            {past && <span className="block text-[9px] font-extrabold uppercase tracking-wide text-[var(--muted)]">выполнено</span>}
+          </span>
+        </button>
         <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
         <FmtSwitch fmt={appt.format} onToggle={() => setFmt.mutate(appt.format === "online" ? "offline" : "online")} />
         <button onClick={() => { tap(); setManage(!manage); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] stroke" style={manage ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }} aria-label="Управлять сессией" aria-expanded={manage}><Icon name="gear" width={15} color={manage ? "#fff" : undefined} /></button>
@@ -190,6 +180,37 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
         </div>
       </Disclosure>
     </motion.div>
+  );
+}
+
+// Выбор клиента с быстрым поиском; недавние в терапии — сверху.
+export function ClientPicker({ clients, onPick, compact = true }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean }) {
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const filtered = clients.filter((c) => c.name.toLowerCase().includes(query) || (c.contact ?? "").toLowerCase().includes(query));
+  const inTherapy = filtered.filter((c) => c.status === "therapy");
+  const others = filtered.filter((c) => c.status !== "therapy");
+  const row = (c: { id: number; name: string; status: string }) => (
+    <button key={c.id} onClick={() => onPick(c.id)} className="flex w-full items-center gap-2 rounded-[10px] px-2 py-1.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
+      <span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
+      <span className="flex-1 truncate text-[13px] font-bold">{c.name}</span>
+      {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--green-edge)]">терапия</span>}
+    </button>
+  );
+  return (
+    <div className={`${compact ? "mt-1.5" : ""} rounded-[12px] p-2.5 stroke`} style={{ background: "#fff" }}>
+      <div className="mb-1.5 flex items-center gap-2 rounded-[10px] bg-[var(--surface-2)] px-2.5 py-1.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-[var(--muted-2)]"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-3.8-3.8" /></svg>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск клиента" className="w-full bg-transparent text-[13px] font-semibold outline-none" />
+      </div>
+      <div className="no-scrollbar flex max-h-52 flex-col gap-0.5 overflow-y-auto">
+        {inTherapy.length > 0 && <p className="px-1 pt-1 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted-2)]">Недавно в терапии</p>}
+        {inTherapy.map(row)}
+        {others.length > 0 && inTherapy.length > 0 && <p className="px-1 pt-1.5 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted-2)]">Остальные</p>}
+        {others.map(row)}
+        {filtered.length === 0 && <p className="px-1 py-2 text-[12px] font-semibold text-[var(--muted-2)]">Никого не нашли.</p>}
+      </div>
+    </div>
   );
 }
 
