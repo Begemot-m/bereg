@@ -12,7 +12,9 @@ import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { MyBookingsManager } from "@/components/my-bookings";
-import { Button, Disclosure, SkeletonRow, Textarea } from "@/components/ui";
+import { SlotPicker } from "@/components/slot-picker";
+import { Disclosure, SkeletonRow } from "@/components/ui";
+import { bookSlot } from "@/lib/mybookings";
 import { HW_LABEL, listHomework, updateHomework, type Homework, type HwStatus, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
@@ -231,9 +233,13 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
   const psy = PSYS.find((item) => item.name === name);
   const href = psy ? `/catalog?psy=${psy.id}` : "/catalog";
   const portrait = psy ? asset(psy.portrait) : null;
-  const [msgOpen, setMsgOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
+  const [booked, setBooked] = useState<{ at: string; format: string } | null>(null);
+  const qc = useQueryClient();
+  const book = useMutation({
+    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(name, iso, format),
+    onSuccess: (b) => { success(); setBooked({ at: b.startsAt, format: b.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); },
+  });
   return (
     <div className="relative mt-3 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
@@ -258,22 +264,28 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
         </div>
       </Link>
       <div className="mt-2.5 flex gap-2">
-        <Link href={href} onClick={tap} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white transition-transform active:scale-[0.98]">
+        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white transition-transform active:scale-[0.98]" aria-expanded={bookOpen}>
           <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться
-        </Link>
-        <button onClick={() => { tap(); setMsgOpen((v) => !v); setSent(false); }} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]" style={{ border: "var(--bw) solid var(--purple-edge)" }} aria-expanded={msgOpen}>
-          <Icon name="note" width={14} weight="bold" /> Написать
         </button>
+        {psy?.tg && (
+          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Вдох» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+            <Icon name="spark" width={14} weight="fill" /> Написать
+          </a>
+        )}
       </div>
-      <Disclosure open={msgOpen}>
+      <Disclosure open={bookOpen}>
         <div className="mt-2.5 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-          {sent ? (
-            <div className="rounded-[12px] bg-[var(--green-soft)] p-2.5 text-[12px] font-bold" style={{ border: "var(--bw) solid var(--green-edge)" }}>Сообщение сохранено для терапевта.</div>
-          ) : (
-            <div className="space-y-2">
-              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} placeholder="Коротко опишите, что хотите обсудить" />
-              <div className="flex justify-end"><Button size="sm" disabled={!message.trim()} onClick={() => { success(); setSent(true); setMessage(""); }}>Отправить</Button></div>
+          {booked ? (
+            <div className="text-center">
+              <p className="text-[13px] font-black">Вы записаны к {name.split(" ")[0]}</p>
+              <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{new Date(booked.at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {new Date(booked.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+              <button onClick={() => { setBooked(null); setBookOpen(false); }} className="mt-2.5 rounded-full bg-[var(--purple-soft)] px-4 py-1.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>Готово</button>
             </div>
+          ) : (
+            <>
+              <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Свободные окна</p>
+              <SlotPicker forClient variant="strip" daysAhead={14} onPick={(iso, format) => book.mutate({ iso, format })} />
+            </>
           )}
         </div>
       </Disclosure>

@@ -3,32 +3,14 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { NotificationBell } from "@/components/notification-bell";
 import { Onboarding } from "@/components/onboarding";
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
-import { displayPhoto, useOnboarded, useProfile } from "@/lib/profile";
+import { useOnboarded } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
-
-// Круглая кнопка кабинета с аватаркой из Telegram (если есть).
-function AvatarLink({ size = 36 }: { size?: number }) {
-  const profile = useProfile(); // перечитываем фото при изменении профиля/привязки
-  const [photo, setPhoto] = useState<string | null>(null);
-  useEffect(() => setPhoto(displayPhoto()), [profile]);
-  return (
-    <Link href="/cabinet" onClick={select} className="flex shrink-0 items-center justify-center overflow-hidden rounded-full stroke" style={{ width: size, height: size, background: "var(--head-soft)" }}>
-      {photo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <Icon name="user" width={Math.round(size * 0.48)} weight="regular" />
-      )}
-    </Link>
-  );
-}
 
 type NavItem = { href: string; label: string; icon: IconName };
 
@@ -129,25 +111,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      {/* Колонка приложения: скроллится только контент; шапка и меню закреплены. */}
+      {/* Колонка приложения: скроллится только контент; меню закреплено. */}
       <div className="relative flex h-full flex-col @md:ml-[248px]">
-        {/* Мобайл: верхняя панель — вне зоны прокрутки */}
-        <header className="z-50 flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
-          <Wordmark small />
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <AvatarLink />
-          </div>
-        </header>
+        {/* Мобайл: верхней панели нет — она мешала в Telegram (тянулась при скролле). */}
 
-        {/* Контент — единственная прокручиваемая область (нижний отступ под меню) */}
+        {/* Контент — единственная прокручиваемая область (отступы под чёлку и меню) */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="mx-auto w-full max-w-3xl px-4 pb-[104px] pt-2 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
+          <div className="mx-auto w-full max-w-3xl px-4 pb-[104px] pt-[calc(env(safe-area-inset-top)+10px)] @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
         </div>
 
-        {/* Мобайл: нижние табы — парящая панель поверх контента, без заливки-полоски */}
+        {/* Мобайл: нижние табы — парящие иконки без подложки-полоски */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] @md:hidden">
-          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[30px] bg-white/85 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.10)", boxShadow: "0 12px 30px -14px rgba(32,28,24,.45)" }}>
+          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between px-3">
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
               // Центральная вкладка — приподнятая акцентная кнопка.
