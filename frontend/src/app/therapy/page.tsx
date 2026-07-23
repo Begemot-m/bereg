@@ -12,6 +12,8 @@ import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { MyBookingsManager } from "@/components/my-bookings";
+import { SessionCheckin } from "@/components/session-checkin";
+import { WeekReview } from "@/components/week-review";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, SkeletonRow } from "@/components/ui";
 import { bookSlot } from "@/lib/mybookings";
@@ -127,10 +129,12 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
       </header>
 
       <main className="relative -mt-9 rounded-t-[30px] bg-[#fffaf0] px-4 pb-8 pt-5 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        <SessionCheckin bookings={bookings} />
         <Segmented tab={tab} onChange={setTab} />
 
         {tab === "общее" ? (
           <div className="mt-4 space-y-3">
+            <WeekReview moods={therapy.moods} homework={homework} />
             <MoodModule today={todayEntry} moods={therapy.moods} onSave={onMood} />
             <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
           </div>
@@ -309,7 +313,11 @@ function ClientHomework({ items, onChanged }: { items: Homework[]; onChanged: ()
 }
 
 function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void }) {
-  const save = useMutation({ mutationFn: (status: HwStatus) => updateHomework(hw.id, { status }), onSuccess: onChanged });
+  const [celebrate, setCelebrate] = useState(false);
+  const save = useMutation({
+    mutationFn: (status: HwStatus) => updateHomework(hw.id, { status }),
+    onSuccess: (_data, status) => { if (status === "done") { success(); setCelebrate(true); setTimeout(() => setCelebrate(false), 2200); } onChanged(); },
+  });
   const tone = HW_TONE[hw.status];
   return (
     <div className="rounded-[16px] bg-white p-3" style={{ border: `var(--bw) solid var(--${tone}-edge)` }}>
@@ -327,6 +335,7 @@ function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void })
           );
         })}
       </div>
+      {celebrate && <p className="mt-2 flex items-center gap-1 text-[11px] font-black text-[var(--green-edge)]"><Icon name="check" width={13} weight="bold" color="var(--green-edge)" /> Задание закрыто — так держать</p>}
     </div>
   );
 }

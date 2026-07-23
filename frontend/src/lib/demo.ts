@@ -452,7 +452,15 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const h = db.homework.find((x) => x.id === Number(hwId));
     if (!h) throw new Error("API 404");
     if (body.text !== undefined) h.text = String(body.text);
-    if (body.status !== undefined) h.status = body.status as HwStatus;
+    if (body.status !== undefined) {
+      const becameDone = body.status === "done" && h.status !== "done";
+      h.status = body.status as HwStatus;
+      // Закрываем петлю: психолог видит в колокольчике, что клиент выполнил задание.
+      if (becameDone) {
+        const cl = db.clients.find((c) => c.id === h.clientId);
+        notify(db, "psychologist", "system", `Задание выполнено${cl ? ` · ${cl.name}` : ""}: «${h.text.length > 40 ? h.text.slice(0, 40) + "…" : h.text}»`);
+      }
+    }
     save(db);
     return delay(h as T);
   }
