@@ -18,7 +18,7 @@ import { WorkHoursEditor } from "@/components/work-hours";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
-import { listClients } from "@/lib/clients";
+import { createClient, listClients } from "@/lib/clients";
 import { useRole } from "@/lib/role";
 import { getMonthAvailability, getOverrides, getWorkHours, setOverride, WEEKDAYS, ymdLocal, type WorkHours } from "@/lib/schedule";
 
@@ -361,6 +361,11 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
     mutationFn: ({ iso, format }: { iso: string; format: ApptFormat }) => createAppointment({ clientId: client!.id, startsAt: iso, format }),
     onSuccess: () => { success(); setClient(null); onClose(); for (const k of ["appointments", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); },
   });
+  // Быстро завести нового клиента прямо из записи и сразу выбрать его.
+  const create = useMutation({
+    mutationFn: (name: string) => createClient(name, ""),
+    onSuccess: (c) => { success(); qc.invalidateQueries({ queryKey: ["clients"] }); setClient({ id: c.id, name: c.name }); },
+  });
   const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
 
   return (
@@ -371,7 +376,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
           {client && <button onClick={() => setClient(null)} className="text-[11px] font-black text-[var(--muted)]">← другой клиент</button>}
         </div>
         {!client ? (
-          <ClientPicker clients={sorted} compact={false} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+          <ClientPicker clients={sorted} compact={false} onCreateClient={(name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
         ) : (
           <div>
             <div className="mb-2 flex items-center gap-2 rounded-[12px] bg-[var(--green-soft)] px-3 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>

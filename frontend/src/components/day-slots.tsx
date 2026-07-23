@@ -184,8 +184,11 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
 }
 
 // Выбор клиента с быстрым поиском; недавние в терапии — сверху.
-export function ClientPicker({ clients, onPick, compact = true }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean }) {
+// onCreateClient — если задан, показываем «+ Новый клиент» рядом с поиском.
+export function ClientPicker({ clients, onPick, compact = true, onCreateClient }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean; onCreateClient?: (name: string) => void }) {
   const [q, setQ] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
   const query = q.trim().toLowerCase();
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(query) || (c.contact ?? "").toLowerCase().includes(query));
   const inTherapy = filtered.filter((c) => c.status === "therapy");
@@ -203,6 +206,18 @@ export function ClientPicker({ clients, onPick, compact = true }: { clients: { i
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-[var(--muted-2)]"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-3.8-3.8" /></svg>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск клиента" className="w-full bg-transparent text-[13px] font-semibold outline-none" />
       </div>
+      {onCreateClient && (adding ? (
+        <form onSubmit={(e) => { e.preventDefault(); const n = newName.trim(); if (n) { onCreateClient(n); setNewName(""); setAdding(false); } }} className="mb-1.5 flex items-center gap-1.5">
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Имя и фамилия" className="w-full rounded-[10px] bg-white px-2.5 py-1.5 text-[13px] font-semibold outline-none" style={{ border: "var(--bw) solid var(--olive-edge)" }} />
+          <button type="submit" disabled={!newName.trim()} className="shrink-0 rounded-[10px] px-2.5 py-1.5 text-[12px] font-black text-white disabled:opacity-40" style={{ background: "var(--olive-edge)" }}>OK</button>
+          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="shrink-0 px-1 text-[15px] font-black text-[var(--muted-2)]" aria-label="Отмена">✕</button>
+        </form>
+      ) : (
+        <button onClick={() => { tap(); setAdding(true); }} className="mb-1.5 flex w-full items-center gap-2 rounded-[10px] px-2 py-1.5 text-left transition-colors active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}>
+          <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="plus" width={14} weight="bold" color="var(--olive-edge)" /></span>
+          <span className="flex-1 text-[13px] font-black text-[var(--olive-edge)]">Новый клиент</span>
+        </button>
+      ))}
       <div className="no-scrollbar flex max-h-52 flex-col gap-0.5 overflow-y-auto">
         {inTherapy.length > 0 && <p className="px-1 pt-1 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted-2)]">Недавно в терапии</p>}
         {inTherapy.map(row)}

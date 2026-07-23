@@ -5,6 +5,9 @@ export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
 type Status = "therapy" | "new" | "paused";
 type HwStatus = "assigned" | "doing" | "done";
+// Подключение клиента: none — карточку завёл психолог; invited — приглашение отправлено;
+// joined — клиент зашёл, залогинился и подключил свой профиль (карточка синхронизирована).
+type LinkState = "none" | "invited" | "joined";
 
 type Client = {
   id: number;
@@ -12,6 +15,8 @@ type Client = {
   contact: string | null;
   note: string;
   status: Status;
+  link: LinkState;
+  invitedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -90,10 +95,10 @@ function day(offset: number): string {
 function seed(): DB {
   const now = new Date().toISOString();
   const clients: Client[] = [
-    { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", createdAt: now, updatedAt: now },
-    { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", createdAt: now, updatedAt: now },
-    { id: 3, name: "Алёна Ким", contact: "@alena_kim", note: "Выгорание, ресурс.", status: "therapy", createdAt: now, updatedAt: now },
-    { id: 4, name: "Пётр Ланской", contact: "@plansky", note: "Пауза до осени по его инициативе.", status: "paused", createdAt: now, updatedAt: now },
+    { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", link: "joined", invitedAt: null, createdAt: now, updatedAt: now },
+    { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, createdAt: now, updatedAt: now },
+    { id: 3, name: "Алёна Ким", contact: "@alena_kim", note: "Выгорание, ресурс.", status: "therapy", link: "joined", invitedAt: null, createdAt: now, updatedAt: now },
+    { id: 4, name: "Пётр Ланской", contact: "+7 916 200-14-08", note: "Пауза до осени по его инициативе.", status: "paused", link: "joined", invitedAt: null, createdAt: now, updatedAt: now },
   ];
   const appts: Appointment[] = [
     { id: 11, clientId: 1, startsAt: iso(0, 18, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
@@ -179,6 +184,10 @@ function load(): DB {
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
+      // миграция: подключение клиента — активные считаем уже присоединившимися
+      for (const c of db.clients) {
+        if (c.link === undefined) { c.link = c.status === "new" ? "none" : "joined"; c.invitedAt = null; }
+      }
       return db;
     }
   } catch {
@@ -191,6 +200,26 @@ function load(): DB {
 
 function save(db: DB) {
   if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(db));
+}
+
+// Экспорт локальных данных приложения (кабинет → приватность): всё, что хранит демо.
+export function exportLocalData(): string {
+  if (typeof window === "undefined") return "{}";
+  const dump: Record<string, unknown> = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (k.startsWith("psy_") || k.startsWith("bereg") || k.startsWith("notify:") || k.startsWith("quiet:")) {
+      const raw = localStorage.getItem(k) as string;
+      try { dump[k] = JSON.parse(raw); } catch { dump[k] = raw; }
+    }
+  }
+  return JSON.stringify({ app: "Берег", exportedAt: new Date().toISOString(), data: dump }, null, 2);
+}
+
+// Сброс демо-данных к исходному состоянию (клиенты, записи, настроение и т.д.).
+export function resetLocalData() {
+  if (typeof window !== "undefined") localStorage.removeItem(KEY);
 }
 
 const fmtWhen = (iso: string) => new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -220,6 +249,21 @@ function resolveSub(db: DB) {
     s.tools = false;
     save(db);
   }
+}
+
+// Демо-симуляция: спустя ~6с после приглашения клиент «заходит и подключает профиль».
+// В боевом режиме это делает реальный вход клиента по ссылке-приглашению.
+function resolveClientLinks(db: DB) {
+  let changed = false;
+  for (const c of db.clients) {
+    if (c.link === "invited" && c.invitedAt && Date.now() - new Date(c.invitedAt).getTime() > 6000) {
+      c.link = "joined";
+      c.updatedAt = new Date().toISOString();
+      notify(db, "psychologist", "join", `«${c.name}»: профиль подключён — карточка синхронизирована`);
+      changed = true;
+    }
+  }
+  if (changed) save(db);
 }
 
 function withStats(db: DB, c: Client) {
@@ -286,6 +330,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
 
   // clients
   if (clean === "/clients" && method === "GET") {
+    resolveClientLinks(db);
     const list = [...db.clients].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map((c) => withStats(db, c));
     return delay(list as T);
   }
@@ -297,10 +342,24 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       contact: (body.contact as string) || null,
       note: "",
       status: (body.status as Status) ?? "new",
+      link: "none",
+      invitedAt: null,
       createdAt: now,
       updatedAt: now,
     };
     db.clients.push(c);
+    save(db);
+    return delay(withStats(db, c) as T);
+  }
+  // приглашение клиента подключить свой профиль
+  const inviteId = clean.match(/^\/clients\/(\d+)\/invite$/)?.[1];
+  if (inviteId && method === "POST") {
+    const c = db.clients.find((x) => x.id === Number(inviteId));
+    if (!c) throw new Error("API 404");
+    if (body.contact !== undefined) c.contact = (body.contact as string) || null;
+    c.link = "invited";
+    c.invitedAt = new Date().toISOString();
+    c.updatedAt = c.invitedAt;
     save(db);
     return delay(withStats(db, c) as T);
   }
@@ -309,7 +368,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const id = Number(cid);
     const c = db.clients.find((x) => x.id === id);
     if (!c) throw new Error("API 404");
-    if (method === "GET") return delay(withStats(db, c) as T);
+    if (method === "GET") { resolveClientLinks(db); return delay(withStats(db, c) as T); }
     if (method === "PATCH") {
       if (body.name !== undefined) c.name = String(body.name);
       if (body.contact !== undefined) c.contact = (body.contact as string) || null;

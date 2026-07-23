@@ -2,6 +2,9 @@ import { apiFetch } from "@/lib/api";
 
 export type ClientStatus = "therapy" | "new" | "paused";
 export type HwStatus = "assigned" | "doing" | "done";
+// Подключение клиента к своему профилю: none — карточку завёл психолог;
+// invited — приглашение отправлено; joined — клиент вошёл и подключился (синхронизировано).
+export type ClientLink = "none" | "invited" | "joined";
 
 export type Client = {
   id: number;
@@ -9,6 +12,8 @@ export type Client = {
   contact: string | null;
   note: string;
   status: ClientStatus;
+  link: ClientLink;
+  invitedAt: string | null;
   sessionsDone: number;
   hoursDone: number;
   nextAt: string | null;
@@ -53,6 +58,27 @@ export const getClient = (id: number) => apiFetch<Client>(`/clients/${id}`);
 
 export const createClient = (name: string, contact: string) =>
   apiFetch<Client>("/clients", { method: "POST", body: JSON.stringify({ name, contact }) });
+
+// Пригласить клиента подключить свой профиль (опционально обновив контакт).
+export const inviteClient = (id: number, contact?: string) =>
+  apiFetch<Client>(`/clients/${id}/invite`, { method: "POST", body: JSON.stringify(contact !== undefined ? { contact } : {}) });
+
+export const LINK_LABEL: Record<ClientLink, string> = {
+  none: "Не подключён",
+  invited: "Приглашение отправлено",
+  joined: "Профиль подключён",
+};
+
+// Контакт — телефон (цифры/скобки/дефисы), иначе ник Telegram.
+export function isPhone(contact: string): boolean {
+  return /^[+\d][\d\s()\-]{4,}$/.test(contact.trim());
+}
+export function formatContact(contact: string): string {
+  const c = contact.trim();
+  if (!c) return c;
+  if (isPhone(c)) return c;
+  return c.startsWith("@") ? c : `@${c}`;
+}
 
 export const updateClient = (
   id: number,
