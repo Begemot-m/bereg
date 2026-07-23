@@ -120,9 +120,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mx-auto w-full max-w-3xl px-4 pb-[104px] pt-[calc(env(safe-area-inset-top)+10px)] @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
         </div>
 
-        {/* Мобайл: нижние табы — парящие иконки без подложки-полоски */}
+        {/* Мобайл: нижние табы — плашка с обводкой; вокруг неё прозрачно (без заливки-полосы) */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] @md:hidden">
-          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between px-3">
+          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[30px] bg-white/90 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.12)", boxShadow: "0 12px 30px -16px rgba(32,28,24,.4)" }}>
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
               // Центральная вкладка — приподнятая акцентная кнопка.
