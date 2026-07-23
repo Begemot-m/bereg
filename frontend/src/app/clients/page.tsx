@@ -6,7 +6,8 @@ import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
-import { Badge, Button, Card, Input, SkeletonRow } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Button, Card, Input, SkeletonRow } from "@/components/ui";
 import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select } from "@/lib/haptics";
 
@@ -107,13 +108,13 @@ export default function ClientsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="truncate text-[15px] font-black">{c.name}</p>
-                          <StatusBadge status={s} />
+                          {/* Обводка плашки — в тон заливки, только темнее */}
+                          <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)`, color: `var(--${tone}-edge)` }}>{STATUS_LABEL[s]}</span>
                         </div>
-                        <p className="mt-0.5 text-[12px] font-semibold text-[var(--muted)]">
-                          {c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч не было"}
-                          {c.hoursDone > 0 ? ` · ${c.hoursDone} ч` : ""}
-                          {c.nextAt && ` · ближайшая ${nextF.format(new Date(c.nextAt))}`}
-                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-[var(--muted)]">
+                          <span>{c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч не было"}{c.hoursDone > 0 ? ` · ${c.hoursDone} ч` : ""}</span>
+                          {c.nextAt && <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" style={{ background: "var(--peach-soft)", border: "var(--bw) solid var(--peach-edge)", color: "var(--peach-edge)" }}><Icon name="calendar" width={11} weight="bold" /> {nextF.format(new Date(c.nextAt))}</span>}
+                        </div>
                       </div>
                       <span className="text-[var(--muted-2)] transition-transform duration-200 group-hover:translate-x-0.5">›</span>
                     </div>
@@ -135,8 +136,3 @@ function plural(n: number) {
   return "";
 }
 
-function StatusBadge({ status }: { status: ClientStatus }) {
-  if (status === "therapy") return <Badge tone="active">{STATUS_LABEL.therapy}</Badge>;
-  if (status === "new") return <Badge tone="planned">{STATUS_LABEL.new}</Badge>;
-  return <Badge>{STATUS_LABEL.paused}</Badge>;
-}

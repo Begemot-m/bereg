@@ -71,7 +71,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v9";
+const KEY = "psy_demo_db_v10";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -91,8 +91,8 @@ function seed(): DB {
   const now = new Date().toISOString();
   const clients: Client[] = [
     { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", createdAt: now, updatedAt: now },
-    { id: 2, name: "Дмитрий Орлов", contact: "+7 916 220-14-08", note: "", status: "new", createdAt: now, updatedAt: now },
-    { id: 3, name: "Алёна Ким", contact: "alena@mail.ru", note: "Выгорание, ресурс.", status: "therapy", createdAt: now, updatedAt: now },
+    { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", createdAt: now, updatedAt: now },
+    { id: 3, name: "Алёна Ким", contact: "@alena_kim", note: "Выгорание, ресурс.", status: "therapy", createdAt: now, updatedAt: now },
     { id: 4, name: "Пётр Ланской", contact: "@plansky", note: "Пауза до осени по его инициативе.", status: "paused", createdAt: now, updatedAt: now },
   ];
   const appts: Appointment[] = [

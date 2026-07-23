@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { AnimatePresence, motion } from "motion/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -9,10 +10,9 @@ import { SectionTitle } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { InviteButton } from "@/components/invite";
 import { MoodStats } from "@/components/mood-stats";
-import { WorkStats } from "@/components/work-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
-import { Button, Disclosure, Spinner, Textarea } from "@/components/ui";
+import { Button, Spinner, Textarea } from "@/components/ui";
 import {
   deleteClient,
   derivedStatus,
@@ -79,32 +79,40 @@ export function ClientDetail() {
       <header className="bg-[var(--page)] px-4 pb-14 pt-4 @md:px-9">
         <Link href="/clients" className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">← Клиенты</Link>
         <div className="flex items-center gap-3.5">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] text-xl font-extrabold stroke fill-purple">{client.name.charAt(0)}</div>
+          {/* Крупная рамка фото */}
+          <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] text-[26px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }}>{client.name.charAt(0)}</div>
           <div className="min-w-0 flex-1">
-            <h1 className="font-tight truncate text-[24px] font-black">{client.name}</h1>
-            <p className="text-[12px] font-semibold text-[var(--muted)]">{client.contact || "контакт не указан"}</p>
+            <h1 className="font-tight truncate text-[22px] font-black leading-tight">{client.name}</h1>
+            {client.contact
+              ? <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="spark" width={12} weight="fill" /> {client.contact.startsWith("@") ? client.contact : `@${client.contact}`}</span>
+              : <span className="mt-1 block text-[12px] font-semibold text-[var(--muted-2)]">Telegram не указан</span>}
           </div>
+          {/* Статус — правее имени и аватарки */}
+          <span className="shrink-0 self-start rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw) solid var(--${st}-edge)`, color: `var(--${st}-edge)` }}>{STATUS_LABEL[dstatus]}</span>
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <span className="rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw) solid var(--${st}-edge)` }}>{STATUS_LABEL[dstatus]}</span>
-          <span className="text-[11px] font-semibold text-[var(--muted-2)]">{statusReason(client)} · статус меняется сам</span>
-        </div>
-        {/* Кнопки — вверху */}
+        <p className="mt-2 text-[11px] font-semibold text-[var(--muted-2)]">{statusReason(client)} · статус меняется сам</p>
+
+        {/* Кнопки — в тонах приложения */}
         <div className="mt-4 flex gap-2">
-          <button onClick={() => { tap(); setBookOpen(!bookOpen); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-3 text-[13px] font-black text-white transition-transform active:scale-[0.98]"><Icon name="calendar" width={15} weight="bold" color="#fff" /> Записать</button>
-          <InviteButton variant="psy" label="Пригласить" className="flex-1 !py-3" />
+          <button onClick={() => { tap(); setBookOpen(!bookOpen); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-3 text-[13px] font-black transition-transform active:scale-[0.98]" style={{ background: bookOpen ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw-lg) solid var(--olive-edge)" }}><Icon name="calendar" width={15} weight="bold" /> Записать на окно</button>
+          <InviteButton variant="psy" label="Пригласить в терапию" className="flex-1 !py-3 !bg-[var(--purple)] !text-[var(--ink)] [border:var(--bw-lg)_solid_var(--purple-edge)]" />
         </div>
-        <Disclosure open={bookOpen}>
-          <div className="mt-2.5 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-            <p className="mb-2 text-[12px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно из вашего расписания</p>
-            <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
-          </div>
-        </Disclosure>
+        {/* Динамичный разворот выбора окна */}
+        <AnimatePresence initial={false}>
+          {bookOpen && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} className="overflow-hidden">
+              <motion.div initial={{ y: -8, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={{ delay: 0.05 }} className="mt-2.5 rounded-[18px] bg-white p-3" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>
+                <p className="mb-2 text-[12px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно из вашего расписания</p>
+                <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <main className="-mt-8 space-y-6 rounded-t-[30px] bg-[#fffdf7] px-4 pb-10 pt-6 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-        {/* Анимированная статистика работы с клиентом */}
-        <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(id), cancelled: a.status === "cancelled" }))} title="Динамика встреч" tone="green" />
+        {/* Динамика встреч — упрощённо: только число проведённых */}
+        <SessionsCounter done={client.sessionsDone} hours={client.hoursDone} />
 
         {/* Настроение и динамика — выше колеса */}
         {moods.length > 0 && (
@@ -128,31 +136,16 @@ export function ClientDetail() {
           </div>
         </div>
 
-        {/* История встреч — состоявшиеся фиксируются */}
+        {/* История встреч — факт. Запланированную по тапу переносим на другое окно */}
         <div>
           <SectionTitle action={<span className="text-[11px] font-black text-[var(--muted)]">проведено: {held}</span>}>История встреч</SectionTitle>
           {appts.length === 0 ? (
             <p className="text-[13px] text-[var(--muted-2)]">Встреч пока не было. Запишите клиента в свободное окно.</p>
           ) : (
             <div className="space-y-2">
-              {[...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt)).map((a) => {
-                const t = a.status === "done" ? "green" : a.status === "scheduled" ? "purple" : "salmon";
-                return (
-                  <div key={a.id} className="flex items-center gap-3 rounded-[15px] bg-white p-3" style={{ border: `var(--bw) solid var(--${t}-edge)` }}>
-                    <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${t})` }} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-black capitalize">{dtf.format(new Date(a.startsAt))}</p>
-                      <p className="text-[11px] font-semibold text-[var(--muted)]">{a.durationMin} мин · {a.status === "scheduled" ? "запланирована" : a.status === "done" ? "проведена" : "отменена"} · {a.format === "online" ? "онлайн" : "очно"}</p>
-                    </div>
-                    {a.status === "scheduled" && (
-                      <div className="flex gap-1">
-                        <button onClick={() => { success(); updateAppointment(a.id, { status: "done" }).then(inv); }} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)", color: "var(--green-edge)" }}>✓ провести</button>
-                        <button onClick={() => { tap(); updateAppointment(a.id, { status: "cancelled" }).then(inv); }} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "#fff", border: "var(--bw) solid var(--edge-neutral)", color: "var(--muted)" }}>✕</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {[...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt)).map((a) => (
+                <MeetingRow key={a.id} appt={a} onReschedule={(iso, format) => updateAppointment(a.id, { startsAt: iso, format }).then(() => { success(); inv(); })} />
+              ))}
             </div>
           )}
         </div>
@@ -165,6 +158,51 @@ export function ClientDetail() {
 
         <button onClick={() => { if (confirm("Удалить клиента?")) remove.mutate(); }} className="text-[12px] font-semibold text-[var(--muted-2)] hover:text-[#9f2f2d]">Удалить клиента</button>
       </main>
+    </div>
+  );
+}
+
+// Упрощённая динамика: крупное число проведённых сессий (в стиле рефов).
+function SessionsCounter({ done, hours }: { done: number; hours: number }) {
+  return (
+    <section className="flex items-center gap-4 rounded-[22px] bg-white p-4" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
+      <div className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[20px]" style={{ background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" }}>
+        <span className="font-tight tabular-nums text-[32px] font-black leading-none">{done}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Динамика встреч</p>
+        <p className="text-[17px] font-black leading-tight">{done > 0 ? `${done} проведённых сессий` : "Сессий ещё не было"}</p>
+        {hours > 0 && <p className="mt-0.5 text-[12px] font-semibold text-[var(--muted)]">{hours} ч вместе за всё время</p>}
+      </div>
+    </section>
+  );
+}
+
+// Встреча в истории: факт. Запланированную по тапу разворачиваем в перенос.
+function MeetingRow({ appt, onReschedule }: { appt: { id: number; startsAt: string; durationMin: number; status: string; format: "online" | "offline" }; onReschedule: (iso: string, format: "online" | "offline") => void }) {
+  const [open, setOpen] = useState(false);
+  const t = appt.status === "done" ? "green" : appt.status === "scheduled" ? "purple" : "salmon";
+  const planned = appt.status === "scheduled";
+  return (
+    <div className="overflow-hidden rounded-[15px] bg-white" style={{ border: `var(--bw) solid var(--${t}-edge)` }}>
+      <button onClick={() => planned && (tap(), setOpen(!open))} className="flex w-full items-center gap-3 p-3 text-left" disabled={!planned}>
+        <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${t})` }} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-black capitalize">{dtf.format(new Date(appt.startsAt))}</p>
+          <p className="text-[11px] font-semibold text-[var(--muted)]">{appt.durationMin} мин · {appt.status === "scheduled" ? "запланирована" : appt.status === "done" ? "проведена" : "отменена"} · {appt.format === "online" ? "онлайн" : "очно"}</p>
+        </div>
+        {planned && <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)", color: "var(--olive-edge)" }}>{open ? "Свернуть" : "Перенести"}</span>}
+      </button>
+      <AnimatePresence initial={false}>
+        {open && planned && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} className="overflow-hidden">
+            <div className="border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>
+              <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно для встречи</p>
+              <SlotPicker variant="calendar" showAvail onPick={(iso, format) => { setOpen(false); onReschedule(iso, format); }} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
