@@ -12,8 +12,9 @@ import { WorkStats } from "@/components/work-stats";
 import { motion } from "motion/react";
 
 import { Stagger, StaggerItem } from "@/components/motion";
+import { TodayCard, type TodayItem } from "@/components/today";
 import { listAppointments, type Appointment } from "@/lib/appointments";
-import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
+import { listClients, listHomework, listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
@@ -47,6 +48,7 @@ export default function Home() {
 function PsyHome() {
   const name = useName();
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: therapy } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
   const now = new Date();
   const todayKey = localDay(now);
@@ -57,6 +59,12 @@ function PsyHome() {
   );
   const next = upcoming[0];
 
+  const todayN = appts.filter((a) => a.status === "scheduled" && localDay(new Date(a.startsAt)) === todayKey).length;
+  const dropped = clients.filter((c) => !c.nextAt && c.sessionsDone > 0).length;
+  const psyToday: TodayItem[] = [];
+  if (todayN > 0) psyToday.push({ icon: "calendar", tone: "olive", title: `Сегодня ${todayN} ${plural(todayN, "сессия", "сессии", "сессий")}`, sub: "Посмотреть расписание", href: "/sessions" });
+  if (dropped > 0) psyToday.push({ icon: "users", tone: "coral", title: `${dropped} ${plural(dropped, "клиент", "клиента", "клиентов")} без записи`, sub: "Предложите удобное окно", href: "/clients" });
+
   return (
     <HomeFrame
       title={`${greeting()}${name ? `, ${name}` : ""}`}
@@ -64,6 +72,8 @@ function PsyHome() {
       subIcon="calendar"
       focus={<SessionFocus appointment={next} />}
     >
+      <TodayCard items={psyToday} />
+
       <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />
 
       <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" tone="olive" />
@@ -84,10 +94,17 @@ function PersonHome({ guest }: { guest: boolean }) {
   const name = useName();
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const { data: therapy } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
+  const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(1) });
   const now = new Date();
   const todayKey = localDay(now);
   const next = [...bookings].filter((b) => new Date(b.startsAt) > now).sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0];
   const todayEntry = therapy ? [...therapy.moods].reverse().find((entry) => localDay(new Date(entry.date)) === todayKey) : undefined;
+
+  const pending = homework.filter((h) => h.status !== "done").length;
+  const clientToday: TodayItem[] = [];
+  if (pending > 0) clientToday.push({ icon: "note", tone: "coral", title: `${pending} ${plural(pending, "задание", "задания", "заданий")} ждут`, sub: "От вашего терапевта", href: "/therapy" });
+  if (therapy && !therapy.wheel) clientToday.push({ icon: "balance", tone: "purple", title: "Собрать колесо баланса", sub: "5 минут на себя", href: "/therapy" });
+  if (clientToday.length === 0) clientToday.push({ icon: "therapy", tone: "peach", title: "Практика на сегодня", sub: "Короткая поддержка себе", href: "/tools" });
   // Терапевт берётся из выбранных в разделе «Терапия» (общий стор).
   const [therapist, setTherapist] = useState<string | null>(null);
   useEffect(() => {
@@ -109,6 +126,8 @@ function PersonHome({ guest }: { guest: boolean }) {
         {/* б) настроение дня */}
         <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />
       </div>}
+
+      {!guest && <TodayCard items={clientToday} />}
 
       {/* в) разделы — листающаяся вбок карусель */}
       <HomeRoutesCarousel items={guest ? [
