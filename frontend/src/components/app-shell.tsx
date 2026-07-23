@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!onboarded) return <Onboarding />;
 
   return (
-    <div data-accent={accent} className="@container" style={{ background: "var(--page)" }}>
+    <div data-accent={accent} className="@container fixed inset-0 overflow-hidden" style={{ background: "var(--page)" }}>
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>
@@ -129,9 +129,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      {/* Колонка приложения: фиксированная высота, скроллится только контент —
-          шапка и нижнее меню закреплены и не катаются (в т.ч. в Telegram). */}
-      <div className="flex h-[100dvh] flex-col @md:ml-[248px]">
+      {/* Колонка приложения: скроллится только контент; шапка и меню закреплены. */}
+      <div className="relative flex h-full flex-col @md:ml-[248px]">
         {/* Мобайл: верхняя панель — вне зоны прокрутки */}
         <header className="z-50 flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] @md:hidden" style={{ background: "var(--page)", transition: "background-color .5s ease" }}>
           <Wordmark small />
@@ -141,14 +140,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* Контент — единственная прокручиваемая область */}
+        {/* Контент — единственная прокручиваемая область (нижний отступ под меню) */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="mx-auto w-full max-w-3xl px-4 pb-8 pt-2 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
+          <div className="mx-auto w-full max-w-3xl px-4 pb-[104px] pt-2 @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
         </div>
 
-        {/* Мобайл: нижние табы — без сплошной полоски, парящие иконки, акцентная середина */}
-        <div className="z-40 shrink-0 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-1 @md:hidden">
-          <nav className="mx-auto flex max-w-md items-center justify-between rounded-[30px] bg-white/80 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.10)", boxShadow: "0 12px 30px -14px rgba(32,28,24,.4)" }}>
+        {/* Мобайл: нижние табы — парящая панель поверх контента, без заливки-полоски */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] @md:hidden">
+          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[30px] bg-white/85 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.10)", boxShadow: "0 12px 30px -14px rgba(32,28,24,.45)" }}>
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
               // Центральная вкладка — приподнятая акцентная кнопка.
@@ -160,11 +159,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               );
               return (
-                <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 flex-col items-center gap-0.5 py-1">
+                <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 items-center justify-center py-1.5">
                   <motion.span whileTap={{ scale: 0.85 }} className="flex h-9 w-9 items-center justify-center rounded-full transition-colors" style={active ? { background: "var(--head-soft)" } : undefined}>
                     <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
                   </motion.span>
-                  <span className="h-1 w-1 rounded-full" style={{ background: active ? "var(--edge)" : "transparent" }} />
                 </Link>
               );
             })}

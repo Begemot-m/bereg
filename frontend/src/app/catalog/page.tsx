@@ -123,7 +123,7 @@ export default function CatalogPage() {
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
-      <header className="bg-[var(--olive)] px-4 pb-14 pt-8 @md:px-9" style={{ borderBottom: "var(--bw-lg) solid var(--olive-edge)" }}>
+      <header className="px-4 pb-14 pt-8 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><h1 className="font-tight mt-1 text-[31px] font-black leading-none">Каталог</h1><p className="mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Не рейтинг лучших, а специалисты, которые подходят именно вам.</p></div>
           <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[#fffdf7] stroke-lg" aria-label="Настроить подборку"><Icon name="sort" width={23} weight="bold" /></button>

@@ -111,6 +111,10 @@
 html,
 body {
   background: var(--bg);
+  /* Скролл живёт внутри приложения — не даём вебвью (в т.ч. Telegram) тянуть страницу */
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {

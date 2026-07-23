@@ -73,9 +73,6 @@ export default function TherapyPage() {
 function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const therapist = therapists.active;
   const [tab, setTab] = useState<"общее" | "терапевт">("общее");
-  const [messageOpen, setMessageOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
   const [flowOpen, setFlowOpen] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
@@ -132,8 +129,8 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
 
         {tab === "общее" ? (
           <div className="mt-4 space-y-3">
-            <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
             <MoodModule today={todayEntry} moods={therapy.moods} onSave={onMood} />
+            <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
           </div>
         ) : !therapist ? (
           <div className="mt-4"><FindTherapistBlock /></div>
@@ -170,11 +167,6 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
             <section>
               <h2 className="mb-2 px-1 text-[13px] font-black uppercase tracking-[.06em]">Ваши записи</h2>
               <MyBookingsManager />
-            </section>
-
-            <section className="overflow-hidden rounded-[22px] bg-[#fffdf7]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-              <div className="p-3"><Button className="w-full" onClick={() => { tap(); setMessageOpen(!messageOpen); setSent(false); }}>Написать терапевту</Button></div>
-              <Disclosure open={messageOpen}><div className="border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>{sent ? <div className="rounded-[14px] bg-[var(--green-soft)] p-3 text-[12px] font-bold" style={{ border: "var(--bw) solid var(--green-edge)" }}>Сообщение сохранено для терапевта.</div> : <div className="space-y-2"><Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} placeholder="Коротко опишите, что хотите обсудить" /><div className="flex justify-end"><Button size="sm" disabled={!message.trim()} onClick={() => { success(); setSent(true); setMessage(""); }}>Отправить</Button></div></div>}</div></Disclosure>
             </section>
           </div>
         )}
@@ -239,6 +231,9 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
   const psy = PSYS.find((item) => item.name === name);
   const href = psy ? `/catalog?psy=${psy.id}` : "/catalog";
   const portrait = psy ? asset(psy.portrait) : null;
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
   return (
     <div className="relative mt-3 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
@@ -262,9 +257,26 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
           <p className="mt-1 text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p>
         </div>
       </Link>
-      <Link href={href} onClick={tap} className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white transition-transform active:scale-[0.98]">
-        <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться на сессию
-      </Link>
+      <div className="mt-2.5 flex gap-2">
+        <Link href={href} onClick={tap} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white transition-transform active:scale-[0.98]">
+          <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться
+        </Link>
+        <button onClick={() => { tap(); setMsgOpen((v) => !v); setSent(false); }} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]" style={{ border: "var(--bw) solid var(--purple-edge)" }} aria-expanded={msgOpen}>
+          <Icon name="note" width={14} weight="bold" /> Написать
+        </button>
+      </div>
+      <Disclosure open={msgOpen}>
+        <div className="mt-2.5 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+          {sent ? (
+            <div className="rounded-[12px] bg-[var(--green-soft)] p-2.5 text-[12px] font-bold" style={{ border: "var(--bw) solid var(--green-edge)" }}>Сообщение сохранено для терапевта.</div>
+          ) : (
+            <div className="space-y-2">
+              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} placeholder="Коротко опишите, что хотите обсудить" />
+              <div className="flex justify-end"><Button size="sm" disabled={!message.trim()} onClick={() => { success(); setSent(true); setMessage(""); }}>Отправить</Button></div>
+            </div>
+          )}
+        </div>
+      </Disclosure>
     </div>
   );
 }

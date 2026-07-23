@@ -19,6 +19,8 @@ import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { Disclosure } from "@/components/ui";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
+import { PSYS } from "@/lib/catalog";
+import { loadTherapists } from "@/lib/therapists";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 const dateTimeF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -86,7 +88,14 @@ function PersonHome({ guest }: { guest: boolean }) {
   const todayKey = localDay(now);
   const next = [...bookings].filter((b) => new Date(b.startsAt) > now).sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0];
   const todayEntry = therapy ? [...therapy.moods].reverse().find((entry) => localDay(new Date(entry.date)) === todayKey) : undefined;
-  const therapist = [...bookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)).at(-1)?.psyName ?? null;
+  // Терапевт берётся из выбранных в разделе «Терапия» (общий стор).
+  const [therapist, setTherapist] = useState<string | null>(null);
+  useEffect(() => {
+    const sync = () => { const s = loadTherapists(); setTherapist(s.active ?? s.list[0] ?? null); };
+    sync();
+    window.addEventListener("bereg:therapists", sync);
+    return () => window.removeEventListener("bereg:therapists", sync);
+  }, []);
 
   return (
     <HomeFrame
@@ -118,17 +127,17 @@ function PersonHome({ guest }: { guest: boolean }) {
   );
 }
 
-// а) Ближайшая сессия. Нет записи, но есть терапевт → записаться. Нет терапевта → подобрать.
+// а) Ближайшая сессия. Нет записи, но выбран терапевт → записаться. Не выбран → подобрать.
 function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: string | null }) {
   if (!booking) {
     if (!therapist) return <FindTherapistCard />;
+    const psy = PSYS.find((p) => p.name === therapist);
     return (
-      <Link href="/catalog" onClick={tap} className="flex items-center gap-3 rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
+      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="flex items-center gap-3 rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="calendar" width={22} weight="bold" /></span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайших сессий нет</span>
-          <span className="block truncate text-[15px] font-black">{therapist}</span>
-          <span className="block text-[11px] font-semibold text-[var(--muted)]">Выберите удобное окно для встречи</span>
+          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{therapist}</span>
+          <span className="block text-[14px] font-black leading-tight">Нет ближайших записей к специалисту</span>
         </span>
         <span className="shrink-0 rounded-full bg-white px-3.5 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}>Записаться</span>
       </Link>
@@ -151,29 +160,18 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   );
 }
 
-// Анимированный блок подбора терапевта: плавающие пузырьки-аватары и пульс кнопки.
+// Компактный блок подбора терапевта.
 function FindTherapistCard() {
-  const bubbles = [
-    { x: "12%", y: "18%", d: 0, tone: "green" },
-    { x: "74%", y: "14%", d: 0.6, tone: "purple" },
-    { x: "84%", y: "58%", d: 1.1, tone: "amber" },
-    { x: "20%", y: "64%", d: 1.6, tone: "coral" },
-  ];
   return (
-    <Link href="/catalog" onClick={tap} className="group relative block overflow-hidden rounded-[24px] px-5 py-7 text-center transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "2.5px dashed var(--olive-edge)" }}>
-      {bubbles.map((b, i) => (
-        <motion.span key={i} aria-hidden className="pointer-events-none absolute flex h-9 w-9 items-center justify-center rounded-full bg-white" style={{ left: b.x, top: b.y, border: `var(--bw) solid var(--${b.tone}-edge)` }}
-          animate={{ y: [0, -8, 0], opacity: [0.5, 0.9, 0.5] }} transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: "easeInOut", delay: b.d }}>
-          <span className="h-4 w-4 rounded-full" style={{ background: `var(--${b.tone})` }} />
-        </motion.span>
-      ))}
-      <motion.span className="relative z-[1] mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}
-        animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
-        <Icon name="compass" width={26} weight="bold" color="var(--olive-edge)" />
+    <Link href="/catalog" onClick={tap} className="flex items-center gap-3 rounded-[20px] p-3.5 transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "2px dashed var(--olive-edge)" }}>
+      <motion.span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+        <Icon name="compass" width={22} weight="bold" color="var(--olive-edge)" />
       </motion.span>
-      <span className="relative z-[1] mt-3 block text-[16px] font-black">Подобрать терапевта</span>
-      <span className="relative z-[1] mx-auto mt-1 block max-w-[250px] text-[11px] font-semibold text-[var(--muted)]">У вас пока нет специалиста. Короткий подбор — и увидите тех, кто подходит под запрос.</span>
-      <span className="relative z-[1] mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--olive)] px-4 py-2 text-[12px] font-black transition-transform group-active:scale-95" style={{ border: "var(--bw) solid var(--olive-edge)" }}>Начать подбор →</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-black leading-tight">Подобрать терапевта</span>
+        <span className="block text-[11px] font-semibold text-[var(--muted)]">У вас пока нет специалиста</span>
+      </span>
+      <span className="shrink-0 rounded-full bg-[var(--olive)] px-3 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--olive-edge)" }}>Перейти в каталог</span>
     </Link>
   );
 }
