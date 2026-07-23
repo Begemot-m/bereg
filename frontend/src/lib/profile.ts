@@ -57,6 +57,9 @@ export type PsyProfile = {
   tg: string;                  // ник в Telegram для связи (без @)
   specialistType: string;      // психолог / психотерапевт / психиатр / коуч …
   links: { kind: LinkKind; url: string }[]; // сайт и соцсети
+  style: string;               // стиль работы: мягкий / структурный / активный …
+  quote: string;               // короткая цитата от первого лица для карточки
+  avoids: string[];            // темы, с которыми не работает
   status: "review" | "approved";
 };
 
@@ -69,6 +72,7 @@ export const LINK_META: Record<LinkKind, { label: string; icon: import("@/compon
   youtube: { label: "YouTube", icon: "video" },
 };
 export const SPECIALIST_TYPES = ["Психолог", "Психотерапевт", "Психиатр", "Клинический психолог", "Коуч", "Гештальт-терапевт"];
+export const STYLE_OPTIONS = ["мягкий и поддерживающий", "структурный", "активный, с заданиями", "неспешный, глубинный", "тёплый и практичный", "бережный, пошаговый"];
 
 /** Ник Telegram из привязанной учётки (без @). */
 export function tgUsername(): string {
@@ -132,18 +136,18 @@ const EMPTY: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], style: "", quote: "", avoids: [], status: "review",
 };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
-export function savePsyProfile(patch: Partial<Omit<PsyProfile, "status">>) {
+export function savePsyProfile(patch: Partial<PsyProfile>) {
   const cur = getPsyProfile();
   const profile: PsyProfile = {
     ...EMPTY,
     ...cur,
     ...patch,
     location: { ...EMPTY.location, ...(cur?.location ?? {}), ...(patch.location ?? {}) },
-    status: cur?.status ?? "review",
+    status: patch.status ?? cur?.status ?? "review",
   };
   if (patch.primaryMethod !== undefined) profile.approach = patch.primaryMethod;
   else if (patch.approach !== undefined) profile.primaryMethod = patch.approach;

@@ -188,6 +188,10 @@ export function profileToCatalogPsy(profile: PsyProfile): Psy {
     about: profile.about.trim(),
     firstSession: profile.firstSession.trim() || undefined,
     education: profile.education.map((item) => item.trim()).filter(Boolean),
+    style: profile.style?.trim() || undefined,
+    quote: profile.quote?.trim() || undefined,
+    helps: profile.topics.filter(Boolean).slice(0, 3).join(", ") || undefined,
+    avoids: (profile.avoids ?? []).map((t) => t.trim()).filter(Boolean),
   };
 }
 

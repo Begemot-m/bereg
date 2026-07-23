@@ -100,24 +100,24 @@ export default function ClientsPage() {
             return (
               <StaggerItem key={c.id}>
                 <Link href={`/clients/${c.id}`} className="group block">
-                  <div className="rounded-[18px] bg-white p-3.5 transition-transform active:scale-[0.99]" style={{ border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] text-[16px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` }}>
-                        {c.name.charAt(0)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate text-[15px] font-black">{c.name}</p>
-                          {/* Обводка плашки — в тон заливки, только темнее */}
-                          <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)`, color: `var(--${tone}-edge)` }}>{STATUS_LABEL[s]}</span>
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-[var(--muted)]">
-                          <span>{c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч не было"}{c.hoursDone > 0 ? ` · ${c.hoursDone} ч` : ""}</span>
-                          {c.nextAt && <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" style={{ background: "var(--peach-soft)", border: "var(--bw) solid var(--peach-edge)", color: "var(--peach-edge)" }}><Icon name="calendar" width={11} weight="bold" /> {nextF.format(new Date(c.nextAt))}</span>}
-                        </div>
-                      </div>
-                      <span className="text-[var(--muted-2)] transition-transform duration-200 group-hover:translate-x-0.5">›</span>
+                  <div className="relative flex items-stretch gap-3 overflow-hidden rounded-[20px] bg-white p-3 transition-transform active:scale-[0.99]" style={{ border: `var(--bw-lg) solid var(--${tone}-edge)`, boxShadow: `0 12px 24px -20px var(--${tone}-edge)` }}>
+                    {/* Цветной акцент слева */}
+                    <span aria-hidden className="w-1.5 shrink-0 rounded-full" style={{ background: `var(--${tone})` }} />
+                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] text-[19px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
+                      {c.name.charAt(0)}
+                      {c.nextAt && <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--peach)]" style={{ border: "var(--bw) solid var(--peach-edge)" }}><Icon name="calendar" width={8} weight="bold" /></span>}
                     </div>
+                    <div className="flex min-w-0 flex-1 flex-col justify-center">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-[15.5px] font-black">{c.name}</p>
+                        <span className="shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)`, color: `var(--${tone}-edge)` }}>{STATUS_LABEL[s]}</span>
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10.5px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><Icon name="check" width={10} weight="bold" color={`var(--${tone}-edge)`} /> {c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "новый"}{c.hoursDone > 0 ? ` · ${c.hoursDone} ч` : ""}</span>
+                        {c.nextAt && <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-black" style={{ background: "var(--peach-soft)", border: "var(--bw) solid var(--peach-edge)", color: "var(--peach-edge)" }}><Icon name="calendar" width={10} weight="bold" /> {nextF.format(new Date(c.nextAt))}</span>}
+                      </div>
+                    </div>
+                    <span className="flex items-center text-[18px] font-black text-[var(--muted-2)] transition-transform duration-200 group-hover:translate-x-0.5">›</span>
                   </div>
                 </Link>
               </StaggerItem>

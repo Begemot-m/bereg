@@ -7,7 +7,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { Badge, Button, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, type LinkKind, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
 
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
@@ -16,7 +16,7 @@ const EMPTY_PROFILE: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], style: "", quote: "", avoids: [], status: "review",
 };
 
 type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "preview";
@@ -117,7 +117,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
   return <article className="space-y-4">
     <div className="chunk overflow-hidden bg-white">
       <div className="p-4" style={{ background: "var(--purple-soft)" }}>
-        <div className="flex items-center gap-3"><ProfilePhoto photo={photo} name={name} size="lg" /><div className="min-w-0"><div className="flex items-center gap-1.5"><h3 className="font-tight text-[22px] font-extrabold leading-tight">{name}</h3><Icon name="check" width={17} weight="fill" color="var(--green-edge)" /></div><p className="mt-1 text-[13px] font-bold text-[var(--muted)]">{[profile?.specialistType, profile?.primaryMethod, profile?.experienceYears ? `${profile.experienceYears} ${yearsLabel(profile.experienceYears)} практики` : ""].filter(Boolean).join(" · ") || "Психолог платформы"}</p></div></div>
+        <div className="flex items-center gap-3"><ProfilePhoto photo={photo} name={name} size="lg" /><div className="min-w-0"><div className="flex items-center gap-1.5"><h3 className="font-tight text-[22px] font-extrabold leading-tight">{name}</h3><Icon name="check" width={17} weight="fill" color="var(--green-edge)" /></div><p className="mt-1 text-[13px] font-bold text-[var(--muted)]">{[profile?.specialistType, profile?.primaryMethod, profile?.experienceYears ? `${profile.experienceYears} ${yearsLabel(profile.experienceYears)} практики` : ""].filter(Boolean).join(" · ") || "Психолог платформы"}</p>{profile?.style && <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black stroke"><Icon name="spark" width={11} weight="fill" /> стиль: {profile.style}</span>}</div></div>
         {(profile?.links?.filter((l) => l.url.trim()).length ?? 0) > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{profile!.links.filter((l) => l.url.trim()).map((link, i) => <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white stroke" title={LINK_META[link.kind].label}><Icon name={LINK_META[link.kind].icon} width={15} weight="bold" /></a>)}</div>}
       </div>
       <div className="grid grid-cols-3 gap-2 p-3">
@@ -130,6 +130,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
     {location && <section className="chunk p-4"><SectionTitle icon="pin" title="Формат и место" /><p className="text-[13px] font-bold">{location}</p>{profile?.format !== "online" && profile?.location.address && !profile.location.publicExactAddress && <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Точный адрес клиент получит после подтверждения очной встречи.</p>}</section>}
     {(profile?.languages?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Языки консультации</p><div className="flex flex-wrap gap-1.5">{profile!.languages.map((language) => <Tag key={language}>{language}</Tag>)}</div></section>}
     {(profile?.topics?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем можно обратиться</p><div className="flex flex-wrap gap-1.5">{profile!.topics.map((topic) => <Tag key={topic}>{topic}</Tag>)}</div></section>}
+    {(profile?.avoids?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем не работает</p><div className="flex flex-wrap gap-1.5">{profile!.avoids.map((topic) => <span key={topic} className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-[12px] font-bold text-[var(--muted)] stroke">{topic}</span>)}</div></section>}
     {methods.length > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Методы и подходы</p><div className="flex flex-wrap gap-1.5">{methods.map((method) => <Tag key={method}>{method === profile?.primaryMethod ? `★ ${method}` : method}</Tag>)}</div></section>}
     {profile?.about ? <section className="chunk p-4"><SectionTitle icon="spark" title="О специалисте" /><p className="text-[14px] leading-relaxed">{profile.about}</p></section> : <PreviewEmpty text="Добавьте рассказ о себе — он появится здесь." />}
     {profile?.firstSession && <section className="chunk p-4"><SectionTitle icon="compass" title="Как проходит первая встреча" /><p className="text-[14px] leading-relaxed">{profile.firstSession}</p></section>}
@@ -153,6 +154,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
     return firstGap < 0 ? STEPS.length - 1 : firstGap;
   });
   const [error, setError] = useState("");
+  const [published, setPublished] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -181,13 +183,16 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const save = () => {
     const firstInvalid = STEPS.slice(0, -1).findIndex((item) => validateStep(item.id, draft));
     if (firstInvalid >= 0) { setStep(firstInvalid); setError(validateStep(STEPS[firstInvalid].id, draft)); return; }
-    savePsyProfile({ ...draft, primaryMethod: draft.primaryMethod, approach: draft.primaryMethod, photo: draft.photos[0] ?? null });
+    // Публикация = отправка на проверку модератору.
+    savePsyProfile({ ...draft, primaryMethod: draft.primaryMethod, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: "review" });
     try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-    success(); onDone();
+    success(); setPublished(true);
   };
 
   const current = STEPS[step ?? 0];
   const index = step ?? 0;
+
+  if (published) return <PublishedScreen name={draft.name || displayName()} onDone={onDone} />;
 
   return <div>
     {/* Прогресс + шаги: можно вернуться на любой пройденный и дозаполнить позже */}
@@ -263,7 +268,7 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
     <Field label="Имя и фамилия"><Input value={draft.name} onChange={(event) => update({ name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
     <Field label="Кто вы"><div className="flex flex-wrap gap-2">{SPECIALIST_TYPES.map((type) => <Choice key={type} active={draft.specialistType === type} onClick={() => update({ specialistType: type })}>{type}</Choice>)}</div></Field>
     <Field label="Пол"><div className="grid grid-cols-3 gap-2"><Choice active={draft.gender === "woman"} onClick={() => update({ gender: "woman" })}>Женщина</Choice><Choice active={draft.gender === "man"} onClick={() => update({ gender: "man" })}>Мужчина</Choice><Choice active={draft.gender === "unspecified"} onClick={() => update({ gender: "unspecified" })}>Не указывать</Choice></div></Field>
-    <Field label="Языки консультации"><div className="flex flex-wrap gap-2">{LANGUAGES.map((language) => <Choice key={language} active={draft.languages.includes(language)} onClick={() => update({ languages: toggle(draft.languages, language) })}>{language}</Choice>)}</div></Field>
+    <Field label="Языки консультации"><div className="flex flex-wrap gap-2">{[...new Set([...LANGUAGES, ...draft.languages])].map((language) => <Choice key={language} active={draft.languages.includes(language)} onClick={() => update({ languages: toggle(draft.languages, language) })}>{language}</Choice>)}</div><div className="mt-2"><ChipInput placeholder="Другой язык" onAdd={(v) => { if (!draft.languages.includes(v)) update({ languages: [...draft.languages, v] }); }} /></div></Field>
     <Field label="Telegram для связи"><div className="flex items-center gap-2 rounded-[14px] bg-white px-3 stroke"><span className="font-black text-[var(--muted-2)]">@</span><input value={draft.tg} onChange={(event) => update({ tg: event.target.value.replace(/^@/, "") })} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none" /></div></Field>
     <Field label="Сайт и соцсети"><LinksEditor links={draft.links} onChange={(links) => update({ links })} /></Field>
   </StepCard>;
@@ -289,7 +294,37 @@ function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange
   );
 }
 
-function TopicsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="С чем к вам можно обратиться" hint="Выберите конкретные запросы. В карточке покажем два наиболее подходящих под выбор клиента."><div className="flex flex-wrap gap-2">{TOPICS.map((topic) => <Choice key={topic} active={draft.topics.includes(topic)} onClick={() => update({ topics: toggle(draft.topics, topic) })}>{topic}</Choice>)}</div><p className="text-[11px] font-semibold text-[var(--muted)]">Выбрано: {draft.topics.length}. Оптимально 3–7 запросов.</p></StepCard>; }
+// Экран после публикации: профиль ушёл на проверку модератору.
+function PublishedScreen({ name, onDone }: { name: string; onDone: () => void }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center py-6 text-center">
+      <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="flex h-20 w-20 items-center justify-center rounded-[26px] bg-[var(--amber)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+        <Icon name="clock" width={38} weight="bold" />
+      </motion.span>
+      <h3 className="font-tight mt-4 text-[22px] font-black leading-tight">Профиль на проверке</h3>
+      <p className="mt-2 max-w-[300px] text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{name ? `${name}, спасибо!` : "Спасибо!"} Мы проверяем анкету и документы вручную — обычно это занимает до 1–2 рабочих дней. Как только всё подтвердим, профиль появится в каталоге.</p>
+      <div className="mt-4 flex items-center gap-2 rounded-[14px] bg-[var(--amber-soft)] px-3.5 py-2.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="check" width={13} weight="bold" /> Пока идёт проверка — профиль виден только вам</div>
+      <Button className="mt-5 w-full" onClick={() => { tap(); onDone(); }}>Готово</Button>
+    </motion.div>
+  );
+}
+
+function TopicsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
+  const topicOptions = [...new Set([...TOPICS, ...draft.topics])];
+  const avoids = draft.avoids ?? [];
+  const addTopic = (value: string) => { if (!draft.topics.includes(value)) update({ topics: [...draft.topics, value] }); };
+  const addAvoid = (value: string) => { if (!avoids.includes(value)) update({ avoids: [...avoids, value] }); };
+  return <StepCard title="С чем к вам можно обратиться" hint="Выберите запросы или впишите свои. В карточке покажем два наиболее подходящих под выбор клиента.">
+    <div className="flex flex-wrap gap-2">{topicOptions.map((topic) => <Choice key={topic} active={draft.topics.includes(topic)} onClick={() => update({ topics: toggle(draft.topics, topic) })}>{topic}</Choice>)}</div>
+    <ChipInput placeholder="Свой запрос" onAdd={addTopic} />
+    <p className="text-[11px] font-semibold text-[var(--muted)]">Выбрано: {draft.topics.length}. Оптимально 3–7 запросов.</p>
+    <Field label="С чем не работаете (по желанию)">
+      <div className="flex flex-wrap gap-2">{avoids.map((a) => <Choice key={a} active tone="coral" onClick={() => update({ avoids: avoids.filter((x) => x !== a) })}>{a} ×</Choice>)}</div>
+      <div className="mt-2"><ChipInput placeholder="Например: зависимости" onAdd={addAvoid} /></div>
+      <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Появится в профиле блоком «с чем не работает» — помогает клиенту не ошибиться.</p>
+    </Field>
+  </StepCard>;
+}
 
 function MethodsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
   const [custom, setCustom] = useState("");
@@ -368,10 +403,30 @@ function ExperienceStep({ draft, update }: { draft: PsyProfile; update: (patch: 
   return <StepCard title="Опыт и квалификация" hint="Клиент сможет отфильтровать по опыту и отдельно изучить образование."><Field label="Лет практики"><Input type="number" min={0} max={70} value={draft.experienceYears} onChange={(event) => update({ experienceYears: event.target.value })} placeholder="5" /><div className="mt-2 flex gap-2">{EXPERIENCE_OPTIONS.slice(1).map((years) => <Choice key={years} active={Number(draft.experienceYears) === years} onClick={() => update({ experienceYears: String(years) })}>от {years} лет</Choice>)}</div></Field><Field label="Образование и значимые программы"><div className="space-y-2">{draft.education.map((item, index) => <div key={index} className="flex gap-2"><Input value={item} onChange={(event) => setEducation(index, event.target.value)} placeholder="Учебное заведение, программа, год" /><button onClick={() => update({ education: draft.education.filter((_, itemIndex) => itemIndex !== index) })} className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-[12px] bg-white stroke" aria-label="Удалить">×</button></div>)}<button onClick={() => update({ education: [...draft.education, ""] })} className="flex w-full items-center justify-center gap-1.5 rounded-[12px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить образование</button></div></Field></StepCard>;
 }
 
-function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Помогите почувствовать, каково с вами" hint="Без обещаний результата: спокойно расскажите о стиле работы и первой встрече."><Field label="О себе и подходе"><Textarea value={draft.about} onChange={(event) => update({ about: event.target.value })} placeholder="Как вы строите работу, что для вас важно в контакте…" rows={5} /><Counter value={draft.about} recommended="400–900 знаков" /></Field><Field label="Как проходит первая встреча"><Textarea value={draft.firstSession} onChange={(event) => update({ firstSession: event.target.value })} placeholder="Что обсудите, как определите запрос и следующий шаг…" rows={5} /><Counter value={draft.firstSession} recommended="250–600 знаков" /></Field></StepCard>; }
+function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
+  const styleOptions = [...new Set([...STYLE_OPTIONS, ...(draft.style ? [draft.style] : [])])];
+  return <StepCard title="Помогите почувствовать, каково с вами" hint="Без обещаний результата: спокойно расскажите о стиле работы и первой встрече.">
+    <Field label="Стиль работы"><div className="flex flex-wrap gap-2">{styleOptions.map((s) => <Choice key={s} active={draft.style === s} onClick={() => update({ style: draft.style === s ? "" : s })}>{s}</Choice>)}</div><div className="mt-2"><ChipInput placeholder="Свой вариант стиля" onAdd={(v) => update({ style: v })} /></div><p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Покажем в шапке профиля: «стиль: …».</p></Field>
+    <Field label="Короткая цитата для карточки"><Input value={draft.quote} onChange={(event) => update({ quote: event.target.value })} placeholder="Напр.: Тревога — не приговор. Разберём её по шагам." /><Counter value={draft.quote} recommended="до 80 знаков" /></Field>
+    <Field label="О себе и подходе"><Textarea value={draft.about} onChange={(event) => update({ about: event.target.value })} placeholder="Как вы строите работу, что для вас важно в контакте…" rows={5} /><Counter value={draft.about} recommended="400–900 знаков" /></Field>
+    <Field label="Как проходит первая встреча"><Textarea value={draft.firstSession} onChange={(event) => update({ firstSession: event.target.value })} placeholder="Что обсудите, как определите запрос и следующий шаг…" rows={5} /><Counter value={draft.firstSession} recommended="250–600 знаков" /></Field>
+  </StepCard>;
+}
 
 function StepCard({ title, hint, children }: { title: string; hint: string; children: ReactNode }) { return <section className="chunk space-y-4 bg-[var(--surface-2)] p-4"><div><h4 className="font-tight text-[18px] font-black">{title}</h4><p className="mt-1 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{hint}</p></div>{children}</section>; }
-function Choice({ active, onClick, children, tone = "olive" }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string }) { return <button onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black transition-transform active:scale-95" style={active ? { background: `var(--${tone})`, color: "var(--ink)", border: `var(--bw) solid var(--${tone}-edge)` } : { background: "white", border: "var(--bw) solid var(--edge-neutral)" }}>{children}</button>; }
+function Choice({ active, onClick, children, tone = "olive" }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string }) { return <motion.button layout initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} whileTap={{ scale: 0.9 }} onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black" style={active ? { background: `var(--${tone})`, color: "var(--ink)", border: `var(--bw) solid var(--${tone}-edge)` } : { background: "white", border: "var(--bw) solid var(--edge-neutral)" }}>{children}</motion.button>; }
+
+// Компактный ввод своего варианта — добавляет строку в список по Enter/кнопке.
+function ChipInput({ placeholder, onAdd }: { placeholder: string; onAdd: (value: string) => void }) {
+  const [value, setValue] = useState("");
+  const commit = () => { const v = value.trim(); if (!v) return; onAdd(v); setValue(""); tap(); };
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex flex-1 items-center gap-2 rounded-[14px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }} placeholder={placeholder} className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
+      <button onClick={commit} disabled={!value.trim()} className="shrink-0 rounded-[13px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
+    </div>
+  );
+}
 function Counter({ value, recommended }: { value: string; recommended: string }) { return <p className="mt-1 text-right text-[10px] font-semibold text-[var(--muted-2)]">{value.length} · рекомендуем {recommended}</p>; }
 
 function BasicProfileForm({ onDone }: { onDone: () => void }) {

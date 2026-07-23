@@ -278,14 +278,18 @@ function HomeRoutesCarousel({ items }: { items: { title: string; detail: string;
   return (
     <section>
       <SectionTitle>Разделы</SectionTitle>
-      <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 @md:mx-0 @md:px-0">
+      <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 @md:mx-0 @md:px-0">
         {items.map((item) => {
           const t = ROUTE_TONE[item.href] ?? "amber";
           return (
-            <Link key={item.href} href={item.href} onClick={tap} className="w-[150px] shrink-0 snap-start rounded-[18px] p-3.5 transition-transform active:scale-[0.98]" style={{ background: `var(--${t})`, border: `var(--bw-lg) solid var(--${t}-edge)` }}>
-              <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-white" style={{ border: `var(--bw) solid var(--${t}-edge)` }}><Icon name={item.icon} width={19} weight="bold" /></span>
-              <span className="mt-4 block text-[14px] font-black leading-tight">{item.title}</span>
-              <span className="mt-0.5 block text-[11px] font-semibold text-[var(--muted)]">{item.detail}</span>
+            <Link key={item.href} href={item.href} onClick={tap} className="group relative w-[164px] shrink-0 snap-start overflow-hidden rounded-[22px] p-4 transition-transform duration-200 active:scale-[0.97]" style={{ background: `var(--${t})`, border: `var(--bw-lg) solid var(--${t}-edge)`, boxShadow: `0 14px 26px -18px var(--${t}-edge)` }}>
+              {/* Декоративный круг в углу */}
+              <span aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-40" style={{ background: "#fff" }} />
+              <span aria-hidden className="pointer-events-none absolute -bottom-8 -left-4 h-16 w-16 rounded-full opacity-25" style={{ background: `var(--${t}-edge)` }} />
+              <span className="relative flex h-12 w-12 items-center justify-center rounded-[16px] bg-white" style={{ border: `var(--bw-lg) solid var(--${t}-edge)`, boxShadow: `0 6px 12px -6px var(--${t}-edge)` }}><Icon name={item.icon} width={23} weight="bold" /></span>
+              <span className="relative mt-6 block text-[15.5px] font-black leading-tight">{item.title}</span>
+              <span className="relative mt-1 block min-h-[28px] text-[11px] font-semibold leading-snug text-[var(--muted)]">{item.detail}</span>
+              <span className="relative mt-2 flex h-7 w-7 items-center justify-center rounded-full bg-white text-[13px] font-black transition-transform duration-200 group-active:translate-x-0.5" style={{ border: `var(--bw) solid var(--${t}-edge)` }}>→</span>
             </Link>
           );
         })}

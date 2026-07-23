@@ -24,7 +24,46 @@ const BFrame = ({ children }: { children: ReactNode }) => (
 );
 const NewTag = () => <span className="rounded-full bg-[var(--coral)] px-1.5 py-0.5 text-[8px] font-black uppercase" style={{ border: "1px solid var(--coral-edge)" }}>ново</span>;
 
+// Что входит в бесплатную версию, а что — в PRO.
+const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[] = [
+  { label: "Запись и график", free: true, pro: true },
+  { label: "Карточки клиентов", free: "до 3", pro: "без лимита" },
+  { label: "Статистика и динамика клиента", free: false, pro: true },
+  { label: "Сводка недели к сессии", free: false, pro: true },
+  { label: "Домашки, техники, шаблоны", free: false, pro: true },
+  { label: "Размещение в каталоге", free: false, pro: "+500 ₽" },
+];
+
+function CompareCell({ value }: { value: boolean | string }) {
+  if (value === true) return <Icon name="check" width={14} weight="bold" color="var(--green-edge)" />;
+  if (value === false) return <span className="text-[13px] font-black text-[var(--muted-2)]">—</span>;
+  return <span className="text-[10px] font-black leading-none">{value}</span>;
+}
+
+// Компактная таблица сравнения «Бесплатно / PRO».
+function FreeVsPro({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`overflow-hidden rounded-[16px] bg-white ${compact ? "" : "stroke-lg"}`} style={compact ? { border: "var(--bw) solid var(--purple-edge)" } : undefined}>
+      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 px-3 py-2" style={{ background: "var(--surface-2)", borderBottom: "var(--bw) solid var(--edge-neutral)" }}>
+        <span className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Возможность</span>
+        <span className="w-14 text-center text-[10px] font-black uppercase text-[var(--muted)]">Free</span>
+        <span className="flex w-14 items-center justify-center gap-0.5 text-center text-[10px] font-black uppercase text-[var(--ink)]"><Icon name="spark" width={10} weight="fill" />PRO</span>
+      </div>
+      {COMPARE.map((row, i) => (
+        <div key={row.label} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 px-3 py-2" style={i > 0 ? { borderTop: "1.5px solid var(--edge-neutral)" } : undefined}>
+          <span className="text-[11.5px] font-bold leading-tight">{row.label}</span>
+          <span className="flex w-14 justify-center"><CompareCell value={row.free} /></span>
+          <span className="flex w-14 justify-center rounded-[8px] py-1" style={{ background: "var(--purple-soft)" }}><CompareCell value={row.pro} /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export const PRO_BENEFITS: HelpPage[] = [
+  { title: "Что бесплатно, а что в PRO", text: "Запись, график и первые карточки клиентов — бесплатно навсегда. PRO добавляет то, что экономит время на каждой сессии: статистику, сводку недели и шаблоны.", illo: (
+    <div className="rounded-[16px] p-1" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}><FreeVsPro compact /></div>
+  ) },
   { title: "Вся практика в одном месте", text: "Расписание, клиенты, записи и домашние задания рядом. Меньше рутины — больше времени на работу с людьми.", illo: (
     <BFrame>{["10:00 · Марина · онлайн", "15:00 · свободное окно", "19:00 · Алёна · очно"].map((t, i) => (
       <div key={t} className="flex items-center gap-2 rounded-[10px] bg-white px-2.5 py-1.5 text-[10px] font-bold" style={{ border: `var(--bw) solid ${["var(--purple-edge)", "var(--edge-neutral)", "var(--green-edge)"][i]}` }}>{t}</div>
@@ -135,6 +174,7 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
           <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Вдох+ активен — все инструменты открыты.</p>
         ) : (
           <>
+            {variant === "psy" && !activeTools && <div className="space-y-1.5"><p className="px-1 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Что входит</p><FreeVsPro /></div>}
             {activeTools && !sub.promo && <p className="text-[12px] font-bold text-[var(--muted)]">Добавьте размещение в каталоге:</p>}
             {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} />)}
             <p className="pt-1 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата через ЮKassa · отмена в любой момент{variant === "psy" ? " · годовая оплата — 2 месяца в подарок" : ""}</p>

@@ -135,9 +135,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
               return (
                 <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 items-center justify-center py-1.5">
-                  <motion.span whileTap={{ scale: 0.85 }} className="flex h-9 w-9 items-center justify-center rounded-full transition-colors" style={active ? { background: "var(--head-soft)" } : undefined}>
-                    <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
-                  </motion.span>
+                  <span className="relative flex h-9 w-9 items-center justify-center">
+                    {active && <motion.span layoutId="navActive" className="absolute inset-0 rounded-full" style={{ background: "var(--head-soft)" }} transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+                    <motion.span whileTap={{ scale: 0.82 }} className="relative z-[1] flex items-center justify-center">
+                      <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
+                    </motion.span>
+                  </span>
                 </Link>
               );
             })}
