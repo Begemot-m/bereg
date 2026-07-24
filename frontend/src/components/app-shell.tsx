@@ -2,8 +2,8 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { Onboarding } from "@/components/onboarding";
@@ -57,9 +57,11 @@ function Wordmark({ small }: { small?: boolean }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const [role] = useRole();
+  const [role, setRole] = useRole();
   const pathname = usePathname();
+  const router = useRouter();
   const [onboarded] = useOnboarded();
+  const [fastEntry, setFastEntry] = useState<boolean | null>(null);
   const items = NAV[role];
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
@@ -68,8 +70,31 @@ export function AppShell({ children }: { children: ReactNode }) {
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;
   const centerTone = role === "psychologist" ? "olive" : "purple";
 
-  if (onboarded === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
-  if (!onboarded) return <Onboarding />;
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const psy = params.get("psy") || params.get("book");
+    const invite = params.get("invite");
+    const ref = params.get("ref");
+    const direct = Boolean(psy || invite || ref);
+    if (direct) {
+      setRole("client");
+      setFastEntry(true);
+      if (psy && pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}`);
+      if (invite) sessionStorage.setItem("bereg_pending_invite", invite);
+      if (ref) sessionStorage.setItem("bereg_pending_ref", ref);
+    } else {
+      setFastEntry(false);
+    }
+    const finish = () => {
+      setFastEntry(false);
+      window.history.replaceState({}, "", window.location.pathname);
+    };
+    window.addEventListener("bereg-fast-entry-complete", finish);
+    return () => window.removeEventListener("bereg-fast-entry-complete", finish);
+  }, [pathname, router, setRole]);
+
+  if (onboarded === null || fastEntry === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
+  if (!onboarded && !fastEntry) return <Onboarding />;
 
   return (
     <div data-accent={accent} className="@container fixed inset-0 overflow-hidden" style={{ background: "var(--page)" }}>
