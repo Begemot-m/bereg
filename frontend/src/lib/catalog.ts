@@ -225,14 +225,13 @@ export function reasonsFor(psy: Psy, prefs: CatalogPrefs): string[] {
   const reasons: string[] = [];
   const topic = prefs.topics.find((value) => psy.topics.includes(value));
   if (topic) reasons.push(`работает с запросом «${topic}»`);
+  if (reasons.length < 3) reasons.push(`основной подход — ${psy.method}`);
   if (prefs.budget != null && psy.price <= prefs.budget) reasons.push("подходит по бюджету");
-  if (prefs.format !== "any" && formatFits(psy, prefs.format)) reasons.push(`подходит формат «${prefs.format === "online" ? "онлайн" : prefs.format === "offline" ? "очно" : "онлайн и очно"}»`);
   if (prefs.language !== "any" && psy.languages.includes(prefs.language)) reasons.push(`консультирует на ${prefs.language}`);
   if (prefs.city && prefs.format !== "online" && psy.city.toLowerCase() === prefs.city.toLowerCase()) reasons.push(`принимает в городе ${psy.city}`);
-  if (psy.nextDays <= 2) reasons.push(psy.nextDays === 1 ? "есть окно завтра" : "есть окно послезавтра");
-  else if (psy.nextDays <= 7) reasons.push("есть окно на этой неделе");
-  if (psy.newcomer && reasons.length < 2) reasons.push("новый специалист");
-  return reasons.slice(0, 2);
+  if (prefs.minYears > 0 && psy.years >= prefs.minYears) reasons.push(`${psy.years} лет практики`);
+  if (prefs.gender !== "any" && psy.gender === prefs.gender) reasons.push("соответствует выбору специалиста");
+  return reasons.slice(0, 3);
 }
 
 export function personalSelection(prefs: CatalogPrefs, catalog: Psy[] = PUBLIC_PSYS): Psy[] {
