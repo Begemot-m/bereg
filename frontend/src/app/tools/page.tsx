@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -9,6 +10,14 @@ import { Reveal } from "@/components/motion";
 import { TechniqueRunner, type TechKey } from "@/components/techniques";
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
+import { getSubscription, startSubscription } from "@/lib/subscription";
+
+// Что открывает Клубок+ (по подписке).
+const PREMIUM: { title: string; desc: string; icon: IconName }[] = [
+  { title: "Детальное колесо баланса", desc: "Радар по 10 сферам и история", icon: "balance" },
+  { title: "Дневник эмоций", desc: "Отмечать состояния по дням", icon: "heart" },
+  { title: "Медитации и практики", desc: "Короткие аудио на каждый день", icon: "therapy" },
+];
 
 // Инструменты клиента: часть бесплатна, часть — по подписке «Клубок+». Интерактивные — с tech.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
@@ -27,6 +36,9 @@ function ClientTools() {
   const [tech, setTech] = useState<TechKey | null>(null);
   const [history, setHistory] = useState<PracticeHistory>([]);
   const [drafts, setDrafts] = useState<TechKey[]>([]);
+  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  const buy = useMutation({ mutationFn: () => startSubscription("client"), onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; } });
+  const pro = !!sub?.clientPro;
 
   useEffect(() => {
     try { setHistory(JSON.parse(localStorage.getItem("bereg-practice-history-v1") || "[]")); } catch { setHistory([]); }
@@ -57,7 +69,7 @@ function ClientTools() {
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[.07em]" style={{ border: "var(--bw) solid var(--peach-edge)" }}>Что поможет сейчас</span>
-                  <span className="text-[11px] font-bold text-[var(--muted)]">Клубок+</span>
+                  <span className="rounded-full bg-[var(--green-soft)] px-2 py-0.5 text-[10px] font-black" style={{ border: "var(--bw) solid var(--green-edge)", color: "var(--green-edge)" }}>бесплатно</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">{recommendation.title}</h2>
                 <p className="mt-1 max-w-[230px] text-[12px] font-semibold leading-snug text-[var(--muted)]">{drafts.includes(recommendation.tech) ? "Черновик сохранён — можно спокойно продолжить с того же шага." : history.length ? "Предлагаем сменить фокус после прошлой практики." : "Начните с мягкого способа вернуть спокойный ритм."}</p>
@@ -71,8 +83,8 @@ function ClientTools() {
           </section>
 
           <div className="mb-2 mt-6 flex items-end justify-between">
-            <div><p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Две практики</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted-2)]">Выбирайте по состоянию, не ради серии</p></div>
-            <span className="rounded-full bg-[var(--purple-soft)] px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>доступ открыт</span>
+            <div><p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted-2)]">Выбирайте по состоянию, не ради серии</p></div>
+            <span className="flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--green-edge)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {CLIENT_PRACTICES.map((t, i) => {
@@ -100,11 +112,36 @@ function ClientTools() {
             <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Это не оценка и не диагноз — только ваша сохранённая динамика до и после.</p>
           </section>}
 
-          <p className="mb-2 mt-6 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Ещё для себя</p>
+          <div className="mb-2 mt-6 flex items-end justify-between">
+            <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Ещё для себя</p>
+            <span className="flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--green-edge)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
+          </div>
           <div className="grid grid-cols-2 gap-2.5">
             <Link href="/therapy" onClick={() => tap()} className="rounded-[18px] bg-white p-3" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="mood" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
             <Link href="/therapy" onClick={() => tap()} className="rounded-[18px] bg-white p-3" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="balance" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
           </div>
+
+          {/* Клубок+ — что открывает подписка */}
+          <section className="mt-6 overflow-hidden rounded-[21px]" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-2.5 py-1 text-[10px] font-black text-white"><Icon name="therapy" width={12} weight="fill" /> КЛУБОК+</span>
+                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)", color: pro ? "var(--green-edge)" : undefined }}>{pro ? "подключено" : "390 ₽/мес"}</span>
+              </div>
+              <p className="mt-2.5 font-tight text-[16px] font-black">{pro ? "Всё открыто — спасибо!" : "Больше инструментов для себя"}</p>
+              <div className="mt-2.5 space-y-1.5">
+                {PREMIUM.map((p) => (
+                  <div key={p.title} className="flex items-center gap-2.5 rounded-[13px] bg-[#fffdf7] p-2.5" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--purple-soft)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name={p.icon} width={16} weight="bold" /></span>
+                    <span className="min-w-0 flex-1"><span className="block text-[12.5px] font-black leading-tight">{p.title}</span><span className="block text-[10px] font-semibold text-[var(--muted)]">{p.desc}</span></span>
+                    <Icon name={pro ? "check" : "lock"} width={15} weight="bold" color={pro ? "var(--green-edge)" : "var(--muted-2)"} />
+                  </div>
+                ))}
+              </div>
+              {!pro && <button onClick={() => { tap(); buy.mutate(); }} disabled={buy.isPending} className="mt-3 w-full rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-50">{buy.isPending ? "Готовим оплату…" : "Открыть Клубок+ · 390 ₽/мес"}</button>}
+            </div>
+          </section>
+
           <p className="mt-4 text-center text-[10px] font-semibold leading-relaxed text-[var(--muted-2)]">Инструменты не заменяют медицинскую помощь. Результаты остаются на этом устройстве и не отправляются терапевту автоматически.</p>
         </div>
       </Reveal>

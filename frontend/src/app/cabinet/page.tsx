@@ -14,7 +14,7 @@ import { SubscriptionBlock } from "@/components/subscription-block";
 import { WorkHoursEditor } from "@/components/work-hours";
 import { Card } from "@/components/ui";
 import { useCancelLockDays } from "@/lib/cancel-policy";
-import { exportLocalData, resetLocalData } from "@/lib/demo";
+import { resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
@@ -27,7 +27,7 @@ export default function CabinetPage() {
 
   return (
     <div>
-      <PageHead title="Личный кабинет" icon="user">
+      <PageHead title="Личный кабинет">
         <ProfileEditor
           key={role}
           embedded
@@ -47,7 +47,7 @@ export default function CabinetPage() {
               <Foldable icon="clock" title="Настроить график" subtitle="Дни, свободные окна и длительность встреч">
                 <WorkHoursEditor onSaved={() => {}} />
               </Foldable>
-              <Foldable icon="spark" title="Подписка Клубок PRO" subtitle="Тарифы, триал и продвижение">
+              <Foldable icon="spark" title="Подписка Клубок PRO" subtitle="990 ₽/мес · кабинет, статистика, каталог" tone="purple">
                 <SubscriptionBlock variant="psy" />
               </Foldable>
               <Foldable icon="bell" title="Напоминания о сессиях" subtitle="Единые правила и Telegram-бот">
@@ -56,7 +56,7 @@ export default function CabinetPage() {
               <CancelLockRow />
             </>
           ) : (
-            <Foldable icon="therapy" title="Подписка Клубок+" subtitle="Инструменты для себя между сессиями" defaultOpen>
+            <Foldable icon="therapy" title="Подписка Клубок+" subtitle="390 ₽/мес · настроение, колесо, практики" tone="purple">
               <SubscriptionBlock variant="client" />
             </Foldable>
           )}
@@ -66,7 +66,6 @@ export default function CabinetPage() {
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
           <Card className="space-y-1">
-            <ActionRow icon="chart" title="Экспортировать мои данные" sub="Скачать всё, что хранит приложение, в JSON" onClick={downloadData} />
             <ActionRow icon="compass" title="Пройти знакомство заново" sub="Показать онбординг ещё раз" onClick={() => resetOnboarding()} />
             <ActionRow icon="gear" title="Очистить данные на устройстве" sub="Сбросить демо к исходному состоянию" danger onClick={() => { if (confirm("Очистить локальные данные и вернуть демо к началу?")) { resetLocalData(); location.reload(); } }} />
           </Card>
@@ -119,25 +118,13 @@ function RoleSwitch({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => voi
   );
 }
 
-// Скачать локальные данные приложения одним JSON-файлом.
-function downloadData() {
-  tap();
-  const blob = new Blob([exportLocalData()], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "klubok-data.json";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 // Сворачиваемая секция-карточка: компактная шапка, раскрывается вниз.
-function Foldable({ icon, title, subtitle, children, defaultOpen = false }: { icon: IconName; title: string; subtitle: string; children: ReactNode; defaultOpen?: boolean }) {
+function Foldable({ icon, title, subtitle, children, defaultOpen = false, tone }: { icon: IconName; title: string; subtitle: string; children: ReactNode; defaultOpen?: boolean; tone?: string }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="chunk overflow-hidden">
+    <div className="chunk overflow-hidden" style={tone ? { borderColor: `var(--${tone}-edge)` } : undefined}>
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left" aria-expanded={open}>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl stroke" style={{ background: "var(--head-soft)" }}><Icon name={icon} width={18} /></span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={tone ? { background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` } : { background: "var(--head-soft)", border: "var(--bw) solid var(--stroke)" }}><Icon name={icon} width={18} color={tone ? `var(--${tone}-edge)` : undefined} /></span>
         <span className="flex-1">
           <span className="block text-[14px] font-bold">{title}</span>
           <span className="block text-[12px] text-[var(--muted)]">{subtitle}</span>
