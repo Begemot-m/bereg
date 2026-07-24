@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -8,20 +9,33 @@ import { tap } from "@/lib/haptics";
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
-export function PageHead({ title, sub, subIcon, right, children }: { title: string; sub?: string; subIcon?: IconName; right?: ReactNode; children?: ReactNode }) {
+export function PageHead({ title, sub, subIcon, icon, right, children }: { title: string; sub?: string; subIcon?: IconName; icon?: IconName; right?: ReactNode; children?: ReactNode }) {
   return (
     <div
       className="mb-5 -mx-4 px-5 pb-3 pt-1 @md:mx-0 @md:px-1 @md:pt-4"
       style={{ background: "var(--page)" }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-tight text-[24px] font-extrabold leading-tight @md:text-3xl">{title}</h1>
-          {sub && (
-            subIcon
-              ? <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[12px] font-black capitalize" style={{ border: "var(--bw) solid var(--edge)", color: "var(--edge)" }}><Icon name={subIcon} width={13} weight="bold" /> {sub}</span>
-              : <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          {icon && (
+            <motion.span
+              initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 420, damping: 20 }}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white"
+              style={{ border: "var(--bw-lg) solid var(--edge)" }}
+            >
+              <Icon name={icon} width={22} weight="bold" color="var(--edge)" />
+            </motion.span>
           )}
+          <div className="min-w-0">
+            <h1 className="font-tight text-[24px] font-extrabold leading-tight @md:text-3xl">{title}</h1>
+            {sub && (
+              subIcon
+                ? <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[12px] font-black capitalize" style={{ border: "var(--bw) solid var(--edge)", color: "var(--edge)" }}><Icon name={subIcon} width={13} weight="bold" /> {sub}</span>
+                : <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>
+            )}
+          </div>
         </div>
         {right}
       </div>

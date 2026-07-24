@@ -60,7 +60,7 @@ export default function ClientsPage() {
 
   return (
     <div>
-      <PageHead title="Клиенты" sub={`${clients.length} всего`} />
+      <PageHead title="Клиенты" sub={`${clients.length} всего`} icon="users" />
 
       <Reveal delay={0.04}>
         <div className="mb-3 flex items-center gap-2">

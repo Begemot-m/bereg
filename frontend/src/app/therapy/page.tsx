@@ -76,7 +76,6 @@ export default function TherapyPage() {
 
 function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const therapist = therapists.active;
-  const [tab, setTab] = useState<"общее" | "терапевт">("общее");
   const [flowOpen, setFlowOpen] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
@@ -130,52 +129,47 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
 
       <main className="relative -mt-9 rounded-t-[30px] bg-[#fffaf0] px-4 pb-8 pt-5 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <SessionCheckin bookings={bookings} />
-        <Segmented tab={tab} onChange={setTab} />
-
-        {tab === "общее" ? (
-          <div className="mt-4 space-y-3">
-            <WeekReview moods={therapy.moods} homework={homework} />
-            <MoodModule today={todayEntry} moods={therapy.moods} onSave={onMood} />
-            <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
-          </div>
-        ) : !therapist ? (
-          <div className="mt-4"><FindTherapistBlock /></div>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {/* Прогресс с терапевтом — крупная цифра встреч */}
-            <section className="rounded-[22px] bg-[var(--green-soft)] p-4" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
-              <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Прогресс с терапевтом</p>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="flex h-[74px] w-[74px] shrink-0 flex-col items-center justify-center rounded-[20px] bg-white" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
-                  <span className="font-tight tnum text-[30px] font-black leading-none">{completedSessions}</span>
-                  <span className="mt-1 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{plural(completedSessions, "встреча", "встречи", "встреч")}</span>
+        <div className="space-y-3">
+          {therapist && (
+            <>
+              {/* Работа с терапевтом: прогресс + задания + записи */}
+              <section className="rounded-[22px] bg-[var(--green-soft)] p-4" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
+                <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Работа с терапевтом</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex h-[74px] w-[74px] shrink-0 flex-col items-center justify-center rounded-[20px] bg-white" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
+                    <span className="font-tight tnum text-[30px] font-black leading-none">{completedSessions}</span>
+                    <span className="mt-1 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{plural(completedSessions, "встреча", "встречи", "встреч")}</span>
+                  </div>
+                  <div className="grid flex-1 grid-cols-2 gap-2">
+                    <Metric value={`${taskProgress}%`} label="заданий" edge="var(--coral-edge)" bg="var(--coral-soft)" />
+                    <Metric value={next ? "1" : "0"} label="впереди" edge="var(--amber-edge)" bg="var(--amber-soft)" />
+                  </div>
                 </div>
-                <div className="grid flex-1 grid-cols-2 gap-2">
-                  <Metric value={`${taskProgress}%`} label="заданий" edge="var(--coral-edge)" bg="var(--coral-soft)" />
-                  <Metric value={next ? "1" : "0"} label="впереди" edge="var(--amber-edge)" bg="var(--amber-soft)" />
+                <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">{next ? `Ближайшая: ${dateTime.format(new Date(next.startsAt))}` : "Новая встреча пока не назначена"}</p>
+              </section>
+
+              <section>
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <h2 className="text-[13px] font-black uppercase tracking-[.06em]">Домашние задания</h2>
+                  <span className="text-[11px] font-black text-[var(--muted)]">{done}/{homework.length}</span>
                 </div>
-              </div>
-              <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">{next ? `Ближайшая: ${dateTime.format(new Date(next.startsAt))}` : "Новая встреча пока не назначена"}</p>
-            </section>
+                <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+                  <ClientHomework items={homework} onChanged={invHomework} />
+                </div>
+              </section>
 
-            {/* Домашние задания — тот же блок, что видит психолог */}
-            <section>
-              <div className="mb-2 flex items-center justify-between px-1">
-                <h2 className="text-[13px] font-black uppercase tracking-[.06em]">Домашние задания</h2>
-                <span className="text-[11px] font-black text-[var(--muted)]">{done}/{homework.length}</span>
-              </div>
-              <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-                <ClientHomework items={homework} onChanged={invHomework} />
-              </div>
-            </section>
+              <section>
+                <h2 className="mb-2 px-1 text-[13px] font-black uppercase tracking-[.06em]">Ваши записи</h2>
+                <MyBookingsManager />
+              </section>
+            </>
+          )}
 
-            {/* Управление записью: перенести, отменить, записаться */}
-            <section>
-              <h2 className="mb-2 px-1 text-[13px] font-black uppercase tracking-[.06em]">Ваши записи</h2>
-              <MyBookingsManager />
-            </section>
-          </div>
-        )}
+          {/* Самочувствие: неделя, настроение, колесо */}
+          <WeekReview moods={therapy.moods} homework={homework} />
+          <MoodModule today={todayEntry} moods={therapy.moods} onSave={onMood} />
+          <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
+        </div>
       </main>
       {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} locked={!sub?.clientPro} onUnlock={() => buySub.mutate()} />}
     </div>
@@ -199,17 +193,6 @@ function MoodModule({ today, moods, onSave }: { today?: Mood; moods: Mood[]; onS
         </div>
       </Disclosure>
       <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={onSave} />
-    </div>
-  );
-}
-
-function Segmented({ tab, onChange }: { tab: "общее" | "терапевт"; onChange: (t: "общее" | "терапевт") => void }) {
-  const items: { key: "общее" | "терапевт"; label: string }[] = [{ key: "общее", label: "Общее" }, { key: "терапевт", label: "С терапевтом" }];
-  return (
-    <div className="flex gap-1 rounded-full bg-white p-1" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-      {items.map((it) => (
-        <button key={it.key} onClick={() => { tap(); onChange(it.key); }} className="flex-1 rounded-full py-2 text-[13px] font-black transition-colors" style={tab === it.key ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{it.label}</button>
-      ))}
     </div>
   );
 }
@@ -247,7 +230,7 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
   return (
     <div className="relative mt-3 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
-      {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}?`)) onRemove(); }} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black text-[var(--muted-2)] hover:text-[var(--ink)]" aria-label="Открепить терапевта">×</button>}
+      {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}?`)) onRemove(); }} className="absolute right-2 top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)", color: "var(--salmon-edge)" }} aria-label="Открепить терапевта">×</button>}
       {/* Тап по карточке — на страницу терапевта */}
       <Link href={href} onClick={tap} className="flex gap-3">
         {portrait ? (
@@ -258,13 +241,18 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
           <div className="flex h-[104px] w-[88px] shrink-0 items-center justify-center rounded-[16px] bg-[var(--green)] text-[24px] font-black" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>{name.charAt(0)}</div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт · открыть профиль ›</p>
+          <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p>
           <div className="flex items-center gap-1.5">
             <p className="truncate text-[16px] font-black">{name}</p>
             {psy?.verified && <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green)] text-[9px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }} title="Профиль подтверждён">✓</span>}
           </div>
-          {psy && <p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">{psy.method} · {psy.minutes} мин · {psy.price.toLocaleString("ru-RU")} ₽</p>}
-          <p className="mt-1 text-[11px] font-bold text-[var(--muted)]">{next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}</p>
+          {psy && <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full bg-[var(--purple-soft)] px-2 py-0.5 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{psy.method}</span>
+            <span className="text-[11.5px] font-black">{psy.minutes} мин · {psy.price.toLocaleString("ru-RU")} ₽</span>
+          </div>}
+          <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black" style={{ color: next ? "var(--olive-edge)" : "var(--muted-2)" }}>
+            <Icon name="calendar" width={12} weight="bold" color={next ? "var(--olive-edge)" : "var(--muted-2)"} /> {next ? `${dateTime.format(new Date(next.startsAt))} · ${next.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}
+          </p>
         </div>
       </Link>
       <div className="mt-2.5 flex gap-2">

@@ -70,6 +70,7 @@ function PsyHome() {
       title={`${greeting()}${name ? `, ${name}` : ""}`}
       subtitle={cap(dateF.format(now))}
       subIcon="calendar"
+      icon="home"
       focus={<SessionFocus appointment={next} />}
     >
       <TodayCard items={psyToday} />
@@ -119,13 +120,10 @@ function PersonHome({ guest }: { guest: boolean }) {
       title={`${greeting()}${name && !guest ? `, ${name}` : ""}`}
       subtitle={guest ? "Начните с подходящего специалиста" : cap(dateF.format(now))}
       subIcon={guest ? undefined : "calendar"}
+      icon="home"
+      focus={guest ? undefined : <NextSession booking={next} therapist={therapist} />}
     >
-      {guest ? <GuestStart /> : <div className="space-y-5">
-        {/* а) ближайшая сессия или блок «сессий нет» */}
-        <NextSession booking={next} therapist={therapist} />
-        {/* б) настроение дня */}
-        <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />
-      </div>}
+      {guest ? <GuestStart /> : <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />}
 
       {!guest && <TodayCard items={clientToday} />}
 
@@ -195,10 +193,10 @@ function FindTherapistCard() {
   );
 }
 
-function HomeFrame({ title, subtitle, subIcon, focus, children }: { title: string; subtitle: string; subIcon?: IconName; focus?: React.ReactNode; children: React.ReactNode }) {
+function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title: string; subtitle: string; subIcon?: IconName; icon?: IconName; focus?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <PageHead title={title} sub={subtitle} subIcon={subIcon}>{focus}</PageHead>
+      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus}</PageHead>
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-7 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <Stagger className="space-y-6">
           {Array.isArray(children)

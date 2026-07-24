@@ -27,7 +27,7 @@ export default function CabinetPage() {
 
   return (
     <div>
-      <PageHead title="Личный кабинет">
+      <PageHead title="Личный кабинет" icon="user">
         <ProfileEditor
           key={role}
           embedded
