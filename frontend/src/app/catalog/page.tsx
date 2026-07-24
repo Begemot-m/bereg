@@ -300,29 +300,37 @@ function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) 
 }
 
 function PracticeStats({ psy }: { psy: Psy }) {
-  const stats = [
-    { value: psy.sessions, suffix: "", label: "сессий проведено", icon: "calendar" as IconName },
-    { value: psy.clients, suffix: "", label: "клиентов", icon: "users" as IconName },
-    { value: psy.years, suffix: "", label: "лет практики", icon: "therapy" as IconName },
-    { value: psy.rating, suffix: "", label: `${psy.reviews} отзывов`, icon: "star" as IconName, decimals: 1 },
-    { value: psy.responseHrs, suffix: " ч", label: "обычно отвечает", icon: "clock" as IconName },
+  const item = { hidden: { opacity: 0, y: 10, scale: 0.94 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 420, damping: 24 } } };
+  const mini: { value: number; label: string; icon: IconName; tone: string; decimals?: number }[] = [
+    { value: psy.sessions, label: "сессий", icon: "calendar", tone: "olive" },
+    { value: psy.clients, label: "клиентов", icon: "users", tone: "purple" },
+    { value: psy.rating, label: `${psy.reviews} отзывов`, icon: "star", tone: "amber", decimals: 1 },
+    { value: psy.responseHrs, label: "ч на ответ", icon: "clock", tone: "coral" },
   ];
   return (
-    <motion.section initial="hidden" whileInView="show" viewport={{ once: true, amount: .25 }} variants={{ hidden: {}, show: { transition: { staggerChildren: .07 } } }} className="overflow-hidden rounded-[22px] bg-[var(--ink)] text-white stroke-lg">
-      <div className="grid grid-cols-2 border-b border-white/20">
-        <div className="p-4"><p className="text-[9px] font-black uppercase tracking-[.09em] text-white/60">Встреча</p><p className="font-tight mt-1 text-[24px] font-black">{psy.price.toLocaleString("ru-RU")} ₽</p></div>
-        <div className="border-l border-white/20 p-4"><p className="text-[9px] font-black uppercase tracking-[.09em] text-white/60">Длительность</p><p className="font-tight mt-1 text-[24px] font-black">{psy.minutes} мин</p></div>
-      </div>
-      <div className="grid grid-cols-2">
-        {stats.map((stat, index) => (
-          <motion.div key={stat.label} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 420, damping: 24 } } }} className={`p-3.5 ${index % 2 ? "border-l border-white/15" : ""} ${index < 4 ? "border-b border-white/15" : ""} ${index === 4 ? "col-span-2 flex items-center gap-3" : ""}`}>
-            <Icon name={stat.icon} width={16} weight="fill" color="var(--olive)" />
-            <p className="font-tight tnum mt-1 text-[20px] font-black leading-none"><CountUp value={stat.value} decimals={stat.decimals} />{stat.suffix}</p>
-            <p className={`mt-1 text-[9px] font-bold uppercase tracking-[.04em] text-white/55 ${index === 4 ? "ml-auto" : ""}`}>{stat.label}</p>
+    <Section title="Работа на площадке">
+      <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: .25 }} variants={{ hidden: {}, show: { transition: { staggerChildren: .06 } } }} className="space-y-2.5">
+        <div className="grid grid-cols-2 gap-2.5">
+          <motion.div variants={item} className="rounded-[18px] bg-[var(--olive-soft)] p-3.5 stroke-lg" style={{ borderColor: "var(--olive-edge)" }}>
+            <p className="text-[9px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Встреча</p>
+            <p className="font-tight tnum mt-1 text-[24px] font-black leading-none"><CountUp value={psy.price} /> ₽</p>
           </motion.div>
-        ))}
-      </div>
-    </motion.section>
+          <motion.div variants={item} className="rounded-[18px] bg-[var(--purple-soft)] p-3.5 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}>
+            <p className="text-[9px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Длительность</p>
+            <p className="font-tight tnum mt-1 text-[24px] font-black leading-none">{psy.minutes} мин</p>
+          </motion.div>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {mini.map((s) => (
+            <motion.div key={s.label} variants={item} className="rounded-[15px] bg-white p-2 text-center" style={{ border: `var(--bw) solid var(--${s.tone}-edge)` }}>
+              <Icon name={s.icon} width={15} weight="fill" color={`var(--${s.tone}-edge)`} className="mx-auto" />
+              <p className="font-tight tnum mt-1 text-[15px] font-black leading-none"><CountUp value={s.value} decimals={s.decimals} /></p>
+              <p className="mt-0.5 text-[8px] font-black uppercase leading-tight tracking-[.02em] text-[var(--muted)]">{s.label}</p>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+    </Section>
   );
 }
 
@@ -367,12 +375,13 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
     <Section title="Формат и место">
       <div className="overflow-hidden rounded-[20px] bg-white stroke-lg">
         <button onClick={() => { tap(); setOpen((value) => !value); }} className="block w-full text-left" aria-expanded={open}>
-          <div className="relative h-[116px] overflow-hidden" style={{ background: "color-mix(in srgb, var(--sky) 55%, white)" }}>
-            <span className="absolute -left-8 top-8 h-4 w-[130%] -rotate-6 bg-white/80 stroke" />
-            <span className="absolute left-[42%] -top-8 h-[180%] w-4 rotate-[18deg] bg-white/80 stroke" />
-            <span className="absolute -bottom-2 left-5 h-3 w-[90%] rotate-[9deg] bg-white/70 stroke" />
-            <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }} className="absolute left-[58%] top-[35%] flex h-12 w-12 items-center justify-center rounded-full bg-[var(--coral)] stroke-lg" style={{ boxShadow: "0 8px 16px -8px rgba(32,28,24,.55)" }}><Icon name="route" width={24} weight="fill" /></motion.span>
-            <span className="absolute bottom-2 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-[.06em] stroke">Нажмите для маршрута</span>
+          <div className="relative h-[120px] overflow-hidden" style={{ background: "color-mix(in srgb, var(--olive-soft) 65%, white)", backgroundImage: "repeating-linear-gradient(0deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px)" }}>
+            {/* дороги */}
+            <span className="absolute left-0 top-[62%] h-3 w-full -rotate-3 bg-white stroke" />
+            <span className="absolute left-[32%] top-0 h-full w-3 rotate-[7deg] bg-white stroke" />
+            {/* пин-капля */}
+            <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }} className="absolute left-1/2 top-[34%] flex h-11 w-11 -translate-x-1/2 rotate-45 items-center justify-center rounded-full rounded-bl-none bg-[var(--coral)] stroke-lg" style={{ boxShadow: "0 10px 18px -8px rgba(32,28,24,.5)" }}><Icon name="pin" width={19} weight="fill" className="-rotate-45" /></motion.span>
+            <span className="absolute bottom-2 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[9px] font-black uppercase tracking-[.06em] stroke"><Icon name="route" width={11} weight="bold" /> Маршрут</span>
           </div>
           <div className="flex items-start gap-3 p-4">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[var(--head-soft)] stroke"><Icon name="pin" width={17} weight="bold" /></span>
