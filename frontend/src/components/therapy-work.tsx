@@ -5,11 +5,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/icons";
-import { HW_LABEL, updateHomework, type Homework, type HwStatus } from "@/lib/clients";
+import { updateHomework, type Homework, type HwStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const HW_FLOW: HwStatus[] = ["assigned", "doing", "done"];
 
 function plural(n: number, one: string, few: string, many: string): string {
   const a = n % 10, b = n % 100;
@@ -99,34 +98,34 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
     },
   });
   const isNew = hw.status === "assigned";
+  const isDone = hw.status === "done";
 
   return (
-    <motion.div layout className="rounded-[16px] bg-white p-3">
+    <motion.div
+      layout
+      className="rounded-[16px] p-3.5"
+      style={isDone
+        ? { background: "#fff", opacity: 0.7 }
+        : { background: "#fff", boxShadow: `inset 0 0 0 2px ${isNew ? "var(--amber)" : "var(--purple)"}` }}
+    >
       <div className="flex items-start gap-2.5">
-        {isNew
-          ? <span className="mt-0.5 shrink-0"><Alert /></span>
-          : <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full" style={{ background: hw.status === "done" ? "var(--green)" : "var(--purple-soft)" }}>
-              {hw.status === "done" && <Icon name="check" width={11} weight="bold" color="var(--green-edge)" />}
-            </span>}
-        <p className={`t-body flex-1 ${hw.status === "done" ? "opacity-55 line-through" : ""}`}>{hw.text}</p>
+        {isNew && <span className="mt-0.5 shrink-0"><Alert /></span>}
+        {isDone && (
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--green)" }}>
+            <Icon name="check" width={11} weight="bold" color="var(--green-edge)" />
+          </span>
+        )}
+        <p className={`t-body flex-1 ${isDone ? "line-through" : ""}`}>{hw.text}</p>
       </div>
-      <div className="mt-2.5 flex gap-1.5">
-        {HW_FLOW.map((status) => {
-          const on = hw.status === status;
-          return (
-            <button
-              key={status}
-              onClick={() => { select(); save.mutate(status); }}
-              className="flex-1 rounded-full py-1.5 text-[10.5px] font-black transition-colors"
-              style={on
-                ? { background: "var(--ink)", color: "#fff" }
-                : { background: "var(--surface-2)", color: "var(--muted)" }}
-            >
-              {HW_LABEL[status]}
-            </button>
-          );
-        })}
-      </div>
+      <button
+        onClick={() => { select(); save.mutate(isDone ? "assigned" : "done"); }}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-black transition-transform active:scale-[0.98]"
+        style={isDone
+          ? { background: "var(--surface-2)", color: "var(--muted)" }
+          : { background: "var(--green)", color: "var(--green-edge)" }}
+      >
+        {isDone ? "Вернуть в работу" : <><Icon name="check" width={15} weight="bold" color="var(--green-edge)" /> Выполнено</>}
+      </button>
       <AnimatePresence>
         {celebrate && (
           <motion.p

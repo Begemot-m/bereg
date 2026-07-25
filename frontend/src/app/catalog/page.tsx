@@ -1,7 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+
+import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -238,25 +240,36 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
         <Portrait psy={psy} size={98} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
-          <p className="mt-1.5 text-[11px] font-black text-[var(--muted)]">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
-          {psy.style && <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black" style={{ border: `1.5px solid ${tone.edge}` }}><Icon name="spark" width={11} weight="fill" /> стиль: {psy.style}</span>}
+          <p className="mt-1 text-[11px] font-black text-[var(--muted)]">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-black">
+              <Icon name="star" width={12} weight="fill" color="var(--amber-edge)" />
+              <span className="tnum">{psy.rating.toFixed(1)}</span>
+              <span className="font-bold text-[var(--muted)]">· {psy.reviews}</span>
+            </span>
+            {psy.style && <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black" style={{ color: tone.edge }}><Icon name="spark" width={11} weight="fill" color={tone.edge} /> {psy.style}</span>}
+          </div>
         </div>
+      </div>
+
+      {/* Действия — сразу под именем, а не через полэкрана */}
+      <div className="mt-3.5 flex gap-2">
+        <AttachTherapistButton name={psy.name} />
+        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-[15px] bg-white px-4 text-[12px] font-black transition-transform active:scale-[0.98]" style={{ color: tone.edge }}>
+          <Icon name="telegram" width={17} weight="fill" color={tone.edge} /> Написать
+        </a>
       </div>
     </div>
 
     <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
-      <div className="flex gap-2">
-        <AttachTherapistButton name={psy.name} />
-        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white stroke-lg" aria-label={`Написать ${psy.name} в Telegram`}><Icon name="telegram" width={21} weight="fill" /></a>
-      </div>
+      {/* Постер встречи и запись — первое, что нужно решить */}
+      <PricePoster psy={psy} />
+      <BookingMini psyName={psy.name} tone={tone} onDone={onBack} />
 
       {/* Почему предложен именно этому пользователю */}
       {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="panel-tint bg-[var(--green-soft)] p-3.5"><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="flex items-start gap-2 text-[12.5px] font-bold"><Icon name="check" width={14} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
 
-      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5 panel p-4">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-[var(--olive-soft)] px-2.5 py-1 text-[11px] font-black" style={{ color: "var(--olive-edge)" }}>{topic}</span>)}</div></Section>
-
-      <PracticeStats psy={psy} />
-      <button onClick={toBooking} className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform active:scale-[0.99]"><Icon name="calendar" width={16} weight="bold" color="#fff" /> Посмотреть свободные окна</button>
+      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: tone.soft, color: tone.edge }}>{topic}</span>)}</div></Section>
 
       {/* Как проходит первая встреча */}
       <Section title="Как проходит первая встреча"><div className="panel-tint bg-[var(--purple-soft)] p-4"><p className="text-[13px] font-semibold leading-relaxed">{firstSession}</p></div></Section>
@@ -307,38 +320,75 @@ function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) 
   return <>{shown.toLocaleString("ru-RU", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</>;
 }
 
-function PracticeStats({ psy }: { psy: Psy }) {
-  const item = { hidden: { opacity: 0, y: 10, scale: 0.94 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 420, damping: 24 } } };
-  const mini: { value: number; label: string; icon: IconName; tone: string; decimals?: number }[] = [
-    { value: psy.sessions, label: "сессий", icon: "calendar", tone: "olive" },
-    { value: psy.clients, label: "клиентов", icon: "users", tone: "purple" },
-    { value: psy.rating, label: `${psy.reviews} отзывов`, icon: "star", tone: "amber", decimals: 1 },
-    { value: psy.responseHrs, label: "ч на ответ", icon: "clock", tone: "coral" },
-  ];
+// Постер встречи: цена и длительность крупно, в тоне специалиста.
+function PricePoster({ psy }: { psy: Psy }) {
+  const tone = T[psy.tone];
   return (
-    <Section title="Работа на площадке">
-      <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: .25 }} variants={{ hidden: {}, show: { transition: { staggerChildren: .06 } } }} className="space-y-2.5">
-        <div className="grid grid-cols-2 gap-2.5">
-          <motion.div variants={item} className="rounded-[18px] bg-[var(--olive-soft)] p-3.5 stroke-lg" style={{ borderColor: "var(--olive-edge)" }}>
-            <p className="text-[9px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Встреча</p>
-            <p className="font-tight tnum mt-1 text-[24px] font-black leading-none"><CountUp value={psy.price} /> ₽</p>
-          </motion.div>
-          <motion.div variants={item} className="rounded-[18px] bg-[var(--purple-soft)] p-3.5 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}>
-            <p className="text-[9px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Длительность</p>
-            <p className="font-tight tnum mt-1 text-[24px] font-black leading-none">{psy.minutes} мин</p>
-          </motion.div>
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="relative overflow-hidden rounded-[22px] p-5"
+      style={{ background: tone.bg }}
+    >
+      <span aria-hidden className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ background: "#fff", opacity: 0.28 }} />
+      <p className="t-micro relative">Встреча</p>
+      <div className="relative mt-1 flex items-end gap-2">
+        <p className="font-tight tnum text-[38px] font-black leading-none"><CountUp value={psy.price} /> ₽</p>
+        <p className="t-sub mb-1">за {psy.minutes} мин</p>
+      </div>
+      <div className="relative mt-3.5 flex flex-wrap gap-1.5">
+        <Fact icon="users" text={`${psy.clients} клиентов`} />
+        <Fact icon="calendar" text={`${psy.sessions} сессий`} />
+        <Fact icon="spark" text={`${psy.years} ${yearsWord(psy.years)} практики`} />
+      </div>
+    </motion.div>
+  );
+}
+
+function Fact({ icon, text }: { icon: IconName; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-black">
+      <Icon name={icon} width={12} weight="bold" color="var(--muted)" /> {text}
+    </span>
+  );
+}
+
+// Миниатюра записи: свёрнутая показывает ближайший свободный день,
+// раскрытая — выбор дня и времени.
+function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: string; soft: string; edge: string }; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const { data: avail } = useQuery({ queryKey: ["month-avail", true], queryFn: () => getMonthAvailability(true) });
+  const nearest = useMemo(() => {
+    if (!avail) return null;
+    const today = ymdLocal(new Date());
+    return Object.keys(avail).filter((day) => day >= today && avail[day] === "free").sort()[0] ?? null;
+  }, [avail]);
+  const label = nearest
+    ? new Date(nearest + "T00:00:00").toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })
+    : null;
+
+  return (
+    <div className="overflow-hidden rounded-[22px]" style={{ background: tone.soft }}>
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left" aria-expanded={open}>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white">
+          <Icon name="calendar" width={21} weight="bold" color={tone.edge} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="t-head block">Записаться</span>
+          <span className="t-sub block">{label ? `Ближайшее окно — ${label}` : "Посмотреть свободные окна"}</span>
+        </span>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="t-title shrink-0 text-[var(--muted-2)]">›</motion.span>
+      </button>
+      <Disclosure open={open} autoScroll={false}>
+        <div className="px-4 pb-4">
+          <div className="rounded-[16px] bg-white p-3">
+            <BookFlow psyName={psyName} onDone={onDone} />
+          </div>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          {mini.map((s) => (
-            <motion.div key={s.label} variants={item} className="rounded-[15px] bg-white p-2 text-center" style={{ border: `var(--bw) solid var(--${s.tone}-edge)` }}>
-              <Icon name={s.icon} width={15} weight="fill" color={`var(--${s.tone}-edge)`} className="mx-auto" />
-              <p className="font-tight tnum mt-1 text-[15px] font-black leading-none"><CountUp value={s.value} decimals={s.decimals} /></p>
-              <p className="mt-0.5 text-[8px] font-black uppercase leading-tight tracking-[.02em] text-[var(--muted)]">{s.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-    </Section>
+      </Disclosure>
+    </div>
   );
 }
 
@@ -347,23 +397,52 @@ function MethodList({ psy }: { psy: Psy }) {
   const [open, setOpen] = useState<string | null>(psy.method);
   return (
     <Section title="Методы">
-      <div className="space-y-2">
+      <motion.div
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.2 }}
+        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
+        className="grid grid-cols-2 items-start gap-2"
+      >
         {psy.methods.map((method) => {
           const expanded = open === method;
+          const main = method === psy.method;
           return (
-            <div key={method} className="overflow-hidden rounded-[17px] bg-white stroke">
-              <button onClick={() => { tap(); setOpen(expanded ? null : method); }} className="flex w-full items-center gap-2 p-3 text-left" aria-expanded={expanded}>
-                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] stroke" style={{ background: tone.soft, borderColor: tone.edge }}><Icon name="therapy" width={15} weight="bold" /></span>
-                <p className="min-w-0 flex-1 text-[13px] font-black">{method}{method === psy.method ? " · основной" : ""}</p>
-                <motion.span animate={{ rotate: expanded ? 45 : 0 }} className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-2)] stroke"><Icon name="plus" width={13} weight="bold" /></motion.span>
-              </button>
-              <Disclosure open={expanded} zoom autoScroll={false}>
-                <p className="px-3 pb-3 text-[11px] font-semibold leading-relaxed text-[var(--muted)]">{METHOD_DESCRIPTIONS[method] ?? "Метод подбирается под запрос и задачи клиента."}</p>
-              </Disclosure>
-            </div>
+            <motion.button
+              key={method}
+              layout
+              variants={{ hidden: { opacity: 0, y: 10, scale: 0.96 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 420, damping: 26 } } }}
+              onClick={() => { tap(); setOpen(expanded ? null : method); }}
+              aria-expanded={expanded}
+              className={`rounded-[18px] p-3.5 text-left ${expanded ? "col-span-2" : ""}`}
+              style={{ background: main ? tone.soft : "var(--surface-2)" }}
+            >
+              <motion.span layout="position" className="flex items-center gap-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-white">
+                  <Icon name="therapy" width={15} weight="bold" color={tone.edge} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="t-head block truncate">{method}</span>
+                  {main && <span className="t-cap block">основной</span>}
+                </span>
+              </motion.span>
+              <AnimatePresence initial={false}>
+                {expanded && (
+                  <motion.span
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                    className="block overflow-hidden"
+                  >
+                    <span className="t-sub mt-2.5 block">{METHOD_DESCRIPTIONS[method] ?? "Метод подбирается под запрос и задачи клиента."}</span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </Section>
   );
 }

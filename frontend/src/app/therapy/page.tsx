@@ -149,14 +149,6 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
           <WeekReview moods={therapy.moods} homework={homework} />
           <MoodStatsBlock moods={therapy.moods} />
           <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
-
-          {/* Запись и подбор — в самом низу: это редкие действия. */}
-          {therapist && (
-            <section>
-              <h2 className="t-micro mb-2 px-1">Ваши записи</h2>
-              <MyBookingsManager />
-            </section>
-          )}
         </div>
       </main>
       <MoodSheet open={moodSheet} mood={todayEntry?.mood} emotions={todayEntry?.emotions} onClose={() => setMoodSheet(false)} onSave={onMood} />
@@ -242,12 +234,12 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
         </div>
       </Link>
       <div className="mt-2.5 flex gap-2">
-        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ink)] py-2.5 text-[12px] font-black text-white transition-transform active:scale-[0.98]" aria-expanded={bookOpen}>
-          <Icon name="calendar" width={14} weight="bold" color="#fff" /> Записаться
+        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12px] font-black transition-transform active:scale-[0.98]" style={{ background: "var(--purple)", color: "var(--purple-edge)" }} aria-expanded={bookOpen}>
+          <Icon name="calendar" width={14} weight="bold" color="var(--purple-edge)" /> {bookOpen ? "Свернуть" : "Записаться"}
         </button>
         {psy?.tg && (
-          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Клубок» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
-            <Icon name="spark" width={14} weight="fill" /> Написать
+          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Клубок» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]">
+            <Icon name="telegram" width={15} weight="fill" color="var(--purple-edge)" /> Написать
           </a>
         )}
       </div>
@@ -261,8 +253,9 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
             </div>
           ) : (
             <>
-              <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Свободные окна</p>
-              <SlotPicker forClient variant="strip" daysAhead={14} onPick={(iso, format) => book.mutate({ iso, format })} />
+              <p className="t-micro mb-1 px-1">Свободные окна</p>
+              <p className="t-cap mb-2 px-1">{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
+              <SlotPicker forClient variant="strip" daysAhead={21} onPick={(iso, format) => book.mutate({ iso, format })} />
             </>
           )}
         </div>
