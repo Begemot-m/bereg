@@ -227,7 +227,6 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
   const reasons = reasonsFor(psy, prefs);
   const details = detailLocation(psy);
   const firstSession = psy.firstSession ?? "На первой встрече знакомимся, обсуждаем ваш запрос и то, какой поддержки вы ждёте. В конце сверяемся — комфортно ли вам продолжать. Ничего решать сразу не нужно.";
-  const toBooking = () => { tap(); document.getElementById("book-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
   // Полоска Telegram — в цвет шапки специалиста, на выходе возвращаем тон раздела.
   useEffect(() => { syncTelegramChrome(tone.soft); return () => syncTelegramChrome(); }, [tone.soft]);
 
@@ -298,7 +297,6 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       <RulesSection minutes={psy.minutes} />
 
       {/* Постоянная запись */}
-      <div id="book-section"><Section title="Записаться · ближайшие окна"><div className="panel p-4"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section></div>
       <TelegramPoster psy={psy} />
     </div>
   </div>;

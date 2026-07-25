@@ -3,8 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useState } from "react";
+
+import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
 import { PageHead } from "@/components/blocks";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
@@ -14,6 +16,8 @@ import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, ty
 import { select, success, tap } from "@/lib/haptics";
 
 const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
+
+const APP_URL = "https://begemot-m.github.io/bereg/";
 
 const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
   { key: "all", label: "Все" },
@@ -54,6 +58,14 @@ function rank(c: Client): number {
 }
 
 export default function ClientsPage() {
+  const search = useSearchParams();
+  // Карточка клиента, созданного в демо, открывается здесь же по ?id —
+  // статический экспорт не собирает страницы под новые идентификаторы.
+  if (search.get("id")) return <ClientDetail />;
+  return <ClientsList />;
+}
+
+function ClientsList() {
   const qc = useQueryClient();
   const router = useRouter();
   const [filter, setFilter] = useState<ClientStatus | "all">("all");
@@ -68,9 +80,20 @@ export default function ClientsPage() {
     // Пока кого-то пригласили — тихо подтягиваем список, чтобы поймать подключение.
     refetchInterval: (q) => (q.state.data?.some((c) => c.link === "invited") ? 2500 : false),
   });
+  const [inviteAfter, setInviteAfter] = useState(false);
   const add = useMutation({
     mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), ""),
-    onSuccess: (c) => { success(); setFirst(""); setLast(""); setOpen(false); qc.invalidateQueries({ queryKey: ["clients"] }); router.push(`/clients/${c.id}`); },
+    onSuccess: (c) => {
+      success();
+      const name = first.trim();
+      setFirst(""); setLast(""); setOpen(false);
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      if (inviteAfter) {
+        const text = `${name}, приглашаю вас в «Клубок» — там мы будем видеть настроение между встречами и задания к сессии.`;
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent(text)}`, "_blank", "noopener");
+      }
+      router.push(`/clients/?id=${c.id}`);
+    },
   });
 
   // Фильтрация — отложенным значением: набор в поле не ждёт перерисовки списка.
@@ -117,7 +140,7 @@ export default function ClientsPage() {
           setFirst={setFirst}
           setLast={setLast}
           pending={add.isPending}
-          onCreate={() => { if (first.trim()) add.mutate(); }}
+          onCreate={(invite) => { if (!first.trim()) return; setInviteAfter(invite); add.mutate(); }}
         />
 
         <div className="mb-4 flex gap-1 overflow-x-auto">
@@ -157,7 +180,7 @@ function ClientCard({ client: c }: { client: Client }) {
       className="relative overflow-hidden rounded-[20px] bg-white p-4 transition-transform active:scale-[0.995]"
       style={{ border: "var(--bw-lg) solid var(--edge)" }}
     >
-      <Link href={`/clients/${c.id}`} onClick={tap} className="absolute inset-0 z-0" aria-label={`Карточка клиента: ${c.name}`} />
+      <Link href={`/clients/?id=${c.id}`} onClick={tap} className="absolute inset-0 z-0" aria-label={`Карточка клиента: ${c.name}`} />
 
       <div className="pointer-events-none relative z-10">
         <div className="flex items-center gap-3">
@@ -227,7 +250,7 @@ function plural(n: number) {
 }
 
 // Быстрое добавление: имя + фамилия → создаём карточку и открываем её.
-function QuickAddClient({ open, first, last, setFirst, setLast, pending, onCreate }: { open: boolean; first: string; last: string; setFirst: (v: string) => void; setLast: (v: string) => void; pending: boolean; onCreate: () => void }) {
+function QuickAddClient({ open, first, last, setFirst, setLast, pending, onCreate }: { open: boolean; first: string; last: string; setFirst: (v: string) => void; setLast: (v: string) => void; pending: boolean; onCreate: (invite: boolean) => void }) {
   return (
     <Disclosure open={open} autoScroll={false}>
       <div className="mb-4 rounded-[18px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>
@@ -235,7 +258,7 @@ function QuickAddClient({ open, first, last, setFirst, setLast, pending, onCreat
           <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}><Icon name="user" width={16} weight="bold" /></span>
           <div><p className="text-[13px] font-black leading-none">Новый клиент</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">Имя и фамилия — карточка откроется сразу</p></div>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); onCreate(); }}>
+        <form onSubmit={(e) => { e.preventDefault(); onCreate(false); }}>
           <div className="flex gap-2">
             <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Имя" autoFocus />
             <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Фамилия" />
@@ -243,7 +266,16 @@ function QuickAddClient({ open, first, last, setFirst, setLast, pending, onCreat
           <button type="submit" disabled={pending || !first.trim()} className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-40">
             <Icon name="plus" width={15} weight="bold" color="#fff" /> Создать карточку
           </button>
-          <p className="mt-2 text-center text-[11px] font-semibold text-[var(--muted-2)]">Дальше добавите телефон или Telegram и пригласите клиента подключиться.</p>
+          <button
+            type="button"
+            disabled={pending || !first.trim()}
+            onClick={() => onCreate(true)}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[14px] py-2.5 text-[13px] font-black transition-transform active:scale-[0.98] disabled:opacity-40"
+            style={{ background: "var(--head-soft)", color: "var(--edge)" }}
+          >
+            <Icon name="telegram" width={15} weight="fill" color="var(--edge)" /> Создать и пригласить в Telegram
+          </button>
+          <p className="mt-2 text-center text-[11px] font-semibold text-[var(--muted-2)]">Приглашение открывает Telegram с готовым текстом. Когда клиент подключится, его настроение и задания появятся в карточке.</p>
         </form>
       </div>
     </Disclosure>

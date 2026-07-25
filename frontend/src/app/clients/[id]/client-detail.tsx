@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SectionTitle } from "@/components/blocks";
@@ -49,7 +49,12 @@ function inviteLink(id: number): string {
 }
 
 export function ClientDetail() {
-  const id = Number(useParams().id);
+  // Статический экспорт умеет отдать только заранее собранные /clients/<id>.
+  // Созданные в демо клиенты получают новые id, поэтому их карточка живёт на
+  // /clients/?id=N — берём идентификатор из того источника, который есть.
+  const params = useParams();
+  const search = useSearchParams();
+  const id = Number(search.get("id") ?? params.id);
   const router = useRouter();
   const qc = useQueryClient();
   const inv = () => {

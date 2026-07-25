@@ -137,6 +137,7 @@ export const CLIENT_BENEFITS: HelpPage[] = [
 // что в подписке, и сам блок оплаты.
 export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "client" }) {
   const [open, setOpen] = useState(false);
+  const [demo, setDemo] = useState(false);
   const psy = variant === "psy";
   const rows = psy ? COMPARE : COMPARE_CLIENT;
   const title = psy ? "Клубок PRO" : "Клубок+";
@@ -178,15 +179,31 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
                 </div>
               ))}
             </div>
-            <div className="mt-3"><SubscriptionBlock variant={variant} /></div>
+            <button
+              onClick={() => { tap(); setDemo(true); }}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[14px] py-3 text-[13px] font-black text-white transition-transform active:scale-[0.98]"
+              style={{ background: "var(--ink)" }}
+            >
+              <Icon name="spark" width={15} weight="fill" color="#fff" /> Посмотреть, как это выглядит
+            </button>
+            <div className="mt-3"><SubscriptionBlock variant={variant} compact /></div>
           </div>
         </div>
       </div>
+      {demo && (
+        <HelpDeck
+          title={psy ? "Возможности Клубок PRO" : "Возможности Клубок+"}
+          pages={psy ? PRO_BENEFITS : CLIENT_BENEFITS}
+          onClose={() => setDemo(false)}
+          doneLabel="Понятно"
+          onDone={() => setDemo(false)}
+        />
+      )}
     </div>
   );
 }
 
-export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "client" }) {
+export function SubscriptionBlock({ variant = "psy", compact = false }: { variant?: "psy" | "client"; compact?: boolean }) {
   const qc = useQueryClient();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription, refetchInterval: (q) => (q.state.data?.status === "pending" ? 1500 : false) });
   const [benefits, setBenefits] = useState(false);
@@ -203,6 +220,25 @@ export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "clie
   const activeTools = variant === "psy" && sub.status === "active" && sub.tools;
   const clientActive = variant === "client" && sub.clientPro;
   const shownPlans: Plan[] = variant === "client" ? [CLIENT_PLAN] : activeTools && !sub.promo ? PSY_PLANS.filter((p) => p.id === "catalog") : PSY_PLANS;
+
+  // compact — блок живёт внутри баннера, который уже показал шапку и сравнение.
+  if (compact) {
+    return (
+      <div className="space-y-2.5">
+        {pending ? (
+          <p className="py-2 text-center text-[13px] font-bold text-[var(--muted)]">Ждём подтверждение платежа…</p>
+        ) : clientActive ? (
+          <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Клубок+ активен — все инструменты открыты.</p>
+        ) : (
+          <>
+            {activeTools && !sub.promo && <p className="text-[12px] font-bold text-[var(--muted)]">Добавьте размещение в каталоге:</p>}
+            {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} />)}
+            <p className="pt-1 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата через ЮKassa · отмена в любой момент{variant === "psy" ? " · годовая оплата — 2 месяца в подарок" : ""}</p>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <section className="overflow-hidden rounded-[24px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
