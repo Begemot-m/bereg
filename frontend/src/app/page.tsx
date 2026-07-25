@@ -197,7 +197,7 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
   return (
     <div>
       <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus}</PageHead>
-      <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-7 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="sheet">
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index}>{child}</StaggerItem> : null)

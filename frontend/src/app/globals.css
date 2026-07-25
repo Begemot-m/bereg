@@ -135,6 +135,46 @@ body {
 .tf::placeholder { color: var(--muted-2); font-weight: 400; }
 .lbl { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 800; color: var(--muted); }
 
+/* ============================================================
+   Общий каркас разделов. Эталон — «Сессии»: цветная шапка,
+   затем белый лист с крупным скруглением сверху.
+   ============================================================ */
+
+/* Лист контента под шапкой раздела. Заменяет копипасту
+   «-mx-4 rounded-t-[30px] ... borderTop» по страницам. */
+.sheet {
+  margin-inline: -1rem;
+  min-height: 64vh;
+  border-radius: 30px 30px 0 0;
+  border-top: var(--bw-lg) solid var(--edge-neutral);
+  background: var(--surface);
+  padding: 1.25rem 1rem 1.75rem;
+}
+@container (min-width: 28rem) {
+  .sheet { margin-inline: -2.25rem; padding-inline: 2.25rem; }
+}
+
+/* Шкала текста: семь ступеней вместо тридцати пяти.
+   Вес зашит в ступень — «важность» задаётся ступенью, а не жирностью. */
+.t-display { font-size: 24px; line-height: 1.1;  font-weight: 800; letter-spacing: -0.02em; }
+.t-title   { font-size: 19px; line-height: 1.2;  font-weight: 800; letter-spacing: -0.015em; }
+.t-head    { font-size: 16px; line-height: 1.25; font-weight: 800; letter-spacing: -0.01em; }
+.t-body    { font-size: 14px; line-height: 1.45; font-weight: 600; }
+.t-sub     { font-size: 13px; line-height: 1.4;  font-weight: 600; color: var(--muted); }
+.t-cap     { font-size: 11.5px; line-height: 1.3; font-weight: 700; color: var(--muted); }
+.t-micro   { font-size: 10px; line-height: 1; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+/* Пилюля-кнопка второго плана — как «График» в сессиях. */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px; padding: 6px 12px;
+  font-size: 11px; font-weight: 900;
+  color: var(--muted); background: var(--head-soft);
+  transition: color .15s var(--ease-out);
+}
+.pill:hover { color: var(--ink); }
+.pill[data-on="true"] { background: var(--ink); color: #fff; }
+
 /* Обводка-штрих (мини-элементы) */
 .stroke {
   border: var(--bw) solid var(--stroke);

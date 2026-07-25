@@ -129,7 +129,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGood,
         )}
       </header>
 
-      <main className="relative -mt-9 rounded-t-[30px] bg-[#fffaf0] px-4 pb-8 pt-5 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <main className="relative -mt-9 rounded-t-[30px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
           {/* Сегодня → неделя → динамика: сначала то, что можно сделать сейчас. */}

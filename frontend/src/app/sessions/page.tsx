@@ -160,7 +160,7 @@ function PsySessions() {
         </motion.div>
       </PageHead>
 
-      <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="sheet">
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           {/* Слева — настройка графика */}
           <button onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex w-fit items-center gap-1.5 rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" aria-expanded={scheduleOpen}>
