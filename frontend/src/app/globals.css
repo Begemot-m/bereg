@@ -70,6 +70,11 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+
+  /* Системные зоны. В браузере — из env(), в Telegram-фуллскрине их
+     перезаписывает TelegramInit значениями от клиента. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Тема раздела: --head — цвет шапки/фона, --page — тон страницы (=шапке),
@@ -163,6 +168,16 @@ body {
 .t-sub     { font-size: 13px; line-height: 1.4;  font-weight: 600; color: var(--muted); }
 .t-cap     { font-size: 11.5px; line-height: 1.3; font-weight: 700; color: var(--muted); }
 .t-micro   { font-size: 10px; line-height: 1; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+/* Белая панель с тонкой рамкой — группирующая карточка (как в кабинете). */
+.panel {
+  background: var(--surface);
+  border: var(--bw) solid var(--edge-neutral);
+  border-radius: var(--r-block);
+}
+
+/* Тонированный блок без рамки — акцентный (подписка, приглашения). */
+.panel-tint { border-radius: var(--r-block); }
 
 /* Пилюля-кнопка второго плана — как «График» в сессиях. */
 .pill {

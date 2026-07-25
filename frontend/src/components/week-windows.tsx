@@ -22,7 +22,7 @@ const pl = (n: number, one: string, few: string, many: string) => { const a = n 
 
 const MORPH = { type: "spring" as const, stiffness: 420, damping: 34 };
 
-export type Slot = { iso: string; hour: number; t: string; fmt: ApptFormat; past: boolean; appt?: Appointment; removed: boolean };
+export type Slot = { iso: string; hour: number; t: string; dur: number; fmt: ApptFormat; past: boolean; appt?: Appointment; removed: boolean };
 
 // Окна дня собираются из графика + записей, которые в график не попали.
 export function useDayWindows() {
@@ -38,11 +38,11 @@ export function useDayWindows() {
       const dt = new Date(d); dt.setHours(hh, mm, 0, 0);
       const iso = dt.toISOString(); const ov = overrides[iso];
       const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
-      return { iso, hour: hh, t: s.t, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, appt, removed: !!ov?.removed };
+      return { iso, hour: hh, t: s.t, dur: appt?.durationMin ?? s.d, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, appt, removed: !!ov?.removed };
     });
     const apptOnly: Slot[] = appts
       .filter((a) => a.status !== "cancelled" && sameDay(new Date(a.startsAt), d) && !schedule.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime()))
-      .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: dt.getHours(), t: timeF.format(dt), fmt: a.format, past: dt.getTime() < now, appt: a, removed: false }; });
+      .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: dt.getHours(), t: timeF.format(dt), dur: a.durationMin, fmt: a.format, past: dt.getTime() < now, appt: a, removed: false }; });
     return [...schedule, ...apptOnly].sort((a, b) => a.iso.localeCompare(b.iso));
   };
 
@@ -236,11 +236,14 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
         <span className={`tnum font-black leading-none ${active ? "text-[17px]" : "text-[13.5px]"} ${slot.past ? "line-through" : ""}`}>{slot.t}</span>
         <span className={`min-w-0 ${active ? "flex-1" : "max-w-full"}`}>
           <span className={`block truncate font-bold ${active ? "text-[12.5px]" : "text-[9.5px]"}`} style={{ color: st.labelColor }}>
-            {active ? cap(dLong.format(new Date(slot.iso))) : st.label}
+            {active ? `${slot.dur} мин · ${cap(dLong.format(new Date(slot.iso)))}` : st.label}
           </span>
         </span>
-        {!active && !slot.removed && (
-          <span className="absolute right-1.5 top-1.5"><Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>
+        {!active && (
+          <>
+            <span className="tnum absolute left-1.5 top-1.5 text-[8.5px] font-black text-[var(--muted-2)]">{slot.dur}м</span>
+            <span className="absolute right-1.5 top-1.5"><Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>
+          </>
         )}
         {active && <span className="text-[15px] font-black text-[var(--muted-2)]">✕</span>}
       </motion.button>

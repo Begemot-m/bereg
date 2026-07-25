@@ -278,8 +278,8 @@ function GuestStart() {
       <div className="chunk overflow-hidden">
         {steps.map(([number, title, text], index) => (
           <div key={number} className="flex gap-3 px-4 py-3.5" style={index ? { borderTop: "var(--bw) solid var(--edge-neutral)" } : undefined}>
-            <span className="tnum flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[var(--amber)] text-[14px] font-black">{number}</span>
-            <span><span className="block text-[14px] font-black">{title}</span><span className="block text-[11px] font-semibold text-[var(--muted)]">{text}</span></span>
+            <span className="tnum flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[14px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{number}</span>
+            <span><span className="t-head block">{title}</span><span className="t-sub block">{text}</span></span>
           </div>
         ))}
         <div className="px-4 pb-4 pt-2"><Link href="/catalog" onClick={tap} className="flex w-full items-center justify-center rounded-full bg-[var(--ink)] px-5 py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">Начать подбор →</Link></div>
@@ -299,14 +299,10 @@ function HomeRoutesCarousel({ items }: { items: { title: string; detail: string;
         {items.map((item) => {
           const t = ROUTE_TONE[item.href] ?? "amber";
           return (
-            <Link key={item.href} href={item.href} onClick={tap} className="group relative w-[164px] shrink-0 snap-start overflow-hidden rounded-[22px] p-4 transition-transform duration-200 active:scale-[0.97]" style={{ background: `var(--${t})`, border: `var(--bw-lg) solid var(--${t}-edge)`, boxShadow: `0 14px 26px -18px var(--${t}-edge)` }}>
-              {/* Декоративный круг в углу */}
-              <span aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-40" style={{ background: "#fff" }} />
-              <span aria-hidden className="pointer-events-none absolute -bottom-8 -left-4 h-16 w-16 rounded-full opacity-25" style={{ background: `var(--${t}-edge)` }} />
-              <span className="relative flex h-12 w-12 items-center justify-center rounded-[16px] bg-white"><Icon name={item.icon} width={23} weight="bold" /></span>
-              <span className="relative mt-6 block text-[15.5px] font-black leading-tight">{item.title}</span>
-              <span className="relative mt-1 block min-h-[28px] text-[11px] font-semibold leading-snug text-[var(--muted)]">{item.detail}</span>
-              <span className="relative mt-2 flex h-7 w-7 items-center justify-center rounded-full bg-white text-[13px] font-black transition-transform duration-200 group-active:translate-x-0.5">→</span>
+            <Link key={item.href} href={item.href} onClick={tap} className="w-[164px] shrink-0 snap-start rounded-[22px] p-4 transition-transform duration-200 active:scale-[0.97]" style={{ background: `var(--${t}-soft)` }}>
+              <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-white"><Icon name={item.icon} width={23} weight="bold" color={`var(--${t}-edge)`} /></span>
+              <span className="t-head mt-5 block">{item.title}</span>
+              <span className="t-sub mt-1 block min-h-[34px]">{item.detail}</span>
             </Link>
           );
         })}

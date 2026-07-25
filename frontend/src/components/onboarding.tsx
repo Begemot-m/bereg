@@ -83,7 +83,7 @@ export function Onboarding() {
                   <span aria-hidden className="pointer-events-none absolute bottom-[-96px] left-1/2 h-[340px] w-[460px] -translate-x-1/2 rounded-full opacity-40" style={{ background: tone }} />
 
                   <div className="pointer-events-none absolute inset-x-0 bottom-0">
-                    <div className="mx-auto w-full max-w-md overflow-hidden pb-[calc(env(safe-area-inset-bottom)+16px)]">{poster.art}</div>
+                    <div className="mx-auto w-full max-w-md overflow-hidden pb-[calc(var(--safe-bottom)+16px)]">{poster.art}</div>
                   </div>
                 </div>
               </>
@@ -101,7 +101,7 @@ export function Onboarding() {
 
 function Tone({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <div className="relative flex shrink-0 flex-col px-7 pb-6 pt-[calc(env(safe-area-inset-top)+18px)]" style={{ background: tone, minHeight: "42%" }}>
+    <div className="relative flex shrink-0 flex-col px-7 pb-6 pt-[calc(var(--safe-top)+18px)]" style={{ background: tone, minHeight: "42%" }}>
       {children}
       <svg
         className="absolute inset-x-0 top-full block h-[54px] w-full"
@@ -157,7 +157,7 @@ function Pick({ firstName, onPick, onBack }: { firstName?: string; onPick: (role
         </div>
       </Tone>
 
-      <div className="flex flex-1 flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-9">
+      <div className="flex flex-1 flex-col px-6 pb-[calc(var(--safe-bottom)+22px)] pt-9">
         <div className="flex flex-col gap-3">
           {ENTRIES.map((entry, k) => (
             <motion.button

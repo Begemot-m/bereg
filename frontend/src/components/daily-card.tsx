@@ -148,7 +148,7 @@ function GoodSheet({ open, initial, onClose, onSave }: { open: boolean; initial:
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="relative w-full max-w-md rounded-t-[28px] bg-white px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-5"
+            className="relative w-full max-w-md rounded-t-[28px] bg-white px-5 pb-[calc(var(--safe-bottom)+20px)] pt-5"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

@@ -74,7 +74,7 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
   useEffect(() => { const old = document.body.style.overflow; document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = old; }; }, []);
   return <motion.div className="fixed inset-0 z-[90] flex justify-center bg-[rgba(32,28,24,.38)] p-0 @md:items-center @md:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
     <motion.section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[var(--surface)] @md:h-[min(844px,94dvh)] @md:rounded-[30px]" initial={reduce ? false : { y: 28, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={reduce ? undefined : { y: 20, opacity: 0 }} transition={{ duration: .24, ease: [0.32, 0.72, 0, 1] }} style={{ border: `var(--bw-lg) solid ${c.edge}` }}>
-      <header className="shrink-0 px-4 pb-5 pt-[max(14px,env(safe-area-inset-top))]" style={{ background: c.bg, borderBottom: `var(--bw-lg) solid ${c.edge}` }}>
+      <header className="shrink-0 px-4 pb-5 pt-[max(14px,var(--safe-top))]" style={{ background: c.bg, borderBottom: `var(--bw-lg) solid ${c.edge}` }}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[#fffdf7]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
@@ -84,7 +84,7 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
         </div>
         <div className="mt-4"><Progress value={progress} tone={meta.tone} /></div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-5">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(24px,var(--safe-bottom))] pt-5">{children}</div>
     </motion.section>
   </motion.div>;
 }

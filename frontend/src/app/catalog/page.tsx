@@ -236,22 +236,22 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       </div>
     </div>
 
-    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] bg-[#fffaf0] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)", backgroundImage: `linear-gradient(180deg, ${tone.soft} 0, #fffaf0 180px)` }}>
+    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
       <div className="flex gap-2">
         <AttachTherapistButton name={psy.name} />
         <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white stroke-lg" aria-label={`Написать ${psy.name} в Telegram`}><Icon name="telegram" width={21} weight="fill" /></a>
       </div>
 
       {/* Почему предложен именно этому пользователю */}
-      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="rounded-[18px] bg-[var(--green-soft)] p-3.5 stroke-lg" style={{ borderColor: "var(--green-edge)" }}><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="flex items-start gap-2 text-[12.5px] font-bold"><Icon name="check" width={14} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
+      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="panel-tint bg-[var(--green-soft)] p-3.5"><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="flex items-start gap-2 text-[12.5px] font-bold"><Icon name="check" width={14} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
 
-      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5 rounded-[18px] bg-white p-4 stroke-lg">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-[var(--olive-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: `1.5px solid var(--olive-edge)` }}>{topic}</span>)}</div></Section>
+      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5 panel p-4">{psy.topics.map((topic) => <span key={topic} className="rounded-full bg-[var(--olive-soft)] px-2.5 py-1 text-[11px] font-black" style={{ color: "var(--olive-edge)" }}>{topic}</span>)}</div></Section>
 
       <PracticeStats psy={psy} />
       <button onClick={toBooking} className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform active:scale-[0.99]"><Icon name="calendar" width={16} weight="bold" color="#fff" /> Посмотреть свободные окна</button>
 
       {/* Как проходит первая встреча */}
-      <Section title="Как проходит первая встреча"><div className="rounded-[18px] bg-[var(--purple-soft)] p-4 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}><p className="text-[13px] font-semibold leading-relaxed">{firstSession}</p></div></Section>
+      <Section title="Как проходит первая встреча"><div className="panel-tint bg-[var(--purple-soft)] p-4"><p className="text-[13px] font-semibold leading-relaxed">{firstSession}</p></div></Section>
 
       {/* Голосовое приветствие (демо-слот) */}
       <VoiceGreeting name={psy.name.split(" ")[0]} />
@@ -268,7 +268,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       {psy.education.length > 0 && <EducationBlock psy={psy} />}
 
       {/* Темы, с которыми специалист не работает */}
-      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="rounded-[18px] bg-white p-4 stroke-lg"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-bold text-[var(--muted)]" style={{ border: "1.5px solid var(--edge-neutral)" }}>{topic}</span>)}</div><p className="mt-2.5 text-[10.5px] font-semibold text-[var(--muted-2)]">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></div></Section>}
+      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="panel p-4"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-bold text-[var(--muted)]" >{topic}</span>)}</div><p className="mt-2.5 text-[10.5px] font-semibold text-[var(--muted-2)]">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></div></Section>}
 
       {/* Отзывы — только после подтверждённых встреч */}
       <RatingBlock psy={psy} canRate={wasInTherapy} />
@@ -277,7 +277,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       <RulesSection minutes={psy.minutes} />
 
       {/* Постоянная запись */}
-      <div id="book-section"><Section title="Записаться · ближайшие окна"><div className="rounded-[18px] bg-white p-4 stroke-lg"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section></div>
+      <div id="book-section"><Section title="Записаться · ближайшие окна"><div className="panel p-4"><BookFlow psyName={psy.name} onDone={onBack} /></div></Section></div>
       <TelegramPoster psy={psy} />
     </div>
   </div>;
@@ -363,7 +363,7 @@ function MethodList({ psy }: { psy: Psy }) {
 function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
   const [open, setOpen] = useState(false);
   if (psy.format === "online") {
-    return <Section title="Формат и место"><div className="flex items-start gap-3 rounded-[18px] bg-white p-4 stroke-lg"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--head-soft)] stroke"><Icon name="video" width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p></div></div></Section>;
+    return <Section title="Формат и место"><div className="flex items-start gap-3 panel p-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--head-soft)] stroke"><Icon name="video" width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p></div></div></Section>;
   }
   const address = [psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : "", psy.publicExactAddress ? psy.address : ""].filter(Boolean).join(", ");
   const routes = [
@@ -416,7 +416,7 @@ function TelegramPoster({ psy }: { psy: Psy }) {
 function VoiceGreeting({ name }: { name: string }) {
   return (
     <Section title="Голос специалиста">
-      <div className="flex items-center gap-3 rounded-[18px] bg-white p-3.5 stroke-lg">
+      <div className="flex items-center gap-3 panel p-3.5">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--olive)]" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}><Icon name="pulse" width={20} weight="fill" /></span>
         <div className="flex min-w-0 flex-1 items-center gap-[3px]">
           {[10, 18, 13, 22, 16, 26, 14, 20, 11, 24, 15, 19, 12].map((h, k) => <span key={k} className="w-[3px] rounded-full bg-[var(--olive-edge)]" style={{ height: h, opacity: 0.5 + (k % 3) * 0.2 }} />)}
@@ -435,7 +435,7 @@ function EducationBlock({ psy }: { psy: Psy }) {
   const [open, setOpen] = useState(false);
   return (
     <Section title="Образование">
-      <div className="rounded-[18px] bg-white p-4 stroke-lg">
+      <div className="panel p-4">
         <ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul>
         <button onClick={() => { tap(); setOpen((v) => !v); }} className="mt-3 flex items-center gap-1.5 text-[11px] font-black text-[var(--muted)]" aria-expanded={open}>
           <Icon name="check" width={13} weight="bold" color="var(--green-edge)" /> Как проверяются документы <span className="transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
@@ -482,7 +482,7 @@ function detailLocation(psy: Psy) {
   return [formatLabel(psy.format), place, exact].filter(Boolean).join(" · ");
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) { return <section className="relative"><div className="mb-2 flex items-center gap-2"><p className="text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">{title}</p><span className="h-px flex-1 bg-gradient-to-r from-[var(--edge-neutral)] to-transparent" /></div>{children}</section>; }
+function Section({ title, children }: { title: string; children: React.ReactNode }) { return <section className="relative"><p className="t-micro mb-2">{title}</p>{children}</section>; }
 
 const RATING_KEY = "bereg_ratings";
 function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
