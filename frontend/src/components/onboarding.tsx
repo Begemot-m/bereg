@@ -138,10 +138,10 @@ function Progress({ step, total, onSkip }: { step: number; total: number; onSkip
 
 // ——— Последний экран: вход, а не анкета ———
 
-const ENTRIES: { role: Role; title: string; desc: string; icon: IconName; tint: string }[] = [
-  { role: "client", title: "Ищу специалиста", desc: "Подбор за пару минут", icon: "compass", tint: "var(--olive-soft)" },
-  { role: "client", title: "Хочу заниматься сам", desc: "Дневники и практики, бесплатно", icon: "therapy", tint: "var(--purple-soft)" },
-  { role: "guest", title: "Просто смотрю", desc: "Осмотреться без выбора", icon: "heart", tint: "var(--amber-soft)" },
+const ENTRIES: { role: Role; title: string; desc: string; icon: IconName; tint: string; ink: string }[] = [
+  { role: "client", title: "Ищу специалиста", desc: "Подбор за пару минут", icon: "compass", tint: "var(--olive-soft)", ink: "var(--olive-edge)" },
+  { role: "client", title: "Хочу заниматься сам", desc: "Дневники и практики, бесплатно", icon: "therapy", tint: "var(--purple-soft)", ink: "var(--purple-edge)" },
+  { role: "guest", title: "Просто смотрю", desc: "Осмотреться без выбора", icon: "heart", tint: "var(--amber-soft)", ink: "var(--amber-edge)" },
 ];
 
 function Pick({ firstName, onPick, onBack }: { firstName?: string; onPick: (role: Role) => void; onBack: () => void }) {
@@ -171,7 +171,7 @@ function Pick({ firstName, onPick, onBack }: { firstName?: string; onPick: (role
               style={{ background: entry.tint, boxShadow: "0 12px 26px -20px rgba(32,28,24,.5)" }}
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
-                <Icon name={entry.icon} width={23} weight="regular" color="var(--ink)" />
+                <Icon name={entry.icon} width={23} weight="regular" color={entry.ink} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[16.5px] font-black leading-tight">{entry.title}</span>

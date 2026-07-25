@@ -9,9 +9,12 @@ export function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Синхронность: обновляем данные при возврате фокуса на вкладку/окно.
-            refetchOnWindowFocus: true,
-            staleTime: 5_000,
+            // Раньше стояло refetchOnWindowFocus: в вебвью фокус срабатывает на
+            // открытие клавиатуры, поэтому каждый тап в поле дёргал перезапрос
+            // всех активных запросов и подвешивал набор текста. Данные и так
+            // инвалидируются явно после мутаций.
+            refetchOnWindowFocus: false,
+            staleTime: 30_000,
           },
         },
       }),

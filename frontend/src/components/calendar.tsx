@@ -46,15 +46,15 @@ export function MonthCalendar({
   const start = startOfWeek(first);
   const cells = Array.from({ length: 42 }, (_, i) => addDays(start, i));
 
-  const navBtn = "flex h-7 w-7 items-center justify-center rounded-full stroke bg-white text-[15px] font-bold active:scale-90 transition-transform";
+  const navBtn = "flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-bold active:scale-90 transition-transform";
   return (
     <div className={tone === "blend" ? "px-0.5" : "chunk p-3.5"} style={tone === "blend" ? { background: "transparent" } : undefined}>
       <div className="mb-2 flex items-center justify-between">
         <p className="font-tight text-[15px] font-extrabold">{MON[cursor.getMonth()]} {cursor.getFullYear()}</p>
         <div className="flex items-center gap-1">
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className={navBtn}>‹</button>
-          <button onClick={() => { setCursor(new Date()); onSelectDay(null); }} className="rounded-full px-2.5 py-0.5 text-[11px] font-bold stroke bg-white active:scale-95 transition-transform">Сегодня</button>
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className={navBtn}>›</button>
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className={navBtn} style={{ background: "var(--head-soft)", color: "var(--edge)" }}>‹</button>
+          <button onClick={() => { setCursor(new Date()); onSelectDay(null); }} className="rounded-full px-2.5 py-1 text-[11px] font-bold active:scale-95 transition-transform" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>Сегодня</button>
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className={navBtn} style={{ background: "var(--head-soft)", color: "var(--edge)" }}>›</button>
         </div>
       </div>
       <div className="grid grid-cols-7 gap-x-1 gap-y-0.5">
@@ -66,14 +66,16 @@ export function MonthCalendar({
           const isToday = y === todayY;
           const a: Avail | undefined = avail?.[y];
 
-          let bg: string | undefined;
-          let bd: string | undefined;
-          let fg = "var(--ink)";
-          if (!isSel && a === "free") { bg = "var(--green-soft)"; bd = "var(--green-edge)"; }
-          else if (!isSel && a === "full") { bg = "var(--purple-soft)"; bd = "var(--purple-edge)"; fg = "rgba(32,28,24,.5)"; }
-          else if (!isSel && isToday) { bg = "color-mix(in srgb, var(--head) 45%, transparent)"; }
-
+          // Одна палитра: занятый день — лавандовая заливка, выбранный — только
+          // обводка. Никаких заливок у остальных, чтобы сетка не рябила.
+          const busy = has.has(y) || a === "full";
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
+
+          const base: React.CSSProperties = busy
+            ? { background: "var(--purple-soft)", color: "var(--purple-edge)" }
+            : isToday
+              ? { background: "var(--surface-2)", color: "var(--ink)" }
+              : { color: "var(--ink)" };
 
           return (
             <button
@@ -81,22 +83,20 @@ export function MonthCalendar({
               disabled={disabled}
               onClick={() => { select(); if (multi) onToggle?.(y); else onSelectDay(isSel ? null : y); }}
               className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-transform duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
-              style={
-                isSel
-                  ? { background: multi ? "var(--ink)" : "var(--head)", color: multi ? "#fff" : "var(--ink)", border: "var(--bw) solid var(--edge)" }
-                  : { background: bg, color: fg, border: bd ? `var(--bw) solid ${bd}` : undefined }
-              }
+              style={{
+                ...base,
+                boxShadow: isSel ? `inset 0 0 0 2px ${multi ? "var(--ink)" : "var(--edge)"}` : undefined,
+              }}
             >
               {d.getDate()}
-              {!avail && has.has(y) && !isSel && <span className="absolute bottom-0.5 h-1 w-1 rounded-full" style={{ background: "var(--edge)" }} />}
             </button>
           );
         })}
       </div>
       {avail && (
         <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-bold text-[var(--muted)]">
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }} /> свободно</span>
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }} /> занято</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: "var(--purple-soft)" }} /> есть записи</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ boxShadow: "inset 0 0 0 2px var(--edge)" }} /> выбранный день</span>
         </div>
       )}
     </div>

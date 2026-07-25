@@ -77,7 +77,7 @@ export function DailyCard({ moods, notes, onOpenMood, onSaveGood }: {
                   outlineOffset: "2px",
                 }}
               >
-                {day.done && <Icon name="check" width={13} weight="bold" color="var(--ink)" />}
+                {day.done && <Icon name="check" width={13} weight="bold" color="var(--green-edge)" />}
               </span>
             </span>
           );
@@ -101,7 +101,7 @@ function DailyRow({ icon, title, hint, done, onClick }: { icon: IconName; title:
       style={{ background: done ? "var(--green-soft)" : "var(--surface-2)" }}
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: done ? "var(--green)" : "#fff" }}>
-        <Icon name={done ? "check" : icon} width={17} weight="bold" color="var(--ink)" />
+        <Icon name={done ? "check" : icon} width={17} weight="bold" color={done ? "var(--green-edge)" : "var(--purple-edge)"} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[13.5px] font-black leading-tight">{title}</span>

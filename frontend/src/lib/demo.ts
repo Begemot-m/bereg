@@ -331,7 +331,9 @@ function slotsFor(work: WorkHours, dateStr: string, takenISO: string[], override
   return out;
 }
 
-const delay = <T>(v: T): Promise<T> => new Promise((r) => setTimeout(() => r(v), 150));
+// Небольшая задержка, чтобы демо вело себя как сеть. 150 мс на каждый запрос
+// складывались в заметные подвисания, когда экран тянет по 3-4 запроса сразу.
+const delay = <T>(v: T): Promise<T> => new Promise((r) => setTimeout(() => r(v), 40));
 
 export async function mockFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const db = load();

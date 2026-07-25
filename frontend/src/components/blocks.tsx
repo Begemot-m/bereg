@@ -106,7 +106,7 @@ export function ModuleCard({ title, desc, icon, fill = "cream", href, onClick }:
       style={{ background: bg, color: dark ? "#fff" : undefined, transitionTimingFunction: EASE }}
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-[14px]" style={{ background: "#fff" }}>
-        <Icon name={icon} width={21} weight="regular" color="var(--ink)" />
+        <Icon name={icon} width={21} weight="regular" color={dark ? "var(--ink)" : "var(--edge)"} />
       </span>
       <div className="mt-6">
         <p className="text-[15px] font-extrabold">{title}</p>

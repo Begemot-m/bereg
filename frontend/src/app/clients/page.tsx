@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
@@ -73,9 +73,11 @@ export default function ClientsPage() {
     onSuccess: (c) => { success(); setFirst(""); setLast(""); setOpen(false); qc.invalidateQueries({ queryKey: ["clients"] }); router.push(`/clients/${c.id}`); },
   });
 
+  // Фильтрация — отложенным значением: набор в поле не ждёт перерисовки списка.
+  const q = useDeferredValue(search).trim().toLowerCase();
   const list = clients
     .filter((c) => (filter === "all" ? true : derivedStatus(c) === filter))
-    .filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .filter((c) => c.name.toLowerCase().includes(q))
     .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, "ru"));
 
   return (
@@ -100,11 +102,11 @@ export default function ClientsPage() {
             animate={{ rotate: open ? 45 : 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 14 }}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px]"
-            style={{ background: open ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw-lg) solid var(--olive-edge)", boxShadow: "0 8px 18px -8px var(--olive-edge)" }}
+            style={{ background: open ? "var(--head)" : "var(--head-soft)" }}
             aria-label="Добавить клиента"
             aria-expanded={open}
           >
-            <Icon name="plus" width={22} weight="bold" color="var(--olive-edge)" />
+            <Icon name="plus" width={22} weight="bold" color="var(--edge)" />
           </motion.button>
         </div>
 
@@ -149,47 +151,44 @@ export default function ClientsPage() {
 // и быстрая связь — всё, что нужно, чтобы не открывать карточку ради одной цифры.
 function ClientCard({ client: c }: { client: Client }) {
   const s = derivedStatus(c);
-  const tone = STATUS_TONE[s];
   const href = contactHref(c.contact);
   return (
     <div
       className="relative overflow-hidden rounded-[20px] bg-white p-4 transition-transform active:scale-[0.995]"
-      style={{ border: `var(--bw-lg) solid var(--${tone}-edge)` }}
+      style={{ border: "var(--bw-lg) solid var(--edge)" }}
     >
       <Link href={`/clients/${c.id}`} onClick={tap} className="absolute inset-0 z-0" aria-label={`Карточка клиента: ${c.name}`} />
 
       <div className="pointer-events-none relative z-10">
-        <div className="flex items-start gap-3">
-          <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[16px] text-[20px] font-black" style={{ background: `var(--${tone}-soft)` }}>
+        <div className="flex items-center gap-3">
+          <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[16px] text-[20px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>
             {c.name.charAt(0)}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="t-head truncate">{c.name}</p>
-              <span className="t-micro shrink-0 rounded-full px-2 py-1" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone}-edge)` }}>{STATUS_LABEL[s]}</span>
+              <span className="t-micro shrink-0 rounded-full px-2 py-1" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{STATUS_LABEL[s]}</span>
             </div>
-            <p className="t-sub mt-0.5 truncate">{c.note?.trim() || "Запрос пока не записан"}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="t-cap inline-flex items-center gap-1.5">
+                <Icon name="check" width={13} weight="bold" color="var(--edge)" />
+                {c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч пока нет"}
+                {c.hoursDone > 0 && ` · ${c.hoursDone} ч`}
+              </span>
+              {c.hwTotal > 0 && (
+                <span className="t-cap inline-flex items-center gap-1.5">
+                  <Icon name="note" width={13} weight="bold" color="var(--edge)" />
+                  {c.hwDone}/{c.hwTotal} заданий
+                </span>
+              )}
+              {c.link === "invited" && (
+                <span className="t-cap inline-flex items-center gap-1.5">
+                  <Icon name="bell" width={13} weight="bold" color="var(--edge)" /> приглашён
+                </span>
+              )}
+            </div>
           </div>
           <span className="t-title shrink-0 text-[var(--muted-2)]">›</span>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <span className="t-cap inline-flex items-center gap-1.5">
-            <Icon name="check" width={13} weight="bold" color={`var(--${tone}-edge)`} />
-            {c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч пока нет"}
-            {c.hoursDone > 0 && ` · ${c.hoursDone} ч`}
-          </span>
-          {c.hwTotal > 0 && (
-            <span className="t-cap inline-flex items-center gap-1.5">
-              <Icon name="note" width={13} weight="bold" color="var(--muted)" />
-              {c.hwDone}/{c.hwTotal} заданий
-            </span>
-          )}
-          {c.link === "invited" && (
-            <span className="t-cap inline-flex items-center gap-1.5" style={{ color: "var(--amber-edge)" }}>
-              <Icon name="bell" width={13} weight="bold" color="var(--amber-edge)" /> приглашён, ещё не вошёл
-            </span>
-          )}
         </div>
       </div>
 
@@ -197,10 +196,10 @@ function ClientCard({ client: c }: { client: Client }) {
         <span
           className="t-cap pointer-events-none inline-flex flex-1 items-center gap-1.5 rounded-full px-3 py-2"
           style={c.nextAt
-            ? { background: "var(--peach-soft)", color: "var(--peach-edge)" }
+            ? { background: "var(--head-soft)", color: "var(--edge)" }
             : { background: "var(--surface-2)", color: "var(--muted-2)" }}
         >
-          <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--peach-edge)" : "var(--muted-2)"} />
+          <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--edge)" : "var(--muted-2)"} />
           {c.nextAt ? relDay(c.nextAt) : "Записи нет"}
         </span>
         {href && (
@@ -210,9 +209,9 @@ function ClientCard({ client: c }: { client: Client }) {
             rel="noopener noreferrer"
             onClick={tap}
             className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2"
-            style={{ background: "var(--ink)", color: "#fff" }}
+            style={{ background: "var(--head)", color: "var(--edge)" }}
           >
-            <Icon name="telegram" width={13} weight="fill" color="#fff" /> Написать
+            <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
           </a>
         )}
       </div>

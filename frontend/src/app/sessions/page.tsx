@@ -145,19 +145,19 @@ function PsySessions() {
           </button>
         }
       >
-        <motion.div layout transition={{ duration: 0.34, ease: EASE }} className="overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            {calOpen ? (
-              <motion.div key="cal" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.26, ease: EASE }}>
-                <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
-              </motion.div>
-            ) : (
-              <motion.div key="strip" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.26, ease: EASE }}>
-                <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        {/* Без layout-анимации: она пересчитывала весь поддеревом на каждом кадре
+            и заметно подтормаживала. Достаточно короткого проявления. */}
+        <AnimatePresence mode="wait" initial={false}>
+          {calOpen ? (
+            <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: EASE }}>
+              <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
+            </motion.div>
+          ) : (
+            <motion.div key="strip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: EASE }}>
+              <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </PageHead>
 
       <div className="sheet">
