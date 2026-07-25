@@ -85,7 +85,7 @@
    них держим независимо от того, что вернул клиент: часть сборок отдаёт нули
    и в safeAreaInset, и в contentSafeAreaInset. */
 [data-tma="1"] {
-  --top-pad: calc(max(var(--safe-top), 24px) + max(var(--tg-top), 46px) + 8px);
+  --top-pad: calc(max(var(--safe-top), 44px) + max(var(--tg-top), 56px) + 20px);
 }
 
 /* Тема раздела: --head — цвет шапки/фона, --page — тон страницы (=шапке),
