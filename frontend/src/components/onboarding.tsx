@@ -101,7 +101,7 @@ export function Onboarding() {
 
 function Tone({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <div className="relative flex shrink-0 flex-col px-7 pb-6 pt-[calc(var(--safe-top)+18px)]" style={{ background: tone, minHeight: "42%" }}>
+    <div className="relative flex shrink-0 flex-col px-7 pb-6 pt-[calc(var(--top-pad)+8px)]" style={{ background: tone, minHeight: "42%" }}>
       {children}
       <svg
         className="absolute inset-x-0 top-full block h-[54px] w-full"

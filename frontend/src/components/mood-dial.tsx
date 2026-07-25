@@ -163,7 +163,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white text-[var(--ink)]">
-      <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-[max(12px,var(--safe-top))]">
+      <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-[max(12px,var(--top-pad))]">
         <button onClick={() => { tap(); close(); }} className="flex h-10 w-10 items-center justify-center rounded-full bg-white stroke transition-transform active:scale-95" aria-label="Закрыть">
           <X size={19} weight="bold" />
         </button>

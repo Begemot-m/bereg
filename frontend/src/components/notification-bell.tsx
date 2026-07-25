@@ -40,7 +40,7 @@ export function NotificationBell() {
         {open && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] bg-[rgba(32,28,24,.28)]" onClick={() => setOpen(false)}>
             {/* Выпадающая панель от колокольчика — прижата к правому верху под шапкой */}
-            <motion.div initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }} transition={{ type: "spring", stiffness: 460, damping: 34 }} onClick={(e) => e.stopPropagation()} className="chunk absolute right-3 top-[calc(var(--safe-top)+58px)] max-h-[70dvh] w-[min(360px,calc(100vw-24px))] origin-top-right overflow-y-auto p-4 @md:right-6 @md:top-20" style={{ background: "var(--surface)" }}>
+            <motion.div initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }} transition={{ type: "spring", stiffness: 460, damping: 34 }} onClick={(e) => e.stopPropagation()} className="chunk absolute right-3 top-[calc(var(--top-pad)+48px)] max-h-[70dvh] w-[min(360px,calc(100vw-24px))] origin-top-right overflow-y-auto p-4 @md:right-6 @md:top-20" style={{ background: "var(--surface)" }}>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-tight text-[18px] font-black">Уведомления</h3>
                 <button onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full stroke text-[15px] font-bold" style={{ background: "#fff" }}>✕</button>

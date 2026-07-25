@@ -43,10 +43,13 @@ export function TelegramInit() {
       // Telegram, поэтому берём отступы у самого клиента, а не у env().
       const safe = app.safeAreaInset ?? {};
       const content = app.contentSafeAreaInset ?? {};
-      const top = (safe.top ?? 0) + (content.top ?? 0);
-      const bottom = (safe.bottom ?? 0) + (content.bottom ?? 0);
       const root = document.documentElement;
-      if (top > 0) root.style.setProperty("--safe-top", `${top}px`);
+      // --safe-top — системная зона (статус-бар), --tg-top — полоса под
+      // плавающими кнопками клиента. Складывает их уже CSS в --top-pad,
+      // с нижней границей на случай, если клиент отдал нули.
+      if ((safe.top ?? 0) > 0) root.style.setProperty("--safe-top", `${safe.top}px`);
+      if ((content.top ?? 0) > 0) root.style.setProperty("--tg-top", `${content.top}px`);
+      const bottom = (safe.bottom ?? 0) + (content.bottom ?? 0);
       if (bottom > 0) root.style.setProperty("--safe-bottom", `${bottom}px`);
     };
 

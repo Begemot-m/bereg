@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Контент — единственная прокручиваемая область (отступы под чёлку и меню) */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="mx-auto w-full max-w-3xl px-4 pb-[104px] pt-[calc(var(--safe-top)+10px)] @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
+          <div className="mx-auto w-full max-w-3xl px-4 pb-[104px] pt-[var(--top-pad)] @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
         </div>
 
         {/* Мобайл: нижние табы — плашка с обводкой; вокруг неё прозрачно (без заливки-полосы) */}
