@@ -33,6 +33,32 @@ export function isTelegram(): boolean {
   return Boolean(app && app.platform && app.platform !== "unknown");
 }
 
+// setHeaderColor принимает только hex. Наши тона — это var() и color-mix(),
+// поэтому пропускаем значение через пробный элемент: браузер сам сведёт его
+// к rgb(), а мы переведём в hex.
+function toHex(cssColor: string): string | null {
+  const probe = document.createElement("span");
+  probe.style.cssText = `position:fixed;left:-9999px;top:-9999px;background:${cssColor}`;
+  document.body.appendChild(probe);
+  const rgb = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  const parts = rgb.match(/\d+/g);
+  if (!parts || parts.length < 3) return null;
+  return "#" + parts.slice(0, 3).map((v) => Number(v).toString(16).padStart(2, "0")).join("");
+}
+
+/** Красит полоску Telegram под текущий экран. Без аргумента — под тон раздела. */
+export function syncTelegramChrome(cssColor?: string) {
+  if (typeof window === "undefined") return;
+  const app = webApp();
+  if (!app) return;
+  const source = cssColor ?? getComputedStyle(document.documentElement).getPropertyValue("--page").trim();
+  const hex = toHex(source || "var(--bg)");
+  if (!hex) return;
+  app.setHeaderColor?.(hex);
+  app.setBackgroundColor?.(hex);
+}
+
 export function TelegramInit() {
   useEffect(() => {
     let tries = 0;
@@ -68,9 +94,7 @@ export function TelegramInit() {
       if (app.isVersionAtLeast?.("8.0")) app.requestFullscreen?.();
       app.disableVerticalSwipes?.();
 
-      const head = getComputedStyle(document.documentElement).getPropertyValue("--page").trim() || "#f9f8f3";
-      app.setHeaderColor?.(head);
-      app.setBackgroundColor?.(head);
+      syncTelegramChrome();
 
       const onChange = () => applyInsets(app);
       applyInsets(app);

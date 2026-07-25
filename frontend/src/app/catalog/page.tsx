@@ -6,6 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { syncTelegramChrome } from "@/components/telegram-init";
+
 import { CatalogFiltersSheet, CatalogSurvey } from "@/components/catalog-controls";
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
@@ -125,8 +127,11 @@ export default function CatalogPage() {
     <div className="-mx-4 -mt-6 @md:-mx-9">
       <header className="px-4 pb-14 pt-8 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-start justify-between gap-3">
-          <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white stroke-lg"><Icon name="compass" width={22} weight="bold" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Не рейтинг лучших, а специалисты, которые подходят именно вам.</p></div>
-          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[#fffdf7] stroke-lg" aria-label="Настроить подборку"><Icon name="sort" width={23} weight="bold" /></button>
+          <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Специалисты, которые подойдут именно вам.</p></div>
+          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[16px] bg-white px-2 py-2.5" aria-label="Собрать персональную подборку">
+            <Icon name="sort" width={20} weight="bold" color="var(--edge)" />
+            <span className="text-[9.5px] font-black leading-tight" style={{ color: "var(--edge)" }}>Персональная<br />подборка</span>
+          </button>
         </div>
       </header>
 
@@ -139,7 +144,6 @@ export default function CatalogPage() {
 
         <div className="mb-3 mt-5 flex items-end justify-between gap-3">
           <div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{mode === "personal" ? "Персональная подборка" : `${allFiltered.length} специалистов`}</p><h2 className="font-tight mt-0.5 text-[21px] font-black">{mode === "personal" ? "Специалисты для вас" : `Страница ${Math.min(page + 1, pageCount)} из ${pageCount}`}</h2></div>
-          {mode === "personal" && <button onClick={() => setSurveyOpen(true)} className="shrink-0 rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[10px] font-black stroke">Изменить</button>}
         </div>
 
         {visible.length ? <Stagger className="space-y-3">{visible.map((psy) => <StaggerItem key={psy.id}><PsyCard psy={psy} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
@@ -222,10 +226,14 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
   const details = detailLocation(psy);
   const firstSession = psy.firstSession ?? "На первой встрече знакомимся, обсуждаем ваш запрос и то, какой поддержки вы ждёте. В конце сверяемся — комфортно ли вам продолжать. Ничего решать сразу не нужно.";
   const toBooking = () => { tap(); document.getElementById("book-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  // Полоска Telegram — в цвет шапки специалиста, на выходе возвращаем тон раздела.
+  useEffect(() => { syncTelegramChrome(tone.soft); return () => syncTelegramChrome(); }, [tone.soft]);
 
   return <div>
     <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
-      <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-[13px] font-bold text-[var(--muted)]">← Каталог</button>
+      <button onClick={onBack} className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-black" style={{ background: "#fff", color: tone.edge }}>
+        <span className="text-[15px] leading-none">‹</span> Вернуться в каталог
+      </button>
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} />
         <div className="min-w-0 flex-1">

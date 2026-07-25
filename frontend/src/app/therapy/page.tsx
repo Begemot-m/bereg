@@ -7,9 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import { WheelFlow } from "@/components/balance-flow";
-import { DailyCard } from "@/components/daily-card";
 import { Icon } from "@/components/icons";
-import { MoodSheet } from "@/components/mood-dial";
+import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
+import { TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { MyBookingsManager } from "@/components/my-bookings";
@@ -70,12 +70,12 @@ export default function TherapyPage() {
   if (bookingsLoading || therapyLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
   // Интерфейс терапии показывается всегда — статистика копится независимо от терапевта.
   return <>
-    <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGood={(good) => save.mutate({ good })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
+    <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onBoard={(board) => save.mutate({ board })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
     {guideOpen && <TherapyGuide onClose={() => setGuideOpen(false)} />}
   </>;
 }
 
-function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGood, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGood: (text: string) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
+function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onBoard: (text: string) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const therapist = therapists.active;
   const [flowOpen, setFlowOpen] = useState(false);
   const [moodSheet, setMoodSheet] = useState(false);
@@ -132,45 +132,30 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGood,
       <main className="relative -mt-9 rounded-t-[30px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
-          {/* Сегодня → неделя → динамика: сначала то, что можно сделать сейчас. */}
-          <DailyCard moods={therapy.moods} notes={therapy.notes} onOpenMood={() => setMoodSheet(true)} onSaveGood={onGood} />
+          {/* Настроение → работа со специалистом → доска → динамика → записи. */}
+          <MoodHomeCard mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />
+
+          {therapist && (
+            <WorkWithSpecialist
+              sessionsDone={completedSessions}
+              nextAt={next?.startsAt ?? null}
+              homework={homework}
+              onChanged={invHomework}
+            />
+          )}
+
+          <TherapistBoard value={therapy.board} onSave={onBoard} />
+
           <WeekReview moods={therapy.moods} homework={homework} />
           <MoodStatsBlock moods={therapy.moods} />
           <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
 
+          {/* Запись и подбор — в самом низу: это редкие действия. */}
           {therapist && (
-            <>
-              {/* Работа с терапевтом: прогресс + задания + записи */}
-              <section className="rounded-[22px] bg-[var(--green-soft)] p-4" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
-                <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Работа с терапевтом</p>
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="flex h-[74px] w-[74px] shrink-0 flex-col items-center justify-center rounded-[20px] bg-white">
-                    <span className="font-tight tnum text-[30px] font-black leading-none">{completedSessions}</span>
-                    <span className="mt-1 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{plural(completedSessions, "встреча", "встречи", "встреч")}</span>
-                  </div>
-                  <div className="grid flex-1 grid-cols-2 gap-2">
-                    <Metric value={`${taskProgress}%`} label="заданий" edge="var(--coral-edge)" bg="var(--coral-soft)" />
-                    <Metric value={next ? "1" : "0"} label="впереди" edge="var(--amber-edge)" bg="var(--amber-soft)" />
-                  </div>
-                </div>
-                <p className="mt-3 text-[10px] font-semibold text-[var(--muted)]">{next ? `Ближайшая: ${dateTime.format(new Date(next.startsAt))}` : "Новая встреча пока не назначена"}</p>
-              </section>
-
-              <section>
-                <div className="mb-2 flex items-center justify-between px-1">
-                  <h2 className="text-[13px] font-black uppercase tracking-[.06em]">Домашние задания</h2>
-                  <span className="text-[11px] font-black text-[var(--muted)]">{done}/{homework.length}</span>
-                </div>
-                <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-                  <ClientHomework items={homework} onChanged={invHomework} />
-                </div>
-              </section>
-
-              <section>
-                <h2 className="mb-2 px-1 text-[13px] font-black uppercase tracking-[.06em]">Ваши записи</h2>
-                <MyBookingsManager />
-              </section>
-            </>
+            <section>
+              <h2 className="t-micro mb-2 px-1">Ваши записи</h2>
+              <MyBookingsManager />
+            </section>
           )}
         </div>
       </main>

@@ -58,6 +58,7 @@ type DB = {
   homework: Homework[];
   moods: Record<number, Mood[]>;
   goodNotes: Record<number, { date: string; text: string }[]>;
+  board: Record<number, string>;
   wheel: Record<number, WheelResult | null>;
   therapyTutorialSeen: boolean;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
@@ -151,6 +152,7 @@ function seed(): DB {
     homework,
     moods,
     goodNotes,
+    board: { 1: "" },
     wheel,
     therapyTutorialSeen: false,
     myBookings: [],
@@ -189,6 +191,7 @@ function load(): DB {
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
       if (!db.goodNotes) db.goodNotes = s.goodNotes;
+      if (!db.board) db.board = s.board;
       if (!db.wheel) db.wheel = s.wheel;
       if (!db.sub || (db.sub as { trialEndsAt?: string }).trialEndsAt === undefined) db.sub = s.sub;
       if (db.sub.clientPro === undefined) db.sub.clientPro = false;
@@ -410,7 +413,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   const therapyClient = clean.match(/^\/clients\/(\d+)\/therapy$/)?.[1];
   if (therapyClient && method === "GET") {
     const id = Number(therapyClient);
-    return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: true } as T);
+    return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: true } as T);
   }
 
   if (clean === "/my/therapy") {
@@ -435,6 +438,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         if (text) notes.push({ date: today.toISOString(), text });
         db.goodNotes[id] = notes.slice(-60);
       }
+      if (typeof body.board === "string") db.board[id] = String(body.board).slice(0, 4000);
       if (body.wheel && typeof body.wheel === "object") {
         const clean: Record<string, number[]> = {};
         for (const [k, arr] of Object.entries(body.wheel as Record<string, number[]>)) clean[k] = arr.map((v) => Math.min(10, Math.max(0, Number(v))));
@@ -444,7 +448,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       save(db);
     }
     if (method === "GET" || method === "PATCH") {
-      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
+      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
     }
   }
 
