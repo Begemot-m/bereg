@@ -26,6 +26,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  // Без cover браузер не отдаёт env(safe-area-inset-*) — они молча равны нулю,
+  // и контент уезжает под чёлку и под кнопки Telegram.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
