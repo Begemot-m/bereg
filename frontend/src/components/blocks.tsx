@@ -23,7 +23,6 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 420, damping: 20 }}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white"
-              style={{ border: "var(--bw-lg) solid var(--edge)" }}
             >
               <Icon name={icon} width={22} weight="bold" color="var(--edge)" />
             </motion.span>
@@ -32,7 +31,7 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
             <h1 className="font-tight text-[24px] font-extrabold leading-tight @md:text-3xl">{title}</h1>
             {sub && (
               subIcon
-                ? <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[12px] font-black capitalize" style={{ border: "var(--bw) solid var(--edge)", color: "var(--edge)" }}><Icon name={subIcon} width={13} weight="bold" /> {sub}</span>
+                ? <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[12px] font-black capitalize" style={{ color: "var(--edge)" }}><Icon name={subIcon} width={13} weight="bold" /> {sub}</span>
                 : <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>
             )}
           </div>
@@ -106,7 +105,7 @@ export function ModuleCard({ title, desc, icon, fill = "cream", href, onClick }:
       className="chunk group flex h-full flex-col justify-between p-4 transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
       style={{ background: bg, color: dark ? "#fff" : undefined, transitionTimingFunction: EASE }}
     >
-      <span className="flex h-11 w-11 items-center justify-center rounded-[14px] stroke" style={{ background: "#fff" }}>
+      <span className="flex h-11 w-11 items-center justify-center rounded-[14px]" style={{ background: "#fff" }}>
         <Icon name={icon} width={21} weight="regular" color="var(--ink)" />
       </span>
       <div className="mt-6">

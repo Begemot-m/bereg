@@ -32,14 +32,14 @@ function TodayRow({ item, index }: { item: TodayItem; index: number }) {
       className="group flex items-center gap-3 px-4 py-3 transition-transform active:scale-[0.99]"
       style={index > 0 ? { borderTop: "var(--bw) solid var(--edge-neutral)" } : undefined}
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: `var(--${item.tone}-soft)`, border: `var(--bw) solid var(--${item.tone}-edge)` }}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: `var(--${item.tone}-soft)` }}>
         <Icon name={item.icon} width={19} weight="bold" color={`var(--${item.tone}-edge)`} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-black leading-tight">{item.title}</span>
         <span className="block text-[11.5px] font-semibold text-[var(--muted)]">{item.sub}</span>
       </span>
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[15px] font-black text-[var(--muted-2)] transition-transform duration-200 group-hover:translate-x-0.5 group-active:translate-x-0.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>›</span>
+      <span className="shrink-0 pr-1 text-[17px] font-black text-[var(--muted-2)] transition-transform duration-200 group-hover:translate-x-0.5 group-active:translate-x-0.5">›</span>
     </motion.div>
   );
   if (item.href) return <Link href={item.href} onClick={tap} className="block">{inner}</Link>;
@@ -49,9 +49,9 @@ function TodayRow({ item, index }: { item: TodayItem; index: number }) {
 function EmptyToday() {
   return (
     <div className="flex items-center gap-3 px-4 py-4">
-      <motion.span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }} animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--green-soft)" }}>
         <Icon name="check" width={19} weight="bold" color="var(--green-edge)" />
-      </motion.span>
+      </span>
       <div>
         <p className="text-[14px] font-black leading-tight">На сегодня всё</p>
         <p className="text-[11.5px] font-semibold text-[var(--muted)]">Загляните вечером — отметьте, как прошёл день</p>
