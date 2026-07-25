@@ -35,6 +35,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru" className={sans.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
+        {/* Имя CSS-файла меняется с каждой сборкой, а вебвью Telegram охотно
+            кеширует HTML — тогда страница тянет исчезнувший стиль и остаётся
+            голой. Просим не кешировать саму разметку (React поднимает эти
+            теги в head). */}
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
         {/* afterInteractive: скрипт Telegram навешивает стили на <html> ПОСЛЕ гидрации,
             иначе получаем hydration mismatch и падение при переходах. */}
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
