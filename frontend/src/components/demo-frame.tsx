@@ -27,10 +27,11 @@ export function DemoFrame({ children }: { children: ReactNode }) {
         </span>
         <button
           onClick={() => {
-            localStorage.removeItem("psy_demo_db_v8");
-            localStorage.removeItem("psy_demo_role");
-            localStorage.removeItem("bereg_onboarded");
-            localStorage.removeItem("bereg_psy_profile");
+            // Чистим по префиксу, а не по списку: ключ базы версионный
+            // (psy_demo_db_v10), и перечисление тут разъезжалось при каждом бампе.
+            for (const key of Object.keys(localStorage)) {
+              if (key.startsWith("psy_demo") || key.startsWith("bereg")) localStorage.removeItem(key);
+            }
             location.reload();
           }}
           className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]"
