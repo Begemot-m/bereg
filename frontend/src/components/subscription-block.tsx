@@ -34,6 +34,15 @@ const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[
   { label: "Размещение в каталоге", free: false, pro: "+500 ₽" },
 ];
 
+// То же для клиентского тарифа.
+const COMPARE_CLIENT: { label: string; free: boolean | string; pro: boolean | string }[] = [
+  { label: "Дневник настроения", free: true, pro: true },
+  { label: "Дыхание и базовые практики", free: true, pro: true },
+  { label: "Колесо баланса и WHO-5", free: false, pro: true },
+  { label: "Расширенная динамика", free: false, pro: true },
+  { label: "Дневник мыслей по КПТ", free: false, pro: true },
+];
+
 function CompareCell({ value }: { value: boolean | string }) {
   if (value === true) return <Icon name="check" width={14} weight="bold" color="var(--green-edge)" />;
   if (value === false) return <span className="text-[13px] font-black text-[var(--muted-2)]">—</span>;
@@ -123,6 +132,59 @@ export const CLIENT_BENEFITS: HelpPage[] = [
     ))}</BFrame>
   ) },
 ];
+
+// Миниатюра-баннер: свёрнутая — витрина тарифа, раскрытая — что бесплатно,
+// что в подписке, и сам блок оплаты.
+export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "client" }) {
+  const [open, setOpen] = useState(false);
+  const psy = variant === "psy";
+  const rows = psy ? COMPARE : COMPARE_CLIENT;
+  const title = psy ? "Клубок PRO" : "Клубок+";
+  const price = psy ? PLAN_PRICE.tools : PLAN_PRICE.client;
+  const pitch = psy
+    ? "Статистика, сводка недели и шаблоны — то, что экономит время на каждой сессии."
+    : "Колесо баланса, дневник мыслей и расширенная динамика — для работы между встречами.";
+
+  return (
+    <div className="overflow-hidden rounded-[22px]" style={{ background: "var(--purple-soft)" }}>
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left" aria-expanded={open}>
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px]" style={{ background: "var(--purple)" }}>
+          <Icon name="spark" width={22} weight="fill" color="var(--purple-edge)" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-2">
+            <span className="t-head">{title}</span>
+            <span className="tnum text-[12.5px] font-black" style={{ color: "var(--purple-edge)" }}>{rub(price)}/мес</span>
+          </span>
+          <span className="t-sub mt-0.5 block">{pitch}</span>
+        </span>
+        <span className="t-title shrink-0 transition-transform duration-300 text-[var(--muted-2)]" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
+      </button>
+
+      <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="px-4 pb-4">
+            <div className="rounded-[16px] bg-white p-3">
+              <div className="mb-1.5 grid grid-cols-[1fr_auto_auto] items-center gap-x-3">
+                <span className="t-micro">Что входит</span>
+                <span className="t-micro w-14 text-center">Free</span>
+                <span className="t-micro w-14 text-center" style={{ color: "var(--purple-edge)" }}>{psy ? "PRO" : "Плюс"}</span>
+              </div>
+              {rows.map((row) => (
+                <div key={row.label} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 border-t py-2" style={{ borderColor: "var(--edge-neutral)" }}>
+                  <span className="t-cap" style={{ color: "var(--ink)" }}>{row.label}</span>
+                  <span className="flex w-14 justify-center"><CompareCell value={row.free} /></span>
+                  <span className="flex w-14 justify-center"><CompareCell value={row.pro} /></span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3"><SubscriptionBlock variant={variant} /></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SubscriptionBlock({ variant = "psy" }: { variant?: "psy" | "client" }) {
   const qc = useQueryClient();

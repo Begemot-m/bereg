@@ -5,12 +5,11 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
-import { createClient, listClients } from "@/lib/clients";
+import { listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
 
@@ -64,8 +63,9 @@ export function NoWorkHours() {
 export function DayAgenda({ date, today }: { date: Date; today?: boolean }) {
   const { daySlots } = useDayWindows();
   const [open, setOpen] = useState<string | null>(null);
-  const slots = daySlots(date);
-  const free = slots.filter((s) => !s.appt && !s.removed && !s.past).length;
+  // Закрытые окна и пустые прошедшие не показываем — они только шумят.
+  const slots = daySlots(date).filter((s) => !s.removed && !(s.past && !s.appt));
+  const free = slots.filter((s) => !s.appt && !s.past).length;
   const busy = slots.filter((s) => !!s.appt).length;
 
   return (
@@ -76,22 +76,27 @@ export function DayAgenda({ date, today }: { date: Date; today?: boolean }) {
           {today && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}>сегодня</span>}
         </div>
         <p className="text-[10.5px] font-black text-[var(--muted-2)]">
-          {slots.length === 0 ? "выходной" : busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : `${free} свободно`}
+          {busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : free > 0 ? `${free} свободно` : "окон нет"}
         </p>
       </div>
-      {slots.length > 0 && (
-        <motion.div layout transition={MORPH} className="grid grid-cols-3 items-start gap-2">
-          {slots.map((s) => (
-            <SlotCell
-              key={s.iso}
-              slot={s}
-              active={open === s.iso}
-              onTap={() => { tap(); setOpen(open === s.iso ? null : s.iso); }}
-              onClose={() => setOpen(null)}
-            />
-          ))}
-        </motion.div>
-      )}
+      <motion.div layout transition={MORPH} className="grid grid-cols-3 items-start gap-2">
+        {slots.map((s) => (
+          <SlotCell
+            key={s.iso}
+            slot={s}
+            active={open === s.iso}
+            onTap={() => { tap(); setOpen(open === s.iso ? null : s.iso); }}
+            onClose={() => setOpen(null)}
+          />
+        ))}
+        <NewSlotCell
+          date={date}
+          taken={slots.map((s) => s.iso)}
+          active={open === "new"}
+          onTap={() => { tap(); setOpen(open === "new" ? null : "new"); }}
+          onClose={() => setOpen(null)}
+        />
+      </motion.div>
     </section>
   );
 }
@@ -114,10 +119,95 @@ type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
 function look(s: Slot): Look {
   if (s.appt) return { bg: s.past ? "var(--purple-soft)" : "var(--purple)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
-  if (s.removed) return { bg: "#efe9dd", label: "закрыто", labelColor: "var(--muted-2)" };
-  if (s.past) return { bg: "var(--surface-2)", label: "прошло", labelColor: "var(--muted-2)" };
   // Свободное окно — пунктир: рамка здесь означает «сюда можно записать».
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
+}
+
+// Горизонтальный ряд клиентов — вместо списка с поиском на пол-экрана.
+function ClientChips({ onPick }: { onPick: (id: number) => void }) {
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
+  if (sorted.length === 0) return <p className="text-[12px] font-semibold text-[var(--muted-2)]">Сначала добавьте клиента в разделе «Клиенты».</p>;
+  return (
+    <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+      {sorted.map((c) => (
+        <button
+          key={c.id}
+          onClick={() => { select(); onPick(c.id); }}
+          className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[12px] font-black"
+          style={{ background: "#fff" }}
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--surface-2)" }}>{c.name.charAt(0)}</span>
+          {c.name.split(" ")[0]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Пустая плитка «+»: выбрать время и клиента прямо в сетке дня.
+function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; taken: string[]; active: boolean; onTap: () => void; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [iso, setIso] = useState<string | null>(null);
+  const takenSet = new Set(taken);
+  const now = Date.now();
+
+  // Свободные получасовые метки дня, кроме занятых и прошедших.
+  const times = useMemo(() => {
+    const out: { iso: string; label: string }[] = [];
+    for (let m = 8 * 60; m <= 21 * 60 + 30; m += 30) {
+      const dt = new Date(date); dt.setHours(Math.floor(m / 60), m % 60, 0, 0);
+      const value = dt.toISOString();
+      if (dt.getTime() < now || takenSet.has(value)) continue;
+      out.push({ iso: value, label: timeF.format(dt) });
+    }
+    return out;
+  }, [date, taken.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const book = useMutation({
+    mutationFn: ({ clientId }: { clientId: number }) => createAppointment({ clientId, startsAt: iso!, format: "online" }),
+    onSuccess: () => {
+      success();
+      setIso(null); onClose();
+      for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] });
+    },
+  });
+
+  if (!active) {
+    return (
+      <motion.button
+        layout
+        transition={MORPH}
+        onClick={onTap}
+        className="flex h-[54px] w-full flex-col items-center justify-center gap-0.5 rounded-[14px]"
+        style={{ background: "var(--surface-2)", color: "var(--muted)" }}
+        aria-label="Добавить сессию"
+      >
+        <Icon name="plus" width={18} weight="bold" color="var(--muted)" />
+        <span className="text-[9.5px] font-bold">добавить</span>
+      </motion.button>
+    );
+  }
+
+  return (
+    <motion.div layout transition={MORPH} className="col-span-3 rounded-[14px] p-3.5" style={{ background: "var(--surface-2)" }}>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[12.5px] font-black">{iso ? `Кому на ${timeF.format(new Date(iso))}?` : "Во сколько?"}</p>
+        <button onClick={() => { setIso(null); onClose(); }} className="text-[15px] font-black text-[var(--muted-2)]" aria-label="Закрыть">✕</button>
+      </div>
+      {iso ? (
+        <ClientChips onPick={(clientId) => book.mutate({ clientId })} />
+      ) : times.length === 0 ? (
+        <p className="text-[12px] font-semibold text-[var(--muted-2)]">На этот день свободного времени не осталось.</p>
+      ) : (
+        <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+          {times.map((t) => (
+            <button key={t.iso} onClick={() => { select(); setIso(t.iso); }} className="tnum shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-black" style={{ background: "#fff" }}>{t.label}</button>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
 }
 
 function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolean; onTap: () => void; onClose: () => void }) {
@@ -176,61 +266,45 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
 function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const qc = useQueryClient();
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
   const [resch, setResch] = useState(false);
 
   const book = useMutation({ mutationFn: ({ clientId, format }: { clientId: number; format: ApptFormat }) => createAppointment({ clientId, startsAt: slot.iso, format }), onSuccess: () => { success(); onClose(); inv(); } });
-  const create = useMutation({ mutationFn: (name: string) => createClient(name, ""), onSuccess: (c) => { qc.invalidateQueries({ queryKey: ["clients"] }); book.mutate({ clientId: c.id, format: slot.fmt }); } });
   const setFmt = useMutation({ mutationFn: async (format: ApptFormat) => { if (slot.appt) await updateAppointment(slot.appt.id, { format }); else await setOverride(slot.iso, { fmt: format }); }, onSuccess: () => { select(); inv(); } });
   const cancel = useMutation({ mutationFn: () => updateAppointment(slot.appt!.id, { status: "cancelled" }), onSuccess: () => { onClose(); inv(); } });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(slot.appt!.id, { startsAt: iso }), onSuccess: () => { success(); onClose(); inv(); } });
   const closeWin = useMutation({ mutationFn: () => setOverride(slot.iso, { removed: true }), onSuccess: () => { onClose(); inv(); } });
-  const openWin = useMutation({ mutationFn: () => setOverride(slot.iso, { removed: false }), onSuccess: () => { select(); inv(); } });
-
-  if (slot.removed) {
-    return (
-      <div className="flex items-center justify-between rounded-[12px] bg-white px-3 py-2.5">
-        <p className="text-[12px] font-semibold text-[var(--muted)]">Окно закрыто на этот день</p>
-        <button onClick={() => openWin.mutate()} className="rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>↺ Открыть</button>
-      </div>
-    );
-  }
 
   if (slot.appt) {
-    return (
-      <>
-        <div className="mb-2.5 flex items-center gap-2 rounded-[12px] bg-white px-3 py-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-[9px] text-[12px] font-black" style={{ background: "var(--purple-soft)" }}>{slot.appt.client.name.charAt(0)}</span>
-          <span className="text-[13px] font-black">{slot.appt.client.name}</span>
+    if (resch) {
+      return (
+        <div className="rounded-[12px] bg-white p-2.5">
+          <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
+          <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
+          <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
         </div>
-        {resch ? (
-          <div className="rounded-[12px] bg-white p-2.5">
-            <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
-            <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
-            <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} />
-            <button onClick={() => setResch(true)} className="rounded-full bg-white px-3 py-1.5 text-[12px] font-black">Перенести</button>
-            {!slot.past && <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Отменить</button>}
-          </div>
-        )}
-      </>
+      );
+    }
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="mr-auto flex min-w-0 items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
+          <span className="truncate text-[13px] font-black">{slot.appt.client.name}</span>
+        </span>
+        <FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} />
+        <button onClick={() => setResch(true)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[12px] font-black">Перенести</button>
+        {!slot.past && <button onClick={() => cancel.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Отменить</button>}
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="mb-1.5 flex items-center justify-between">
-        <p className="text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
-        <div className="flex items-center gap-1.5">
-          <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
-          <button onClick={() => closeWin.mutate()} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Закрыть</button>
-        </div>
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <p className="mr-auto text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Кого записать?</p>
+        <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
+        <button onClick={() => closeWin.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Убрать окно</button>
       </div>
-      <ClientPicker clients={sorted} onCreateClient={(name) => create.mutate(name)} onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
-    </>
+      <ClientChips onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
+    </div>
   );
 }

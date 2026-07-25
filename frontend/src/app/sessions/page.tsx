@@ -14,7 +14,9 @@ import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
 import { DayAgenda, WeekWindows } from "@/components/week-windows";
+import { RemindersModule } from "@/components/reminders";
 import { WorkHoursEditor } from "@/components/work-hours";
+import { useCancelLockDays } from "@/lib/cancel-policy";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
@@ -316,9 +318,35 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
             {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
           </div>
           <WorkHoursEditor onSaved={onSaved} />
+          {/* Правила приёма живут рядом с графиком, а не в кабинете. */}
+          <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: "var(--edge-neutral)" }}>
+            <RemindersModule />
+            <CancelLockRow />
+          </div>
           <button onClick={onToggle} className="mt-3 w-full py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Свернуть настройку</button>
         </div>
       </Disclosure>
+    </div>
+  );
+}
+
+// Запрет отмены сессий — правило приёма, переехало из кабинета.
+function CancelLockRow() {
+  const [days, setDays] = useCancelLockDays();
+  return (
+    <div className="rounded-[16px] bg-[var(--surface-2)] p-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white"><Icon name="clock" width={17} weight="bold" color="var(--edge)" /></span>
+          <span className="text-[13px] font-black">Запрет отмены сессий</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white text-[18px] font-black" aria-label="Меньше">−</button>
+          <span className="flex h-8 min-w-[64px] items-center justify-center rounded-[10px] px-2 text-[12px] font-black" style={{ background: days ? "var(--head-soft)" : "#fff", color: days ? "var(--edge)" : "var(--muted-2)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
+          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white text-[18px] font-black" aria-label="Больше">+</button>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">{days === 0 ? "Клиент может отменить сессию в любое время." : `Клиент не сможет отменить менее чем за ${days} дн. до сессии — только через вас.`}</p>
     </div>
   );
 }

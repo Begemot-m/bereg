@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
@@ -9,11 +10,8 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
-import { RemindersModule } from "@/components/reminders";
-import { SubscriptionBlock } from "@/components/subscription-block";
-import { WorkHoursEditor } from "@/components/work-hours";
+import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card } from "@/components/ui";
-import { useCancelLockDays } from "@/lib/cancel-policy";
 import { resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
@@ -23,6 +21,7 @@ const ROLES: Role[] = ["psychologist", "client"];
 
 export default function CabinetPage() {
   const [role, switchRole] = useRole();
+  const router = useRouter();
   const psy = role === "psychologist";
 
   return (
@@ -44,21 +43,11 @@ export default function CabinetPage() {
           <SectionTitle>{psy ? "Практика" : "Забота о себе"}</SectionTitle>
           {psy ? (
             <>
-              <Foldable icon="clock" title="Настроить график" subtitle="Дни, свободные окна и длительность встреч">
-                <WorkHoursEditor onSaved={() => {}} />
-              </Foldable>
-              <Foldable icon="spark" title="Подписка Клубок PRO" subtitle="990 ₽/мес · кабинет, статистика, каталог" tone="purple">
-                <SubscriptionBlock variant="psy" />
-              </Foldable>
-              <Foldable icon="bell" title="Напоминания о сессиях" subtitle="Единые правила и Telegram-бот">
-                <RemindersModule />
-              </Foldable>
-              <CancelLockRow />
+              <SubscriptionBanner variant="psy" />
+              <ActionRow icon="clock" title="График и правила приёма" sub="Рабочие часы, напоминания, запрет отмены — в разделе «Сессии»" onClick={() => { tap(); router.push("/sessions"); }} />
             </>
           ) : (
-            <Foldable icon="therapy" title="Подписка Клубок+" subtitle="390 ₽/мес · настроение, колесо, практики" tone="purple">
-              <SubscriptionBlock variant="client" />
-            </Foldable>
+            <SubscriptionBanner variant="client" />
           )}
         </div>
 
@@ -154,23 +143,3 @@ function ActionRow({ icon, title, sub, onClick, danger }: { icon: IconName; titl
   );
 }
 
-// Запрет отмены сессий — остаётся в «Практике».
-function CancelLockRow() {
-  const [days, setDays] = useCancelLockDays();
-  return (
-    <div className="rounded-[16px] bg-[var(--surface-2)] p-3.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl stroke bg-white"><Icon name="clock" width={17} weight="bold" /></span>
-          <span className="text-[13px] font-black">Запрет отмены сессий</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white text-[18px] font-black stroke" aria-label="Меньше">−</button>
-          <span className="flex h-8 min-w-[64px] items-center justify-center rounded-[10px] px-2 text-[12px] font-black" style={{ background: days ? "var(--head-soft)" : "#fff", border: `var(--bw) solid ${days ? "var(--edge)" : "var(--edge-neutral)"}` }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
-          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white text-[18px] font-black stroke" aria-label="Больше">+</button>
-        </div>
-      </div>
-      <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">{days === 0 ? "Клиент может отменить сессию в любое время." : `Клиент не сможет отменить менее чем за ${days} дн. до сессии — только через вас.`}</p>
-    </div>
-  );
-}
