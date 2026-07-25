@@ -63,7 +63,9 @@ export const WHEEL: WheelDomain[] = [
 export const WHEEL_QUESTION_COUNT = WHEEL.reduce((n, d) => n + d.questions.length, 0); // 30
 export type WheelAnswers = Record<string, number[]>; // key -> [0..10] × questions
 export type WheelResult = { answers: WheelAnswers; completedAt: string };
-export type TherapyState = { moods: Mood[]; wheel: WheelResult | null; tutorialSeen: boolean };
+/** Практика позитивного замечания: одна строка в день о том, что хорошего он принёс. */
+export type GoodNote = { date: string; text: string };
+export type TherapyState = { moods: Mood[]; notes: GoodNote[]; wheel: WheelResult | null; tutorialSeen: boolean };
 
 export function domainScore(result: WheelResult | null, key: string): number {
   const arr = result?.answers[key];
@@ -89,6 +91,6 @@ export function wheelBand(pct: number): WheelBand {
 }
 
 export const getMyTherapy = () => apiFetch<TherapyState>("/my/therapy");
-export const updateMyTherapy = (patch: { mood?: number; emotions?: string[]; wheel?: WheelAnswers; tutorialSeen?: boolean }) =>
+export const updateMyTherapy = (patch: { mood?: number; emotions?: string[]; good?: string; wheel?: WheelAnswers; tutorialSeen?: boolean }) =>
   apiFetch<TherapyState>("/my/therapy", { method: "PATCH", body: JSON.stringify(patch) });
 export const getClientTherapy = (clientId: number) => apiFetch<TherapyState>(`/clients/${clientId}/therapy`);

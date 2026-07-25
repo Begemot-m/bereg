@@ -134,7 +134,7 @@ function PsySessions() {
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           {/* Слева — настройка графика */}
-          <button onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex w-fit items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={scheduleOpen}>
+          <button onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex w-fit items-center gap-1.5 rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" aria-expanded={scheduleOpen}>
             <Icon name="gear" width={13} color="currentColor" /> График
           </button>
 
@@ -192,7 +192,7 @@ function PsySessions() {
                 return (
                   <div key={y}>
                     <div className="mb-2 flex items-center gap-2 border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
-                      {(() => { const r = relTone(y); return r && <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: `var(--${r.tone}-soft)`, border: `var(--bw) solid var(--${r.tone}-edge)` }}>{r.label}</span>; })()}
+                      {(() => { const r = relTone(y); return r && <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: `var(--${r.tone}-soft)`, color: `var(--${r.tone}-edge)` }}>{r.label}</span>; })()}
                       <span className="text-[14px] font-extrabold capitalize">{dayShort.format(new Date(y + "T00:00:00"))} · {weekdayF.format(new Date(y + "T00:00:00"))}</span>
                     </div>
                     <DaySlots date={d} bookedOnly />
@@ -261,7 +261,7 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
         <div className="fixed inset-0 z-[85] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3 @md:items-center" onClick={onLater}>
           <section onClick={(e) => e.stopPropagation()} className="chunk w-full max-w-md overflow-hidden p-0" style={{ background: "var(--surface)" }}>
             <div className="p-5" style={{ background: "var(--olive)", borderBottom: "var(--bw-lg) solid var(--olive-edge)" }}>
-              <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-white" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="clock" width={23} weight="bold" /></span>
+              <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-white"><Icon name="clock" width={23} weight="bold" /></span>
               <p className="mt-3 text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Первый шаг</p>
               <h2 className="font-tight mt-1 text-[20px] font-black leading-tight">Настройте рабочие часы</h2>
               <p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Клиенты увидят только свободные окна, а занятые сессии появятся в календаре автоматически.</p>
@@ -269,7 +269,7 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
             <div className="p-5">
               <div className="grid grid-cols-3 gap-1.5">
                 {["Выберите дни", "Добавьте окна", "Сохраните"].map((label, index) => (
-                  <div key={label} className="rounded-[13px] px-2 py-2.5 text-center" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}>
+                  <div key={label} className="rounded-[13px] px-2 py-2.5 text-center" style={{ background: "var(--olive-soft)" }}>
                     <span className="tnum block text-[11px] font-black text-[var(--olive-edge)]">0{index + 1}</span>
                     <span className="mt-0.5 block text-[10px] font-extrabold leading-tight">{label}</span>
                   </div>
@@ -379,7 +379,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
           <ClientPicker clients={sorted} compact={false} onCreateClient={(name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
         ) : (
           <div>
-            <div className="mb-2 flex items-center gap-2 rounded-[12px] bg-[var(--green-soft)] px-3 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
+            <div className="mb-2 flex items-center gap-2 rounded-[12px] bg-[var(--green-soft)] px-3 py-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
               <span className="text-[13px] font-black">{client.name}</span>
             </div>

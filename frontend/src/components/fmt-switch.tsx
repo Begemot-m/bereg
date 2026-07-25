@@ -9,8 +9,8 @@ export function FmtSwitch({ fmt, onToggle, className = "" }: { fmt: "online" | "
     <button
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => { e.stopPropagation(); select(); onToggle(); }}
-      className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke ${className}`}
-      style={fmt === "online" ? { background: "var(--purple-soft)", borderColor: "var(--purple-edge)", color: "var(--ink)" } : { background: "var(--green-soft)", borderColor: "var(--green-edge)", color: "var(--ink)" }}
+      className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase ${className}`}
+      style={fmt === "online" ? { background: "var(--purple-soft)", color: "var(--purple-edge)" } : { background: "var(--green-soft)", color: "var(--green-edge)" }}
     >
       {fmt === "online" ? "онлайн" : "очно"}<Icon name="swap" width={9} weight="bold" />
     </button>

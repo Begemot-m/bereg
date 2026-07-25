@@ -57,6 +57,7 @@ type DB = {
   appts: Appointment[];
   homework: Homework[];
   moods: Record<number, Mood[]>;
+  goodNotes: Record<number, { date: string; text: string }[]>;
   wheel: Record<number, WheelResult | null>;
   therapyTutorialSeen: boolean;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
@@ -126,6 +127,15 @@ function seed(): DB {
       [["опустошение", "усталость"], ["раздражение"], ["грусть", "одиночество"], ["сосредоточенность"], ["тревога"]],
     ),
   };
+  // Заметки «что хорошего» — за вчера и раньше, чтобы сегодняшний день оставался открытым.
+  const goodNotes: Record<number, { date: string; text: string }[]> = {
+    1: [
+      { date: day(-4), text: "Дошла до конца дня без самокритики" },
+      { date: day(-3), text: "Позвонила сестре, смеялись полчаса" },
+      { date: day(-2), text: "Утро без спешки, кофе на балконе" },
+      { date: day(-1), text: "Сказала «нет» лишней задаче — и ничего не рухнуло" },
+    ],
+  };
   const wheel: Record<number, WheelResult | null> = {
     1: null,
     3: { answers: {
@@ -140,6 +150,7 @@ function seed(): DB {
     appts,
     homework,
     moods,
+    goodNotes,
     wheel,
     therapyTutorialSeen: false,
     myBookings: [],
@@ -177,6 +188,7 @@ function load(): DB {
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
+      if (!db.goodNotes) db.goodNotes = s.goodNotes;
       if (!db.wheel) db.wheel = s.wheel;
       if (!db.sub || (db.sub as { trialEndsAt?: string }).trialEndsAt === undefined) db.sub = s.sub;
       if (db.sub.clientPro === undefined) db.sub.clientPro = false;
@@ -396,7 +408,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   const therapyClient = clean.match(/^\/clients\/(\d+)\/therapy$/)?.[1];
   if (therapyClient && method === "GET") {
     const id = Number(therapyClient);
-    return delay({ moods: db.moods[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: true } as T);
+    return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: true } as T);
   }
 
   if (clean === "/my/therapy") {
@@ -413,6 +425,14 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         if (!found) entries.push(target);
         db.moods[id] = entries.slice(-30);
       }
+      if (typeof body.good === "string") {
+        const today = new Date(); today.setHours(12, 0, 0, 0);
+        const key = today.toISOString().slice(0, 10);
+        const text = String(body.good).trim().slice(0, 240);
+        const notes = (db.goodNotes[id] ?? []).filter((n) => n.date.slice(0, 10) !== key);
+        if (text) notes.push({ date: today.toISOString(), text });
+        db.goodNotes[id] = notes.slice(-60);
+      }
       if (body.wheel && typeof body.wheel === "object") {
         const clean: Record<string, number[]> = {};
         for (const [k, arr] of Object.entries(body.wheel as Record<string, number[]>)) clean[k] = arr.map((v) => Math.min(10, Math.max(0, Number(v))));
@@ -422,7 +442,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       save(db);
     }
     if (method === "GET" || method === "PATCH") {
-      return delay({ moods: db.moods[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
+      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
     }
   }
 

@@ -7,8 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import { WheelFlow } from "@/components/balance-flow";
+import { DailyCard } from "@/components/daily-card";
 import { Icon } from "@/components/icons";
-import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
+import { MoodSheet } from "@/components/mood-dial";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { MyBookingsManager } from "@/components/my-bookings";
@@ -69,14 +70,15 @@ export default function TherapyPage() {
   if (bookingsLoading || therapyLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
   // Интерфейс терапии показывается всегда — статистика копится независимо от терапевта.
   return <>
-    <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
+    <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onGood={(good) => save.mutate({ good })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
     {guideOpen && <TherapyGuide onClose={() => setGuideOpen(false)} />}
   </>;
 }
 
-function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
+function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGood, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onGood: (text: string) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const therapist = therapists.active;
   const [flowOpen, setFlowOpen] = useState(false);
+  const [moodSheet, setMoodSheet] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const buySub = useMutation({ mutationFn: () => startSubscription("client"), onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; } });
@@ -96,7 +98,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
       <header className="px-4 pb-16 pt-3 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--purple)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="therapy" width={20} weight="fill" /></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--purple)]"><Icon name="therapy" width={20} weight="fill" /></span>
             <div className="leading-none"><h1 className="font-tight text-[20px] font-black">Терапия</h1><p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">Ваш путь между сессиями</p></div>
           </div>
         </div>
@@ -130,13 +132,19 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
       <main className="relative -mt-9 rounded-t-[30px] bg-[#fffaf0] px-4 pb-8 pt-5 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
+          {/* Сегодня → неделя → динамика: сначала то, что можно сделать сейчас. */}
+          <DailyCard moods={therapy.moods} notes={therapy.notes} onOpenMood={() => setMoodSheet(true)} onSaveGood={onGood} />
+          <WeekReview moods={therapy.moods} homework={homework} />
+          <MoodStatsBlock moods={therapy.moods} />
+          <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
+
           {therapist && (
             <>
               {/* Работа с терапевтом: прогресс + задания + записи */}
               <section className="rounded-[22px] bg-[var(--green-soft)] p-4" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
                 <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Работа с терапевтом</p>
                 <div className="mt-3 flex items-center gap-3">
-                  <div className="flex h-[74px] w-[74px] shrink-0 flex-col items-center justify-center rounded-[20px] bg-white" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>
+                  <div className="flex h-[74px] w-[74px] shrink-0 flex-col items-center justify-center rounded-[20px] bg-white">
                     <span className="font-tight tnum text-[30px] font-black leading-none">{completedSessions}</span>
                     <span className="mt-1 text-[9px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{plural(completedSessions, "встреча", "встречи", "встреч")}</span>
                   </div>
@@ -164,27 +172,21 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onGuide
               </section>
             </>
           )}
-
-          {/* Самочувствие: неделя, настроение, колесо */}
-          <WeekReview moods={therapy.moods} homework={homework} />
-          <MoodModule today={todayEntry} moods={therapy.moods} onSave={onMood} />
-          <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
         </div>
       </main>
+      <MoodSheet open={moodSheet} mood={todayEntry?.mood} emotions={todayEntry?.emotions} onClose={() => setMoodSheet(false)} onSave={onMood} />
       {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} locked={!sub?.clientPro} onUnlock={() => buySub.mutate()} />}
     </div>
   );
 }
 
-// Настроение: миниатюра → окно с диском; статистика разворачивается кнопкой.
-function MoodModule({ today, moods, onSave }: { today?: Mood; moods: Mood[]; onSave: (mood: number, emotions: string[]) => void }) {
-  const [sheet, setSheet] = useState(false);
+// Динамика настроения — разворачивается кнопкой, чтобы не спорить с блоком «сегодня».
+function MoodStatsBlock({ moods }: { moods: Mood[] }) {
   const [stats, setStats] = useState(false);
   return (
     <div className="space-y-2.5">
-      <MoodHomeCard mood={today?.mood} moods={moods} onOpen={() => setSheet(true)} />
-      <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full bg-white py-2.5 text-[12.5px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }} aria-expanded={stats}>
-        <Icon name="chart" width={15} weight="bold" /> {stats ? "Свернуть статистику" : "Статистика настроения"}
+      <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-black text-[var(--muted)]" style={{ background: "var(--surface-2)" }} aria-expanded={stats}>
+        <Icon name="chart" width={15} weight="bold" /> {stats ? "Свернуть динамику" : "Динамика настроения"}
       </button>
       <Disclosure open={stats}>
         <div className="space-y-2.5">
@@ -192,25 +194,24 @@ function MoodModule({ today, moods, onSave }: { today?: Mood; moods: Mood[]; onS
           <p className="px-1 text-[10px] font-semibold text-[var(--muted-2)]">Отметки видит ваш терапевт — они помогают заметить, что меняется между встречами.</p>
         </div>
       </Disclosure>
-      <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={onSave} />
     </div>
   );
 }
 
 function Metric({ value, label, edge, bg = "var(--green-soft)" }: { value: string; label: string; edge: string; bg?: string }) {
-  return <div className="rounded-[15px] p-2.5 text-center" style={{ background: bg, border: `var(--bw) solid ${edge}` }}><p className="font-tight tnum text-[20px] font-black leading-none">{value}</p><p className="mt-1 text-[9px] font-black uppercase tracking-[.05em]">{label}</p></div>;
+  return <div className="rounded-[15px] p-2.5 text-center" style={{ background: bg }}><p className="font-tight tnum text-[20px] font-black leading-none">{value}</p><p className="mt-1 text-[9px] font-black uppercase tracking-[.05em]" style={{ color: edge }}>{label}</p></div>;
 }
 
 // Блок подбора терапевта в шапке терапии (когда никого ещё не прикреплено).
 function FindTherapistBlock() {
   return (
     <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[20px] bg-[#fffdf7] p-3.5 transition-transform active:scale-[0.99]" style={{ border: "2.5px dashed var(--purple-edge)" }}>
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}><Icon name="compass" width={24} weight="bold" /></span>
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]"><Icon name="compass" width={24} weight="bold" /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-black">Найти терапевта</span>
         <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания. Ваша статистика уже собирается ниже.</span>
       </span>
-      <span className="shrink-0 rounded-full bg-[var(--purple)] px-3 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>Подобрать</span>
+      <span className="shrink-0 rounded-full bg-[var(--purple)] px-3 py-2 text-[11px] font-black">Подобрать</span>
     </Link>
   );
 }
@@ -234,7 +235,7 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
       {/* Тап по карточке — на страницу терапевта */}
       <Link href={href} onClick={tap} className="flex gap-3">
         {portrait ? (
-          <div className="relative h-[104px] w-[88px] shrink-0 overflow-hidden rounded-[16px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)", background: "var(--purple-soft)" }}>
+          <div className="relative h-[104px] w-[88px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "var(--purple-soft)" }}>
             <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="88px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
           </div>
         ) : (
@@ -244,10 +245,10 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
           <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p>
           <div className="flex items-center gap-1.5">
             <p className="truncate text-[16px] font-black">{name}</p>
-            {psy?.verified && <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green)] text-[9px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }} title="Профиль подтверждён">✓</span>}
+            {psy?.verified && <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green)] text-[9px] font-black" title="Профиль подтверждён">✓</span>}
           </div>
           {psy && <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full bg-[var(--purple-soft)] px-2 py-0.5 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{psy.method}</span>
+            <span className="rounded-full bg-[var(--purple-soft)] px-2 py-0.5 text-[10px] font-black" style={{ color: "var(--purple-edge)" }}>{psy.method}</span>
             <span className="text-[11.5px] font-black">{psy.minutes} мин · {psy.price.toLocaleString("ru-RU")} ₽</span>
           </div>}
           <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black" style={{ color: next ? "var(--olive-edge)" : "var(--muted-2)" }}>

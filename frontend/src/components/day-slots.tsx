@@ -150,7 +150,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
   return (
     <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="rounded-[12px] stroke-lg" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
       <div className="flex items-center gap-2 px-3 py-2">
-        <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bg, border: `1px solid ${st.bd}` }} />
+        <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bd }} />
         {/* Тап по строке разворачивает управление — как по шестерне */}
         <button onClick={() => { tap(); setManage(!manage); }} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={manage}>
           <span className={`text-[13px] font-extrabold tnum ${past ? "line-through" : ""}`}>{timeF.format(new Date(appt.startsAt))}</span>
@@ -161,12 +161,12 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
         </button>
         <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
         <FmtSwitch fmt={appt.format} onToggle={() => setFmt.mutate(appt.format === "online" ? "offline" : "online")} />
-        <button onClick={() => { tap(); setManage(!manage); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] stroke" style={manage ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }} aria-label="Управлять сессией" aria-expanded={manage}><Icon name="gear" width={15} color={manage ? "#fff" : undefined} /></button>
+        <button onClick={() => { tap(); setManage(!manage); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]" style={manage ? { background: "var(--ink)", color: "#fff" } : { background: "var(--surface-2)" }} aria-label="Управлять сессией" aria-expanded={manage}><Icon name="gear" width={15} color={manage ? "#fff" : undefined} /></button>
       </div>
       <Disclosure open={manage}>
         <div className="px-3 pb-3">
           {resch ? (
-            <div className="rounded-[12px] p-2.5 stroke" style={{ background: "#faf7f0" }}>
+            <div className="rounded-[12px] p-2.5" style={{ background: "#faf7f0" }}>
               <p className="mb-2 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
               <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
               <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
@@ -174,7 +174,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
           ) : (
             <div className="flex items-center gap-2">
               <Button size="sm" variant="soft" onClick={() => setResch(true)}>Перенести</Button>
-              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "#fff", color: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>
+              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Отменить</button>
             </div>
           )}
         </div>
@@ -195,7 +195,7 @@ export function ClientPicker({ clients, onPick, compact = true, onCreateClient }
   const others = filtered.filter((c) => c.status !== "therapy");
   const row = (c: { id: number; name: string; status: string }) => (
     <button key={c.id} onClick={() => onPick(c.id)} className="flex w-full items-center gap-2 rounded-[10px] px-2 py-1.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
-      <span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
+      <span className="flex h-7 w-7 items-center justify-center rounded-[9px] text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
       <span className="flex-1 truncate text-[13px] font-bold">{c.name}</span>
       {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--green-edge)]">терапия</span>}
     </button>
