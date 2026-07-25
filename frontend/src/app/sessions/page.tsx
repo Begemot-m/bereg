@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ import { HelpDeck, SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
-import { WeekWindows } from "@/components/week-windows";
+import { DayAgenda, WeekWindows } from "@/components/week-windows";
 import { WorkHoursEditor } from "@/components/work-hours";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
@@ -62,13 +62,14 @@ function relTone(ymd: string): { label: string; tone: string } | null {
   return null;
 }
 
-type View = "soon" | "week" | "cal";
+type View = "soon" | "week";
 
 function PsySessions() {
   const qc = useQueryClient();
   const [view, setView] = useState<View>("soon");
   const [selDay, setSelDay] = useState<string | null>(null);
-  const [calDay, setCalDay] = useState<string | null>(null);
+  // Календарь — не вкладка, а разворот верхней плашки вместо ленты дат.
+  const [calOpen, setCalOpen] = useState(false);
   const [help, setHelp] = useState(false);
   const [scheduleHelp, setScheduleHelp] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -98,6 +99,7 @@ function PsySessions() {
   const [multiDays, setMultiDays] = useState<Set<string>>(new Set());
   const [bulkMenu, setBulkMenu] = useState(false);
   const closeMultiMode = () => { setMultiMode(false); setMultiDays(new Set()); setBulkMenu(false); };
+  const openCalendar = () => { tap(); setCalOpen(true); setMultiMode(false); };
   const bulk = useMutation({ mutationFn: async (ops: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }[]) => { for (const o of ops) await setOverride(o.iso, o.patch); }, onSuccess: () => { success(); closeMultiMode(); inv(); } });
   const toggleDay = (y: string) => setMultiDays((prev) => { const n = new Set(prev); n.has(y) ? n.delete(y) : n.add(y); return n; });
   const daySlots = (ymd: string) => {
@@ -127,8 +129,35 @@ function PsySessions() {
 
   return (
     <div>
-      <PageHead title="Сессии" icon="calendar" sub={view === "soon" ? (selDay ? dateHeader(selDay) : "Что впереди") : view === "week" ? "Неделя целиком" : "Запись в свободные окна"}>
-          <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
+      <PageHead
+        title="Сессии"
+        icon="calendar"
+        sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : "Что впереди") : "Неделя целиком"}
+        right={
+          <button
+            onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
+            aria-expanded={calOpen}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-black transition-colors"
+            style={calOpen ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--ink)" }}
+          >
+            <Icon name="calendar" width={14} weight="bold" color={calOpen ? "#fff" : "var(--edge)"} />
+            {calOpen ? "Свернуть" : "Календарь"}
+          </button>
+        }
+      >
+        <motion.div layout transition={{ duration: 0.34, ease: EASE }} className="overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            {calOpen ? (
+              <motion.div key="cal" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.26, ease: EASE }}>
+                <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
+              </motion.div>
+            ) : (
+              <motion.div key="strip" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.26, ease: EASE }}>
+                <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </PageHead>
 
       <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
@@ -154,8 +183,8 @@ function PsySessions() {
           </motion.button>
 
           {/* Справа — помощь */}
-          <button onClick={() => { tap(); setHelp(true); }} className="flex w-fit items-center gap-1.5 justify-self-end rounded-full px-3 py-1.5 text-[12px] font-extrabold stroke" style={{ background: "var(--head-soft)" }}>
-            <Icon name="question" width={14} weight="bold" color="var(--edge)" /> Как это работает?
+          <button onClick={() => { tap(); setHelp(true); }} className="flex w-fit items-center gap-1.5 justify-self-end rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]">
+            <Icon name="question" width={13} weight="bold" color="currentColor" /> Как это работает?
           </button>
         </div>
 
@@ -172,18 +201,18 @@ function PsySessions() {
             onSaved={() => finishScheduleIntro(false)}
           />
         )}
-        <Segmented value={view} onChange={(v) => { tap(); setView(v); }} />
+        {!calOpen && <Segmented value={view} onChange={(v) => { tap(); setView(v); }} />}
         {help && <HelpDeck title="Как работают сессии" pages={SESSIONS_HELP} onClose={() => setHelp(false)} />}
         {scheduleHelp && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setScheduleHelp(false)} />}
 
-        {view === "soon" && (
+        {!calOpen && view === "soon" && (
           isLoading ? (
             <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
           ) : soonDays.length === 0 ? (
             selDay ? (
               <EmptyDayFree key={selDay} day={selDay} />
             ) : (
-              <EmptyState onAdd={() => setView("cal")} selDay={null} />
+              <EmptyState onAdd={openCalendar} selDay={null} />
             )
           ) : (
             <div className="space-y-6">
@@ -203,12 +232,12 @@ function PsySessions() {
           )
         )}
 
-        {view === "week" && <WeekWindows />}
+        {!calOpen && view === "week" && <WeekWindows />}
 
-        {view === "cal" && (
+        {calOpen && (
           <div>
-            <div className="relative mb-2 flex items-center justify-between">
-              <button onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setCalDay(null); setBulkMenu(false); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>
+            <div className="relative mb-3 flex items-center justify-between">
+              <button onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>
                 {multiMode ? "Отменить выбор" : "Выбрать несколько"}
               </button>
               {multiMode && (
@@ -229,17 +258,12 @@ function PsySessions() {
               )}
             </div>
 
-            <MonthCalendar appts={appts} selected={calDay} onSelectDay={setCalDay} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
-
             {multiMode ? (
-              <p className="mt-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">{multiDays.size ? `Выбрано дней: ${multiDays.size}. Действия применятся ко всем.` : "Тапайте по дням, чтобы выбрать несколько."}</p>
-            ) : calDay ? (
-              <div className="mt-3">
-                <p className="mb-2.5 text-[13px] font-extrabold capitalize">{dateHeader(calDay)}</p>
-                <DaySlots key={calDay} date={new Date(calDay + "T00:00:00")} />
-              </div>
+              <p className="text-center text-[13px] font-semibold text-[var(--muted-2)]">{multiDays.size ? `Выбрано дней: ${multiDays.size}. Действия применятся ко всем.` : "Тапайте по дням в календаре, чтобы выбрать несколько."}</p>
+            ) : selDay ? (
+              <DayAgenda key={selDay} date={new Date(selDay + "T00:00:00")} today={selDay === todayY} />
             ) : (
-              <p className="mt-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">Выберите день в календаре — покажу свободные окна и записи.</p>
+              <p className="text-center text-[13px] font-semibold text-[var(--muted-2)]">Выберите день в календаре — покажу свободные окна и записи.</p>
             )}
           </div>
         )}
@@ -304,7 +328,7 @@ function BulkItem({ onClick, children }: { onClick: () => void; children: React.
 }
 
 function Segmented({ value, onChange }: { value: View; onChange: (v: View) => void }) {
-  const opts: { v: View; label: string }[] = [{ v: "soon", label: "Ближайшие" }, { v: "week", label: "Неделя" }, { v: "cal", label: "Календарь" }];
+  const opts: { v: View; label: string }[] = [{ v: "soon", label: "Ближайшие" }, { v: "week", label: "Неделя" }];
   return (
     <div className="mb-4 flex gap-1 rounded-full p-1 stroke" style={{ background: "#fff" }}>
       {opts.map((o) => (

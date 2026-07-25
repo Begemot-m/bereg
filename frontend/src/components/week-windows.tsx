@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -9,7 +9,6 @@ import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
-import { Disclosure } from "@/components/ui";
 import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { createClient, listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
@@ -22,16 +21,15 @@ const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.g
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pl = (n: number, one: string, few: string, many: string) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
 
-type Slot = { iso: string; hour: number; t: string; fmt: ApptFormat; past: boolean; appt?: Appointment; removed: boolean };
+const MORPH = { type: "spring" as const, stiffness: 420, damping: 34 };
 
-// Агенда недели: каждый день — секция с ровной сеткой окон. Тап по окну раскрывает управление.
-export function WeekWindows() {
+export type Slot = { iso: string; hour: number; t: string; fmt: ApptFormat; past: boolean; appt?: Appointment; removed: boolean };
+
+// Окна дня собираются из графика + записей, которые в график не попали.
+export function useDayWindows() {
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
-
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }), []);
-  const [open, setOpen] = useState<string | null>(null);
 
   const daySlots = (d: Date): Slot[] => {
     const wd = (d.getDay() + 6) % 7;
@@ -50,83 +48,132 @@ export function WeekWindows() {
   };
 
   const hasWork = Object.values(work?.hours ?? {}).some((a) => (a ?? []).length > 0);
-  if (!hasWork) {
-    return (
-      <div className="rounded-[14px] py-6 text-center text-[13px] font-semibold text-[var(--muted)] stroke" style={{ background: "#fff" }}>
-        Окна ещё не заданы.<br /><Link href="/cabinet" className="font-extrabold underline">Настроить график в кабинете →</Link>
-      </div>
-    );
-  }
+  return { daySlots, hasWork };
+}
 
+export function NoWorkHours() {
   return (
-    <div className="space-y-4">
-      {days.map((d, i) => {
-        const slots = daySlots(d);
-        const free = slots.filter((s) => !s.appt && !s.removed && !s.past).length;
-        const busy = slots.filter((s) => !!s.appt).length;
-        const isToday = i === 0;
-        const openSlot = slots.find((s) => s.iso === open);
-        return (
-          <section key={i}>
-            <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
-              <div className="flex items-center gap-2">
-                <h3 className="text-[13.5px] font-black">{cap(wdF.format(d))}, {d.getDate()}</h3>
-                {isToday && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)", color: "var(--olive-edge)" }}>сегодня</span>}
-              </div>
-              <p className="text-[10.5px] font-black text-[var(--muted-2)]">
-                {slots.length === 0 ? "выходной" : busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : `${free} свободно`}
-              </p>
-            </div>
-            {slots.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {slots.map((s) => <SlotChip key={s.iso} s={s} active={open === s.iso} onTap={() => { tap(); setOpen(open === s.iso ? null : s.iso); }} />)}
-              </div>
-            )}
-            <Disclosure open={!!openSlot} zoom autoScroll={false}>
-              {openSlot && <div className="mt-2"><SlotManage slot={openSlot} onClose={() => setOpen(null)} /></div>}
-            </Disclosure>
-          </section>
-        );
-      })}
+    <div className="rounded-[14px] py-6 text-center text-[13px] font-semibold text-[var(--muted)]" style={{ background: "#fff" }}>
+      Окна ещё не заданы.<br /><Link href="/cabinet" className="font-extrabold underline">Настроить график в кабинете →</Link>
     </div>
   );
 }
 
-function SlotChip({ s, active, onTap }: { s: Slot; active: boolean; onTap: () => void }) {
-  const base = "relative flex h-[54px] flex-col items-center justify-center gap-0.5 rounded-[14px] px-1";
-  const fmtGlyph = <span className="absolute right-1.5 top-1.5"><Icon name={s.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>;
+// Агенда одного дня. Тап по окну не открывает меню снизу — само окно
+// разворачивается в широкий блок и сворачивается обратно.
+export function DayAgenda({ date, today }: { date: Date; today?: boolean }) {
+  const { daySlots } = useDayWindows();
+  const [open, setOpen] = useState<string | null>(null);
+  const slots = daySlots(date);
+  const free = slots.filter((s) => !s.appt && !s.removed && !s.past).length;
+  const busy = slots.filter((s) => !!s.appt).length;
 
-  if (s.appt) {
-    return (
-      <motion.button whileTap={{ scale: 0.94 }} animate={{ scale: active ? 1.05 : 1 }} transition={{ type: "spring", stiffness: 460, damping: 26 }} onClick={onTap} className={base}
-        style={{ background: active ? "var(--purple)" : "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)", opacity: s.past ? 0.55 : 1, boxShadow: active ? "0 8px 18px -8px var(--purple-edge)" : "none" }}>
-        <span className={`tnum text-[13.5px] font-black leading-none ${s.past ? "line-through" : ""}`}>{s.t}</span>
-        <span className="max-w-full truncate text-[9.5px] font-bold text-[var(--muted)]">{s.appt.client.name.split(" ")[0]}</span>
-        {fmtGlyph}
-      </motion.button>
-    );
-  }
-  if (s.removed) {
-    return (
-      <motion.button whileTap={{ scale: 0.94 }} animate={{ scale: active ? 1.05 : 1 }} transition={{ type: "spring", stiffness: 460, damping: 26 }} onClick={onTap} className={base}
-        style={{ background: "#f4efe6", border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-        <span className="tnum text-[13.5px] font-black leading-none text-[var(--muted-2)] line-through">{s.t}</span>
-        <span className="text-[9.5px] font-bold text-[var(--muted-2)]">закрыто</span>
-      </motion.button>
-    );
-  }
   return (
-    <motion.button whileTap={{ scale: 0.94 }} animate={{ scale: active ? 1.05 : 1 }} transition={{ type: "spring", stiffness: 460, damping: 26 }} onClick={onTap} disabled={s.past} className={base}
-      style={{ background: active ? "var(--olive-soft)" : "#fff", border: `var(--bw-lg) solid ${s.past ? "var(--edge-neutral)" : "var(--olive-edge)"}`, opacity: s.past ? 0.5 : 1, boxShadow: active ? "0 8px 18px -8px var(--olive-edge)" : "none" }}>
-      <span className={`tnum text-[13.5px] font-black leading-none ${s.past ? "line-through" : ""}`}>{s.t}</span>
-      <span className="text-[9.5px] font-bold" style={{ color: s.past ? "var(--muted-2)" : "var(--olive-edge)" }}>{s.past ? "прошло" : "свободно"}</span>
-      {!s.past && fmtGlyph}
-    </motion.button>
+    <section>
+      <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+        <div className="flex items-center gap-2">
+          <h3 className="text-[13.5px] font-black">{cap(wdF.format(date))}, {date.getDate()}</h3>
+          {today && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}>сегодня</span>}
+        </div>
+        <p className="text-[10.5px] font-black text-[var(--muted-2)]">
+          {slots.length === 0 ? "выходной" : busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : `${free} свободно`}
+        </p>
+      </div>
+      {slots.length > 0 && (
+        <motion.div layout transition={MORPH} className="grid grid-cols-3 items-start gap-2">
+          {slots.map((s) => (
+            <SlotCell
+              key={s.iso}
+              slot={s}
+              active={open === s.iso}
+              onTap={() => { tap(); setOpen(open === s.iso ? null : s.iso); }}
+              onClose={() => setOpen(null)}
+            />
+          ))}
+        </motion.div>
+      )}
+    </section>
   );
 }
 
-// Управление окном: раскрывается под днём. Свободное — запись/закрыть; занятое — перенос/отмена.
-function SlotManage({ slot, onClose }: { slot: Slot; onClose: () => void }) {
+// Агенда недели — те же дни подряд.
+export function WeekWindows() {
+  const { hasWork } = useDayWindows();
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }), []);
+  if (!hasWork) return <NoWorkHours />;
+  return (
+    <div className="space-y-4">
+      {days.map((d, i) => <DayAgenda key={d.toDateString()} date={d} today={i === 0} />)}
+    </div>
+  );
+}
+
+/* ——— Окно: один блок, компактный или раскрытый ——— */
+
+type Look = { bg: string; ring?: string; label: string; labelColor: string };
+
+function look(s: Slot): Look {
+  if (s.appt) return { bg: s.past ? "var(--purple-soft)" : "var(--purple)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
+  if (s.removed) return { bg: "#efe9dd", label: "закрыто", labelColor: "var(--muted-2)" };
+  if (s.past) return { bg: "var(--surface-2)", label: "прошло", labelColor: "var(--muted-2)" };
+  // Свободное окно — пунктир: рамка здесь означает «сюда можно записать».
+  return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
+}
+
+function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolean; onTap: () => void; onClose: () => void }) {
+  const st = look(slot);
+  return (
+    <motion.div
+      layout
+      transition={MORPH}
+      className={active ? "col-span-3" : ""}
+      style={{
+        borderRadius: 14,
+        background: st.bg,
+        border: st.ring ? `2px dashed ${st.ring}` : "none",
+        opacity: slot.past && !active ? 0.6 : 1,
+        boxShadow: active ? "0 14px 30px -18px rgba(32,28,24,.45)" : "none",
+        zIndex: active ? 2 : 1,
+      }}
+    >
+      <motion.button
+        layout="position"
+        onClick={onTap}
+        disabled={slot.past && !slot.appt && !active}
+        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : "relative flex h-[54px] w-full flex-col items-center justify-center gap-0.5 px-1"}
+        aria-expanded={active}
+      >
+        <span className={`tnum font-black leading-none ${active ? "text-[17px]" : "text-[13.5px]"} ${slot.past ? "line-through" : ""}`}>{slot.t}</span>
+        <span className={`min-w-0 ${active ? "flex-1" : "max-w-full"}`}>
+          <span className={`block truncate font-bold ${active ? "text-[12.5px]" : "text-[9.5px]"}`} style={{ color: st.labelColor }}>
+            {active ? cap(dLong.format(new Date(slot.iso))) : st.label}
+          </span>
+        </span>
+        {!active && !slot.removed && (
+          <span className="absolute right-1.5 top-1.5"><Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>
+        )}
+        {active && <span className="text-[15px] font-black text-[var(--muted-2)]">✕</span>}
+      </motion.button>
+
+      <AnimatePresence initial={false}>
+        {active && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-3.5 pb-3.5 pt-3"><SlotBody slot={slot} onClose={onClose} /></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// Начинка раскрытого окна: свободное — запись/закрыть; занятое — перенос/отмена.
+function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const qc = useQueryClient();
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
@@ -141,50 +188,49 @@ function SlotManage({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const closeWin = useMutation({ mutationFn: () => setOverride(slot.iso, { removed: true }), onSuccess: () => { onClose(); inv(); } });
   const openWin = useMutation({ mutationFn: () => setOverride(slot.iso, { removed: false }), onSuccess: () => { select(); inv(); } });
 
-  return (
-    <div className="rounded-[16px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--olive-edge)", boxShadow: "0 14px 30px -18px rgba(32,28,24,.4)" }}>
-      <div className="mb-2.5 flex items-center justify-between">
-        <p className="text-[12.5px] font-black capitalize">{dLong.format(new Date(slot.iso))} · {slot.t}</p>
-        <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full stroke text-[13px] font-black" style={{ background: "#fff" }} aria-label="Закрыть">✕</button>
+  if (slot.removed) {
+    return (
+      <div className="flex items-center justify-between rounded-[12px] bg-white px-3 py-2.5">
+        <p className="text-[12px] font-semibold text-[var(--muted)]">Окно закрыто на этот день</p>
+        <button onClick={() => openWin.mutate()} className="rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>↺ Открыть</button>
       </div>
+    );
+  }
 
-      {slot.removed ? (
-        <div className="flex items-center justify-between">
-          <p className="text-[12px] font-semibold text-[var(--muted)]">Окно закрыто на этот день</p>
-          <button onClick={() => openWin.mutate()} className="rounded-full px-3 py-1.5 text-[12px] font-black stroke" style={{ background: "#fff", color: "var(--green-edge)" }}>↺ Открыть</button>
+  if (slot.appt) {
+    return (
+      <>
+        <div className="mb-2.5 flex items-center gap-2 rounded-[12px] bg-white px-3 py-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[9px] text-[12px] font-black" style={{ background: "var(--purple-soft)" }}>{slot.appt.client.name.charAt(0)}</span>
+          <span className="text-[13px] font-black">{slot.appt.client.name}</span>
         </div>
-      ) : slot.appt ? (
-        <>
-          <div className="mb-2.5 flex items-center gap-2 rounded-[12px] bg-[var(--green-soft)] px-3 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
-            <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white text-[12px] font-black stroke">{slot.appt.client.name.charAt(0)}</span>
-            <span className="text-[13px] font-black">{slot.appt.client.name}</span>
+        {resch ? (
+          <div className="rounded-[12px] bg-white p-2.5">
+            <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
+            <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
+            <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
           </div>
-          {resch ? (
-            <div className="rounded-[12px] p-2.5 stroke" style={{ background: "#faf7f0" }}>
-              <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
-              <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
-              <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} />
-              <button onClick={() => setResch(true)} className="rounded-full bg-white px-3 py-1.5 text-[12px] font-black stroke">Перенести</button>
-              {!slot.past && <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-black stroke" style={{ background: "#fff", color: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>}
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
-            <div className="flex items-center gap-1.5">
-              <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
-              <button onClick={() => closeWin.mutate()} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black stroke" style={{ color: "var(--salmon-edge)" }}>Закрыть</button>
-            </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} />
+            <button onClick={() => setResch(true)} className="rounded-full bg-white px-3 py-1.5 text-[12px] font-black">Перенести</button>
+            {!slot.past && <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Отменить</button>}
           </div>
-          <ClientPicker clients={sorted} onCreateClient={(name) => create.mutate(name)} onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
-        </>
-      )}
-    </div>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="mb-1.5 flex items-center justify-between">
+        <p className="text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
+        <div className="flex items-center gap-1.5">
+          <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
+          <button onClick={() => closeWin.mutate()} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Закрыть</button>
+        </div>
+      </div>
+      <ClientPicker clients={sorted} onCreateClient={(name) => create.mutate(name)} onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
+    </>
   );
 }

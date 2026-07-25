@@ -16,14 +16,12 @@ const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const PXH = 40;
-const STEP = 10;
-const MAGNET = 13;
+// Окна встают на получасовую сетку — те же деления, что нарисованы на рейке.
+const GRID = 30;
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 26 };
 
 function snapMin(raw: number): number {
-  const hour = Math.round(raw / 60) * 60;
-  if (Math.abs(raw - hour) <= MAGNET) return hour;
-  return Math.round(raw / STEP) * STEP;
+  return Math.round(raw / GRID) * GRID;
 }
 
 const EDGE = 9; // мин — магнит к краю соседнего окна (чтобы липли вплотную)
@@ -78,10 +76,12 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
     const rail = railRef.current; if (!rail) return;
     const rect = rail.getBoundingClientRect();
     const others = slots.map((s) => ({ s: toMin(s.t), e: toMin(s.t) + s.d }));
-    // Новая сессия магнитится к ровному часу (:00)
-    let mins = Math.round((start + ((clientY - rect.top) / PXH) * 60) / 60) * 60;
-    mins = clamp(resolveTouch(mins, len, others), start, end - len);
-    if (overlaps(mins, len, others)) { select(); return; }
+    // Сначала — ровное деление сетки. Прилипание к соседу только если на сетке занято.
+    let mins = clamp(snapMin(start + ((clientY - rect.top) / PXH) * 60), start, end - len);
+    if (overlaps(mins, len, others)) {
+      mins = clamp(resolveTouch(mins, len, others), start, end - len);
+      if (overlaps(mins, len, others)) { select(); return; }
+    }
     success();
     setSlots([...slots, { t: hhmm(mins), d: len, fmt: lastFmt }]);
   };
@@ -94,8 +94,8 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
   const removeAt = (t: string) => { select(); setSlots(slots.filter((s) => s.t !== t)); };
   const commitMove = (s: WorkSlot, dyPx: number) => {
     const others = slots.filter((x) => x.t !== s.t).map((x) => ({ s: toMin(x.t), e: toMin(x.t) + x.d }));
-    let mins = snapMin(toMin(s.t) + (dyPx / PXH) * 60);
-    mins = clamp(resolveTouch(mins, s.d, others), start, end - s.d);
+    let mins = clamp(snapMin(toMin(s.t) + (dyPx / PXH) * 60), start, end - s.d);
+    if (overlaps(mins, s.d, others)) mins = clamp(resolveTouch(mins, s.d, others), start, end - s.d);
     if (overlaps(mins, s.d, others) || mins === toMin(s.t)) { if (mins !== toMin(s.t)) select(); return; }
     success();
     setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(mins) } : x)));
@@ -141,8 +141,12 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
             ))}
           </div>
           <div ref={railRef} onClick={(e) => placeAt(e.clientY)} className="relative flex-1 overflow-hidden rounded-[14px] stroke-lg" style={{ height: railH, background: "#fff" }}>
+            {/* Часы — сплошной линией, получасы — пунктиром: видно, куда встанет окно. */}
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
-              <div key={i} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
+              <div key={`h${i}`} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
+            ))}
+            {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
+              <div key={`h${i}-half`} className="absolute inset-x-0" style={{ top: (i + 0.5) * PXH, borderTop: "1px dashed var(--edge-neutral)", opacity: 0.7 }} />
             ))}
             <AnimatePresence>
               {slots.map((s) => (
@@ -273,8 +277,9 @@ const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hour
                 {list.map((s) => {
                   const top = clamp(((toMin(s.t) - from * 60) / span) * H, 0, H);
                   const h = Math.max(3, (s.d / span) * H);
-                  const ev = toMin(s.t) >= 18 * 60;
-                  return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: ev ? "var(--purple)" : "var(--head)", border: `1px solid ${ev ? "var(--purple-edge)" : "var(--edge)"}` }} />;
+                  // Цвет — тот же slotStyle, что и у блоков в графике дня.
+                  const st = slotStyle(Math.floor(toMin(s.t) / 60));
+                  return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: st.bg }} />;
                 })}
               </div>
               <span className="text-[10px] font-extrabold uppercase" style={{ color: isSel ? "var(--ink)" : "var(--muted-2)" }}>{label}</span>
