@@ -19,6 +19,16 @@ import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
+// Когда собрана эта версия. Если после деплоя тут старая дата — вебвью
+// показывает страницу из кеша, а не новую сборку.
+function buildLabel(): string {
+  const raw = process.env.NEXT_PUBLIC_BUILD;
+  if (!raw) return "—";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+}
+
 export default function CabinetPage() {
   const [role, switchRole] = useRole();
   const router = useRouter();
@@ -80,6 +90,7 @@ export default function CabinetPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-black">Клубок</p>
               <p className="text-[11.5px] font-semibold text-[var(--muted)]">Демо-прототип · центр «Амур и Психея». Данные живут только на этом устройстве.</p>
+              <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Сборка от {buildLabel()}</p>
             </div>
           </Card>
         </div>

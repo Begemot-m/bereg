@@ -13,7 +13,12 @@ const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: here,
   // Базовый путь доступен в клиенте для ссылок на public-ассеты (картинки маскотов).
-  env: { NEXT_PUBLIC_BASE_PATH: repo ? `/${repo}` : "" },
+  // Метка сборки: видна в кабинете, чтобы отличать свежую версию от той,
+  // что вебвью достал из кеша, — иначе «не применилось» не проверить.
+  env: {
+    NEXT_PUBLIC_BASE_PATH: repo ? `/${repo}` : "",
+    NEXT_PUBLIC_BUILD: new Date().toISOString(),
+  },
   ...(isStatic
     ? {
         output: "export",
