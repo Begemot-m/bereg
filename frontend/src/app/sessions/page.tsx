@@ -141,10 +141,12 @@ function PsySessions() {
           </button>
         }
       >
-        {/* Лента дат всегда на месте; календарь разворачивается под ней. */}
-        <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
+        {/* Календарь занимает шапку целиком, лента дат сворачивается. */}
+        <Disclosure open={!calOpen} autoScroll={false}>
+          <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
+        </Disclosure>
         <Disclosure open={calOpen} autoScroll={false}>
-          <div className="pt-2">
+          <div>
             <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
             <button
               onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
@@ -185,9 +187,9 @@ function PsySessions() {
             onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
             aria-expanded={calOpen}
             className="flex w-fit items-center gap-1.5 justify-self-end rounded-full px-3.5 py-2 text-[11.5px] font-black transition-colors"
-            style={calOpen ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive)", color: "var(--olive-edge)" }}
+            style={calOpen ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive-edge)", color: "#fff" }}
           >
-            <Icon name="calendar" width={14} weight="bold" color={calOpen ? "#fff" : "var(--olive-edge)"} />
+            <Icon name="calendar" width={14} weight="bold" color="#fff" />
             {calOpen ? "Свернуть" : "Календарь"}
           </button>
         </div>

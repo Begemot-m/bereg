@@ -134,6 +134,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
         <div className="space-y-3">
           {/* Настроение → работа со специалистом → доска → динамика → записи. */}
           <MoodHomeCard mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />
+          <MoodStatsBlock moods={therapy.moods} />
 
           {therapist && (
             <WorkWithSpecialist
@@ -147,7 +148,6 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
           <TherapistBoard value={therapy.board} onSave={onBoard} />
 
           <WeekReview moods={therapy.moods} homework={homework} />
-          <MoodStatsBlock moods={therapy.moods} />
           <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
         </div>
       </main>

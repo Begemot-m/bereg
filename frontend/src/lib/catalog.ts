@@ -17,6 +17,7 @@ export type Psy = {
   reviews: number;
   method: string;
   methods: string[];
+  specialistTypes?: string[]; // психолог / психотерапевт / коуч — можно несколько
   topics: string[];
   price: number;
   minutes: number;
@@ -164,6 +165,7 @@ export function profileToCatalogPsy(profile: PsyProfile): Psy {
     reviews: 0,
     method: profile.primaryMethod.trim(),
     methods: [...new Set([profile.primaryMethod, ...profile.methods].filter(Boolean))],
+    specialistTypes: (profile.specialistTypes?.length ? profile.specialistTypes : [profile.specialistType].filter(Boolean) as string[]),
     topics: profile.topics.filter(Boolean),
     price: profile.sessionPrice,
     minutes: profile.sessionMinutes,

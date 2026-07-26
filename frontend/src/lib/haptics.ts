@@ -90,14 +90,9 @@ function soundAt(audio: AudioContext, when: number) {
   } catch { /* звук не критичен */ }
 }
 
-/** Щелчок при прокрутке шкалы — как у механического таймера. */
+/** Отклик при прокрутке шкалы. Звук убран, осталась вибрация. */
 export function tick() {
   select();
-  if (typeof window === "undefined" || muted || tickMuted()) return;
-  const audio = audioContext();
-  if (!audio) return;
-  if (audio.state === "suspended") void audio.resume();
-  soundAt(audio, audio.currentTime);
 }
 
 /**
@@ -109,20 +104,13 @@ export function tickSteps(count: number) {
   const total = Math.max(0, Math.floor(count));
   if (!total) return;
 
+  // Только вибрация: звуковой щелчок при прокрутке шкалы убран — в приложении
+  // про состояние он навязчив, особенно если открыть его в тишине.
   const haptic = tg();
   if (haptic?.selectionChanged) {
     for (let index = 0; index < total; index += 1) haptic.selectionChanged();
   } else {
     const pattern = Array.from({ length: total * 2 - 1 }, (_, index) => index % 2 === 0 ? 3 : 5);
     vibrate(pattern);
-  }
-
-  if (muted || tickMuted()) return;
-  const audio = audioContext();
-  if (!audio) return;
-  if (audio.state === "suspended") void audio.resume();
-  const gap = Math.min(0.014, 0.08 / total);
-  for (let index = 0; index < total; index += 1) {
-    soundAt(audio, audio.currentTime + index * gap);
   }
 }

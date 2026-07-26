@@ -16,7 +16,7 @@ const EMPTY_PROFILE: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], style: "", quote: "", avoids: [], status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [], status: "review",
 };
 
 type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "preview";
@@ -325,7 +325,23 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => onFile(event.target.files?.[0])} />
     <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[17px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[17px] bg-white text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
     <Field label="Имя и фамилия"><Input value={draft.name} onChange={(event) => update({ name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
-    <Field label="Кто вы"><div className="flex flex-wrap gap-2">{SPECIALIST_TYPES.map((type) => <Choice key={type} active={draft.specialistType === type} onClick={() => update({ specialistType: type })}>{type}</Choice>)}</div></Field>
+    <Field label="Кто вы" hint="Можно выбрать несколько — все появятся в каталоге">
+      <div className="flex flex-wrap gap-2">
+        {SPECIALIST_TYPES.map((type) => {
+          const list = draft.specialistTypes ?? [];
+          const active = list.includes(type);
+          return (
+            <Choice
+              key={type}
+              active={active}
+              onClick={() => update({ specialistTypes: active ? list.filter((t) => t !== type) : [...list, type] })}
+            >
+              {type}
+            </Choice>
+          );
+        })}
+      </div>
+    </Field>
     <Field label="Пол"><div className="grid grid-cols-3 gap-2"><Choice active={draft.gender === "woman"} onClick={() => update({ gender: "woman" })}>Женщина</Choice><Choice active={draft.gender === "man"} onClick={() => update({ gender: "man" })}>Мужчина</Choice><Choice active={draft.gender === "unspecified"} onClick={() => update({ gender: "unspecified" })}>Не указывать</Choice></div></Field>
     <Field label="Языки консультации"><div className="flex flex-wrap gap-2">{[...new Set([...LANGUAGES, ...draft.languages])].map((language) => <Choice key={language} active={draft.languages.includes(language)} onClick={() => update({ languages: toggle(draft.languages, language) })}>{language}</Choice>)}</div><div className="mt-2"><ChipInput placeholder="Другой язык" onAdd={(v) => { if (!draft.languages.includes(v)) update({ languages: [...draft.languages, v] }); }} /></div></Field>
     <Field label="Telegram для связи"><div className="flex items-center gap-2 rounded-[14px] bg-white px-3 stroke"><span className="font-black text-[var(--muted-2)]">@</span><input value={draft.tg} onChange={(event) => update({ tg: event.target.value.replace(/^@/, "") })} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none" /></div></Field>
@@ -502,7 +518,15 @@ function ProfilePhoto({ photo, name, size }: { photo: string | null; name: strin
   if (photo) return <div className={`${classes} shrink-0 overflow-hidden stroke`}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo} alt="" className="h-full w-full object-cover" /></div>;
   return <div className={`${classes} flex shrink-0 items-center justify-center bg-[var(--head-soft)] font-black stroke`}>{name.trim().charAt(0).toUpperCase() || "П"}</div>;
 }
-function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="block"><span className="mb-1.5 block text-[12px] font-extrabold text-[var(--muted)]">{label}</span>{children}</label>; }
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[12px] font-extrabold text-[var(--muted)]">{label}</span>
+      {hint && <span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted-2)]">{hint}</span>}
+      {children}
+    </label>
+  );
+}
 
 function mergeProfile(profile: PsyProfile | null): PsyProfile {
   const merged = { ...EMPTY_PROFILE, ...(profile ?? {}), location: { ...EMPTY_PROFILE.location, ...(profile?.location ?? {}) } };
@@ -510,6 +534,8 @@ function mergeProfile(profile: PsyProfile | null): PsyProfile {
   merged.tg ||= tgUsername();
   merged.primaryMethod ||= merged.approach;
   merged.approach = merged.primaryMethod;
+  // Раньше специальность была одна строкой — переносим её в список.
+  if (!merged.specialistTypes?.length) merged.specialistTypes = merged.specialistType ? [merged.specialistType] : ["Психолог"];
   if (merged.primaryMethod && !merged.methods.includes(merged.primaryMethod)) merged.methods = [merged.primaryMethod, ...merged.methods];
   return merged;
 }

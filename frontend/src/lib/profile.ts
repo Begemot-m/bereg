@@ -55,7 +55,9 @@ export type PsyProfile = {
   photos: string[];            // до 3 фото, первое — основное
   sessionMinutes: number;      // длительность сессии
   tg: string;                  // ник в Telegram для связи (без @)
-  specialistType: string;      // психолог / психотерапевт / психиатр / коуч …
+  /** Старое поле с одной специальностью — читаем для совместимости. */
+  specialistType?: string;
+  specialistTypes: string[];   // психолог / психотерапевт / психиатр / коуч …
   links: { kind: LinkKind; url: string }[]; // сайт и соцсети
   style: string;               // стиль работы: мягкий / структурный / активный …
   quote: string;               // короткая цитата от первого лица для карточки
@@ -136,7 +138,7 @@ const EMPTY: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistType: "Психолог", links: [], style: "", quote: "", avoids: [], status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [], status: "review",
 };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).

@@ -240,6 +240,13 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
           <p className="mt-1 text-[11px] font-black text-[var(--muted)]">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
+          {(psy.specialistTypes?.length ?? 0) > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {psy.specialistTypes!.map((type) => (
+                <span key={type} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black" style={{ color: tone.edge }}>{type}</span>
+              ))}
+            </div>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-black">
               <Icon name="star" width={12} weight="fill" color="var(--amber-edge)" />
