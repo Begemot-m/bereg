@@ -98,7 +98,9 @@ export function ClientDetail() {
     <div className="-mx-4 -mt-6 @md:-mx-9">
       {/* Шапка клиента: цвет = фон раздела, ниже скруглённая линия */}
       <header className="bg-[var(--page)] px-4 pb-14 pt-4 @md:px-9">
-        <Link href="/clients" className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">← Клиенты</Link>
+        <Link href="/clients" className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-black transition-transform active:scale-[0.97]" style={{ color: "var(--edge)" }}>
+          <span className="text-[15px] leading-none">‹</span> Все клиенты
+        </Link>
         <div className="flex items-center gap-3.5">
           {/* Крупная рамка фото */}
           <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] text-[26px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }}>{client.name.charAt(0)}</div>
@@ -160,18 +162,17 @@ export function ClientDetail() {
           </div>
         )}
 
-        {/* Колесо баланса — ниже */}
+        {/* Задания выше колеса: с ними работают каждую неделю, с колесом — раз в месяц */}
+        <div>
+          <SectionTitle>Домашние задания</SectionTitle>
+          <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)" }}>
+            <HomeworkBlock clientId={id} items={homework} onChanged={inv} />
+          </div>
+        </div>
+
         <div>
           <SectionTitle>Колесо баланса</SectionTitle>
           <WellbeingCard wheel={therapy?.wheel ?? null} subtitle="самооценка клиента · последние две недели" />
-        </div>
-
-        {/* Домашние задания: статусы правит клиент сам; вы — только текст и удаление */}
-        <div>
-          <SectionTitle>Домашние задания</SectionTitle>
-          <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-            <HomeworkBlock clientId={id} items={homework} onChanged={inv} />
-          </div>
         </div>
 
         {/* История встреч — факт. Запланированную по тапу переносим на другое окно */}

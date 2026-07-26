@@ -9,7 +9,7 @@ import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
-import { listClients } from "@/lib/clients";
+import { createClient, listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
 
@@ -123,24 +123,75 @@ function look(s: Slot): Look {
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
 }
 
-// Горизонтальный ряд клиентов — вместо списка с поиском на пол-экрана.
+// Выбор клиента: чипы недавних, поиск когда их много, и создание нового
+// прямо отсюда — чтобы не уходить в раздел «Клиенты» посреди записи.
 function ClientChips({ onPick }: { onPick: (id: number) => void }) {
+  const qc = useQueryClient();
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
-  if (sorted.length === 0) return <p className="text-[12px] font-semibold text-[var(--muted-2)]">Сначала добавьте клиента в разделе «Клиенты».</p>;
+  const [query, setQuery] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+
+  const create = useMutation({
+    mutationFn: (value: string) => createClient(value, ""),
+    onSuccess: (c) => { qc.invalidateQueries({ queryKey: ["clients"] }); onPick(c.id); },
+  });
+
+  const q = query.trim().toLowerCase();
+  const list = [...clients]
+    .sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1))
+    .filter((c) => !q || c.name.toLowerCase().includes(q));
+
+  if (adding) {
+    return (
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (name.trim()) create.mutate(name.trim()); }}
+        className="flex items-center gap-2"
+      >
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Имя нового клиента"
+          className="min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
+        />
+        <button type="submit" disabled={!name.trim() || create.isPending} className="shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black disabled:opacity-40" style={{ background: "var(--olive)", color: "var(--olive-edge)" }}>Записать</button>
+        <button type="button" onClick={() => { tap(); setAdding(false); }} className="shrink-0 text-[12px] font-black text-[var(--muted-2)]">Отмена</button>
+      </form>
+    );
+  }
+
   return (
-    <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
-      {sorted.map((c) => (
+    <div className="space-y-2">
+      {clients.length > 6 && (
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск по имени"
+          className="w-full rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
+        />
+      )}
+      <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
         <button
-          key={c.id}
-          onClick={() => { select(); onPick(c.id); }}
-          className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[12px] font-black"
-          style={{ background: "#fff" }}
+          onClick={() => { tap(); setAdding(true); }}
+          className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1.5 pr-3 text-[12px] font-black"
+          style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--surface-2)" }}>{c.name.charAt(0)}</span>
-          {c.name.split(" ")[0]}
+          <Icon name="plus" width={14} weight="bold" color="var(--olive-edge)" /> Новый
         </button>
-      ))}
+        {list.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => { select(); onPick(c.id); }}
+            className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[12px] font-black"
+            style={{ background: "#fff" }}
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--surface-2)" }}>{c.name.charAt(0)}</span>
+            {c.name.split(" ")[0]}
+          </button>
+        ))}
+        {list.length === 0 && <span className="px-1 py-1.5 text-[12px] font-semibold text-[var(--muted-2)]">Никого не нашли</span>}
+      </div>
     </div>
   );
 }
@@ -164,8 +215,9 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
     return out;
   }, [date, taken.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [dur, setDur] = useState(50);
   const book = useMutation({
-    mutationFn: ({ clientId }: { clientId: number }) => createAppointment({ clientId, startsAt: iso!, format: "online" }),
+    mutationFn: ({ clientId }: { clientId: number }) => createAppointment({ clientId, startsAt: iso!, format: "online", durationMin: dur }),
     onSuccess: () => {
       success();
       setIso(null); onClose();
@@ -196,7 +248,24 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
         <button onClick={() => { setIso(null); onClose(); }} className="text-[15px] font-black text-[var(--muted-2)]" aria-label="Закрыть">✕</button>
       </div>
       {iso ? (
-        <ClientChips onPick={(clientId) => book.mutate({ clientId })} />
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-2">
+            <span className="t-cap inline-flex items-center gap-1.5"><Icon name="clock" width={13} weight="bold" color="var(--muted)" /> Длительность</span>
+            <div className="flex gap-1">
+              {[30, 50, 60, 90].map((value) => (
+                <button
+                  key={value}
+                  onClick={() => { select(); setDur(value); }}
+                  className="tnum rounded-full px-2.5 py-1 text-[11.5px] font-black"
+                  style={dur === value ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--muted)" }}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+          <ClientChips onPick={(clientId) => book.mutate({ clientId })} />
+        </div>
       ) : times.length === 0 ? (
         <p className="text-[12px] font-semibold text-[var(--muted-2)]">На этот день свободного времени не осталось.</p>
       ) : (
