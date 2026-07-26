@@ -1,29 +1,28 @@
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? "dev-insecure-secret-change-me",
-);
+import { env } from "@/lib/server/env";
 
-const ACCESS_TTL = "30m";
-const REFRESH_TTL = "30d";
+// Access-токен живёт минуты и не хранится в базе: его дешевле перевыпустить,
+// чем проверять. Долгоживущий refresh — не JWT, а случайная строка с хэшем
+// в базе (см. server/sessions.ts): только так его можно отозвать.
 
-async function sign(userId: number, type: "access" | "refresh", ttl: string): Promise<string> {
-  return new SignJWT({ type })
+const key = () => new TextEncoder().encode(env.jwtSecret);
+
+export async function createAccessToken(userId: number, sessionId: string): Promise<string> {
+  return new SignJWT({ type: "access", sid: sessionId })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(userId))
     .setIssuedAt()
-    .setExpirationTime(ttl)
-    .sign(secret);
+    .setExpirationTime(`${env.accessTtlSeconds}s`)
+    .sign(key());
 }
 
-export const createAccessToken = (userId: number) => sign(userId, "access", ACCESS_TTL);
-export const createRefreshToken = (userId: number) => sign(userId, "refresh", REFRESH_TTL);
+export type AccessClaims = { userId: number; sessionId: string };
 
-export async function verifyToken(
-  token: string,
-  expectedType: "access" | "refresh",
-): Promise<number> {
-  const { payload } = await jwtVerify(token, secret);
-  if (payload.type !== expectedType) throw new Error("wrong token type");
-  return Number(payload.sub);
+export async function verifyAccessToken(token: string): Promise<AccessClaims> {
+  const { payload } = await jwtVerify(token, key());
+  if (payload.type !== "access") throw new Error("wrong token type");
+  const userId = Number(payload.sub);
+  if (!Number.isInteger(userId)) throw new Error("bad subject");
+  return { userId, sessionId: String(payload.sid ?? "") };
 }

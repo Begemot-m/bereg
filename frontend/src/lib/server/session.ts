@@ -1,25 +1,40 @@
 import type { NextRequest } from "next/server";
 
+import { verifyAccessToken } from "@/lib/server/jwt";
 import { prisma } from "@/lib/server/prisma";
-import { verifyToken } from "@/lib/server/jwt";
+import { readAccessCookie } from "@/lib/server/sessions";
 
 export class AuthError extends Error {}
 
-// Достаёт текущего пользователя из заголовка Authorization: Bearer <access>.
-// Бросает AuthError — роут превращает это в 401.
+/**
+ * Текущий пользователь запроса.
+ *
+ * Токен берём из httpOnly-куки; заголовок Authorization оставлен для
+ * серверных клиентов и тестов. Дополнительно проверяем, что сессия из
+ * токена жива: иначе «выход со всех устройств» не работал бы до истечения
+ * access-токена.
+ */
 export async function requireUser(req: NextRequest) {
   const header = req.headers.get("authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const bearer = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const token = readAccessCookie(req) ?? bearer;
   if (!token) throw new AuthError("missing token");
 
-  let userId: number;
+  let claims;
   try {
-    userId = await verifyToken(token, "access");
+    claims = await verifyAccessToken(token);
   } catch {
     throw new AuthError("invalid token");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AuthError("user not found");
+  if (claims.sessionId) {
+    const session = await prisma.session.findUnique({ where: { id: claims.sessionId } });
+    if (!session || session.revokedAt || session.expiresAt.getTime() < Date.now()) {
+      throw new AuthError("session revoked");
+    }
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: claims.userId } });
+  if (!user || user.deletedAt) throw new AuthError("user not found");
   return user;
 }

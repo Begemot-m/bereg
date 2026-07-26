@@ -1,29 +1,52 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { createAccessToken, createRefreshToken, verifyToken } from "@/lib/server/jwt";
+import { createAccessToken } from "@/lib/server/jwt";
 import { prisma } from "@/lib/server/prisma";
+import {
+  accessCookie,
+  assertSameOrigin,
+  clearedCookies,
+  readRefreshCookie,
+  refreshCookie,
+  rotateSession,
+  SessionError,
+} from "@/lib/server/sessions";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const { refresh_token } = (await req.json()) as { refresh_token?: string };
-  if (!refresh_token) {
-    return NextResponse.json({ error: "missing refresh_token" }, { status: 400 });
-  }
-
-  let userId: number;
   try {
-    userId = await verifyToken(refresh_token, "refresh");
+    assertSameOrigin(req);
   } catch {
-    return NextResponse.json({ error: "Invalid refresh token" }, { status: 401 });
+    return NextResponse.json({ error: "bad origin" }, { status: 403 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 401 });
+  const token = readRefreshCookie(req);
+  if (!token) return NextResponse.json({ error: "missing refresh token" }, { status: 401 });
 
-  return NextResponse.json({
-    access_token: await createAccessToken(user.id),
-    refresh_token: await createRefreshToken(user.id),
-    token_type: "bearer",
-  });
+  let rotated;
+  try {
+    rotated = await rotateSession(token, req);
+  } catch (e) {
+    // Переиспользование старого токена уже погасило всю цепочку в rotateSession.
+    const res = NextResponse.json(
+      { error: e instanceof SessionError ? e.message : "invalid refresh token" },
+      { status: 401 },
+    );
+    for (const cookie of clearedCookies()) res.cookies.set(cookie);
+    return res;
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: rotated.userId } });
+  if (!user || user.deletedAt) {
+    const res = NextResponse.json({ error: "user not found" }, { status: 401 });
+    for (const cookie of clearedCookies()) res.cookies.set(cookie);
+    return res;
+  }
+
+  const access = await createAccessToken(user.id, rotated.sessionId);
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(refreshCookie(rotated.refreshToken, rotated.expiresAt));
+  res.cookies.set(accessCookie(access));
+  return res;
 }

@@ -16,9 +16,88 @@ model User {
   role       String   @default("psychologist") // psychologist | client
   createdAt  DateTime @default(now())
 
+  // Почта привязывается внутри мини-приложения и служит входом в веб-версию.
+  email           String?   @unique
+  emailVerifiedAt DateTime?
+
+  // Мягкое удаление: по требованию об удалении ПД гасим доступ сразу,
+  // физическая очистка идёт отдельным заданием с записью в аудит.
+  deletedAt DateTime?
+
   clients      Client[]
   appointments Appointment[]
   subscription Subscription?
+  sessions     Session[]
+  consents     Consent[]
+  auditEntries AuditLog[]
+}
+
+/// Живая сессия устройства. Храним только хэш refresh-токена: утечка базы
+/// не даёт войти. familyId связывает цепочку ротаций — если старый токен
+/// предъявили повторно, гасим всю цепочку (признак кражи).
+model Session {
+  id           String    @id @default(uuid())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  familyId     String
+  tokenHash    String    @unique
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+}
+
+/// Одноразовый код для входа в веб-версию. Тоже только хэш.
+model EmailOtp {
+  id        String    @id @default(uuid())
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  ip        String?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([email, expiresAt])
+}
+
+/// Согласия по 152-ФЗ. Отдельная запись на каждый вид и версию документа —
+/// без этого нельзя доказать, на что именно человек соглашался.
+model Consent {
+  id            String    @id @default(uuid())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  kind          String // pd | health | offer | marketing
+  policyVersion String
+  grantedAt     DateTime  @default(now())
+  revokedAt     DateTime?
+  ip            String?
+  userAgent     String?
+
+  @@index([userId, kind])
+}
+
+/// Журнал действий с персональными данными: кто, что, когда.
+model AuditLog {
+  id        String   @id @default(uuid())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    Int?
+  action    String // login | logout | export | delete | consent.grant | payment …
+  entity    String?
+  entityId  String?
+  ip        String?
+  userAgent String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
 }
 
 // Карточка клиента, которую ведёт психолог. Не обязательно юзер платформы.
