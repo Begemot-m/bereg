@@ -1,0 +1,62 @@
+# Боевой стенд. Запускается на сервере из каталога /opt/bereg.
+#
+# База — управляемый PostgreSQL у провайдера (в DATABASE_URL), поэтому здесь
+# её нет: снапшоты, PITR и обновления versions на стороне провайдера.
+# Для staging можно поднять локальную — профиль `localdb` ниже.
+
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/begemot-m/bereg:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  # Локальная база — только для staging/разработки: docker compose --profile localdb up
+  postgres:
+    profiles: ["localdb"]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bereg}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?нужен POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-bereg}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bereg}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:

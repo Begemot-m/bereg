@@ -1,0 +1,28 @@
+# Caddy сам получает и продлевает сертификат Let's Encrypt.
+# Домен подставляется из переменной окружения контейнера (см. .env).
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		# Только https в течение года — защищает от подмены на http.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Мини-приложение открывается внутри Telegram — фреймы разрешаем только ему.
+		Content-Security-Policy "frame-ancestors https://web.telegram.org https://telegram.org"
+		X-Frame-Options "SAMEORIGIN"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# Вебхук ЮKassa приходит без Origin и не должен упираться в лимиты.
+	@webhook path /api/billing/webhook
+	handle @webhook {
+		reverse_proxy app:3000
+	}
+
+	handle {
+		reverse_proxy app:3000
+	}
+}

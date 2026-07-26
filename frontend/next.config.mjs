@@ -27,7 +27,11 @@ const nextConfig = {
         images: { unoptimized: true },
         trailingSlash: true,
       }
-    : {}),
+    : {
+        // standalone кладёт в .next/standalone только нужный код и модули —
+        // образ выходит ~150 МБ вместо гигабайта с node_modules.
+        output: "standalone",
+      }),
 };
 
 export default nextConfig;
