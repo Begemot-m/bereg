@@ -10,6 +10,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
+import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card } from "@/components/ui";
 import { resetLocalData } from "@/lib/demo";
@@ -65,7 +66,7 @@ export default function CabinetPage() {
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
           <Card className="space-y-1">
-            <ActionRow icon="compass" title="Пройти знакомство заново" sub="Показать онбординг ещё раз" onClick={() => resetOnboarding()} />
+            <ActionRow icon="compass" title="Пройти знакомство заново" sub="Онбординг и экскурсия по разделам" onClick={() => { resetTours(); resetOnboarding(); }} />
             <ActionRow icon="gear" title="Очистить данные на устройстве" sub="Сбросить демо к исходному состоянию" danger onClick={() => { if (confirm("Очистить локальные данные и вернуть демо к началу?")) { resetLocalData(); location.reload(); } }} />
           </Card>
         </div>

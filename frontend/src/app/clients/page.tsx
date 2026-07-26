@@ -174,9 +174,9 @@ function ClientsList() {
 // и быстрая связь — всё, что нужно, чтобы не открывать карточку ради одной цифры.
 function ClientCard({ client: c }: { client: Client }) {
   const s = derivedStatus(c);
-  // Статус читается цветом рамки и плашек: в терапии — зелёный,
-  // новый — лавандовый, пауза — янтарный.
-  const tone = STATUS_TONE[s];
+  // Рамка и плашки — в лавандовом тоне раздела; статус различается словом,
+  // а не цветом, иначе карточки пестрят.
+  const tone = "purple";
   const href = contactHref(c.contact);
   return (
     <div
@@ -221,11 +221,9 @@ function ClientCard({ client: c }: { client: Client }) {
       <div className="relative z-10 mt-3 flex items-center gap-2">
         <span
           className="t-cap pointer-events-none inline-flex flex-1 items-center gap-1.5 rounded-full px-3 py-2"
-          style={c.nextAt
-            ? { background: "var(--peach-soft)", color: "var(--peach-edge)" }
-            : { background: "var(--surface-2)", color: "var(--muted-2)" }}
+          style={{ background: "var(--surface-2)", color: c.nextAt ? "var(--ink)" : "var(--muted-2)" }}
         >
-          <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--peach-edge)" : "var(--muted-2)"} />
+          <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--muted)" : "var(--muted-2)"} />
           {c.nextAt ? `Ближайшая · ${relDay(c.nextAt)}` : "Записи нет"}
         </span>
         {href && (
@@ -235,9 +233,9 @@ function ClientCard({ client: c }: { client: Client }) {
             rel="noopener noreferrer"
             onClick={tap}
             className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2"
-            style={{ background: "var(--head)", color: "var(--edge)" }}
+            style={{ background: `var(--${tone}-edge)`, color: "#fff" }}
           >
-            <Icon name="telegram" width={13} weight="fill" color={`var(--${tone}-edge)`} /> Написать
+            <Icon name="telegram" width={13} weight="fill" color="#fff" /> Написать
           </a>
         )}
       </div>
