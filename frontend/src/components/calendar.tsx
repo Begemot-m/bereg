@@ -96,7 +96,7 @@ export function MonthCalendar({
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 text-[11px] font-bold text-[var(--muted)]">
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ boxShadow: "inset 0 0 0 2px var(--ink)" }} /> сегодня</span>
-        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--olive-soft)" }} /> свободно</span>}
+        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--olive-soft)", boxShadow: "inset 0 0 0 1px rgba(32,28,24,.18)" }} /> свободно</span>}
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--purple)" }} /> есть записи</span>
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
       </div>

@@ -64,10 +64,10 @@ export function WorkStats({ items, title = "Статистика работы", 
   const max = Math.max(1, ...data.bars.map((b) => b.value));
 
   return (
-    <section className="overflow-hidden rounded-[24px] bg-white" style={{ border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
+    <section className="overflow-hidden rounded-[24px] bg-white">
       <div className="flex items-center justify-between px-4 pb-2 pt-4">
         <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{title}</p>
-        <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+        <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1">
           {(["week", "month"] as const).map((p) => (
             <button key={p} onClick={() => { select(); setPeriod(p); }} className="rounded-full px-3 py-1 text-[11px] font-black transition-colors" style={period === p ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{p === "week" ? "Неделя" : "Месяц"}</button>
           ))}
@@ -103,7 +103,7 @@ export function WorkStats({ items, title = "Статистика работы", 
 
 function Tile({ icon, tone, value, label, suffix }: { icon: IconName; tone: string; value: number; label: string; suffix?: string }) {
   return (
-    <div className="rounded-[15px] p-2.5 text-center" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` }}>
+    <div className="rounded-[15px] p-2.5 text-center" style={{ background: `var(--${tone}-soft)` }}>
       <Icon name={icon} width={15} weight="bold" className="mx-auto" />
       <p className="font-tight tabular-nums mt-1 text-[22px] font-black leading-none"><CountUp value={value} suffix={suffix} /></p>
       <p className="mx-auto mt-1 max-w-[86px] text-[8.5px] font-black uppercase leading-tight tracking-[.04em] text-[var(--muted)]">{label}</p>

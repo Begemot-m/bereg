@@ -149,7 +149,7 @@ function PsySessions() {
             <button
               onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
               className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[11.5px] font-black"
-              style={multiMode ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive-soft)", color: "var(--olive-edge)" }}
+              style={multiMode ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--olive-edge)" }}
             >
               <Icon name="gear" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
               {multiMode ? "Отменить выбор дней" : "Выбрать несколько дней — закрыть или открыть окна"}

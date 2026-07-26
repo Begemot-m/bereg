@@ -95,6 +95,10 @@ export function TelegramInit() {
         if (tries++ < 20) window.setTimeout(setup, 150);
         return;
       }
+      // Скрипт Telegram создаёт WebApp и в обычном браузере, поэтому одного
+      // его наличия мало: вне мини-приложения platform === "unknown", и место
+      // под кнопку закрытия там резервировать не нужно.
+      if (!app.platform || app.platform === "unknown") return;
       document.documentElement.dataset.tma = "1";
       // Каждый метод может бросить на неподдерживающем клиенте — по отдельности,
       // чтобы одна неудача не отменила остальную настройку.
