@@ -22,9 +22,9 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
               initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 420, damping: 20 }}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-white"
             >
-              <Icon name={icon} width={22} weight="bold" color="var(--edge)" />
+              <Icon name={icon} width={28} weight="bold" color="var(--edge)" />
             </motion.span>
           )}
           <div className="min-w-0">

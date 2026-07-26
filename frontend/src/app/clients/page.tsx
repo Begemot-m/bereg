@@ -174,39 +174,42 @@ function ClientsList() {
 // и быстрая связь — всё, что нужно, чтобы не открывать карточку ради одной цифры.
 function ClientCard({ client: c }: { client: Client }) {
   const s = derivedStatus(c);
+  // Статус читается цветом рамки и плашек: в терапии — зелёный,
+  // новый — лавандовый, пауза — янтарный.
+  const tone = STATUS_TONE[s];
   const href = contactHref(c.contact);
   return (
     <div
       className="relative overflow-hidden rounded-[20px] bg-white p-4 transition-transform active:scale-[0.995]"
-      style={{ border: "var(--bw-lg) solid var(--edge)" }}
+      style={{ border: `var(--bw-lg) solid var(--${tone}-edge)` }}
     >
       <Link href={`/clients/?id=${c.id}`} onClick={tap} className="absolute inset-0 z-0" aria-label={`Карточка клиента: ${c.name}`} />
 
       <div className="pointer-events-none relative z-10">
         <div className="flex items-center gap-3">
-          <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[16px] text-[20px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>
+          <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[16px] text-[20px] font-black" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone}-edge)` }}>
             {c.name.charAt(0)}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="t-head truncate">{c.name}</p>
-              <span className="t-micro shrink-0 rounded-full px-2 py-1" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{STATUS_LABEL[s]}</span>
+              <span className="t-micro shrink-0 rounded-full px-2 py-1" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone}-edge)` }}>{STATUS_LABEL[s]}</span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="t-cap inline-flex items-center gap-1.5">
-                <Icon name="check" width={13} weight="bold" color="var(--edge)" />
+                <Icon name="check" width={13} weight="bold" color={`var(--${tone}-edge)`} />
                 {c.sessionsDone > 0 ? `${c.sessionsDone} встреч${plural(c.sessionsDone)}` : "встреч пока нет"}
                 {c.hoursDone > 0 && ` · ${c.hoursDone} ч`}
               </span>
               {c.hwTotal > 0 && (
                 <span className="t-cap inline-flex items-center gap-1.5">
-                  <Icon name="note" width={13} weight="bold" color="var(--edge)" />
+                  <Icon name="note" width={13} weight="bold" color={`var(--${tone}-edge)`} />
                   {c.hwDone}/{c.hwTotal} заданий
                 </span>
               )}
               {c.link === "invited" && (
                 <span className="t-cap inline-flex items-center gap-1.5">
-                  <Icon name="bell" width={13} weight="bold" color="var(--edge)" /> приглашён
+                  <Icon name="bell" width={13} weight="bold" color={`var(--${tone}-edge)`} /> приглашён
                 </span>
               )}
             </div>
@@ -219,11 +222,11 @@ function ClientCard({ client: c }: { client: Client }) {
         <span
           className="t-cap pointer-events-none inline-flex flex-1 items-center gap-1.5 rounded-full px-3 py-2"
           style={c.nextAt
-            ? { background: "var(--head-soft)", color: "var(--edge)" }
+            ? { background: "var(--peach-soft)", color: "var(--peach-edge)" }
             : { background: "var(--surface-2)", color: "var(--muted-2)" }}
         >
-          <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--edge)" : "var(--muted-2)"} />
-          {c.nextAt ? relDay(c.nextAt) : "Записи нет"}
+          <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--peach-edge)" : "var(--muted-2)"} />
+          {c.nextAt ? `Ближайшая · ${relDay(c.nextAt)}` : "Записи нет"}
         </span>
         {href && (
           <a
@@ -234,7 +237,7 @@ function ClientCard({ client: c }: { client: Client }) {
             className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2"
             style={{ background: "var(--head)", color: "var(--edge)" }}
           >
-            <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
+            <Icon name="telegram" width={13} weight="fill" color={`var(--${tone}-edge)`} /> Написать
           </a>
         )}
       </div>

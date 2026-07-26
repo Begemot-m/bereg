@@ -136,30 +136,33 @@ function PsySessions() {
         icon="calendar"
         sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : "Что впереди") : "Неделя целиком"}
         right={
-          <button
-            onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
-            aria-expanded={calOpen}
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-black transition-colors"
-            style={calOpen ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--ink)" }}
-          >
-            <Icon name="calendar" width={14} weight="bold" color={calOpen ? "#fff" : "var(--edge)"} />
-            {calOpen ? "Свернуть" : "Календарь"}
+          <button onClick={() => { tap(); setHelp(true); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 text-[11.5px] font-black" style={{ color: "var(--edge)" }}>
+            <Icon name="question" width={14} weight="bold" color="var(--edge)" /> Как это работает?
           </button>
         }
       >
-        {/* Без layout-анимации: она пересчитывала весь поддеревом на каждом кадре
-            и заметно подтормаживала. Достаточно короткого проявления. */}
-        <AnimatePresence mode="wait" initial={false}>
-          {calOpen ? (
-            <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: EASE }}>
-              <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
-            </motion.div>
-          ) : (
-            <motion.div key="strip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: EASE }}>
+        {/* Плавная смена: лента и календарь разной высоты, поэтому анимируем
+            саму высоту обёртки, а содержимое просто проявляем. */}
+        <div className="grid transition-[grid-template-rows] duration-[420ms]" style={{ gridTemplateRows: calOpen ? "0fr 1fr" : "1fr 0fr", transitionTimingFunction: "var(--ease-out)" }}>
+          <div className="min-h-0 overflow-hidden">
+            <div className="transition-opacity duration-200" style={{ opacity: calOpen ? 0 : 1 }}>
               <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+          <div className="min-h-0 overflow-hidden">
+            <div className="transition-opacity duration-300" style={{ opacity: calOpen ? 1 : 0 }}>
+              <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
+              <button
+                onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[11.5px] font-black"
+                style={multiMode ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive-soft)", color: "var(--olive-edge)" }}
+              >
+                <Icon name="gear" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
+                {multiMode ? "Отменить выбор дней" : "Выбрать несколько дней — закрыть или открыть окна"}
+              </button>
+            </div>
+          </div>
+        </div>
       </PageHead>
 
       <div className="sheet">
@@ -185,8 +188,14 @@ function PsySessions() {
           </motion.button>
 
           {/* Справа — помощь */}
-          <button onClick={() => { tap(); setHelp(true); }} className="flex w-fit items-center gap-1.5 justify-self-end rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]">
-            <Icon name="question" width={13} weight="bold" color="currentColor" /> Как это работает?
+          <button
+            onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
+            aria-expanded={calOpen}
+            className="flex w-fit items-center gap-1.5 justify-self-end rounded-full px-3.5 py-2 text-[11.5px] font-black transition-colors"
+            style={calOpen ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive)", color: "var(--olive-edge)" }}
+          >
+            <Icon name="calendar" width={14} weight="bold" color={calOpen ? "#fff" : "var(--olive-edge)"} />
+            {calOpen ? "Свернуть" : "Календарь"}
           </button>
         </div>
 
@@ -238,10 +247,7 @@ function PsySessions() {
 
         {calOpen && (
           <div>
-            <div className="relative mb-3 flex items-center justify-between">
-              <button onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>
-                {multiMode ? "Отменить выбор" : "Выбрать несколько"}
-              </button>
+            <div className="relative mb-3 flex items-center justify-end">
               {multiMode && (
                 <>
                   <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke disabled:opacity-40" style={{ background: "#fff" }}><Icon name="gear" width={14} /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}</button>

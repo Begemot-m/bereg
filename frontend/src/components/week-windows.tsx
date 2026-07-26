@@ -241,7 +241,10 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
         </span>
         {!active && (
           <>
-            <span className="tnum absolute left-1.5 top-1.5 text-[8.5px] font-black text-[var(--muted-2)]">{slot.dur}м</span>
+            <span className="absolute left-1.5 top-1.5 flex items-center gap-0.5">
+              <Icon name="clock" width={9} weight="bold" color="var(--muted-2)" />
+              <span className="tnum text-[8.5px] font-black text-[var(--muted-2)]">{slot.dur}</span>
+            </span>
             <span className="absolute right-1.5 top-1.5"><Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>
           </>
         )}
@@ -295,7 +298,8 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         </span>
         <FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} />
         <button onClick={() => setResch(true)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[12px] font-black">Перенести</button>
-        {!slot.past && <button onClick={() => cancel.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Отменить</button>}
+        {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
+        {!slot.past && <button onClick={() => cancel.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Освободить</button>}
       </div>
     );
   }
@@ -305,7 +309,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       <div className="flex items-center gap-1.5">
         <p className="mr-auto text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Кого записать?</p>
         <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
-        <button onClick={() => closeWin.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Убрать окно</button>
+        <button onClick={() => closeWin.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Удалить окно</button>
       </div>
       <ClientChips onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
     </div>

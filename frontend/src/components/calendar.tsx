@@ -66,39 +66,40 @@ export function MonthCalendar({
           const isToday = y === todayY;
           const a: Avail | undefined = avail?.[y];
 
-          // Одна палитра: занятый день — лавандовая заливка, выбранный — только
-          // обводка. Никаких заливок у остальных, чтобы сетка не рябила.
+          // Три различимых состояния: занят — плотная лаванда с белым текстом,
+          // свободен — светлая олива, обычный день — без заливки.
+          // Сегодня — тёмное кольцо, выбранный — сплошная тёмная заливка.
           const busy = has.has(y) || a === "full";
+          const free = !busy && a === "free";
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
 
-          const base: React.CSSProperties = busy
-            ? { background: "var(--purple-soft)", color: "var(--purple-edge)" }
-            : isToday
-              ? { background: "var(--surface-2)", color: "var(--ink)" }
-              : { color: "var(--ink)" };
+          let base: React.CSSProperties = { color: "var(--ink)" };
+          if (busy) base = { background: "var(--purple)", color: "#3b2c55" };
+          else if (free) base = { background: "var(--olive-soft)", color: "var(--olive-edge)" };
+
+          const style: React.CSSProperties = isSel
+            ? { background: "var(--ink)", color: "#fff" }
+            : { ...base, boxShadow: isToday ? "inset 0 0 0 2px var(--ink)" : undefined };
 
           return (
             <button
               key={i}
               disabled={disabled}
               onClick={() => { select(); if (multi) onToggle?.(y); else onSelectDay(isSel ? null : y); }}
-              className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-transform duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
-              style={{
-                ...base,
-                boxShadow: isSel ? `inset 0 0 0 2px ${multi ? "var(--ink)" : "var(--edge)"}` : undefined,
-              }}
+              className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-colors duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
+              style={style}
             >
               {d.getDate()}
             </button>
           );
         })}
       </div>
-      {avail && (
-        <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-bold text-[var(--muted)]">
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: "var(--purple-soft)" }} /> есть записи</span>
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ boxShadow: "inset 0 0 0 2px var(--edge)" }} /> выбранный день</span>
-        </div>
-      )}
+      <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 text-[11px] font-bold text-[var(--muted)]">
+        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ boxShadow: "inset 0 0 0 2px var(--ink)" }} /> сегодня</span>
+        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--olive-soft)" }} /> свободно</span>}
+        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--purple)" }} /> есть записи</span>
+        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
+      </div>
     </div>
   );
 }
