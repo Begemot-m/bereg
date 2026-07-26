@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -141,28 +141,21 @@ function PsySessions() {
           </button>
         }
       >
-        {/* Плавная смена: лента и календарь разной высоты, поэтому анимируем
-            саму высоту обёртки, а содержимое просто проявляем. */}
-        <div className="grid transition-[grid-template-rows] duration-[420ms]" style={{ gridTemplateRows: calOpen ? "0fr 1fr" : "1fr 0fr", transitionTimingFunction: "var(--ease-out)" }}>
-          <div className="min-h-0 overflow-hidden">
-            <div className="transition-opacity duration-200" style={{ opacity: calOpen ? 0 : 1 }}>
-              <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
-            </div>
+        {/* Лента дат всегда на месте; календарь разворачивается под ней. */}
+        <WeekStrip selected={selDay ?? todayY} marked={markedDays} onSelect={(y) => { setView("soon"); setSelDay(y === selDay ? null : y); }} />
+        <Disclosure open={calOpen} autoScroll={false}>
+          <div className="pt-2">
+            <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
+            <button
+              onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[11.5px] font-black"
+              style={multiMode ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive-soft)", color: "var(--olive-edge)" }}
+            >
+              <Icon name="gear" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
+              {multiMode ? "Отменить выбор дней" : "Выбрать несколько дней — закрыть или открыть окна"}
+            </button>
           </div>
-          <div className="min-h-0 overflow-hidden">
-            <div className="transition-opacity duration-300" style={{ opacity: calOpen ? 1 : 0 }}>
-              <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
-              <button
-                onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
-                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[11.5px] font-black"
-                style={multiMode ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive-soft)", color: "var(--olive-edge)" }}
-              >
-                <Icon name="gear" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
-                {multiMode ? "Отменить выбор дней" : "Выбрать несколько дней — закрыть или открыть окна"}
-              </button>
-            </div>
-          </div>
-        </div>
+        </Disclosure>
       </PageHead>
 
       <div className="sheet">
@@ -173,19 +166,18 @@ function PsySessions() {
           </button>
 
           {/* Центр — весёлый зелёный крестик быстрой записи */}
-          {/* Компактная подписанная кнопка вместо прыгающего квадрата:
-              запись на любую дату, когда не хочется листать неделю. */}
           <motion.button
             onClick={() => { tap(); setQuickAdd((v) => !v); setScheduleOpen(false); }}
-            whileTap={{ scale: 0.95 }}
-            className="flex h-9 items-center justify-center gap-1.5 justify-self-center rounded-full px-3.5 text-[11.5px] font-black"
-            style={quickAdd ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive-soft)", color: "var(--olive-edge)" }}
+            whileTap={{ scale: 0.85 }}
+            whileHover={{ scale: 1.06 }}
+            animate={quickAdd ? { rotate: 45 } : { rotate: 0, y: [0, -3, 0] }}
+            transition={quickAdd ? { type: "spring", stiffness: 400, damping: 14 } : { rotate: { type: "spring", stiffness: 400, damping: 14 }, y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" } }}
+            className="flex h-11 w-11 items-center justify-center rounded-[16px]"
+            style={{ background: quickAdd ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw-lg) solid var(--olive-edge)", boxShadow: quickAdd ? "0 6px 16px -6px var(--olive-edge)" : "0 8px 18px -8px var(--olive-edge)" }}
+            aria-label="Быстрая запись"
             aria-expanded={quickAdd}
           >
-            <motion.span animate={{ rotate: quickAdd ? 45 : 0 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} className="flex">
-              <Icon name="plus" width={15} weight="bold" color={quickAdd ? "#fff" : "var(--olive-edge)"} />
-            </motion.span>
-            Записать
+            <Icon name="plus" width={22} weight="bold" color="var(--olive-edge)" />
           </motion.button>
 
           {/* Справа — помощь */}

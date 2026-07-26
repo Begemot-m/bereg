@@ -121,26 +121,6 @@ function ClientTools() {
             <Link href="/therapy" onClick={() => tap()} className="rounded-[18px] bg-white p-3" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="balance" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
           </div>
 
-          {/* Клубок+ — что открывает подписка */}
-          <section className="mt-6 overflow-hidden rounded-[21px]" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-2.5 py-1 text-[10px] font-black text-white"><Icon name="therapy" width={12} weight="fill" /> КЛУБОК+</span>
-                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)", color: pro ? "var(--green-edge)" : undefined }}>{pro ? "подключено" : "390 ₽/мес"}</span>
-              </div>
-              <p className="mt-2.5 font-tight text-[16px] font-black">{pro ? "Всё открыто — спасибо!" : "Больше инструментов для себя"}</p>
-              <div className="mt-2.5 space-y-1.5">
-                {PREMIUM.map((p) => (
-                  <div key={p.title} className="flex items-center gap-2.5 rounded-[13px] bg-[#fffdf7] p-2.5" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--purple-soft)]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name={p.icon} width={16} weight="bold" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-[12.5px] font-black leading-tight">{p.title}</span><span className="block text-[10px] font-semibold text-[var(--muted)]">{p.desc}</span></span>
-                    <Icon name={pro ? "check" : "lock"} width={15} weight="bold" color={pro ? "var(--green-edge)" : "var(--muted-2)"} />
-                  </div>
-                ))}
-              </div>
-              {!pro && <button onClick={() => { tap(); buy.mutate(); }} disabled={buy.isPending} className="mt-3 w-full rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-50">{buy.isPending ? "Готовим оплату…" : "Открыть Клубок+ · 390 ₽/мес"}</button>}
-            </div>
-          </section>
 
           <p className="mt-4 text-center text-[10px] font-semibold leading-relaxed text-[var(--muted-2)]">Инструменты не заменяют медицинскую помощь. Результаты остаются на этом устройстве и не отправляются терапевту автоматически.</p>
         </div>

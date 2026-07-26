@@ -10,6 +10,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
+import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card } from "@/components/ui";
 import { resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
@@ -51,9 +52,12 @@ export default function CabinetPage() {
         <div className="space-y-3">
           <SectionTitle>{psy ? "Практика" : "Забота о себе"}</SectionTitle>
           {psy ? (
-            <ActionRow icon="clock" title="График и правила приёма" sub="Рабочие часы, напоминания, запрет отмены — в разделе «Сессии»" onClick={() => { tap(); router.push("/sessions"); }} />
+            <>
+              <SubscriptionBanner variant="psy" />
+              <ActionRow icon="clock" title="График и правила приёма" sub="Рабочие часы, напоминания, запрет отмены — в разделе «Сессии»" onClick={() => { tap(); router.push("/sessions"); }} />
+            </>
           ) : (
-            <ActionRow icon="therapy" title="Практики и дневники" sub="Настроение, колесо баланса и упражнения — в разделе «Терапия»" onClick={() => { tap(); router.push("/therapy"); }} />
+            <SubscriptionBanner variant="client" />
           )}
         </div>
 
