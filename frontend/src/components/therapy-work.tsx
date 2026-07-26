@@ -29,7 +29,7 @@ export function WorkWithSpecialist({ sessionsDone, nextAt, homework, onChanged }
   const progress = homework.length ? done / homework.length : 0;
 
   return (
-    <section className="rounded-[22px] p-4" style={{ background: "var(--green-soft)" }}>
+    <section data-tour="work" className="rounded-[22px] p-4" style={{ background: "var(--green-soft)" }}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="t-micro">Работа со специалистом</p>
@@ -156,7 +156,7 @@ export function TherapistBoard({ value, onSave }: { value: string; onSave: (text
   }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="rounded-[22px] p-4" style={{ background: "var(--amber-soft)" }}>
+    <section data-tour="board" className="rounded-[22px] p-4" style={{ background: "var(--amber-soft)" }}>
       <div className="flex items-center justify-between">
         <div>
           <p className="t-micro">Доска для терапевта</p>

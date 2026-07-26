@@ -249,7 +249,7 @@ function MoodQuick({ today, moods }: { today?: Mood; moods: Mood[] }) {
   const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
   const [sheet, setSheet] = useState(false);
   return (
-    <section>
+    <section data-tour="mood">
       <MoodHomeCard mood={today?.mood} moods={moods} onOpen={() => setSheet(true)} />
       <MoodSheet open={sheet} mood={today?.mood} emotions={today?.emotions} onClose={() => setSheet(false)} onSave={(mood, emotions) => save.mutate({ mood, emotions })} />
     </section>

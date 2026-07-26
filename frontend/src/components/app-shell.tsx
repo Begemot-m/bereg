@@ -164,14 +164,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               const active = isActive(pathname, it.href);
               // Центральная вкладка — приподнятая акцентная кнопка.
               if (it.href === centerHref) return (
-                <Link key={it.href} href={it.href} onClick={select} className="relative z-[2] flex flex-1 items-center justify-center" aria-label={it.label}>
+                <Link key={it.href} href={it.href} onClick={select} data-tour={`nav-${it.href.slice(1)}`} className="relative z-[2] flex flex-1 items-center justify-center" aria-label={it.label}>
                   <motion.span whileTap={{ scale: 0.9 }} className="-mt-7 flex h-14 w-14 items-center justify-center rounded-[20px]" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw-lg) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}`, boxShadow: `0 10px 20px -8px ${active ? "rgba(32,28,24,.5)" : `var(--${centerTone}-edge)`}` }}>
                     <Icon name={it.icon} width={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
                   </motion.span>
                 </Link>
               );
               return (
-                <Link key={it.href} href={it.href} onClick={select} className="relative z-[1] flex flex-1 items-center justify-center py-1.5">
+                <Link key={it.href} href={it.href} onClick={select} data-tour={`nav-${it.href === "/" ? "home" : it.href.slice(1)}`} className="relative z-[1] flex flex-1 items-center justify-center py-1.5">
                   <span className="relative flex h-9 w-9 items-center justify-center">
                     {active && <motion.span layoutId="navActive" className="absolute inset-0 rounded-full" style={{ background: "var(--head-soft)" }} transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
                     <motion.span whileTap={{ scale: 0.82 }} className="relative z-[1] flex items-center justify-center">

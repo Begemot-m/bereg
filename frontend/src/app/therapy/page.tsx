@@ -161,7 +161,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
 function MoodStatsBlock({ moods }: { moods: Mood[] }) {
   const [stats, setStats] = useState(false);
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2.5" data-tour="mood-stats">
       <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-black text-[var(--muted)]" style={{ background: "var(--surface-2)" }} aria-expanded={stats}>
         <Icon name="chart" width={15} weight="bold" /> {stats ? "Свернуть динамику" : "Динамика настроения"}
       </button>

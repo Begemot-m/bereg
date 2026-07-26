@@ -2,14 +2,16 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { select, success, tap } from "@/lib/haptics";
 import type { Role } from "@/lib/role";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const KEY = (role: Role) => `bereg:tour:${role}:v2`;
+const KEY = (role: Role) => `bereg:tour:${role}:v3`;
+const PAD = 8;      // воздух вокруг подсвеченного элемента
+const CARD = 210;   // примерная высота карточки — решаем, сверху её класть или снизу
 
 export function tourSeen(role: Role): boolean {
   if (typeof window === "undefined") return true; // SSR: не мигаем туром
@@ -21,52 +23,90 @@ export function completeTour(role: Role) {
   window.dispatchEvent(new CustomEvent("bereg:tour-change"));
 }
 
-/** Сбросить туры всех ролей — используется вместе со сбросом знакомства. */
+/** Сбросить туры всех ролей — вместе со сбросом знакомства. */
 export function resetTours() {
   for (const role of ["psychologist", "client", "guest"] as Role[]) localStorage.removeItem(KEY(role));
   window.dispatchEvent(new CustomEvent("bereg:tour-change"));
 }
 
-type Step = { href: string; icon: IconName; title: string; text: string };
+type Step = {
+  href: string;
+  /** Элемент, который подсвечиваем. Если не найден — карточка просто по центру. */
+  target?: string;
+  icon: IconName;
+  title: string;
+  text: string;
+};
 
 const TOURS: Record<Role, Step[]> = {
-  psychologist: [
-    { href: "/", icon: "home", title: "Главная — что требует внимания", text: "Здесь ближайшая сессия и короткий список того, что стоит подтянуть: кто остался без записи, насколько занята неделя." },
-    { href: "/sessions", icon: "calendar", title: "Сессии — график и записи", text: "«График» задаёт рабочие часы и правила приёма. Тап по свободному окну записывает клиента, календарь показывает месяц целиком." },
-    { href: "/clients", icon: "users", title: "Клиенты — карточки и прогресс", text: "В карточке видно объём работы, задания и настроение между встречами. Нового клиента можно сразу пригласить в Telegram." },
-    { href: "/tools", icon: "tools", title: "Инструменты — материалы для практики", text: "Готовые техники и раздатки, которые можно дать клиенту как домашнее задание." },
-    { href: "/cabinet", icon: "user", title: "Кабинет — профиль и подписка", text: "Анкета для каталога, приглашения коллег и подписка. Заполненный профиль участвует в подборе клиентов." },
-  ],
   client: [
-    { href: "/", icon: "home", title: "Главная — ваш день", text: "Ближайшая встреча, настроение и короткие шаги на сегодня. Отсюда быстро попасть в любой раздел." },
-    { href: "/therapy", icon: "therapy", title: "Терапия — то, что между сессиями", text: "Настроение и его динамика, задания от терапевта и доска, куда можно записать всё, что важно не забыть сказать на встрече." },
-    { href: "/catalog", icon: "compass", title: "Каталог — найти своего", text: "Подборка собирается по вашему запросу, а не по оплате размещения. Можно смотреть и весь список." },
-    { href: "/tools", icon: "tools", title: "Инструменты — помощь в моменте", text: "Дыхание, разбор мыслей и короткие практики. Работают сами по себе, специалист для них не нужен." },
-    { href: "/cabinet", icon: "user", title: "Кабинет — профиль и данные", text: "Здесь настройки, приглашения друзьям и полный сброс данных: всё живёт только на вашем устройстве." },
+    { href: "/", target: '[data-tour="mood"]', icon: "mood", title: "Отмечайте, как вы сегодня", text: "Тап по карточке открывает диск настроения и эмоции. Полминуты в день — и видно настоящий фон недели, а не только «хорошо / плохо»." },
+    { href: "/", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Здесь ищут своего специалиста", text: "Подборка собирается по вашему запросу, а не по оплате размещения. Можно ответить на пару вопросов или сразу открыть весь список." },
+    { href: "/therapy", target: '[data-tour="mood-stats"]', icon: "chart", title: "Динамика — общий язык с терапевтом", text: "Здесь настроение складывается в график. Терапевт видит эту динамику и приходит на встречу, уже зная, как прошли ваши недели." },
+    { href: "/therapy", target: '[data-tour="board"]', icon: "note", title: "Доска, которую видит терапевт", text: "Записывайте сюда мысли и вопросы между встречами — на сессии не придётся вспоминать, с чего вы хотели начать." },
+  ],
+  psychologist: [
+    { href: "/sessions", target: '[data-tour="schedule"]', icon: "clock", title: "Сначала — рабочие часы", text: "«График» задаёт дни, окна и длительность встречи. Отсюда же напоминания и запрет отмены. Клиенты видят только свободные окна." },
+    { href: "/sessions", target: '[data-tour="views"]', icon: "calendar", title: "Неделя — рабочий экран", text: "«Ближайшие» показывают только записи, «Неделя» — все окна. Тап по свободному окну записывает клиента в два движения." },
+    { href: "/sessions", target: '[data-tour="quick-add"]', icon: "plus", title: "Запись на любую дату", text: "Плюс открывает быструю запись: выбрать клиента (или завести нового) и свободное окно, не листая неделю." },
+    { href: "/clients", target: '[data-tour="client-card"]', icon: "users", title: "Карточка клиента", text: "Видно объём работы, задания и настроение между встречами. Тап открывает историю встреч, домашки и колесо баланса." },
+    { href: "/clients", target: '[data-tour="add-client"]', icon: "heart", title: "Новый клиент — и приглашение", text: "Заводите карточку и сразу отправляйте приглашение в Telegram: когда клиент подключится, его отметки появятся у вас." },
   ],
   guest: [
-    { href: "/catalog", icon: "compass", title: "Каталог — с чего начать", text: "Посмотрите специалистов без обязательств. Подборка настраивается парой вопросов." },
-    { href: "/tools", icon: "tools", title: "Инструменты — попробовать сейчас", text: "Практики и дневники доступны сразу, без записи к специалисту." },
-    { href: "/cabinet", icon: "user", title: "Кабинет — выбрать роль позже", text: "Когда решите, кем пользуетесь приложением, роль меняется здесь в один тап." },
+    { href: "/catalog", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Каталог специалистов", text: "Посмотрите анкеты без обязательств: фото, подход, с чем работает и с чем — нет." },
+    { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Практики без записи", text: "Дыхание, разбор мыслей и дневники доступны сразу — специалист для них не нужен." },
+    { href: "/cabinet", target: '[data-tour="nav-cabinet"]', icon: "user", title: "Роль меняется здесь", text: "Когда решите, как пользуетесь приложением, переключите роль в кабинете — разделы подстроятся." },
   ],
 };
 
 /**
- * Экскурсия по разделам при первом заходе в роли. Ведёт по экранам и
- * перекрывает интерфейс, пока шаги не пройдены.
+ * Экскурсия при первом заходе в роли: переводит в нужный раздел, подсвечивает
+ * конкретный элемент и объясняет его. Интерфейс перекрыт, пока шаги не пройдены.
  */
 export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
   const steps = TOURS[role] ?? [];
   const [index, setIndex] = useState(0);
+  const [rect, setRect] = useState<DOMRect | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const step = steps[index];
 
-  // Ведём пользователя по разделам: каждый шаг открывает свой экран.
+  const measure = useCallback(() => {
+    if (!step?.target) { setRect(null); return; }
+    const el = document.querySelector(step.target);
+    setRect(el ? el.getBoundingClientRect() : null);
+  }, [step]);
+
+  // Переводим в нужный раздел.
+  useEffect(() => {
+    if (step && pathname !== step.href) router.push(step.href);
+  }, [step, pathname, router]);
+
+  // Ждём появления элемента (после навигации он рисуется не сразу),
+  // подкручиваем к нему и запоминаем положение.
   useEffect(() => {
     if (!step) return;
-    if (pathname !== step.href) router.push(step.href);
-  }, [index, step, pathname, router]);
+    setRect(null);
+    if (!step.target || pathname !== step.href) return;
+    let tries = 0;
+    let timer = 0;
+    const hunt = () => {
+      const el = document.querySelector(step.target!);
+      if (el) {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        timer = window.setTimeout(measure, 420);
+        return;
+      }
+      if (tries++ < 40) timer = window.setTimeout(hunt, 100);
+    };
+    hunt();
+    return () => window.clearTimeout(timer);
+  }, [step, pathname, measure]);
+
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
 
   if (!step) return null;
   const last = index === steps.length - 1;
@@ -77,49 +117,69 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
     setIndex(index + 1);
   };
 
+  // Карточку кладём с той стороны от подсветки, где больше места.
+  const below = rect ? rect.bottom + CARD < window.innerHeight - 24 : false;
+  const cardStyle: React.CSSProperties = rect
+    ? below
+      ? { top: rect.bottom + PAD + 12 }
+      : { bottom: Math.max(16, window.innerHeight - rect.top + PAD + 12) }
+    : { bottom: 24 };
+
   return (
     <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label="Экскурсия по разделам">
-      {/* Затемнение ловит все нажатия — пока тур идёт, приложением не пользуются */}
-      <div className="absolute inset-0" style={{ background: "rgba(32,28,24,.55)" }} />
+      {/* Прожектор: дыра в затемнении вокруг элемента. Без подсветки — сплошная вуаль. */}
+      {rect ? (
+        <motion.div
+          layout
+          className="pointer-events-none absolute rounded-[18px]"
+          initial={false}
+          animate={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
+          transition={{ duration: 0.34, ease: EASE }}
+          style={{ boxShadow: "0 0 0 9999px rgba(32,28,24,.62)", outline: "2px solid rgba(255,255,255,.9)", outlineOffset: 2 }}
+        />
+      ) : (
+        <div className="absolute inset-0" style={{ background: "rgba(32,28,24,.62)" }} />
+      )}
 
-      <div className="absolute inset-x-0 bottom-0 px-3 pb-[calc(var(--safe-bottom)+14px)]">
+      {/* Ловим нажатия, чтобы приложением нельзя было пользоваться по ходу тура */}
+      <div className="absolute inset-0" onClick={(e) => e.stopPropagation()} />
+
+      <div className="pointer-events-none absolute inset-x-0 px-3" style={cardStyle}>
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: below ? -14 : 14 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.28, ease: EASE }}
-            className="mx-auto w-full max-w-md rounded-[26px] bg-white p-5"
-            style={{ boxShadow: "0 24px 48px -20px rgba(32,28,24,.5)" }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.26, ease: EASE }}
+            className="pointer-events-auto mx-auto w-full max-w-md rounded-[24px] bg-white p-4"
+            style={{ boxShadow: "0 24px 48px -20px rgba(32,28,24,.55)" }}
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--head-soft)" }}>
-                <Icon name={step.icon} width={21} weight="bold" color="var(--edge)" />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--head-soft)" }}>
+                <Icon name={step.icon} width={19} weight="bold" color="var(--edge)" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="t-micro">Экскурсия · {index + 1} из {steps.length}</p>
-                <p className="t-title mt-0.5">{step.title}</p>
+                <p className="t-head mt-0.5">{step.title}</p>
               </div>
             </div>
 
-            <p className="t-body mt-3" style={{ color: "var(--muted)" }}>{step.text}</p>
+            <p className="t-sub mt-2.5">{step.text}</p>
 
-            <div className="mt-4 flex gap-1.5">
+            <div className="mt-3 flex gap-1.5">
               {steps.map((s, i) => (
-                <span key={s.href} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: i <= index ? "var(--ink)" : "var(--surface-2)" }} />
+                <span key={s.title} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: i <= index ? "var(--ink)" : "var(--surface-2)" }} />
               ))}
             </div>
 
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-3 flex items-center gap-2">
               {index > 0 && (
-                <button onClick={() => { tap(); setIndex(index - 1); }} className="rounded-full px-4 py-3 text-[13px] font-black text-[var(--muted)]">
-                  Назад
-                </button>
+                <button onClick={() => { tap(); setIndex(index - 1); }} className="rounded-full px-4 py-2.5 text-[13px] font-black text-[var(--muted)]">Назад</button>
               )}
               <button
                 onClick={next}
-                className="flex-1 rounded-full py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]"
+                className="flex-1 rounded-full py-2.5 text-[13.5px] font-black text-white transition-transform active:scale-[0.98]"
                 style={{ background: "var(--ink)" }}
               >
                 {last ? "Всё понятно, начать" : "Дальше"}

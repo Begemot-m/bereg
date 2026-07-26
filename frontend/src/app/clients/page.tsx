@@ -126,6 +126,7 @@ function ClientsList() {
             transition={{ type: "spring", stiffness: 400, damping: 14 }}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px]"
             style={{ background: open ? "var(--head)" : "var(--head-soft)" }}
+            data-tour="add-client"
             aria-label="Добавить клиента"
             aria-expanded={open}
           >
@@ -162,7 +163,7 @@ function ClientsList() {
         <p className="t-sub px-1">{search ? "Никого не нашли по этому имени." : "Нет клиентов в этом фильтре."}</p>
       ) : (
         <Stagger className="space-y-3">
-          {list.map((c: Client) => <StaggerItem key={c.id}><ClientCard client={c} /></StaggerItem>)}
+          {list.map((c: Client, i) => <StaggerItem key={c.id}><div data-tour={i === 0 ? "client-card" : undefined}><ClientCard client={c} /></div></StaggerItem>)}
         </Stagger>
       )}
       </div>

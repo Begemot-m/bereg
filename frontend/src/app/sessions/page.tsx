@@ -163,7 +163,7 @@ function PsySessions() {
       <div className="sheet">
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           {/* Слева — настройка графика */}
-          <button onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex w-fit items-center gap-1.5 rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" aria-expanded={scheduleOpen}>
+          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex w-fit items-center gap-1.5 rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" aria-expanded={scheduleOpen}>
             <Icon name="gear" width={13} color="currentColor" /> График
           </button>
 
@@ -176,6 +176,7 @@ function PsySessions() {
             transition={quickAdd ? { type: "spring", stiffness: 400, damping: 14 } : { rotate: { type: "spring", stiffness: 400, damping: 14 }, y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" } }}
             className="flex h-11 w-11 items-center justify-center rounded-[16px]"
             style={{ background: quickAdd ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw-lg) solid var(--olive-edge)", boxShadow: quickAdd ? "0 6px 16px -6px var(--olive-edge)" : "0 8px 18px -8px var(--olive-edge)" }}
+            data-tour="quick-add"
             aria-label="Быстрая запись"
             aria-expanded={quickAdd}
           >
@@ -359,7 +360,7 @@ function BulkItem({ onClick, children }: { onClick: () => void; children: React.
 function Segmented({ value, onChange }: { value: View; onChange: (v: View) => void }) {
   const opts: { v: View; label: string }[] = [{ v: "soon", label: "Ближайшие" }, { v: "week", label: "Неделя" }];
   return (
-    <div className="mb-4 flex gap-1 rounded-full p-1 stroke" style={{ background: "#fff" }}>
+    <div data-tour="views" className="mb-4 flex gap-1 rounded-full p-1 stroke" style={{ background: "#fff" }}>
       {opts.map((o) => (
         <button key={o.v} onClick={() => onChange(o.v)} className="flex-1 rounded-full py-1.5 text-[12.5px] font-extrabold transition-colors" style={value === o.v ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{o.label}</button>
       ))}
