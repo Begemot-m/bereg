@@ -29,7 +29,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE: ghcr.io/${{ github.repository }}
+  # Docker-тег обязан быть в нижнем регистре (репозиторий — Begemot-m/bereg).
+  IMAGE: ghcr.io/begemot-m/bereg
 
 jobs:
   build:
