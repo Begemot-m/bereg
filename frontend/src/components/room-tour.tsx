@@ -11,16 +11,10 @@ import type { Role } from "@/lib/role";
 const EASE = [0.16, 1, 0.3, 1] as const;
 const KEY = (role: Role) => `bereg:tour:${role}:v3`;
 
-/**
- * Экскурсия временно выключена. Вернуть — поставить true: сам тур, маршруты
- * и метки data-tour в интерфейсе остались на месте.
- */
-const TOUR_ENABLED = false;
 const PAD = 8;      // воздух вокруг подсвеченного элемента
 const CARD = 210;   // примерная высота карточки — решаем, сверху её класть или снизу
 
 export function tourSeen(role: Role): boolean {
-  if (!TOUR_ENABLED) return true;
   if (typeof window === "undefined") return true; // SSR: не мигаем туром
   return localStorage.getItem(KEY(role)) === "1";
 }
@@ -28,6 +22,11 @@ export function tourSeen(role: Role): boolean {
 export function completeTour(role: Role) {
   localStorage.setItem(KEY(role), "1");
   window.dispatchEvent(new CustomEvent("bereg:tour-change"));
+}
+
+/** Запустить обучение вручную (из баннера на главной или кабинета). */
+export function startTour() {
+  window.dispatchEvent(new CustomEvent("bereg:tour-start"));
 }
 
 /** Сбросить туры всех ролей — вместе со сбросом знакомства. */

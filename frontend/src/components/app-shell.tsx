@@ -7,7 +7,7 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { Onboarding } from "@/components/onboarding";
-import { RoomTour, tourSeen } from "@/components/room-tour";
+import { RoomTour } from "@/components/room-tour";
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
 import { useOnboarded } from "@/lib/profile";
@@ -94,22 +94,21 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("bereg-fast-entry-complete", finish);
   }, [pathname, router, setRole]);
 
-  // Экскурсия показывается один раз на каждую роль: переключился — увидел свою.
-  const [tourDone, setTourDone] = useState<boolean | null>(null);
+  // Обучение запускается вручную — из баннера на главной или из кабинета.
+  const [tourActive, setTourActive] = useState(false);
   useEffect(() => {
-    const sync = () => setTourDone(tourSeen(role));
-    sync();
-    window.addEventListener("bereg:tour-change", sync);
-    return () => window.removeEventListener("bereg:tour-change", sync);
-  }, [role]);
+    const start = () => setTourActive(true);
+    window.addEventListener("bereg:tour-start", start);
+    return () => window.removeEventListener("bereg:tour-start", start);
+  }, []);
 
   if (onboarded === null || fastEntry === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
   if (!onboarded && !fastEntry) return <Onboarding />;
 
   return (
     <div data-accent={accent} className="@container fixed inset-0 overflow-hidden" style={{ background: "var(--page)" }}>
-      {/* Экскурсия при первом заходе в роли — поверх всего */}
-      {tourDone === false && <RoomTour role={role} onDone={() => setTourDone(true)} />}
+      {/* Обучение с прожекторной подсветкой — поверх всего, по запуску из баннера */}
+      {tourActive && <RoomTour role={role} onDone={() => setTourActive(false)} />}
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>

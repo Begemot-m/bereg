@@ -22,6 +22,8 @@ import { Disclosure } from "@/components/ui";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 import { PSYS } from "@/lib/catalog";
 import { loadTherapists } from "@/lib/therapists";
+import { startTour, tourSeen } from "@/components/room-tour";
+import type { Role } from "@/lib/role";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 const dateTimeF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -65,6 +67,8 @@ function PsyHome() {
       icon="home"
       focus={<SessionFocus appointment={next} />}
     >
+      <TourBanner role="psychologist" />
+
       <PracticePulse clients={clients} appts={appts} />
 
       <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" tone="olive" />
@@ -113,6 +117,8 @@ function PersonHome({ guest }: { guest: boolean }) {
       icon="home"
       focus={guest ? undefined : <NextSession booking={next} therapist={therapist} />}
     >
+      <TourBanner role={guest ? "guest" : "client"} />
+
       {guest ? <GuestStart /> : <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />}
 
       {!guest && <TodayCard items={clientToday} />}
@@ -336,6 +342,42 @@ function PracticePulse({ clients, appts }: { clients: { nextAt: string | null; s
 }
 
 const ROUTE_TONE: Record<string, string> = { "/sessions": "olive", "/clients": "purple", "/tools": "peach", "/cabinet": "salmon", "/therapy": "purple", "/catalog": "olive" };
+
+// Баннер обучения: ярко-лавандовый постер с игровым «!». Запускает прожекторный тур.
+function TourBanner({ role }: { role: Role }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const sync = () => setShow(!tourSeen(role));
+    sync();
+    window.addEventListener("bereg:tour-change", sync);
+    return () => window.removeEventListener("bereg:tour-change", sync);
+  }, [role]);
+  if (!show) return null;
+  const title = role === "psychologist" ? "Освойте кабинет психолога" : "Познакомьтесь с приложением";
+  const sub = role === "psychologist"
+    ? "Пошагово покажем, как вести клиентов, записи и практику"
+    : "Короткий гид по разделам — за минуту";
+  return (
+    <button onClick={() => { tap(); startTour(); }} className="relative w-full overflow-hidden rounded-[22px] p-4 text-left transition-transform active:scale-[0.99]" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)", boxShadow: "0 16px 30px -18px var(--purple-edge)" }}>
+      <span aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-30" style={{ background: "#fff" }} />
+      <span aria-hidden className="pointer-events-none absolute -bottom-10 right-12 h-20 w-20 rounded-full opacity-20" style={{ background: "var(--purple-edge)" }} />
+      <div className="relative flex items-center gap-3.5">
+        <motion.span
+          animate={{ scale: [1, 1.14, 1], rotate: [0, -7, 7, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[26px] font-black leading-none"
+          style={{ background: "var(--amber)", border: "var(--bw-lg) solid var(--amber-edge)", boxShadow: "0 0 0 4px rgba(255,255,255,.55)" }}
+        >!</motion.span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[var(--purple-edge)]">Обучение</span>
+          <span className="block text-[15.5px] font-black leading-tight">{title}</span>
+          <span className="mt-0.5 block text-[11.5px] font-semibold" style={{ color: "rgba(32,28,24,.66)" }}>{sub}</span>
+        </span>
+        <span className="shrink-0 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white">Пройти →</span>
+      </div>
+    </button>
+  );
+}
 
 // Разделы — листающаяся вбок карусель.
 function HomeRoutesCarousel({ items }: { items: { title: string; detail: string; icon: IconName; href: string }[] }) {
