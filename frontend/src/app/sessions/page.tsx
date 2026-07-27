@@ -148,14 +148,35 @@ function PsySessions() {
         <Disclosure open={calOpen} autoScroll={false}>
           <div>
             <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
-            <button
-              onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
-              className="mx-auto mt-2 flex items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-[11.5px] font-black stroke"
-              style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--olive-edge)" }}
-            >
-              <Icon name="check" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
-              {multiMode ? "Готово" : "Выбор"}
-            </button>
+            {/* Выбор нескольких дней и действия над ними — рядом, под календарём */}
+            <div className="relative mt-2 flex items-center justify-center gap-2">
+              <button
+                onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
+                className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11.5px] font-black stroke"
+                style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--olive-edge)" }}
+              >
+                <Icon name="check" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
+                {multiMode ? "Готово" : "Выбор"}
+              </button>
+              {multiMode && (
+                <>
+                  <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11.5px] font-black stroke disabled:opacity-40" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)", borderColor: "var(--olive-edge)" }}>
+                    <Icon name="gear" width={13} weight="bold" color="var(--olive-edge)" /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}
+                  </button>
+                  {bulkMenu && multiDays.size > 0 && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setBulkMenu(false)} />
+                      <div className="absolute right-0 top-9 z-20 w-56 overflow-hidden rounded-[14px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
+                        <BulkItem onClick={() => bulkAct("off")}>🌙 Сделать выходными</BulkItem>
+                        <BulkItem onClick={() => bulkAct("open")}>↺ Открыть все окна</BulkItem>
+                        <BulkItem onClick={() => bulkAct("online")}>📹 Все окна — онлайн</BulkItem>
+                        <BulkItem onClick={() => bulkAct("offline")}>📍 Все окна — очно</BulkItem>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </Disclosure>
       </PageHead>
@@ -242,25 +263,6 @@ function PsySessions() {
 
         {calOpen && (
           <div>
-            <div className="relative mb-3 flex items-center justify-end">
-              {multiMode && (
-                <>
-                  <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke disabled:opacity-40" style={{ background: "#fff" }}><Icon name="gear" width={14} /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}</button>
-                  {bulkMenu && multiDays.size > 0 && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setBulkMenu(false)} />
-                      <div className="absolute right-0 top-8 z-20 w-56 overflow-hidden rounded-[14px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
-                        <BulkItem onClick={() => bulkAct("off")}>🌙 Сделать выходными</BulkItem>
-                        <BulkItem onClick={() => bulkAct("open")}>↺ Открыть все окна</BulkItem>
-                        <BulkItem onClick={() => bulkAct("online")}>📹 Все окна — онлайн</BulkItem>
-                        <BulkItem onClick={() => bulkAct("offline")}>📍 Все окна — очно</BulkItem>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-
             {multiMode ? (
               <p className="text-center text-[13px] font-semibold text-[var(--muted-2)]">{multiDays.size ? `Выбрано дней: ${multiDays.size}. Действия применятся ко всем.` : "Тапайте по дням в календаре, чтобы выбрать несколько."}</p>
             ) : selDay ? (

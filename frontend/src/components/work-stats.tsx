@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { select } from "@/lib/haptics";
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const MON = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 // Плавный счётчик — число «набегает» при появлении/смене периода.
 function CountUp({ value, suffix = "" }: { value: number; suffix?: string }) {
@@ -31,11 +32,21 @@ type Item = { startsAt: string; durationMin: number; clientKey: string; cancelle
 
 // Анимированная статистика работы: неделя/месяц, столбики + плитки метрик.
 export function WorkStats({ items, title = "Статистика работы", tone = "olive" }: { items: Item[]; title?: string; tone?: string }) {
-  const [period, setPeriod] = useState<"week" | "month">("week");
+  const [period, setPeriod] = useState<"week" | "month" | "all">("week");
 
   const data = useMemo(() => {
     const now = new Date();
     const active = items.filter((i) => !i.cancelled);
+    if (period === "all") {
+      // Всё время — последние 6 месяцев по месяцам.
+      const bars = Array.from({ length: 6 }).map((_, mi) => {
+        const start = new Date(now.getFullYear(), now.getMonth() - (5 - mi), 1);
+        const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+        const within = active.filter((i) => { const t = new Date(i.startsAt); return t >= start && t < end; });
+        return { label: MON[start.getMonth()], value: within.length, today: mi === 5 };
+      });
+      return { bars, sessions: active.length, hours: Math.round(active.reduce((s, i) => s + i.durationMin, 0) / 60), clients: new Set(active.map((i) => i.clientKey)).size };
+    }
     if (period === "week") {
       const monday = new Date(now); monday.setHours(0, 0, 0, 0);
       monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
@@ -68,8 +79,8 @@ export function WorkStats({ items, title = "Статистика работы", 
       <div className="flex items-center justify-between px-4 pb-2 pt-4">
         <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{title}</p>
         <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1">
-          {(["week", "month"] as const).map((p) => (
-            <button key={p} onClick={() => { select(); setPeriod(p); }} className="rounded-full px-3 py-1 text-[11px] font-black transition-colors" style={period === p ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{p === "week" ? "Неделя" : "Месяц"}</button>
+          {(["week", "month", "all"] as const).map((p) => (
+            <button key={p} onClick={() => { select(); setPeriod(p); }} className="rounded-full px-2.5 py-1 text-[11px] font-black transition-colors" style={period === p ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{p === "week" ? "Неделя" : p === "month" ? "Месяц" : "Всё"}</button>
           ))}
         </div>
       </div>
@@ -93,7 +104,7 @@ export function WorkStats({ items, title = "Статистика работы", 
 
       {/* Плитки метрик */}
       <div className="mt-3 grid grid-cols-3 gap-2 border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>
-        <Tile icon="calendar" tone={tone} value={data.sessions} label={period === "week" ? "сессий за неделю" : "сессий за месяц"} />
+        <Tile icon="calendar" tone={tone} value={data.sessions} label={period === "week" ? "сессий за неделю" : period === "month" ? "сессий за месяц" : "сессий всего"} />
         <Tile icon="clock" tone="amber" value={data.hours} suffix=" ч" label="часов" />
         <Tile icon="users" tone="purple" value={data.clients} label="клиентов" />
       </div>

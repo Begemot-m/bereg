@@ -14,7 +14,7 @@ import { motion } from "motion/react";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { TodayCard, type TodayItem } from "@/components/today";
 import { listAppointments, type Appointment } from "@/lib/appointments";
-import { listClients, listHomework, listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
+import { listHomework, listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
@@ -50,7 +50,6 @@ export default function Home() {
 function PsyHome() {
   const name = useName();
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const now = new Date();
   const todayKey = localDay(now);
   const upcoming = useMemo(
@@ -68,8 +67,6 @@ function PsyHome() {
       focus={<SessionFocus appointment={next} />}
     >
       <TourBanner role="psychologist" />
-
-      <PracticePulse clients={clients} appts={appts} />
 
       <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" tone="olive" />
 
@@ -286,61 +283,6 @@ function GuestStart() {
 
 // Что в практике требует движения: кого позвать, где пусто, кого привести.
 // Не сводка, а список действий — на главной полезнее статистики.
-function PracticePulse({ clients, appts }: { clients: { nextAt: string | null; sessionsDone: number }[]; appts: Appointment[] }) {
-  const now = Date.now();
-  const weekEnd = now + 7 * 86400000;
-  const dropped = clients.filter((c) => !c.nextAt && c.sessionsDone > 0).length;
-  const weekBooked = appts.filter((a) => a.status === "scheduled" && +new Date(a.startsAt) > now && +new Date(a.startsAt) < weekEnd).length;
-
-  const rows = [
-    dropped > 0 && {
-      key: "dropped",
-      icon: "users" as IconName,
-      title: `${dropped} ${plural(dropped, "клиент", "клиента", "клиентов")} без записи`,
-      sub: "Предложите удобное окно",
-      href: "/clients",
-      hot: true,
-    },
-    {
-      key: "week",
-      icon: "calendar" as IconName,
-      title: weekBooked > 0 ? `${weekBooked} ${plural(weekBooked, "встреча", "встречи", "встреч")} на неделе` : "На неделе пока пусто",
-      sub: weekBooked > 0 ? "Посмотреть расписание" : "Откройте окна для записи",
-      href: "/sessions",
-      hot: weekBooked === 0,
-    },
-    {
-      key: "invite",
-      icon: "heart" as IconName,
-      title: "Пригласить клиента",
-      sub: "Ссылка с готовым текстом",
-      href: "/clients",
-      hot: false,
-    },
-  ].filter(Boolean) as { key: string; icon: IconName; title: string; sub: string; href: string; hot: boolean }[];
-
-  return (
-    <section className="rounded-[22px] p-4" style={{ background: "var(--olive-soft)" }}>
-      <p className="t-micro">Практика</p>
-      <p className="t-title mt-1">Что стоит подтянуть</p>
-      <div className="mt-3 space-y-2">
-        {rows.map((row) => (
-          <Link key={row.key} href={row.href} onClick={tap} className="flex items-center gap-3 rounded-[16px] bg-white p-3 transition-transform active:scale-[0.99]">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: row.hot ? "var(--amber-soft)" : "var(--olive-soft)" }}>
-              <Icon name={row.icon} width={17} weight="bold" color={row.hot ? "var(--amber-edge)" : "var(--olive-edge)"} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="t-head block truncate">{row.title}</span>
-              <span className="t-sub block truncate">{row.sub}</span>
-            </span>
-            <span className="t-title shrink-0 text-[var(--muted-2)]">›</span>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 const ROUTE_TONE: Record<string, string> = { "/sessions": "olive", "/clients": "purple", "/tools": "peach", "/cabinet": "salmon", "/therapy": "purple", "/catalog": "olive" };
 
 // Баннер обучения: ярко-лавандовый постер с игровым «!». Запускает прожекторный тур.

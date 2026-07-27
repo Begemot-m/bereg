@@ -139,7 +139,7 @@ export function ClientDetail() {
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} className="overflow-hidden">
               <motion.div initial={{ y: -8, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={{ delay: 0.05 }} className="mt-2.5 rounded-[18px] bg-white p-3" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>
                 <p className="mb-2 text-[12px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно из вашего расписания</p>
-                <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
+                <SlotPicker variant="strip" daysAhead={21} onPick={(iso, format) => book.mutate({ iso, format })} />
               </motion.div>
             </motion.div>
           )}
@@ -151,6 +151,14 @@ export function ClientDetail() {
       </header>
 
       <main className="-mt-8 space-y-6 rounded-t-[30px] bg-[#fffdf7] px-4 pb-10 pt-6 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        {/* Задания — первыми: с ними работают каждую неделю */}
+        <div>
+          <SectionTitle>Домашние задания</SectionTitle>
+          <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)" }}>
+            <HomeworkBlock clientId={id} items={homework} onChanged={inv} />
+          </div>
+        </div>
+
         {/* Динамика встреч — упрощённо: только число проведённых */}
         <SessionsCounter done={client.sessionsDone} hours={client.hoursDone} />
 
@@ -161,14 +169,6 @@ export function ClientDetail() {
             <MoodStats moods={moods} title="Настроение клиента" />
           </div>
         )}
-
-        {/* Задания выше колеса: с ними работают каждую неделю, с колесом — раз в месяц */}
-        <div>
-          <SectionTitle>Домашние задания</SectionTitle>
-          <div className="rounded-[20px] p-3" style={{ background: "var(--surface-2)" }}>
-            <HomeworkBlock clientId={id} items={homework} onChanged={inv} />
-          </div>
-        </div>
 
         <div>
           <SectionTitle>Колесо баланса</SectionTitle>
@@ -314,7 +314,7 @@ function MeetingRow({ appt, onReschedule }: { appt: { id: number; startsAt: stri
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} className="overflow-hidden">
             <div className="border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>
               <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно для встречи</p>
-              <SlotPicker variant="calendar" showAvail onPick={(iso, format) => { setOpen(false); onReschedule(iso, format); }} />
+              <SlotPicker variant="strip" daysAhead={21} onPick={(iso, format) => { setOpen(false); onReschedule(iso, format); }} />
             </div>
           </motion.div>
         )}

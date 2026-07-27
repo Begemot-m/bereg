@@ -399,15 +399,22 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
 
 function MethodList({ psy }: { psy: Psy }) {
   const tone = T[psy.tone];
-  const [open, setOpen] = useState<string | null>(psy.method);
+  const [open, setOpen] = useState<string | null>(null);
+  const [show, setShow] = useState(false);
   return (
     <Section title="Методы">
+      {/* Свёрнуто по умолчанию — раскрывается по нажатию */}
+      <button onClick={() => { tap(); setShow((v) => !v); }} className="flex w-full items-center gap-2.5 rounded-[16px] p-3.5" style={{ background: tone.soft }} aria-expanded={show}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-white"><Icon name="therapy" width={15} weight="bold" color={tone.edge} /></span>
+        <span className="min-w-0 flex-1 text-left"><span className="t-head block truncate">{psy.method}{psy.methods.length > 1 ? ` и ещё ${psy.methods.length - 1}` : ""}</span><span className="t-cap block">нажмите, чтобы раскрыть подходы</span></span>
+        <motion.span animate={{ rotate: show ? 180 : 0 }} className="shrink-0 text-[15px] font-black text-[var(--muted)]">⌄</motion.span>
+      </button>
+      <Disclosure open={show}>
       <motion.div
         initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.2 }}
+        animate="show"
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
-        className="grid grid-cols-2 items-start gap-2"
+        className="mt-2 grid grid-cols-2 items-start gap-2"
       >
         {psy.methods.map((method) => {
           const expanded = open === method;
@@ -448,6 +455,7 @@ function MethodList({ psy }: { psy: Psy }) {
           );
         })}
       </motion.div>
+      </Disclosure>
     </Section>
   );
 }
@@ -585,9 +593,38 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
     <Section title="Рейтинг и оценка">
       <div className="overflow-hidden rounded-[20px] bg-[var(--amber-soft)] stroke-lg" style={{ borderColor: "var(--amber-edge)" }}>
         <div className="flex items-center gap-4 p-4">
-          <div><p className="font-tight tnum text-[34px] font-black leading-none"><CountUp value={psy.rating} decimals={1} /></p><p className="mt-1 text-[10px] font-black text-[var(--muted)]">{psy.reviews} отзывов</p></div>
-          <div className="flex flex-1 justify-end gap-1">
-            {[1,2,3,4,5].map((value) => <motion.span key={value} initial={{ scale: 0, rotate: -20 }} whileInView={{ scale: 1, rotate: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 420, damping: 24, delay: value * .06 }}><Icon name="star" width={24} weight={value <= Math.round(psy.rating) ? "fill" : "regular"} color="var(--amber-edge)" /></motion.span>)}
+          {/* Круговой рейтинг с анимированной дугой */}
+          {(() => {
+            const C = 2 * Math.PI * 15.5;
+            return (
+              <div className="relative flex h-[86px] w-[86px] shrink-0 items-center justify-center">
+                <svg viewBox="0 0 36 36" className="h-[86px] w-[86px] -rotate-90">
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,.7)" strokeWidth="3.5" />
+                  <motion.circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--amber-edge)" strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} whileInView={{ strokeDashoffset: C * (1 - psy.rating / 5) }} viewport={{ once: true }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} />
+                </svg>
+                <div className="absolute flex flex-col items-center leading-none">
+                  <span className="font-tight tnum text-[26px] font-black"><CountUp value={psy.rating} decimals={1} /></span>
+                  <span className="text-[8px] font-black uppercase tracking-[.08em] text-[var(--muted)]">из 5</span>
+                </div>
+              </div>
+            );
+          })()}
+          {/* Распределение оценок — анимированные полосы */}
+          <div className="min-w-0 flex-1 space-y-1">
+            {(() => {
+              const raw = [5, 4, 3, 2, 1].map((s) => Math.max(0.02, 1 - Math.abs(s - psy.rating) * 0.62));
+              const sum = raw.reduce((a, b) => a + b, 0);
+              return [5, 4, 3, 2, 1].map((s, i) => (
+                <div key={s} className="flex items-center gap-1.5">
+                  <span className="w-2 text-right text-[9px] font-black text-[var(--muted)]">{s}</span>
+                  <Icon name="star" width={9} weight="fill" color="var(--amber-edge)" />
+                  <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-white/70">
+                    <motion.div className="h-full rounded-full" style={{ background: "var(--amber-edge)" }} initial={{ width: 0 }} whileInView={{ width: `${Math.round((raw[i] / sum) * 100)}%` }} viewport={{ once: true }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 + i * 0.07 }} />
+                  </div>
+                </div>
+              ));
+            })()}
+            <p className="pt-0.5 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted)]">{psy.reviews} отзывов после встреч</p>
           </div>
         </div>
         <div className="border-t bg-white/55 p-4" style={{ borderColor: "var(--amber-edge)" }}>
