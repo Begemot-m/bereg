@@ -93,10 +93,11 @@ export function SlotPicker({
               <button
                 key={s.start}
                 onClick={() => { tap(); onPick(s.start, s.fmt); }}
-                className="flex items-center justify-center gap-1 rounded-[12px] py-2.5 text-[13px] font-extrabold transition-transform duration-150 active:scale-95 stroke"
-                style={{ background: "#fff", color: "var(--ink)" }}
+                className="flex flex-col items-center justify-center gap-0.5 rounded-[13px] py-2.5 text-[14px] font-black transition-transform duration-150 active:scale-95"
+                style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)", color: "var(--ink)" }}
               >
-                <Icon name={s.fmt === "online" ? "video" : "pin"} width={12} />{timeF.format(new Date(s.start))}
+                <span className="tnum">{timeF.format(new Date(s.start))}</span>
+                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[.04em]" style={{ color: "var(--green-edge)" }}><Icon name={s.fmt === "online" ? "video" : "pin"} width={10} weight="bold" />{s.fmt === "online" ? "онлайн" : "очно"}</span>
               </button>
             ))}
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -150,11 +150,11 @@ function PsySessions() {
             <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
             <button
               onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[11.5px] font-black"
-              style={multiMode ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--olive-edge)" }}
+              className="mx-auto mt-2 flex items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-[11.5px] font-black stroke"
+              style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--olive-edge)" }}
             >
-              <Icon name="gear" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
-              {multiMode ? "Отменить выбор дней" : "Выбрать несколько дней — закрыть или открыть окна"}
+              <Icon name="check" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
+              {multiMode ? "Готово" : "Выбор"}
             </button>
           </div>
         </Disclosure>
@@ -215,12 +215,11 @@ function PsySessions() {
         {!calOpen && view === "soon" && (
           isLoading ? (
             <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
+          ) : selDay ? (
+            // День выбран сверху — весь день окнами: свободные и занятые, как в календаре.
+            <DayAgenda key={selDay} date={new Date(selDay + "T00:00:00")} today={selDay === todayY} />
           ) : soonDays.length === 0 ? (
-            selDay ? (
-              <EmptyDayFree key={selDay} day={selDay} />
-            ) : (
-              <EmptyState onAdd={openCalendar} selDay={null} />
-            )
+            <EmptyState onAdd={openCalendar} selDay={null} />
           ) : (
             <div className="space-y-6">
               {soonDays.map((d) => {
@@ -383,29 +382,6 @@ function EmptyState({ onAdd, selDay }: { onAdd: () => void; selDay: string | nul
 }
 
 // Выбранный день без записей: сообщение + кнопка, которая разворачивает свободные окна дня.
-function EmptyDayFree({ day }: { day: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div>
-      <div className="py-8 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl stroke" style={{ background: "var(--head-soft)" }}><Icon name="calendar" width={24} /></div>
-        <p className="text-[14px] font-bold">На этот день записей нет</p>
-        <p className="mx-auto mt-1 max-w-[240px] text-[13px] text-[var(--muted-2)]">Можно записать клиента в свободное окно.</p>
-        <button onClick={() => { tap(); setOpen(!open); }} className="mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-extrabold stroke" style={{ background: "#fff" }} aria-expanded={open}>
-          {open ? "Скрыть свободные окна" : "Показать свободные окна"}
-          <span className="transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
-        </button>
-      </div>
-      <Disclosure open={open}>
-        <div className="border-t pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
-          <div className="mb-2"><span className="text-[14px] font-extrabold capitalize">{dateHeader(day)}</span></div>
-          <DaySlots date={new Date(day + "T00:00:00")} />
-        </div>
-      </Disclosure>
-    </div>
-  );
-}
-
 // Быстрая запись: сначала клиент (с поиском), затем свободное окно.
 function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
@@ -422,27 +398,44 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   });
   const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
 
+  useEffect(() => {
+    if (!open) { setClient(null); return; }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
   return (
-    <Disclosure open={open} autoScroll={false}>
-      <div className="mb-3 rounded-[18px] bg-white p-3" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-[12px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
-          {client && <button onClick={() => setClient(null)} className="text-[11px] font-black text-[var(--muted)]">← другой клиент</button>}
-        </div>
-        {!client ? (
-          <ClientPicker clients={sorted} compact={false} onCreateClient={(name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
-        ) : (
-          <div>
-            <div className="mb-2 flex items-center gap-2 rounded-[12px] bg-[var(--green-soft)] px-3 py-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
-              <span className="text-[13px] font-black">{client.name}</span>
+    <AnimatePresence>
+      {open && (
+        <motion.div className="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[calc(env(safe-area-inset-top)+52px)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <button className="absolute inset-0 bg-[rgba(32,28,24,.42)]" onClick={onClose} aria-label="Закрыть" />
+          <motion.section role="dialog" aria-modal="true" initial={{ y: -18, opacity: 0.6 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -12, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="relative flex max-h-[74dvh] w-full max-w-md flex-col overflow-hidden rounded-[22px] bg-white stroke-lg" style={{ borderColor: "var(--olive-edge)" }}>
+            <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
+              <p className="text-[13px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
+              <div className="flex items-center gap-3">
+                {client && <button onClick={() => setClient(null)} className="text-[11px] font-black text-[var(--muted)]">← другой</button>}
+                <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full stroke" aria-label="Закрыть">×</button>
+              </div>
             </div>
-            <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
-            <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
-          </div>
-        )}
-      </div>
-    </Disclosure>
+            <div className="overflow-y-auto p-4">
+              {!client ? (
+                <ClientPicker clients={sorted} compact={false} onCreateClient={(name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+              ) : (
+                <div>
+                  <div className="mb-2 flex items-center gap-2 rounded-[12px] bg-[var(--green-soft)] px-3 py-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
+                    <span className="text-[13px] font-black">{client.name}</span>
+                  </div>
+                  <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
+                  <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
+                </div>
+              )}
+            </div>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

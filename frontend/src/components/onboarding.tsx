@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { asset } from "@/lib/asset";
 import { APP_NAME } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { completeOnboarding, tgUser } from "@/lib/profile";
@@ -11,325 +12,243 @@ import { setRole, type Role } from "@/lib/role";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-const SKIN = "#f0c7a4";
-const HAIR = "#2a2620";
-
-type Poster = {
+type Intro = {
   key: string;
-  tone: string;
-  eyebrow: string;
-  head: ReactNode;
-  text: string;
-  art: ReactNode;
+  kicker: string;
+  title: string;
+  points: string[];
+  tone: string;      // акцент рамки скрина
+  img?: string;      // реальный скрин из /public (можно заменить)
+  mock: ReactNode;   // fallback — макет элемента приложения
 };
 
+const INTRO: Intro[] = [
+  {
+    key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой", tone: "var(--amber-edge)",
+    points: ["Найти своего специалиста", "Отслеживать динамику настроения и сессий", "Самостоятельная помощь на каждый день"],
+    img: "/onboarding/intro-1.webp", mock: <OverviewMock />,
+  },
+  {
+    key: "catalog", kicker: "каталог", title: "Умный подбор специалистов", tone: "var(--olive-edge)",
+    points: ["Персональный подбор вместо рейтинга", "Честные отзывы после встреч", "Удобный поиск по запросу"],
+    img: "/onboarding/intro-2.webp", mock: <CatalogMock />,
+  },
+  {
+    key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний", tone: "var(--coral-edge)",
+    points: ["Подберём лучшие практики между сессиями", "С отслеживанием настроения", "Дыхание, дневники, колесо баланса"],
+    img: "/onboarding/intro-3.webp", mock: <ToolsMock />,
+  },
+  {
+    key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами", tone: "var(--purple-edge)",
+    points: ["Формирование свободных окон для записи", "CRM-система для ведения клиентов", "Напоминания о встречах"],
+    img: "/onboarding/intro-4.webp", mock: <ScheduleMock />,
+  },
+];
+
 export function Onboarding() {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(0); // 0..3 — интро, 4 — выбор роли
   const tg = tgUser();
-  const last = POSTERS.length;
-  const poster = POSTERS[step];
-  const tone = poster?.tone ?? "var(--purple)";
+  const isRole = step === INTRO.length;
+  const cur = INTRO[step];
 
-  const next = () => { select(); setStep(step + 1); };
-  const back = () => { tap(); setStep(Math.max(0, step - 1)); };
-  const skip = () => { select(); setStep(last); };
-
-  const pick = (role: Role) => {
-    success();
-    setRole(role);
-    completeOnboarding();
-  };
+  const finish = () => { success(); completeOnboarding(); };
+  const next = () => { select(); setStep((s) => Math.min(INTRO.length, s + 1)); };
+  const back = () => { tap(); setStep((s) => Math.max(0, s - 1)); };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: "var(--bg)" }}>
-      <div className="mx-auto flex h-full w-full max-w-md flex-col">
+    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: "#fbf8ef" }}>
+      <div className="mx-auto flex h-full w-full max-w-md flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-[calc(env(safe-area-inset-top)+18px)]">
+        {/* Верх: логотип + прогресс + пропустить */}
+        <div className="flex items-center gap-3">
+          <span className="flex h-7 items-center rounded-[9px] bg-[var(--ink)] px-2 text-[12px] font-black text-[var(--bg)]">{APP_NAME}</span>
+          <div className="flex flex-1 gap-1.5">
+            {INTRO.map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.16)" }} />)}
+          </div>
+          <button onClick={finish} className="shrink-0 text-[11px] font-black text-[var(--muted)]">Пропустить</button>
+        </div>
+
         <AnimatePresence mode="wait">
           <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 24 }}
+            key={isRole ? "role" : cur.key}
+            initial={{ opacity: 0, x: 26 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={{ duration: 0.3, ease: EASE }}
-            className="flex min-h-0 flex-1 flex-col"
+            exit={{ opacity: 0, x: -26 }}
+            transition={{ duration: 0.28, ease: EASE }}
+            className="flex flex-1 flex-col"
           >
-            {poster ? (
-              <>
-                <Tone tone={tone}>
-                  <Progress step={step} total={last + 1} onSkip={skip} />
-                  <div className="flex flex-1 flex-col justify-center pb-2 text-center">
-                    <p className="text-[11px] font-black uppercase tracking-[.2em]" style={{ color: "rgba(32,28,24,.6)" }}>{poster.eyebrow}</p>
-                    <h1 className="font-tight mt-3 text-[38px] font-black leading-[1.02]">{poster.head}</h1>
-                    <p className="mx-auto mt-4 max-w-[30ch] text-[14.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.72)" }}>{poster.text}</p>
-                  </div>
-                </Tone>
-
-                <div className="relative flex flex-1 flex-col items-center justify-start pt-9">
-                  <motion.button
-                    onClick={next}
-                    whileTap={{ scale: 0.94 }}
-                    className="relative z-10 inline-flex h-[54px] items-center gap-2 rounded-full px-9 text-[16px] font-black text-white"
-                    style={{ background: "var(--ink)", boxShadow: "0 14px 26px -12px rgba(32,28,24,.55)" }}
-                  >
-                    {step === last - 1 ? "С чего начнём" : "Дальше"}
-                    <span className="text-[19px] leading-none">→</span>
-                  </motion.button>
-
-                  {step > 0 && (
-                    <button onClick={back} className="relative z-10 mt-3 h-9 px-3 text-[13px] font-black" style={{ color: "rgba(32,28,24,.44)" }}>
-                      ‹ Назад
-                    </button>
-                  )}
-
-                  <span aria-hidden className="pointer-events-none absolute bottom-[-96px] left-1/2 h-[340px] w-[460px] -translate-x-1/2 rounded-full opacity-40" style={{ background: tone }} />
-
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0">
-                    <div className="mx-auto w-full max-w-md overflow-hidden pb-[calc(var(--safe-bottom)+16px)]">{poster.art}</div>
-                  </div>
-                </div>
-              </>
+            {isRole ? (
+              <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); finish(); }} />
             ) : (
-              <Pick firstName={tg?.first_name} onPick={pick} onBack={back} />
+              <div className="flex flex-1 flex-col">
+                <p className="mt-6 text-[11px] font-black uppercase tracking-[.14em] text-[var(--muted-2)]">{cur.kicker}</p>
+                <h1 className="font-tight mt-2 text-[26px] font-black leading-[1.1]">{cur.title}</h1>
+                <ul className="mt-4 space-y-2">
+                  {cur.points.map((p, i) => (
+                    <motion.li key={p} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--green-soft)", border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="bold" color="var(--green-edge)" /></span>
+                      {p}
+                    </motion.li>
+                  ))}
+                </ul>
+                <div className="flex min-h-0 flex-1 items-center justify-center py-3">
+                  <Shot src={cur.img} tone={cur.tone}>{cur.mock}</Shot>
+                </div>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
+
+        {/* Низ: назад + стрелка (на интро-экранах) */}
+        {!isRole && (
+          <div className="flex items-center justify-between">
+            <button onClick={back} disabled={step === 0} className="flex h-11 items-center gap-1 px-2 text-[13px] font-black text-[var(--muted)] disabled:opacity-0" aria-label="Назад">‹ Назад</button>
+            <motion.button onClick={next} whileTap={{ scale: 0.9 }} className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg" style={{ background: "var(--ink)", color: "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }} aria-label="Дальше"><span className="text-[24px] leading-none">→</span></motion.button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ——— Каркас постера: цветное поле с волнистым нижним краем ———
-
-function Tone({ tone, children }: { tone: string; children: ReactNode }) {
+// Экран выбора роли: фиолетовый залив сверху, кнопки — ниже, под рукой.
+function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
+  const roles: { role: Role; title: string; icon: IconName; fill: string }[] = [
+    { role: "psychologist", title: "Я психолог", icon: "users", fill: "fill-green" },
+    { role: "client", title: "Я ищу специалиста", icon: "heart", fill: "fill-purple" },
+    { role: "guest", title: "Я хочу заниматься сам", icon: "compass", fill: "fill-amber" },
+  ];
   return (
-    <div className="relative flex shrink-0 flex-col px-7 pb-6 pt-[calc(var(--top-pad)+8px)]" style={{ background: tone, minHeight: "42%" }}>
-      {children}
-      <svg
-        className="absolute inset-x-0 top-full block h-[54px] w-full"
-        viewBox="0 0 390 54"
-        preserveAspectRatio="none"
-        aria-hidden
-        style={{ marginTop: -1 }}
-      >
-        <path d="M0 0 H390 V12 C338 44, 296 6, 232 24 C168 42, 92 58, 0 26 Z" fill={tone} />
-      </svg>
-    </div>
-  );
-}
+    <div className="flex flex-1 flex-col">
+      {/* Фиолетовый залив */}
+      <div className="mt-4 rounded-[26px] p-6 pb-8" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
+        <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white stroke"><Icon name="therapy" width={22} weight="fill" /></span>
+        <h1 className="font-tight mt-4 text-[27px] font-black leading-[1.08]">{firstName ? `${firstName}, с чего` : "С чего"}<br />начнём?</h1>
+        <p className="mt-2 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
+      </div>
 
-function Progress({ step, total, onSkip }: { step: number; total: number; onSkip?: () => void }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-7 w-7 items-center justify-center rounded-[9px] text-[13px] font-black" style={{ background: "var(--ink)", color: "var(--bg)" }}>
-        {APP_NAME.charAt(0)}
-      </span>
-      <div className="flex flex-1 gap-1.5">
-        {Array.from({ length: total }).map((_, k) => (
-          <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />
+      {/* Кнопки — ниже залива, в зоне большого пальца */}
+      <div className="mt-auto space-y-3 pt-6">
+        {roles.map((item, k) => (
+          <motion.button
+            key={item.role}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 + k * 0.07, duration: 0.4, ease: EASE }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onPick(item.role)}
+            className={`chunk ${item.fill} flex w-full items-center gap-3.5 p-4 text-left`}
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-white stroke"><Icon name={item.icon} width={22} weight="regular" color="var(--ink)" /></span>
+            <span className="flex-1 text-[16px] font-black">{item.title}</span>
+            <span className="text-[18px] font-black text-[var(--muted-2)]">›</span>
+          </motion.button>
         ))}
       </div>
-      {onSkip ? (
-        <button onClick={onSkip} className="shrink-0 text-[11px] font-black" style={{ color: "rgba(32,28,24,.55)" }}>Пропустить</button>
-      ) : (
-        <span className="w-[62px]" />
-      )}
     </div>
   );
 }
 
-// ——— Последний экран: вход, а не анкета ———
+// Слот под реальный скрин; если файла нет — макет элемента приложения в рамке телефона.
+function Shot({ src, tone, children }: { src?: string; tone: string; children: ReactNode }) {
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={asset(src)} alt="" onError={() => setBroken(true)} className="max-h-full w-auto object-contain drop-shadow-[0_24px_44px_rgba(32,28,24,0.4)]" />;
+  }
+  return <Phone tone={tone}>{children}</Phone>;
+}
 
-const ENTRIES: { role: Role; title: string; desc: string; icon: IconName; tint: string; ink: string }[] = [
-  { role: "client", title: "Ищу специалиста", desc: "Подбор за пару минут", icon: "compass", tint: "var(--olive-soft)", ink: "var(--olive-edge)" },
-  { role: "client", title: "Хочу заниматься сам", desc: "Дневники и практики, бесплатно", icon: "therapy", tint: "var(--purple-soft)", ink: "var(--purple-edge)" },
-  { role: "guest", title: "Просто смотрю", desc: "Осмотреться без выбора", icon: "heart", tint: "var(--amber-soft)", ink: "var(--amber-edge)" },
-];
-
-function Pick({ firstName, onPick, onBack }: { firstName?: string; onPick: (role: Role) => void; onBack: () => void }) {
+function Phone({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <>
-      <Tone tone="var(--purple)">
-        <Progress step={POSTERS.length} total={POSTERS.length + 1} />
-        <div className="flex flex-1 flex-col justify-center pb-2 text-center">
-          <h1 className="font-tight text-[38px] font-black leading-[1.02]">{firstName ? `${firstName}, с чего` : "С чего"}<br />начнём?</h1>
-          <p className="mx-auto mt-4 max-w-[30ch] text-[14.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.72)" }}>
-            Ничего не заполняем. Выбор можно сменить в любой момент.
-          </p>
+    <div className="w-[210px] overflow-hidden rounded-[28px] bg-white p-2 stroke-lg" style={{ boxShadow: "0 26px 46px -24px rgba(32,28,24,.5)" }}>
+      <div className="overflow-hidden rounded-[21px]" style={{ background: tone, opacity: 0.14 }} />
+      <div className="-mt-[2px] overflow-hidden rounded-[21px]" style={{ border: `2px solid ${tone}` }}>
+        <div className="flex items-center gap-1 px-2.5 pb-1.5 pt-2" style={{ background: `color-mix(in srgb, ${tone} 16%, #fff)` }}>
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--ink)] opacity-40" />
+          <span className="h-1 w-8 rounded-full bg-[var(--ink)] opacity-20" />
         </div>
-      </Tone>
-
-      <div className="flex flex-1 flex-col px-6 pb-[calc(var(--safe-bottom)+22px)] pt-9">
-        <div className="flex flex-col gap-3">
-          {ENTRIES.map((entry, k) => (
-            <motion.button
-              key={entry.title}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 + k * 0.07, duration: 0.4, ease: EASE }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onPick(entry.role)}
-              className="flex w-full items-center gap-4 rounded-[24px] p-4 text-left"
-              style={{ background: entry.tint, boxShadow: "0 12px 26px -20px rgba(32,28,24,.5)" }}
-            >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
-                <Icon name={entry.icon} width={23} weight="regular" color={entry.ink} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[16.5px] font-black leading-tight">{entry.title}</span>
-                <span className="mt-0.5 block text-[12.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>{entry.desc}</span>
-              </span>
-              <span className="text-[19px] font-black" style={{ color: "rgba(32,28,24,.3)" }}>›</span>
-            </motion.button>
-          ))}
-        </div>
-
-        <div className="mt-auto flex items-center justify-between pt-7">
-          <button onClick={onBack} className="h-9 text-[13px] font-black" style={{ color: "rgba(32,28,24,.44)" }}>‹ Назад</button>
-          <button onClick={() => onPick("psychologist")} className="h-9 text-[13.5px] font-black" style={{ color: "var(--olive-edge)" }}>
-            Я психолог — веду практику →
-          </button>
-        </div>
+        <div className="min-h-[220px] bg-[#fffdf7] p-2.5">{children}</div>
       </div>
-    </>
+    </div>
   );
 }
 
-// ——— Сцены. Векторы в палитре приложения, привязаны к нижнему краю. ———
+const Bar = ({ w = "100%", h = 7, tone = "rgba(32,28,24,.14)" }: { w?: string; h?: number; tone?: string }) => (
+  <span className="block rounded-full" style={{ width: w, height: h, background: tone }} />
+);
+const Box = ({ children, tone = "#fff", edge = "rgba(32,28,24,.16)" }: { children?: ReactNode; tone?: string; edge?: string }) => (
+  <div className="rounded-[11px] p-2" style={{ background: tone, border: `1.5px solid ${edge}` }}>{children}</div>
+);
 
-function Art({ children }: { children: ReactNode }) {
+// ——— Макеты элементов приложения (без персонажей) ———
+
+function OverviewMock() {
   return (
-    <svg viewBox="0 0 390 280" className="-ml-[14%] block w-[128%]" aria-hidden>
-      {children}
-    </svg>
+    <div className="space-y-2">
+      <Box tone="var(--amber-soft)" edge="var(--amber-edge)">
+        <div className="flex items-center justify-between"><Bar w="45%" h={6} tone="rgba(32,28,24,.3)" /><span className="rounded-full bg-white px-1.5 py-0.5 text-[7px] font-black stroke">сегодня</span></div>
+        <p className="mt-1.5 text-[10px] font-black">Ближайшая сессия · 18:00</p>
+      </Box>
+      <Box>
+        <Bar w="55%" h={6} tone="rgba(32,28,24,.3)" />
+        <div className="mt-1.5 flex items-end justify-center gap-[3px]">
+          {[10, 16, 12, 20, 26, 22, 30].map((height, i) => <span key={i} className="w-[7px] rounded-full" style={{ height, background: i > 3 ? "var(--green)" : "var(--amber)", border: "1px solid rgba(32,28,24,.18)" }} />)}
+        </div>
+      </Box>
+      <div className="grid grid-cols-2 gap-1.5">
+        <Box tone="var(--green-soft)" edge="var(--green-edge)"><span className="block text-center text-[13px] font-black leading-none">12</span><span className="mt-1 block text-center text-[6px] font-black uppercase text-[var(--muted)]">встреч</span></Box>
+        <Box tone="var(--purple-soft)" edge="var(--purple-edge)"><span className="block text-center text-[13px] font-black leading-none">9 ч</span><span className="mt-1 block text-center text-[6px] font-black uppercase text-[var(--muted)]">всего</span></Box>
+      </div>
+    </div>
   );
 }
 
-const SitScene = (
-  <Art>
-    <path d="M158 208 C 156 152, 172 128, 195 128 C 218 128, 234 152, 232 208 Z" fill="var(--salmon)" />
-    <path d="M168 152 C 142 158, 120 178, 114 200" stroke="var(--salmon)" strokeWidth="20" fill="none" strokeLinecap="round" />
-    <path d="M222 152 C 248 158, 270 178, 276 200" stroke="var(--salmon)" strokeWidth="20" fill="none" strokeLinecap="round" />
-    <path d="M92 250 C 92 212, 130 194, 195 194 C 260 194, 298 212, 298 250 C 298 255, 294 258, 288 258 H102 C 96 258, 92 255, 92 250 Z" fill="var(--olive)" />
-    <ellipse cx="172" cy="240" rx="30" ry="13" fill="var(--olive-edge)" />
-    <ellipse cx="219" cy="240" rx="30" ry="13" fill="var(--olive-edge)" />
-    <circle cx="112" cy="204" r="12" fill={SKIN} />
-    <rect x="262" y="176" width="38" height="28" rx="9" fill="#fff" />
-    <path d="M300 183 h7 a9 9 0 0 1 0 16 h-7" fill="none" stroke="#fff" strokeWidth="6" />
-    <circle cx="272" cy="206" r="12" fill={SKIN} />
-    <path d="M274 168 c 6 -10, -6 -16, 0 -25" stroke="var(--olive-edge)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-    <path d="M289 168 c 6 -10, -6 -16, 0 -25" stroke="var(--olive-edge)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-    <circle cx="195" cy="98" r="30" fill={SKIN} />
-    <path d="M165 98 a30 30 0 0 1 60 0 Z" fill={HAIR} />
-    <path d="M165 98 c 0 -11, 9 -15, 18 -13" stroke={HAIR} strokeWidth="8" fill="none" strokeLinecap="round" />
-    <circle cx="230" cy="82" r="12" fill={HAIR} />
-  </Art>
-);
+function CatalogMock() {
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1">{["тревога", "онлайн", "до 4000"].map((l) => <span key={l} className="rounded-full px-1.5 py-0.5 text-[7px] font-black" style={{ background: "var(--olive-soft)", border: "1px solid var(--olive-edge)" }}>{l}</span>)}</div>
+      {[0, 1].map((row) => (
+        <Box key={row}>
+          <div className="flex gap-1.5">
+            <span className="h-[38px] w-[32px] shrink-0 rounded-[8px]" style={{ background: row ? "var(--purple-soft)" : "var(--green-soft)", border: "1.5px solid rgba(32,28,24,.16)" }} />
+            <div className="flex-1 space-y-1 pt-0.5"><Bar w="80%" h={6} tone="rgba(32,28,24,.32)" /><span className="flex items-center gap-1"><Icon name="check" width={8} weight="bold" color="var(--green-edge)" /><Bar w="60%" h={4} /></span><Bar w="68%" h={4} /></div>
+          </div>
+        </Box>
+      ))}
+      <div className="rounded-full py-1 text-center text-[8px] font-black text-white" style={{ background: "var(--ink)" }}>Посмотреть и записаться</div>
+    </div>
+  );
+}
 
-const CardsScene = (
-  <Art>
-    <g transform="rotate(-7 148 150)">
-      <rect x="44" y="86" width="208" height="122" rx="28" fill="#fff" />
-      <circle cx="96" cy="130" r="26" fill="var(--coral)" />
-      <rect x="136" y="114" width="84" height="12" rx="6" fill="var(--ink)" />
-      <rect x="136" y="136" width="58" height="10" rx="5" fill="#d9d3c4" />
-      <rect x="70" y="168" width="72" height="24" rx="12" fill="var(--olive-soft)" />
-      <rect x="150" y="168" width="84" height="24" rx="12" fill="var(--amber-soft)" />
-    </g>
-    <g transform="rotate(5 258 208)">
-      <rect x="152" y="146" width="216" height="124" rx="28" fill="#fff" />
-      <circle cx="206" cy="192" r="27" fill="var(--purple)" />
-      <rect x="248" y="176" width="88" height="12" rx="6" fill="var(--ink)" />
-      <rect x="248" y="198" width="62" height="10" rx="5" fill="#d9d3c4" />
-      <rect x="180" y="228" width="76" height="24" rx="12" fill="var(--purple-soft)" />
-      <rect x="264" y="228" width="88" height="24" rx="12" fill="var(--olive-soft)" />
-    </g>
-    <circle cx="306" cy="102" r="34" fill="var(--olive-edge)" />
-    <path d="M292 102 l10 11 l19 -22" stroke="#fff" strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-  </Art>
-);
+function ToolsMock() {
+  return (
+    <div className="space-y-2">
+      <Box tone="var(--coral-soft)" edge="var(--coral-edge)">
+        <Bar w="50%" h={6} tone="rgba(32,28,24,.3)" />
+        <div className="mt-1.5 flex items-center justify-center gap-1.5">{[1, 2, 3, 4, 5].map((i) => <span key={i} className="h-6 w-6 rounded-[8px]" style={{ background: `var(--mood-${i})`, border: "1px solid rgba(32,28,24,.2)" }} />)}</div>
+      </Box>
+      <div className="grid grid-cols-2 gap-1.5">
+        {[["var(--green)", "Дыхание"], ["var(--amber)", "Дневник"], ["var(--purple)", "Медитация"], ["var(--coral)", "Заземление"]].map(([color, label], i) => (
+          <div key={i} className="rounded-[10px] p-1.5" style={{ background: color as string, border: "1.5px solid rgba(32,28,24,.18)" }}>
+            <span className="block h-4 w-4 rounded-[6px] bg-white" style={{ border: "1.5px solid rgba(32,28,24,.18)" }} />
+            <span className="mt-1.5 block text-[7px] font-black">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-const MOOD_RING = ["var(--mood-1)", "var(--mood-2)", "var(--mood-3)", "var(--mood-4)", "var(--mood-5)"];
-
-const WheelScene = (
-  <Art>
-    {MOOD_RING.map((color, i) => (
-      <circle
-        key={color}
-        cx="195"
-        cy="150"
-        r="86"
-        fill="none"
-        stroke={color}
-        strokeWidth="30"
-        strokeDasharray="100 440"
-        strokeDashoffset={-108 * i}
-        transform="rotate(-90 195 150)"
-      />
-    ))}
-    <circle cx="195" cy="150" r="58" fill="var(--bg)" />
-    <circle cx="195" cy="150" r="34" fill="var(--olive-soft)" />
-    <path d="M182 146 a5.5 5.5 0 0 1 11 0" fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
-    <path d="M199 146 a5.5 5.5 0 0 1 11 0" fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
-    <path d="M184 164 c 9 9, 20 9, 27 0" fill="none" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
-    <rect x="40" y="200" width="74" height="56" rx="16" fill="#fff" />
-    <circle cx="67" cy="228" r="14" fill="var(--purple-soft)" />
-    <path d="M63 221 l11 7 l-11 7 z" fill="var(--purple-edge)" />
-    <rect x="89" y="224" width="16" height="7" rx="3.5" fill="#ded8c9" />
-    <rect x="276" y="200" width="76" height="56" rx="16" fill="#fff" />
-    <rect x="292" y="218" width="44" height="8" rx="4" fill="#ded8c9" />
-    <rect x="292" y="234" width="28" height="8" rx="4" fill="#ebe6da" />
-  </Art>
-);
-
-const ReadScene = (
-  <Art>
-    <circle cx="196" cy="184" r="96" fill="var(--amber-soft)" opacity="0.55" />
-    <rect x="46" y="222" width="104" height="22" rx="9" fill="var(--purple)" />
-    <rect x="56" y="198" width="94" height="22" rx="9" fill="var(--olive)" />
-    <path d="M96 198 c -22 -10, -28 -38, -10 -52 c 16 12, 20 36, 10 52 z" fill="var(--olive-edge)" />
-    <path d="M112 266 H316 V212 C 286 188, 242 188, 214 212 C 186 188, 142 188, 112 212 Z" fill="#fff" />
-    <path d="M214 212 V266" stroke="#e6dfd0" strokeWidth="4" strokeLinecap="round" />
-    <rect x="132" y="226" width="62" height="7" rx="3.5" fill="#ded8c9" />
-    <rect x="132" y="242" width="44" height="7" rx="3.5" fill="#ebe6da" />
-    <rect x="234" y="226" width="62" height="7" rx="3.5" fill="#ded8c9" />
-    <rect x="234" y="242" width="50" height="7" rx="3.5" fill="#ebe6da" />
-    <rect x="330" y="216" width="9" height="50" rx="4.5" fill="var(--olive-edge)" />
-    <ellipse cx="334" cy="266" rx="28" ry="7" fill="var(--olive-edge)" />
-    <path d="M306 214 c 0 -28, 12 -44, 28 -44 c 16 0, 28 16, 28 44 z" fill="var(--peach)" />
-    <ellipse cx="334" cy="214" rx="28" ry="6" fill="var(--peach-edge)" />
-  </Art>
-);
-
-const POSTERS: Poster[] = [
-  {
-    key: "what",
-    tone: "var(--amber)",
-    eyebrow: APP_NAME,
-    head: <>Психология<br />под рукой</>,
-    text: "Найти своего специалиста, заниматься собой между встречами и понимать, как всё устроено.",
-    art: SitScene,
-  },
-  {
-    key: "find",
-    tone: "var(--olive)",
-    eyebrow: "Найти своего",
-    head: <>Не рейтинг,<br />а совпадение</>,
-    text: "Ответите на пару вопросов — покажем десять анкет вместо тысячи. С фото, голосом и честным «с чем не работаю».",
-    art: CardsScene,
-  },
-  {
-    key: "self",
-    tone: "var(--purple)",
-    eyebrow: "Работать самому",
-    head: <>Пять минут,<br />когда тяжело</>,
-    text: "Дыхание, разбор мыслей, дневник настроения, колесо баланса. Бесплатно и без специалиста.",
-    art: WheelScene,
-  },
-  {
-    key: "learn",
-    tone: "var(--peach)",
-    eyebrow: "Разбираться",
-    head: <>Понятно,<br />как это устроено</>,
-    text: "Что такое КПТ, чего ждать от первой встречи, как понять, что терапия идёт. Разборы и тесты.",
-    art: ReadScene,
-  },
-];
+function ScheduleMock() {
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between">{["пн", "вт", "ср", "чт", "пт"].map((d, i) => <span key={d} className="flex h-7 w-7 items-center justify-center rounded-[8px] text-[7px] font-black" style={{ background: i === 2 ? "var(--ink)" : "#fff", color: i === 2 ? "#fff" : "var(--muted)", border: "1.5px solid rgba(32,28,24,.16)" }}>{d}</span>)}</div>
+      {([["10:00", "var(--green-soft)", "var(--green-edge)", "свободно"], ["13:30", "var(--purple-soft)", "var(--purple-edge)", "Марина"], ["18:00", "#fff", "rgba(32,28,24,.16)", "свободно"]] as const).map(([time, bg, edge, who]) => (
+        <div key={time} className="flex items-center gap-1.5 rounded-[10px] p-1.5" style={{ background: bg, border: `1.5px solid ${edge}` }}>
+          <span className="text-[8px] font-black">{time}</span><span className="flex-1 text-[7px] font-bold text-[var(--muted)]">{who}</span>
+        </div>
+      ))}
+      <div className="flex items-center gap-1 rounded-[9px] bg-[var(--amber-soft)] p-1.5" style={{ border: "1.5px solid var(--amber-edge)" }}><Icon name="bell" width={9} weight="bold" /><span className="text-[7px] font-black">Напоминание за час</span></div>
+    </div>
+  );
+}

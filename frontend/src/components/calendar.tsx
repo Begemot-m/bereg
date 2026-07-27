@@ -66,20 +66,20 @@ export function MonthCalendar({
           const isToday = y === todayY;
           const a: Avail | undefined = avail?.[y];
 
-          // Три различимых состояния: занят — плотная лаванда с белым текстом,
-          // свободен — светлая олива, обычный день — без заливки.
+          // Различимые состояния: занят — фиолетовая заливка с обводкой,
+          // свободен — зелёный контур (как плитки окон), обычный день — без заливки.
           // Сегодня — тёмное кольцо, выбранный — сплошная тёмная заливка.
           const busy = has.has(y) || a === "full";
           const free = !busy && a === "free";
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
 
           let base: React.CSSProperties = { color: "var(--ink)" };
-          if (busy) base = { background: "var(--purple)", color: "#3b2c55" };
-          else if (free) base = { background: "var(--olive-soft)", color: "var(--olive-edge)" };
+          if (busy) base = { background: "var(--purple)", color: "#3b2c55", border: "var(--bw) solid var(--purple-edge)" };
+          else if (free) base = { background: "var(--green-soft)", color: "var(--ink)", border: "var(--bw) solid var(--green-edge)" };
 
           const style: React.CSSProperties = isSel
-            ? { background: "var(--ink)", color: "#fff" }
-            : { ...base, boxShadow: isToday ? "inset 0 0 0 2px var(--ink)" : undefined };
+            ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }
+            : { ...base, boxShadow: isToday ? "0 0 0 2px var(--ink)" : undefined };
 
           return (
             <button
@@ -94,10 +94,10 @@ export function MonthCalendar({
           );
         })}
       </div>
-      <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 text-[11px] font-bold text-[var(--muted)]">
-        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ boxShadow: "inset 0 0 0 2px var(--ink)" }} /> сегодня</span>
-        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--olive-soft)", boxShadow: "inset 0 0 0 1px rgba(32,28,24,.18)" }} /> свободно</span>}
-        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--purple)" }} /> есть записи</span>
+      <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
+        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }} /> свободно</span>}
+        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--purple)", border: "var(--bw) solid var(--purple-edge)" }} /> есть записи</span>
+        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full bg-white" style={{ boxShadow: "0 0 0 2px var(--ink)" }} /> сегодня</span>
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
       </div>
     </div>

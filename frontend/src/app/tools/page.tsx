@@ -12,14 +12,14 @@ import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 import { getSubscription, startSubscription } from "@/lib/subscription";
 
-// Что открывает Клубок+ (по подписке).
+// Что открывает Методика+ (по подписке).
 const PREMIUM: { title: string; desc: string; icon: IconName }[] = [
   { title: "Детальное колесо баланса", desc: "Радар по 10 сферам и история", icon: "balance" },
   { title: "Дневник эмоций", desc: "Отмечать состояния по дням", icon: "heart" },
   { title: "Медитации и практики", desc: "Короткие аудио на каждый день", icon: "therapy" },
 ];
 
-// Инструменты клиента: часть бесплатна, часть — по подписке «Клубок+». Интерактивные — с tech.
+// Инструменты клиента: часть бесплатна, часть — по подписке «Методика+». Интерактивные — с tech.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
   { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.png", bg: "#d9edf3", edge: "#5f95ab" },
   { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики и вести историю", time: "2–7 мин", image: "/practices/automatic-thoughts.png", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },

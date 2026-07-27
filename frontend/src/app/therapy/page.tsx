@@ -238,7 +238,7 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
           <Icon name="calendar" width={14} weight="bold" color="var(--purple-edge)" /> {bookOpen ? "Свернуть" : "Записаться"}
         </button>
         {psy?.tg && (
-          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Клубок» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]">
+          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]">
             <Icon name="telegram" width={15} weight="fill" color="var(--purple-edge)" /> Написать
           </a>
         )}

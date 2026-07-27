@@ -5,15 +5,15 @@ export type Subscription = {
   status: "trial" | "active" | "pending" | "expired";
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
-  tools: boolean;     // Клубок PRO — рабочий кабинет психолога
+  tools: boolean;     // Методика PRO — рабочий кабинет психолога
   promo: boolean;     // размещение в каталоге (не влияет на ранжирование)
-  clientPro: boolean; // «Клубок+» — инструменты клиента
+  clientPro: boolean; // «Методика+» — инструменты клиента
   pendingPlan: PlanId | null;
 };
 
-// tools — Клубок PRO, рабочий кабинет психолога (990);
+// tools — Методика PRO, рабочий кабинет психолога (990);
 // catalog — размещение профиля в каталоге (500);
-// client — «Клубок+» для клиента (390).
+// client — «Методика+» для клиента (390).
 export const PLAN_PRICE: Record<PlanId, number> = { tools: 990, catalog: 500, client: 390 };
 export const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
 

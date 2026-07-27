@@ -17,8 +17,8 @@ const PERKS: Record<Variant, { need: number; reward: string }[]> = {
     { need: 5, reward: "Значок «Амбассадор» в профиле" },
   ],
   client: [
-    { need: 1, reward: "Неделя «Клубок+» в подарок" },
-    { need: 3, reward: "Месяц «Клубок+» бесплатно" },
+    { need: 1, reward: "Неделя «Методика+» в подарок" },
+    { need: 3, reward: "Месяц «Методика+» бесплатно" },
     { need: 5, reward: "Персональный набор практик" },
   ],
 };
@@ -26,13 +26,13 @@ const PERKS: Record<Variant, { need: number; reward: string }[]> = {
 const COPY: Record<Variant, { title: string; sub: string; share: string }> = {
   psy: {
     title: "Приглашайте — получайте плюшки",
-    sub: "Зовите клиентов и коллег во «Клубок». За каждого приглашённого — приятные бонусы.",
-    share: "Веду практику во «Клубок» — удобные инструменты и забота о клиентах между сессиями. Присоединяйтесь:",
+    sub: "Зовите клиентов и коллег в «Методика». За каждого приглашённого — приятные бонусы.",
+    share: "Веду практику в «Методика» — удобные инструменты и забота о клиентах между сессиями. Присоединяйтесь:",
   },
   client: {
     title: "Поделитесь заботой",
-    sub: "Позовите друга во «Клубок». Вам — подарки, другу — тёплый старт.",
-    share: "Забочусь о себе во «Клубок»: настроение, практики, колесо баланса. Попробуй и ты:",
+    sub: "Позовите друга в «Методика». Вам — подарки, другу — тёплый старт.",
+    share: "Забочусь о себе в «Методика»: настроение, практики, колесо баланса. Попробуй и ты:",
   },
 };
 
@@ -72,7 +72,7 @@ export function InviteBanner({ variant }: { variant: Variant }) {
           <motion.span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-white" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }} animate={{ scale: [1, 1.08, 1], rotate: [0, -5, 5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="heart" width={26} weight="fill" color="var(--olive-edge)" /></motion.span>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-black uppercase tracking-[.14em] opacity-70">Приведите {psy ? "коллегу" : "друга"}</p>
-            <p className="mt-0.5 font-tight text-[19px] font-black leading-tight">{psy ? "Позовите коллег в «Клубок»" : "Подарите другу неделю Клубок+"}</p>
+            <p className="mt-0.5 font-tight text-[19px] font-black leading-tight">{psy ? "Позовите коллег в «Методика»" : "Подарите другу неделю Методика+"}</p>
             <p className="mt-1 text-[11.5px] font-bold">{psy ? "Коллеге — месяц PRO, вам — бонус" : "Другу — 7 дней бесплатно, вам — бонус"}</p>
           </div>
         </div>
