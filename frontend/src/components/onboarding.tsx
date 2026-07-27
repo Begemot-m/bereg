@@ -17,29 +17,35 @@ type Intro = {
   kicker: string;
   title: string;
   points: string[];
-  tone: string;      // акцент рамки скрина
+  bg: string;        // яркая заливка экрана-постера
+  soft: string;      // мягкий тон для подложки под «арт»
+  tone: string;      // акцент рамки скрина / кромок
   img?: string;      // реальный скрин из /public (можно заменить)
   mock: ReactNode;   // fallback — макет элемента приложения
 };
 
 const INTRO: Intro[] = [
   {
-    key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой", tone: "var(--amber-edge)",
+    key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой",
+    bg: "var(--amber)", soft: "var(--amber-soft)", tone: "var(--amber-edge)",
     points: ["Найти своего специалиста", "Отслеживать динамику настроения и сессий", "Самостоятельная помощь на каждый день"],
     img: "/onboarding/intro-1.webp", mock: <OverviewMock />,
   },
   {
-    key: "catalog", kicker: "каталог", title: "Умный подбор специалистов", tone: "var(--olive-edge)",
+    key: "catalog", kicker: "каталог", title: "Умный подбор специалистов",
+    bg: "var(--green)", soft: "var(--green-soft)", tone: "var(--green-edge)",
     points: ["Персональный подбор вместо рейтинга", "Честные отзывы после встреч", "Удобный поиск по запросу"],
     img: "/onboarding/intro-2.webp", mock: <CatalogMock />,
   },
   {
-    key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний", tone: "var(--coral-edge)",
+    key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний",
+    bg: "var(--coral)", soft: "var(--coral-soft)", tone: "var(--coral-edge)",
     points: ["Подберём лучшие практики между сессиями", "С отслеживанием настроения", "Дыхание, дневники, колесо баланса"],
     img: "/onboarding/intro-3.webp", mock: <ToolsMock />,
   },
   {
-    key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами", tone: "var(--purple-edge)",
+    key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами",
+    bg: "var(--purple)", soft: "var(--purple-soft)", tone: "var(--purple-edge)",
     points: ["Формирование свободных окон для записи", "CRM-система для ведения клиентов", "Напоминания о встречах"],
     img: "/onboarding/intro-4.webp", mock: <ScheduleMock />,
   },
@@ -56,15 +62,23 @@ export function Onboarding() {
   const back = () => { tap(); setStep((s) => Math.max(0, s - 1)); };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: "#fbf8ef" }}>
-      <div className="mx-auto flex h-full w-full max-w-md flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-[calc(env(safe-area-inset-top)+18px)]">
+    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: isRole ? "#fbf8ef" : cur.bg, transition: "background-color .5s ease" }}>
+      {/* Декоративные заливки-круги для «постерного» объёма */}
+      {!isRole && (
+        <>
+          <span aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full opacity-40" style={{ background: "#fff" }} />
+          <span aria-hidden className="pointer-events-none absolute -left-20 top-1/3 h-52 w-52 rounded-full opacity-20" style={{ background: cur.tone }} />
+        </>
+      )}
+
+      <div className="relative mx-auto flex h-full w-full max-w-md flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-[calc(env(safe-area-inset-top)+18px)]">
         {/* Верх: логотип + прогресс + пропустить */}
         <div className="flex items-center gap-3">
           <span className="flex h-7 items-center rounded-[9px] bg-[var(--ink)] px-2 text-[12px] font-black text-[var(--bg)]">{APP_NAME}</span>
           <div className="flex flex-1 gap-1.5">
-            {INTRO.map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.16)" }} />)}
+            {INTRO.map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />)}
           </div>
-          <button onClick={finish} className="shrink-0 text-[11px] font-black text-[var(--muted)]">Пропустить</button>
+          <button onClick={finish} className="shrink-0 text-[11px] font-black" style={{ color: "rgba(32,28,24,.6)" }}>Пропустить</button>
         </div>
 
         <AnimatePresence mode="wait">
@@ -80,17 +94,20 @@ export function Onboarding() {
               <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); finish(); }} />
             ) : (
               <div className="flex flex-1 flex-col">
-                <p className="mt-6 text-[11px] font-black uppercase tracking-[.14em] text-[var(--muted-2)]">{cur.kicker}</p>
-                <h1 className="font-tight mt-2 text-[26px] font-black leading-[1.1]">{cur.title}</h1>
+                <span className="mt-6 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
+                <h1 className="font-tight mt-3 text-[27px] font-black leading-[1.08]">{cur.title}</h1>
                 <ul className="mt-4 space-y-2">
                   {cur.points.map((p, i) => (
                     <motion.li key={p} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--green-soft)", border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="bold" color="var(--green-edge)" /></span>
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: `1.5px solid ${cur.tone}` }}><Icon name="check" width={12} weight="bold" color={cur.tone} /></span>
                       {p}
                     </motion.li>
                   ))}
                 </ul>
-                <div className="flex min-h-0 flex-1 items-center justify-center py-3">
+                {/* «Арт»-зона: макет элемента приложения на мягкой цветной подложке */}
+                <div className="relative flex min-h-0 flex-1 items-center justify-center py-3">
+                  <span aria-hidden className="pointer-events-none absolute h-[300px] w-[300px] rounded-full" style={{ background: cur.soft, opacity: 0.75 }} />
+                  <span aria-hidden className="pointer-events-none absolute bottom-2 h-24 w-52 rounded-full blur-2xl" style={{ background: cur.tone, opacity: 0.25 }} />
                   <Shot src={cur.img} tone={cur.tone}>{cur.mock}</Shot>
                 </div>
               </div>
@@ -101,7 +118,7 @@ export function Onboarding() {
         {/* Низ: назад + стрелка (на интро-экранах) */}
         {!isRole && (
           <div className="flex items-center justify-between">
-            <button onClick={back} disabled={step === 0} className="flex h-11 items-center gap-1 px-2 text-[13px] font-black text-[var(--muted)] disabled:opacity-0" aria-label="Назад">‹ Назад</button>
+            <button onClick={back} disabled={step === 0} className="flex h-11 items-center gap-1 px-2 text-[13px] font-black disabled:opacity-0" style={{ color: "rgba(32,28,24,.6)" }} aria-label="Назад">‹ Назад</button>
             <motion.button onClick={next} whileTap={{ scale: 0.9 }} className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg" style={{ background: "var(--ink)", color: "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }} aria-label="Дальше"><span className="text-[24px] leading-none">→</span></motion.button>
           </div>
         )}
@@ -160,14 +177,13 @@ function Shot({ src, tone, children }: { src?: string; tone: string; children: R
 
 function Phone({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <div className="w-[210px] overflow-hidden rounded-[28px] bg-white p-2 stroke-lg" style={{ boxShadow: "0 26px 46px -24px rgba(32,28,24,.5)" }}>
-      <div className="overflow-hidden rounded-[21px]" style={{ background: tone, opacity: 0.14 }} />
-      <div className="-mt-[2px] overflow-hidden rounded-[21px]" style={{ border: `2px solid ${tone}` }}>
-        <div className="flex items-center gap-1 px-2.5 pb-1.5 pt-2" style={{ background: `color-mix(in srgb, ${tone} 16%, #fff)` }}>
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--ink)] opacity-40" />
-          <span className="h-1 w-8 rounded-full bg-[var(--ink)] opacity-20" />
+    <div className="relative w-[214px] overflow-hidden rounded-[30px] bg-white p-2.5" style={{ boxShadow: "0 30px 52px -22px rgba(32,28,24,.6)", border: `var(--bw-lg) solid ${tone}` }}>
+      <div className="overflow-hidden rounded-[22px] bg-white" style={{ border: "1.5px solid rgba(32,28,24,.12)" }}>
+        <div className="flex items-center gap-1 px-3 pb-1.5 pt-2.5">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone }} />
+          <span className="h-1 w-8 rounded-full bg-[var(--ink)] opacity-15" />
         </div>
-        <div className="min-h-[220px] bg-[#fffdf7] p-2.5">{children}</div>
+        <div className="min-h-[224px] bg-white p-2.5">{children}</div>
       </div>
     </div>
   );
