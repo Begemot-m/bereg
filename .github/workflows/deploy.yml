@@ -31,7 +31,9 @@ jobs:
           NEXT_PUBLIC_DEMO: "1"
           STATIC_EXPORT: "1"
           PAGES_BASE_PATH: bereg
-        run: bunx next build
+        # Метка сборки видна в кабинете: если там старая дата — вебвью
+        # показывает страницу из кеша, а не новый деплой.
+        run: NEXT_PUBLIC_BUILD="$(date -u +%Y-%m-%dT%H:%M:%SZ)" bunx next build
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
