@@ -25,7 +25,7 @@ export function ClientSelect({ value, onChange }: { value: number | null; onChan
     <div>
       <button onClick={() => { select(); setOpen(!open); }} className="flex w-full items-center gap-2 rounded-[12px] px-2.5 py-2 stroke" style={{ background: "#fff" }}>
         {sel ? <Avatar name={sel.name} therapy={sel.status === "therapy"} /> : <span className="flex h-7 w-7 items-center justify-center rounded-[9px] stroke" style={{ background: "var(--head-soft)" }}>?</span>}
-        <span className={`flex-1 text-left text-[13px] font-bold ${sel ? "" : "text-[var(--muted)]"}`}>{sel ? sel.name : "Выберите клиента"}</span>
+        <span className={`font-tight flex-1 text-left text-[13px] font-bold ${sel ? "" : "text-[var(--muted)]"}`}>{sel ? sel.name : "Выберите клиента"}</span>
         <span className="text-[11px] text-[var(--muted-2)]" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
       </button>
       <Disclosure open={open}>
@@ -35,7 +35,7 @@ export function ClientSelect({ value, onChange }: { value: number | null; onChan
             {filtered.map((c) => (
               <button key={c.id} onClick={() => { select(); onChange(c.id); setOpen(false); setQ(""); }} className="flex items-center gap-2 rounded-[9px] px-2 py-1.5 text-left active:scale-[0.99]">
                 <Avatar name={c.name} therapy={c.status === "therapy"} />
-                <span className="flex-1 text-[13px] font-bold">{c.name}</span>
+                <span className="font-tight flex-1 text-[13px] font-bold">{c.name}</span>
                 {c.status === "therapy" && <span className="text-[9px] font-extrabold uppercase" style={{ color: "var(--green-edge)" }}>терапия</span>}
               </button>
             ))}

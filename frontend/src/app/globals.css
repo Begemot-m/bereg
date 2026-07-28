@@ -154,10 +154,17 @@ h1, h2, h3, .font-tight {
   letter-spacing: -0.02em;
 }
 
-/* Надзаголовок капслоком — заголовочной гарнитурой, цвет не трогаем.
-   Правило висит на утилите: капслок в проекте бывает только у надзаголовков
-   и статусов, отдельного класса им заводить не нужно. */
-.uppercase { font-family: var(--font-head), system-ui, sans-serif; }
+/* Гарнитур ровно две, и выбирает их роль текста:
+     заголовок, подзаголовок, надзаголовок → Nunito (--font-head)
+     обычный текст                         → Golos Text (--font-body)
+   В разметке роль почти всегда выражена начертанием: 800–900 и капслок
+   в проекте бывают только у заголовочных ролей. Поэтому правило записано
+   структурно, а не правкой четырёх сотен мест. Ниже шкала .t-* явно
+   возвращает текстовым ступеням вторую гарнитуру — она главнее. */
+.font-black, .font-extrabold, .uppercase,
+.btn, .chip, .pill, .lbl, .arrow {
+  font-family: var(--font-head), system-ui, sans-serif;
+}
 
 .font-mono { font-family: var(--font-body), system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 .tnum { font-variant-numeric: tabular-nums; }
@@ -191,9 +198,9 @@ h1, h2, h3, .font-tight {
 .t-display { font-family: var(--font-head), sans-serif; font-size: 24px; line-height: 1.1;  font-weight: 800; letter-spacing: -0.02em; }
 .t-title   { font-family: var(--font-head), sans-serif; font-size: 20px; line-height: 1.2;  font-weight: 800; letter-spacing: -0.02em; }
 .t-head    { font-family: var(--font-head), sans-serif; font-size: 16px; line-height: 1.25; font-weight: 800; letter-spacing: -0.015em; }
-.t-body    { font-size: 14px; line-height: 1.32; font-weight: 500; }
-.t-sub     { font-size: 13px; line-height: 1.28; font-weight: 500; color: var(--muted); }
-.t-cap     { font-size: 12px; line-height: 1.25; font-weight: 600; color: var(--muted); }
+.t-body    { font-family: var(--font-body), sans-serif; font-size: 14px; line-height: 1.32; font-weight: 500; }
+.t-sub     { font-family: var(--font-body), sans-serif; font-size: 13px; line-height: 1.28; font-weight: 500; color: var(--muted); }
+.t-cap     { font-family: var(--font-body), sans-serif; font-size: 12px; line-height: 1.25; font-weight: 600; color: var(--muted); }
 .t-micro   { font-family: var(--font-head), sans-serif; font-size: 11px; line-height: 1; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
 
 /* ============================================================

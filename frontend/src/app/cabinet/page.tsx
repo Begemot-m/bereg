@@ -127,8 +127,8 @@ function Foldable({ icon, title, subtitle, children, defaultOpen = false, tone }
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left" aria-expanded={open}>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={tone ? { background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` } : { background: "var(--head-soft)", border: "var(--bw) solid var(--stroke)" }}><Icon name={icon} width={18} color={tone ? `var(--${tone}-edge)` : undefined} /></span>
         <span className="flex-1">
-          <span className="block text-[14px] font-bold">{title}</span>
-          <span className="block text-[12px] text-[var(--muted)]">{subtitle}</span>
+          <span className="font-tight block text-[14px] font-bold">{title}</span>
+          <span className="t-cap block">{subtitle}</span>
         </span>
         <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
       </button>
@@ -147,8 +147,8 @@ function ActionRow({ icon, title, sub, onClick, danger }: { icon: IconName; titl
     <button onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] px-1.5 py-2 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
       <span className="ico h-9 w-9 shrink-0" style={danger ? { background: "var(--salmon)" } : undefined}><Icon name={icon} width={17} color={danger ? "#fff" : "var(--edge)"} /></span>
       <span className="min-w-0 flex-1">
-        <span className={`block text-[13.5px] font-bold ${danger ? "text-[var(--salmon-edge)]" : ""}`}>{title}</span>
-        <span className="block text-[11.5px] font-semibold text-[var(--muted)]">{sub}</span>
+        <span className={`font-tight block text-[13.5px] font-bold ${danger ? "text-[var(--salmon-edge)]" : ""}`}>{title}</span>
+        <span className="t-cap block">{sub}</span>
       </span>
       <Arrow />
     </button>

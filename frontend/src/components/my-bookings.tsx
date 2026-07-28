@@ -39,7 +39,7 @@ export function BookingRow({ b, onChange }: { b: MyBooking; onChange: () => void
         <button onClick={toggle} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={manage}>
           <span className={`tnum text-[13px] font-extrabold ${past ? "line-through" : ""}`}>{timeF.format(date)}</span>
           <span className="min-w-0 flex-1">
-            <span className={`block truncate text-[13px] font-bold ${past ? "line-through" : ""}`}>{cap(dayF.format(date))}</span>
+            <span className={`font-tight block truncate text-[13px] font-bold ${past ? "line-through" : ""}`}>{cap(dayF.format(date))}</span>
             <span className="t-cap block">{b.format === "online" ? "онлайн" : "очно"} · {b.psyName}</span>
           </span>
         </button>

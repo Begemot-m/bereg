@@ -19,7 +19,7 @@ export function DemoFrame({ children }: { children: ReactNode }) {
     >
       <div className="fixed left-4 top-4 z-50 hidden items-center gap-3 md:flex">
         <span
-          className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]"
+          className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]"
           style={{ border: "1px solid var(--hairline)" }}
         >
           <span className="sheen-fill h-1.5 w-1.5 rounded-full" />
@@ -34,7 +34,7 @@ export function DemoFrame({ children }: { children: ReactNode }) {
             }
             location.reload();
           }}
-          className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]"
+          className="rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]"
           style={{ border: "1px solid var(--hairline)" }}
         >
           Сброс

@@ -102,7 +102,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--purple)]"><Icon name="therapy" width={20} weight="fill" /></span>
-            <div className="leading-none"><h1 className="font-tight text-[20px] font-black">Терапия</h1><p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">Ваш путь между сессиями</p></div>
+            <div className="leading-none"><h1 className="font-tight text-[20px] font-black">Терапия</h1><p className="font-tight mt-1 text-[12px] font-bold text-[var(--muted)]">Ваш путь между сессиями</p></div>
           </div>
         </div>
 

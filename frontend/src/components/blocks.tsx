@@ -32,7 +32,7 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
             {sub && (
               subIcon
                 ? <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[12px] font-black capitalize" style={{ color: "var(--edge)" }}><Icon name={subIcon} width={13} weight="bold" /> {sub}</span>
-                : <p className="mt-1 text-[13px] font-semibold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>
+                : <p className="font-tight mt-1 text-[13px] font-bold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>
             )}
           </div>
         </div>

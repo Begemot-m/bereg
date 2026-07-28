@@ -376,8 +376,8 @@ function EmptyState({ onAdd, selDay }: { onAdd: () => void; selDay: string | nul
       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl stroke" style={{ background: "var(--head-soft)" }}>
         <Icon name="calendar" width={24} />
       </div>
-      <p className="text-[14px] font-bold">{selDay ? "На этот день записей нет" : "Пока нет предстоящих сессий"}</p>
-      <p className="mx-auto mt-1 max-w-[240px] text-[13px] text-[var(--muted-2)]">Откройте «Календарь» и запишите клиента в свободное окно.</p>
+      <p className="t-head">{selDay ? "На этот день записей нет" : "Пока нет предстоящих сессий"}</p>
+      <p className="t-sub mx-auto mt-1 max-w-[240px]">Откройте «Календарь» и запишите клиента в свободное окно.</p>
       <div className="mt-4"><Button size="sm" onClick={onAdd} arrow>К календарю</Button></div>
     </div>
   );
