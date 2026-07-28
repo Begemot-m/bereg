@@ -267,7 +267,7 @@ function GuestStart() {
       <div className="chunk overflow-hidden">
         {steps.map(([number, title, text], index) => (
           <div key={number} className={`flex gap-3 px-4 py-3.5 ${index ? "line-top" : ""}`}>
-            <span className="tnum flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[14px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{number}</span>
+            <span className="tnum flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] text-[14px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{number}</span>
             <span><span className="t-head block">{title}</span><span className="t-sub block">{text}</span></span>
           </div>
         ))}

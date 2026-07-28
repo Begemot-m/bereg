@@ -74,7 +74,7 @@ export function SlotPicker({
               <button
                 key={key}
                 onClick={() => { select(); touched.current = true; setActive(key); }}
-                className="flex h-[68px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[13px] transition-transform duration-150 active:scale-95 stroke"
+                className="flex h-[68px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[14px] transition-transform duration-150 active:scale-95 stroke"
                 style={isActive ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--ink)" }}
               >
                 <span className={`text-[10px] font-extrabold uppercase ${isActive ? "opacity-90" : "text-[var(--muted-2)]"}`}>{WEEKDAYS[wd]}</span>
@@ -100,7 +100,7 @@ export function SlotPicker({
               <button
                 key={s.start}
                 onClick={() => { tap(); onPick(s.start, s.fmt); }}
-                className="flex flex-col items-center justify-center gap-0.5 rounded-[10px] py-2.5 text-[14px] font-black transition-transform duration-150 active:scale-95"
+                className="flex flex-col items-center justify-center gap-0.5 rounded-[12px] py-2.5 text-[14px] font-black transition-transform duration-150 active:scale-95"
                 style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)", color: "var(--ink)" }}
               >
                 <span className="tnum">{timeF.format(new Date(s.start))}</span>

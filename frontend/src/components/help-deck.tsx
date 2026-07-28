@@ -10,10 +10,10 @@ export type HelpPage = { title: string; text: string; illo?: ReactNode; image?: 
 
 // Мини-мокапы интерфейса для наглядности
 const Frame = ({ children }: { children: ReactNode }) => (
-  <div className="flex min-h-[104px] flex-col justify-center gap-1.5 rounded-[13px] p-3 stroke" style={{ background: "var(--page)" }}>{children}</div>
+  <div className="flex min-h-[104px] flex-col justify-center gap-1.5 rounded-[14px] p-3 stroke" style={{ background: "var(--page)" }}>{children}</div>
 );
 const Row = ({ bg, bd, children, dim }: { bg: string; bd: string; children: ReactNode; dim?: boolean }) => (
-  <div className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-[11px] font-extrabold stroke" style={{ background: bg, borderColor: bd, opacity: dim ? 0.6 : 1 }}>{children}</div>
+  <div className="flex items-center gap-2 rounded-[9px] px-2.5 py-1.5 text-[11px] font-extrabold stroke" style={{ background: bg, borderColor: bd, opacity: dim ? 0.6 : 1 }}>{children}</div>
 );
 const Pill = ({ bg, bd, children }: { bg: string; bd: string; children: ReactNode }) => (
   <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: bg, borderColor: bd }}>{children}</span>
@@ -74,7 +74,7 @@ export const SESSIONS_HELP: HelpPage[] = [
     text: "Записанная сессия — белая карточка с именем клиента. Шестерёнка открывает действия «Перенести» и «Отменить».",
     illo: (
       <Frame>
-        <div className="rounded-[8px] p-2 stroke" style={{ background: "#fff" }}>
+        <div className="rounded-[9px] p-2 stroke" style={{ background: "#fff" }}>
           <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="h-4 w-1 rounded-full" style={{ background: AMB.bg }} /><span className="tnum">14:00</span><span className="flex-1">Марина</span><span className="flex h-7 w-7 items-center justify-center rounded-[8px] text-white" style={{ background: "var(--ink)" }}>⚙</span></div>
         </div>
       </Frame>
@@ -85,7 +85,7 @@ export const SESSIONS_HELP: HelpPage[] = [
     text: "Шестерёнка «Действия» над днём: сделать выходным, открыть все окна, перевести весь день в онлайн или очно. В «Календаре» можно «Выбрать несколько» дней и применить действия сразу ко всем.",
     illo: (
       <Frame>
-        <div className="ml-auto w-44 rounded-[10px] p-1 stroke" style={{ background: "#fff" }}>
+        <div className="ml-auto w-44 rounded-[11px] p-1 stroke" style={{ background: "#fff" }}>
           {["⚙ Действия", "🌙 Сделать выходным", "↺ Открыть все окна"].map((t, i) => (
             <div key={t} className="rounded-[8px] px-2 py-1 text-[10px] font-bold" style={i === 0 ? { background: "var(--head-soft)" } : undefined}>{t}</div>
           ))}
@@ -126,7 +126,7 @@ export const SCHEDULE_HELP: HelpPage[] = [
     text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Утренние окна жёлтые, дневные персиковые, вечерние лавандовые, с иконкой солнца или луны.",
     illo: (
       <Frame>
-        <div className="relative h-16 rounded-[8px] stroke" style={{ background: "#fff" }}>
+        <div className="relative h-16 rounded-[9px] stroke" style={{ background: "#fff" }}>
           <div className="absolute inset-x-0 top-1/2 border-t" style={{ borderColor: "var(--edge-neutral)" }} />
           <div className="absolute left-2 right-2 top-1.5 flex items-center justify-between rounded-[8px] px-2 py-1 text-[11px] font-extrabold stroke" style={{ background: YEL.bg, borderColor: YEL.bd }}><span>10:00</span><span>☀</span></div>
           <div className="absolute inset-x-2 bottom-1.5 flex items-center justify-between rounded-[8px] px-2 py-1 text-[11px] font-extrabold stroke" style={{ background: PUR.bg, borderColor: PUR.bd }}><span>19:00</span><span>🌙</span></div>
@@ -177,7 +177,7 @@ export function HelpDeck({ title, pages, onClose, onDone, doneLabel = "Поня�
 
           <motion.div key={i} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>
             <div className="mb-3">
-              {p.image ? <img src={p.image} alt={p.imageAlt ?? ""} className="aspect-[16/10] w-full rounded-[13px] object-cover stroke" /> : p.illo}
+              {p.image ? <img src={p.image} alt={p.imageAlt ?? ""} className="aspect-[16/10] w-full rounded-[14px] object-cover stroke" /> : p.illo}
             </div>
             <h4 className="text-[15px] font-extrabold">{p.title}</h4>
             <p className="mt-1 text-[13px] leading-relaxed text-[var(--muted)]">{p.text}</p>

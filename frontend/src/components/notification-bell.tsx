@@ -50,8 +50,8 @@ export function NotificationBell() {
               ) : (
                 <div className="space-y-2">
                   {list.map((n) => (
-                    <div key={n.id} className="flex items-start gap-2.5 rounded-[12px] p-3" style={{ background: n.read ? "#fff" : "var(--head-soft)", border: `var(--bw) solid ${n.read ? "var(--edge-neutral)" : "var(--edge)"}` }}>
-                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white stroke"><Icon name={KIND_ICON[n.kind] ?? "bell"} width={15} weight="bold" /></span>
+                    <div key={n.id} className="flex items-start gap-2.5 rounded-[14px] p-3" style={{ background: n.read ? "#fff" : "var(--head-soft)", border: `var(--bw) solid ${n.read ? "var(--edge-neutral)" : "var(--edge)"}` }}>
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-white stroke"><Icon name={KIND_ICON[n.kind] ?? "bell"} width={15} weight="bold" /></span>
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-bold leading-snug">{n.text}</p>
                         <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted-2)]">{rel(n.createdAt)}</p>

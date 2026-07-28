@@ -52,7 +52,7 @@ export function useDayWindows() {
 
 export function NoWorkHours() {
   return (
-    <div className="rounded-[11px] py-6 text-center text-[13px] font-semibold text-[var(--muted)]" style={{ background: "#fff" }}>
+    <div className="rounded-[13px] py-6 text-center text-[13px] font-semibold text-[var(--muted)]" style={{ background: "#fff" }}>
       Окна ещё не заданы.<br /><Link href="/cabinet" className="font-extrabold underline">Настроить график в кабинете →</Link>
     </div>
   );
@@ -118,7 +118,8 @@ export function WeekWindows() {
 type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
 function look(s: Slot): Look {
-  if (s.appt) return { bg: s.past ? "var(--purple-soft)" : "var(--purple)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
+  // Занятое окно — сплошная заливка тоном раздела.
+  if (s.appt) return { bg: s.past ? "var(--head-soft)" : "var(--head)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
   // Свободное окно — пунктир: рамка здесь означает «сюда можно записать».
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
 }
@@ -155,7 +156,7 @@ function ClientChips({ onPick }: { onPick: (id: number) => void }) {
           placeholder="Имя нового клиента"
           className="min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
         />
-        <button type="submit" disabled={!name.trim() || create.isPending} className="shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black disabled:opacity-40" style={{ background: "var(--olive)", color: "var(--olive-edge)" }}>Записать</button>
+        <button type="submit" disabled={!name.trim() || create.isPending} className="btn btn-accent shrink-0 px-3.5 py-2 text-[12px]">Записать</button>
         <button type="button" onClick={() => { tap(); setAdding(false); }} className="shrink-0 text-[12px] font-black text-[var(--muted-2)]">Отмена</button>
       </form>
     );
@@ -163,22 +164,19 @@ function ClientChips({ onPick }: { onPick: (id: number) => void }) {
 
   return (
     <div className="space-y-2">
-      {clients.length > 6 && (
+      {/* Поиск и «новый» — одной строкой, предложения строкой ниже */}
+      <div className="flex items-center gap-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск по имени"
-          className="w-full rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
+          className="min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
         />
-      )}
-      <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
-        <button
-          onClick={() => { tap(); setAdding(true); }}
-          className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1.5 pr-3 text-[12px] font-black"
-          style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}
-        >
-          <Icon name="plus" width={14} weight="bold" color="var(--olive-edge)" /> Новый
+        <button onClick={() => { tap(); setAdding(true); }} className="btn btn-accent shrink-0 px-3 py-2 text-[12px]">
+          <Icon name="plus" width={14} weight="bold" color="#fff" /> Новый
         </button>
+      </div>
+      <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
         {list.map((c) => (
           <button
             key={c.id}
@@ -216,8 +214,10 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
   }, [date, taken.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [dur, setDur] = useState(50);
+  // Время выбрано заранее — первое свободное; всё меню видно одним экраном.
+  const chosen = iso ?? times[0]?.iso ?? null;
   const book = useMutation({
-    mutationFn: ({ clientId }: { clientId: number }) => createAppointment({ clientId, startsAt: iso!, format: "online", durationMin: dur }),
+    mutationFn: ({ clientId }: { clientId: number }) => createAppointment({ clientId, startsAt: chosen!, format: "online", durationMin: dur }),
     onSuccess: () => {
       success();
       setIso(null); onClose();
@@ -231,7 +231,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
         layout
         transition={MORPH}
         onClick={onTap}
-        className="flex h-[54px] w-full flex-col items-center justify-center gap-0.5 rounded-[11px]"
+        className="flex h-[54px] w-full flex-col items-center justify-center gap-0.5 rounded-[13px]"
         style={{ background: "var(--surface-2)", color: "var(--muted)" }}
         aria-label="Добавить сессию"
       >
@@ -242,37 +242,39 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
   }
 
   return (
-    <motion.div layout transition={MORPH} className="col-span-3 rounded-[11px] p-3.5" style={{ background: "var(--surface-2)" }}>
+    <motion.div layout transition={MORPH} className="col-span-3 rounded-[13px] p-3.5" style={{ background: "var(--surface-2)" }}>
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[12.5px] font-black">{iso ? `Кому на ${timeF.format(new Date(iso))}?` : "Во сколько?"}</p>
+        <p className="text-[12.5px] font-black">Новая сессия</p>
         <button onClick={() => { setIso(null); onClose(); }} className="text-[15px] font-black text-[var(--muted-2)]" aria-label="Закрыть">✕</button>
       </div>
-      {iso ? (
+      {times.length === 0 ? (
+        <p className="text-[12px] font-semibold text-[var(--muted-2)]">На этот день свободного времени не осталось.</p>
+      ) : (
         <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <span className="t-cap inline-flex items-center gap-1.5"><Icon name="clock" width={13} weight="bold" color="var(--muted)" /> Длительность</span>
-            <div className="flex gap-1">
-              {[30, 50, 60, 90].map((value) => (
-                <button
-                  key={value}
-                  onClick={() => { select(); setDur(value); }}
-                  className="tnum rounded-full px-2.5 py-1 text-[11.5px] font-black"
-                  style={dur === value ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", color: "var(--muted)" }}
-                >
-                  {value}
-                </button>
+          {/* Строка 1 — время */}
+          <div>
+            <p className="t-micro mb-1.5">Время</p>
+            <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+              {times.map((t) => (
+                <button key={t.iso} onClick={() => { select(); setIso(t.iso); }} className="tnum shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-black" style={chosen === t.iso ? { background: "var(--edge)", color: "#fff" } : { background: "#fff" }}>{t.label}</button>
               ))}
             </div>
           </div>
+
+          {/* Строка 2 — длительность ползунком */}
+          <label className="flex items-center gap-2.5">
+            <span className="t-micro shrink-0">Длительность</span>
+            <input
+              type="range" min={30} max={120} step={5} value={dur}
+              onChange={(e) => { select(); setDur(Number(e.target.value)); }}
+              className="min-w-0 flex-1 cursor-pointer"
+              style={{ accentColor: "var(--edge)" }}
+            />
+            <span className="tnum shrink-0 text-[12px] font-black">{dur} мин</span>
+          </label>
+
+          {/* Строки 3 и 4 — поиск клиента и новый */}
           <ClientChips onPick={(clientId) => book.mutate({ clientId })} />
-        </div>
-      ) : times.length === 0 ? (
-        <p className="text-[12px] font-semibold text-[var(--muted-2)]">На этот день свободного времени не осталось.</p>
-      ) : (
-        <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
-          {times.map((t) => (
-            <button key={t.iso} onClick={() => { select(); setIso(t.iso); }} className="tnum shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-black" style={{ background: "#fff" }}>{t.label}</button>
-          ))}
         </div>
       )}
     </motion.div>
@@ -287,7 +289,7 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
       transition={MORPH}
       className={active ? "col-span-3" : ""}
       style={{
-        borderRadius: 11,
+        borderRadius: 13,
         background: st.bg,
         border: st.ring ? `2px dashed ${st.ring}` : "none",
         opacity: slot.past && !active ? 0.6 : 1,
@@ -304,7 +306,8 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
       >
         <span className={`tnum font-black leading-none ${active ? "text-[17px]" : "text-[13.5px]"} ${slot.past ? "line-through" : ""}`}>{slot.t}</span>
         <span className={`min-w-0 ${active ? "flex-1" : "max-w-full"}`}>
-          <span className={`block truncate font-bold ${active ? "text-[12.5px]" : "text-[9.5px]"}`} style={{ color: st.labelColor }}>
+          {/* В раскрытом окне дата и время — чернилами, а не тоном окна */}
+          <span className={`block truncate font-bold ${active ? "text-[12.5px]" : "text-[9.5px]"}`} style={{ color: active ? "var(--ink)" : st.labelColor }}>
             {active ? `${slot.dur} мин · ${cap(dLong.format(new Date(slot.iso)))}` : st.label}
           </span>
         </span>
@@ -352,7 +355,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   if (slot.appt) {
     if (resch) {
       return (
-        <div className="rounded-[10px] bg-white p-2.5">
+        <div className="rounded-[11px] bg-white p-2.5">
           <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
           <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
           <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
@@ -360,15 +363,18 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       );
     }
     return (
-      <div className="flex items-center gap-1.5">
-        <span className="mr-auto flex min-w-0 items-center gap-2">
+      <div className="space-y-2.5">
+        {/* Имя сверху, действия — строкой под ним */}
+        <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
           <span className="truncate text-[13px] font-black">{slot.appt.client.name}</span>
-        </span>
-        <FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} />
-        <button onClick={() => setResch(true)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[12px] font-black">Перенести</button>
-        {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-        {!slot.past && <button onClick={() => cancel.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Освободить</button>}
+          <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
+        </div>
+        <div className="flex gap-1.5">
+          <button onClick={() => setResch(true)} className="btn btn-accent flex-1 py-2 text-[12px]">Перенести</button>
+          {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
+          {!slot.past && <button onClick={() => cancel.mutate()} className="btn flex-1 py-2 text-[12px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Освободить</button>}
+        </div>
       </div>
     );
   }
@@ -376,9 +382,9 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5">
-        <p className="mr-auto text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Кого записать?</p>
+        <p className="t-micro mr-auto">Кого записать?</p>
         <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
-        <button onClick={() => closeWin.mutate()} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Удалить окно</button>
+        <button onClick={() => closeWin.mutate()} className="btn shrink-0 px-3 py-1.5 text-[12px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Удалить окно</button>
       </div>
       <ClientChips onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
     </div>

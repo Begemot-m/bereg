@@ -90,9 +90,9 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const tone = full ? "green" : "amber";
 
   return (
-    <button onClick={onContinue} className="flex w-full items-center gap-3 rounded-[14px] p-3 text-left transition-transform active:scale-[.99]" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
+    <button onClick={onContinue} className="flex w-full items-center gap-3 rounded-[16px] p-3 text-left transition-transform active:scale-[.99]" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
       <motion.span
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-white stroke"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white stroke"
         animate={full ? { scale: [1, 1.08, 1] } : { rotate: [0, -8, 8, 0] }}
         transition={{ duration: full ? 2.4 : 3.6, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -123,7 +123,7 @@ function ProfileSheet({ open, title, onClose, children }: { open: boolean; title
 
   return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[70] flex items-end justify-center @md:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
     <button className="absolute inset-0 bg-[rgba(32,28,24,.34)]" onClick={onClose} aria-label="Закрыть" />
-    <motion.section role="dialog" aria-modal="true" aria-label={title} initial={{ y: 32, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ duration: .3, ease: [.16, 1, .3, 1] }} className="relative max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-xl overflow-y-auto rounded-t-[24px] bg-[var(--surface)] px-4 pb-[calc(var(--safe-bottom)+20px)] pt-4 stroke-lg @md:rounded-[24px] @md:p-6">
+    <motion.section role="dialog" aria-modal="true" aria-label={title} initial={{ y: 32, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ duration: .3, ease: [.16, 1, .3, 1] }} className="relative max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-xl overflow-y-auto rounded-t-[27px] bg-[var(--surface)] px-4 pb-[calc(var(--safe-bottom)+20px)] pt-4 stroke-lg @md:rounded-[27px] @md:p-6">
       <div className="sticky top-0 z-20 mb-4 flex items-center justify-between gap-4 bg-[var(--surface)] pb-2"><h2 className="font-tight text-xl font-extrabold">{title}</h2><button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full stroke" aria-label="Закрыть">×</button></div>
       {children}
     </motion.section>
@@ -172,9 +172,9 @@ function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; na
   return (
     <div>
       <p className="mb-2 text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">Карточка в каталоге</p>
-      <div className="overflow-hidden rounded-[19px] bg-white" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
+      <div className="overflow-hidden rounded-[22px] bg-white" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
         <div className="flex gap-3.5 p-4">
-          <div className="relative flex h-[132px] w-[106px] shrink-0 items-center justify-center overflow-hidden rounded-[14px] text-[30px] font-black" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
+          <div className="relative flex h-[132px] w-[106px] shrink-0 items-center justify-center overflow-hidden rounded-[16px] text-[30px] font-black" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
             {photo ? <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo} alt="" className="h-full w-full object-cover" /></> : (name.trim().charAt(0).toUpperCase() || "П")}
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
@@ -198,10 +198,10 @@ function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; na
   );
 }
 
-function PreviewStat({ label, value }: { label: string; value: string }) { return <div className="rounded-[11px] bg-[var(--surface-2)] p-2 text-center stroke"><p className="tnum truncate text-[12px] font-black">{value}</p><p className="mt-1 text-[8px] font-black uppercase tracking-[.04em] text-[var(--muted)]">{label}</p></div>; }
+function PreviewStat({ label, value }: { label: string; value: string }) { return <div className="rounded-[13px] bg-[var(--surface-2)] p-2 text-center stroke"><p className="tnum truncate text-[12px] font-black">{value}</p><p className="mt-1 text-[8px] font-black uppercase tracking-[.04em] text-[var(--muted)]">{label}</p></div>; }
 function Tag({ children }: { children: ReactNode }) { return <span className="rounded-full bg-white px-3 py-1 text-[12px] font-bold stroke">{children}</span>; }
-function SectionTitle({ icon, title }: { icon: IconName; title: string }) { return <div className="mb-2 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[var(--head-soft)] stroke"><Icon name={icon} width={14} weight="bold" /></span><p className="text-[12px] font-extrabold text-[var(--muted)]">{title}</p></div>; }
-function PreviewEmpty({ text }: { text: string }) { return <div className="rounded-[14px] bg-[var(--surface-2)] p-4 text-[13px] font-semibold text-[var(--muted)] stroke">{text}</div>; }
+function SectionTitle({ icon, title }: { icon: IconName; title: string }) { return <div className="mb-2 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[var(--head-soft)] stroke"><Icon name={icon} width={14} weight="bold" /></span><p className="text-[12px] font-extrabold text-[var(--muted)]">{title}</p></div>; }
+function PreviewEmpty({ text }: { text: string }) { return <div className="rounded-[16px] bg-[var(--surface-2)] p-4 text-[13px] font-semibold text-[var(--muted)] stroke">{text}</div>; }
 
 function ProfileForm({ onDone }: { onDone: () => void }) {
   const [draft, setDraft] = useState<PsyProfile>(() => mergeProfile(getPsyProfile()));
@@ -253,10 +253,10 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
 
   return <div>
     {/* Прогресс + шаги: можно вернуться на любой пройденный и дозаполнить позже */}
-    <div className="mb-4 overflow-hidden rounded-[18px] bg-white stroke-lg">
+    <div className="mb-4 overflow-hidden rounded-[20px] bg-white stroke-lg">
       <div className="h-1.5 bg-[var(--surface-2)]"><motion.div className="h-full bg-[var(--ink)]" animate={{ width: `${((index + 1) / STEPS.length) * 100}%` }} /></div>
       <div className="flex items-center gap-3 p-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Шаг {index + 1} из {STEPS.length} · заполнено {percent}%</p>
           <h3 className="font-tight text-[19px] font-black leading-tight">{current.title}</h3>
@@ -302,7 +302,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       <Icon name="compass" width={13} className="mt-[1px] shrink-0" /> {current.filter}
     </p>
 
-    {error && <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[11px] bg-[var(--salmon-soft)] px-3 py-2 text-[12px] font-bold stroke" style={{ borderColor: "var(--salmon-edge)" }}>{error}</motion.p>}
+    {error && <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[13px] bg-[var(--salmon-soft)] px-3 py-2 text-[12px] font-bold stroke" style={{ borderColor: "var(--salmon-edge)" }}>{error}</motion.p>}
 
     <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
       <div className="flex gap-2">
@@ -324,7 +324,7 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
   const removePhoto = (index: number) => { tap(); const photos = draft.photos.filter((_, itemIndex) => itemIndex !== index); update({ photos, photo: photos[0] ?? null }); };
   return <StepCard title="Сначала — то, что помогает узнать вас" hint="Первое фото станет крупным портретом в каталоге. Можно добавить до трёх.">
     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => onFile(event.target.files?.[0])} />
-    <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[14px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[14px] bg-white text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
+    <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[15px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[15px] bg-white text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
     <Field label="Имя и фамилия"><Input value={draft.name} onChange={(event) => update({ name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
     <Field label="Кто вы" hint="Можно выбрать несколько — все появятся в каталоге">
       <div className="flex flex-wrap gap-2">
@@ -345,7 +345,7 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
     </Field>
     <Field label="Пол"><div className="grid grid-cols-3 gap-2"><Choice active={draft.gender === "woman"} onClick={() => update({ gender: "woman" })}>Женщина</Choice><Choice active={draft.gender === "man"} onClick={() => update({ gender: "man" })}>Мужчина</Choice><Choice active={draft.gender === "unspecified"} onClick={() => update({ gender: "unspecified" })}>Не указывать</Choice></div></Field>
     <Field label="Языки консультации"><div className="flex flex-wrap gap-2">{[...new Set([...LANGUAGES, ...draft.languages])].map((language) => <Choice key={language} active={draft.languages.includes(language)} onClick={() => update({ languages: toggle(draft.languages, language) })}>{language}</Choice>)}</div><div className="mt-2"><ChipInput placeholder="Другой язык" onAdd={(v) => { if (!draft.languages.includes(v)) update({ languages: [...draft.languages, v] }); }} /></div></Field>
-    <Field label="Telegram для связи"><div className="flex items-center gap-2 rounded-[11px] bg-white px-3 stroke"><span className="font-black text-[var(--muted-2)]">@</span><input value={draft.tg} onChange={(event) => update({ tg: event.target.value.replace(/^@/, "") })} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none" /></div></Field>
+    <Field label="Telegram для связи"><div className="flex items-center gap-2 rounded-[13px] bg-white px-3 stroke"><span className="font-black text-[var(--muted-2)]">@</span><input value={draft.tg} onChange={(event) => update({ tg: event.target.value.replace(/^@/, "") })} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none" /></div></Field>
     <Field label="Сайт и соцсети"><LinksEditor links={draft.links} onChange={(links) => update({ links })} /></Field>
   </StepCard>;
 }
@@ -358,14 +358,14 @@ function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange
     <div className="space-y-2">
       {links.map((link, i) => (
         <div key={i} className="flex items-center gap-2">
-          <select value={link.kind} onChange={(e) => setAt(i, { kind: e.target.value as LinkKind })} className="shrink-0 rounded-[10px] bg-white px-2 py-2.5 text-[12px] font-black stroke outline-none">
+          <select value={link.kind} onChange={(e) => setAt(i, { kind: e.target.value as LinkKind })} className="shrink-0 rounded-[11px] bg-white px-2 py-2.5 text-[12px] font-black stroke outline-none">
             {kinds.map((k) => <option key={k} value={k}>{LINK_META[k].label}</option>)}
           </select>
           <Input value={link.url} onChange={(e) => setAt(i, { url: e.target.value })} placeholder="https://…" />
-          <button onClick={() => onChange(links.filter((_, idx) => idx !== i))} className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-[10px] bg-white stroke" aria-label="Удалить">×</button>
+          <button onClick={() => onChange(links.filter((_, idx) => idx !== i))} className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Удалить">×</button>
         </div>
       ))}
-      <button onClick={() => onChange([...links, { kind: "site", url: "" }])} className="flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить ссылку</button>
+      <button onClick={() => onChange([...links, { kind: "site", url: "" }])} className="flex w-full items-center justify-center gap-1.5 rounded-[11px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить ссылку</button>
     </div>
   );
 }
@@ -376,12 +376,12 @@ function PublishedScreen({ name, onDone }: { name: string; onDone: () => void })
   useEffect(() => { const timer = window.setTimeout(onDone, 2200); return () => window.clearTimeout(timer); }, [onDone]);
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center py-6 text-center">
-      <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="flex h-20 w-20 items-center justify-center rounded-[21px] bg-[var(--amber)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+      <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="flex h-20 w-20 items-center justify-center rounded-[23px] bg-[var(--amber)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
         <Icon name="clock" width={38} weight="bold" />
       </motion.span>
       <h3 className="font-tight mt-4 text-[22px] font-black leading-tight">Профиль на проверке</h3>
       <p className="mt-2 max-w-[300px] text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{name ? `${name}, спасибо!` : "Спасибо!"} Мы проверяем анкету и документы вручную — обычно это занимает до 1–2 рабочих дней. Как только всё подтвердим, профиль появится в каталоге.</p>
-      <div className="mt-4 flex items-center gap-2 rounded-[11px] bg-[var(--amber-soft)] px-3.5 py-2.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="check" width={13} weight="bold" /> Пока идёт проверка — профиль виден только вам</div>
+      <div className="mt-4 flex items-center gap-2 rounded-[13px] bg-[var(--amber-soft)] px-3.5 py-2.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="check" width={13} weight="bold" /> Пока идёт проверка — профиль виден только вам</div>
       <Button className="mt-5 w-full" onClick={() => { tap(); onDone(); }}>Готово</Button>
     </motion.div>
   );
@@ -435,8 +435,8 @@ function MethodsStep({ draft, update }: { draft: PsyProfile; update: (patch: Par
       })}
     </div>
     <div className="flex items-center gap-2">
-      <div className="flex flex-1 items-center gap-2 rounded-[11px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={custom} onChange={(event) => setCustom(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustom(); } }} placeholder="Свой подход" className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
-      <button onClick={addCustom} disabled={!custom.trim()} className="shrink-0 rounded-[10px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
+      <div className="flex flex-1 items-center gap-2 rounded-[13px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={custom} onChange={(event) => setCustom(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustom(); } }} placeholder="Свой подход" className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
+      <button onClick={addCustom} disabled={!custom.trim()} className="shrink-0 rounded-[12px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
     </div>
     {draft.primaryMethod && <p className="text-[11px] font-semibold text-[var(--muted)]">Основной метод: <span className="font-black text-[var(--ink)]">{draft.primaryMethod}</span></p>}
   </StepCard>;
@@ -457,28 +457,28 @@ function FormatStep({ draft, update, updateLocation }: { draft: PsyProfile; upda
       <FormatToggle active={online} icon="video" label="Онлайн" onClick={() => toggleFormat("online")} />
       <FormatToggle active={offline} icon="pin" label="Очно" onClick={() => toggleFormat("offline")} />
     </div>
-    {offline && <div className="space-y-3 rounded-[14px] bg-white p-3 stroke">
+    {offline && <div className="space-y-3 rounded-[16px] bg-white p-3 stroke">
       <Field label="Город"><Input value={draft.location.city} onChange={(event) => updateLocation({ city: event.target.value })} placeholder="Москва" /></Field>
       <Field label="Метро или ориентир"><Input value={draft.location.metro} onChange={(event) => updateLocation({ metro: event.target.value })} placeholder="м. Фрунзенская" /></Field>
       <Field label="Точный адрес"><Input value={draft.location.address} onChange={(event) => updateLocation({ address: event.target.value })} placeholder="Улица, дом, кабинет" /></Field>
-      <label className="flex cursor-pointer items-start gap-3 rounded-[12px] bg-[var(--amber-soft)] p-3 stroke" style={{ borderColor: "var(--amber-edge)" }}><button role="switch" aria-checked={draft.location.publicExactAddress} onClick={(event) => { event.preventDefault(); select(); updateLocation({ publicExactAddress: !draft.location.publicExactAddress }); }} className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full stroke" style={{ background: draft.location.publicExactAddress ? "var(--ink)" : "white" }}><motion.span animate={{ x: draft.location.publicExactAddress ? 20 : 2 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white stroke" /></button><span><span className="block text-[12px] font-black">Показывать точный адрес в профиле</span><span className="mt-0.5 block text-[10px] font-semibold leading-relaxed text-[var(--muted)]">Если выключено, клиент увидит только город и метро. Точный адрес откроется после подтверждения записи.</span></span></label>
+      <label className="flex cursor-pointer items-start gap-3 rounded-[14px] bg-[var(--amber-soft)] p-3 stroke" style={{ borderColor: "var(--amber-edge)" }}><button role="switch" aria-checked={draft.location.publicExactAddress} onClick={(event) => { event.preventDefault(); select(); updateLocation({ publicExactAddress: !draft.location.publicExactAddress }); }} className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full stroke" style={{ background: draft.location.publicExactAddress ? "var(--ink)" : "white" }}><motion.span animate={{ x: draft.location.publicExactAddress ? 20 : 2 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white stroke" /></button><span><span className="block text-[12px] font-black">Показывать точный адрес в профиле</span><span className="mt-0.5 block text-[10px] font-semibold leading-relaxed text-[var(--muted)]">Если выключено, клиент увидит только город и метро. Точный адрес откроется после подтверждения записи.</span></span></label>
     </div>}
   </StepCard>;
 }
 
 function FormatToggle({ active, icon, label, onClick }: { active: boolean; icon: IconName; label: string; onClick: () => void }) {
   return (
-    <button onClick={() => { select(); onClick(); }} className="flex items-center justify-center gap-2 rounded-[12px] py-3 text-[13px] font-black transition-transform active:scale-[0.98]" style={{ background: active ? "var(--olive)" : "#fff", border: `var(--bw) solid var(--${active ? "olive-edge" : "edge-neutral"})`, color: "var(--ink)" }}>
+    <button onClick={() => { select(); onClick(); }} className="flex items-center justify-center gap-2 rounded-[14px] py-3 text-[13px] font-black transition-transform active:scale-[0.98]" style={{ background: active ? "var(--olive)" : "#fff", border: `var(--bw) solid var(--${active ? "olive-edge" : "edge-neutral"})`, color: "var(--ink)" }}>
       <Icon name={icon} width={17} weight="bold" /> {label}
     </button>
   );
 }
 
-function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Условия одной встречи" hint="Именно эти значения используются в фильтрах и на карточке каталога."><Field label="Стоимость, ₽"><Input type="number" min={0} step={100} value={draft.sessionPrice} onChange={(event) => update({ sessionPrice: Number(event.target.value) })} /></Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: Math.max(30, draft.sessionMinutes - 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[10px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes} мин</span></div><button onClick={() => { select(); update({ sessionMinutes: Math.min(120, draft.sessionMinutes + 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><div className="rounded-[13px] bg-[var(--green-soft)] p-3 text-[11px] font-semibold leading-relaxed stroke" style={{ borderColor: "var(--green-edge)" }}>Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</div></StepCard>; }
+function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Условия одной встречи" hint="Именно эти значения используются в фильтрах и на карточке каталога."><Field label="Стоимость, ₽"><Input type="number" min={0} step={100} value={draft.sessionPrice} onChange={(event) => update({ sessionPrice: Number(event.target.value) })} /></Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: Math.max(30, draft.sessionMinutes - 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[12px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes} мин</span></div><button onClick={() => { select(); update({ sessionMinutes: Math.min(120, draft.sessionMinutes + 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><div className="rounded-[14px] bg-[var(--green-soft)] p-3 text-[11px] font-semibold leading-relaxed stroke" style={{ borderColor: "var(--green-edge)" }}>Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</div></StepCard>; }
 
 function ExperienceStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
   const setEducation = (index: number, value: string) => update({ education: draft.education.map((item, itemIndex) => itemIndex === index ? value : item) });
-  return <StepCard title="Опыт и квалификация" hint="Клиент сможет отфильтровать по опыту и отдельно изучить образование."><Field label="Лет практики"><Input type="number" min={0} max={70} value={draft.experienceYears} onChange={(event) => update({ experienceYears: event.target.value })} placeholder="5" /><div className="mt-2 flex gap-2">{EXPERIENCE_OPTIONS.slice(1).map((years) => <Choice key={years} active={Number(draft.experienceYears) === years} onClick={() => update({ experienceYears: String(years) })}>от {years} лет</Choice>)}</div></Field><Field label="Образование и значимые программы"><div className="space-y-2">{draft.education.map((item, index) => <div key={index} className="flex gap-2"><Input value={item} onChange={(event) => setEducation(index, event.target.value)} placeholder="Учебное заведение, программа, год" /><button onClick={() => update({ education: draft.education.filter((_, itemIndex) => itemIndex !== index) })} className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-[10px] bg-white stroke" aria-label="Удалить">×</button></div>)}<button onClick={() => update({ education: [...draft.education, ""] })} className="flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить образование</button></div></Field></StepCard>;
+  return <StepCard title="Опыт и квалификация" hint="Клиент сможет отфильтровать по опыту и отдельно изучить образование."><Field label="Лет практики"><Input type="number" min={0} max={70} value={draft.experienceYears} onChange={(event) => update({ experienceYears: event.target.value })} placeholder="5" /><div className="mt-2 flex gap-2">{EXPERIENCE_OPTIONS.slice(1).map((years) => <Choice key={years} active={Number(draft.experienceYears) === years} onClick={() => update({ experienceYears: String(years) })}>от {years} лет</Choice>)}</div></Field><Field label="Образование и значимые программы"><div className="space-y-2">{draft.education.map((item, index) => <div key={index} className="flex gap-2"><Input value={item} onChange={(event) => setEducation(index, event.target.value)} placeholder="Учебное заведение, программа, год" /><button onClick={() => update({ education: draft.education.filter((_, itemIndex) => itemIndex !== index) })} className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Удалить">×</button></div>)}<button onClick={() => update({ education: [...draft.education, ""] })} className="flex w-full items-center justify-center gap-1.5 rounded-[11px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить образование</button></div></Field></StepCard>;
 }
 
 function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
@@ -500,8 +500,8 @@ function ChipInput({ placeholder, onAdd }: { placeholder: string; onAdd: (value:
   const commit = () => { const v = value.trim(); if (!v) return; onAdd(v); setValue(""); tap(); };
   return (
     <div className="flex items-center gap-2">
-      <div className="flex flex-1 items-center gap-2 rounded-[11px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }} placeholder={placeholder} className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
-      <button onClick={commit} disabled={!value.trim()} className="shrink-0 rounded-[10px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
+      <div className="flex flex-1 items-center gap-2 rounded-[13px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }} placeholder={placeholder} className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
+      <button onClick={commit} disabled={!value.trim()} className="shrink-0 rounded-[12px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
     </div>
   );
 }
@@ -511,11 +511,11 @@ function BasicProfileForm({ onDone }: { onDone: () => void }) {
   const current = getPsyProfile();
   const [name, setName] = useState(current?.name || displayName());
   const [tg, setTg] = useState((current?.tg || tgUsername() || "").replace(/^@/, ""));
-  return <div className="space-y-4"><Field label="Имя"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></Field><Field label="Telegram"><div className="flex items-center gap-2 rounded-[11px] bg-white px-3 stroke"><span className="font-black text-[var(--muted-2)]">@</span><input value={tg} onChange={(event) => setTg(event.target.value.replace(/^@/, ""))} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none" /></div></Field><Button className="w-full" onClick={() => { savePsyProfile({ name: name.trim(), tg: tg.trim() }); success(); onDone(); }}>Сохранить</Button></div>;
+  return <div className="space-y-4"><Field label="Имя"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></Field><Field label="Telegram"><div className="flex items-center gap-2 rounded-[13px] bg-white px-3 stroke"><span className="font-black text-[var(--muted-2)]">@</span><input value={tg} onChange={(event) => setTg(event.target.value.replace(/^@/, ""))} placeholder="username" className="w-full bg-transparent py-2.5 text-sm font-semibold outline-none" /></div></Field><Button className="w-full" onClick={() => { savePsyProfile({ name: name.trim(), tg: tg.trim() }); success(); onDone(); }}>Сохранить</Button></div>;
 }
 
 function ProfilePhoto({ photo, name, size }: { photo: string | null; name: string; size: "sm" | "lg" }) {
-  const classes = size === "sm" ? "h-14 w-14 rounded-[13px] text-[20px]" : "h-[92px] w-[78px] rounded-[16px] text-[28px]";
+  const classes = size === "sm" ? "h-14 w-14 rounded-[14px] text-[20px]" : "h-[92px] w-[78px] rounded-[18px] text-[28px]";
   if (photo) return <div className={`${classes} shrink-0 overflow-hidden stroke`}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo} alt="" className="h-full w-full object-cover" /></div>;
   return <div className={`${classes} flex shrink-0 items-center justify-center bg-[var(--head-soft)] font-black stroke`}>{name.trim().charAt(0).toUpperCase() || "П"}</div>;
 }

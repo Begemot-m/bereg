@@ -136,8 +136,8 @@ function PsySessions() {
         icon="calendar"
         sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : "Что впереди") : "Неделя целиком"}
         right={
-          <button onClick={() => { tap(); setHelp(true); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 text-[11.5px] font-black" style={{ color: "var(--edge)" }}>
-            <Icon name="question" width={14} weight="bold" color="var(--edge)" /> Как это работает?
+          <button onClick={() => { tap(); setHelp(true); }} className="btn h-9 shrink-0 px-3.5 text-[11.5px]">
+            <Icon name="question" width={14} weight="bold" color="#fff" /> Как это работает?
           </button>
         }
       >
@@ -152,21 +152,20 @@ function PsySessions() {
             <div className="relative mt-2 flex items-center justify-center gap-2">
               <button
                 onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
-                className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11.5px] font-black stroke"
-                style={multiMode ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--olive-edge)" }}
+                className={`btn px-4 py-1.5 text-[11.5px] ${multiMode ? "" : "btn-accent"}`}
               >
-                <Icon name="check" width={13} weight="bold" color={multiMode ? "#fff" : "var(--olive-edge)"} />
+                <Icon name="check" width={13} weight="bold" color="#fff" />
                 {multiMode ? "Готово" : "Выбор"}
               </button>
               {multiMode && (
                 <>
-                  <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11.5px] font-black stroke disabled:opacity-40" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)", borderColor: "var(--olive-edge)" }}>
-                    <Icon name="gear" width={13} weight="bold" color="var(--olive-edge)" /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}
+                  <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="btn btn-accent px-4 py-1.5 text-[11.5px]">
+                    <Icon name="gear" width={13} weight="bold" color="#fff" /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}
                   </button>
                   {bulkMenu && multiDays.size > 0 && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setBulkMenu(false)} />
-                      <div className="absolute right-0 top-9 z-20 w-56 overflow-hidden rounded-[11px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
+                      <div className="absolute right-0 top-9 z-20 w-56 overflow-hidden rounded-[12px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
                         <BulkItem onClick={() => bulkAct("off")}>🌙 Сделать выходными</BulkItem>
                         <BulkItem onClick={() => bulkAct("open")}>↺ Открыть все окна</BulkItem>
                         <BulkItem onClick={() => bulkAct("online")}>📹 Все окна — онлайн</BulkItem>
@@ -184,8 +183,8 @@ function PsySessions() {
       <div className="sheet">
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           {/* Слева — настройка графика */}
-          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="flex w-fit items-center gap-1.5 rounded-full bg-[var(--olive-soft)] px-3 py-1.5 text-[11px] font-black text-[var(--muted)] transition-colors hover:text-[var(--ink)]" aria-expanded={scheduleOpen}>
-            <Icon name="gear" width={13} color="currentColor" /> График
+          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="btn btn-accent w-fit px-3 py-1.5 text-[11px]" aria-expanded={scheduleOpen}>
+            <Icon name="gear" width={13} color="#fff" /> График
           </button>
 
           {/* Центр — весёлый зелёный крестик быстрой записи */}
@@ -195,21 +194,20 @@ function PsySessions() {
             whileHover={{ scale: 1.06 }}
             animate={quickAdd ? { rotate: 45 } : { rotate: 0, y: [0, -3, 0] }}
             transition={quickAdd ? { type: "spring", stiffness: 400, damping: 14 } : { rotate: { type: "spring", stiffness: 400, damping: 14 }, y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" } }}
-            className="flex h-11 w-11 items-center justify-center rounded-[13px]"
-            style={{ background: quickAdd ? "var(--olive)" : "var(--olive-soft)", border: "var(--bw-lg) solid var(--olive-edge)", boxShadow: quickAdd ? "0 6px 16px -6px var(--olive-edge)" : "0 8px 18px -8px var(--olive-edge)" }}
+            className="flex h-11 w-11 items-center justify-center rounded-[15px]"
+            style={{ background: quickAdd ? "var(--ink)" : "var(--edge)" }}
             data-tour="quick-add"
             aria-label="Быстрая запись"
             aria-expanded={quickAdd}
           >
-            <Icon name="plus" width={22} weight="bold" color="var(--olive-edge)" />
+            <Icon name="plus" width={22} weight="bold" color="#fff" />
           </motion.button>
 
           {/* Справа — помощь */}
           <button
             onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
             aria-expanded={calOpen}
-            className="flex w-fit items-center gap-1.5 justify-self-end rounded-full px-3.5 py-2 text-[11.5px] font-black transition-colors"
-            style={calOpen ? { background: "var(--ink)", color: "#fff" } : { background: "var(--olive-edge)", color: "#fff" }}
+            className={`btn w-fit justify-self-end px-3.5 py-2 text-[11.5px] ${calOpen ? "" : "btn-accent"}`}
           >
             <Icon name="calendar" width={14} weight="bold" color="#fff" />
             {calOpen ? "Свернуть" : "Календарь"}
@@ -290,7 +288,7 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
         <div className="fixed inset-0 z-[85] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3 @md:items-center" onClick={onLater}>
           <section onClick={(e) => e.stopPropagation()} className="chunk w-full max-w-md overflow-hidden p-0" style={{ background: "var(--surface)" }}>
             <div className="p-5" style={{ background: "var(--olive)", borderBottom: "var(--bw-lg) solid var(--olive-edge)" }}>
-              <span className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-white"><Icon name="clock" width={23} weight="bold" /></span>
+              <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white"><Icon name="clock" width={23} weight="bold" /></span>
               <p className="mt-3 text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Первый шаг</p>
               <h2 className="font-tight mt-1 text-[20px] font-black leading-tight">Настройте рабочие часы</h2>
               <p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Клиенты увидят только свободные окна, а занятые сессии появятся в календаре автоматически.</p>
@@ -298,13 +296,13 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
             <div className="p-5">
               <div className="grid grid-cols-3 gap-1.5">
                 {["Выберите дни", "Добавьте окна", "Сохраните"].map((label, index) => (
-                  <div key={label} className="rounded-[11px] px-2 py-2.5 text-center" style={{ background: "var(--olive-soft)" }}>
+                  <div key={label} className="rounded-[12px] px-2 py-2.5 text-center" style={{ background: "var(--olive-soft)" }}>
                     <span className="tnum block text-[11px] font-black text-[var(--olive-edge)]">0{index + 1}</span>
                     <span className="mt-0.5 block text-[10px] font-extrabold leading-tight">{label}</span>
                   </div>
                 ))}
               </div>
-              <button onClick={onOpen} className="mt-4 w-full rounded-[12px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">Настроить сейчас</button>
+              <button onClick={onOpen} className="mt-4 w-full rounded-[14px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">Настроить сейчас</button>
               <div className="mt-2 flex items-center justify-between">
                 <button onClick={onHelp} className="px-1 py-1.5 text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Как настроить?</button>
                 <button onClick={onLater} className="px-1 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Позже</button>
@@ -315,10 +313,10 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
       )}
 
       <Disclosure open={open} autoScroll={false}>
-        <div className="mt-3 rounded-[17px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        <div className="mt-3 rounded-[19px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><p className="text-[14px] font-black">Рабочие часы</p><p className="text-[11px] font-semibold text-[var(--muted)]">{summary} · нажмите на шкалу дня, чтобы добавить окно</p></div>
-            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
+            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
           </div>
           <WorkHoursEditor onSaved={onSaved} />
           {/* Правила приёма живут рядом с графиком, а не в кабинете. */}
@@ -337,16 +335,16 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
 function CancelLockRow() {
   const [days, setDays] = useCancelLockDays();
   return (
-    <div className="rounded-[13px] bg-[var(--surface-2)] p-3.5">
+    <div className="rounded-[15px] bg-[var(--surface-2)] p-3.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-white"><Icon name="clock" width={17} weight="bold" color="var(--edge)" /></span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white"><Icon name="clock" width={17} weight="bold" color="var(--edge)" /></span>
           <span className="text-[13px] font-black">Запрет отмены сессий</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-white text-[18px] font-black" aria-label="Меньше">−</button>
-          <span className="flex h-8 min-w-[64px] items-center justify-center rounded-[8px] px-2 text-[12px] font-black" style={{ background: days ? "var(--head-soft)" : "#fff", color: days ? "var(--edge)" : "var(--muted-2)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
-          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-white text-[18px] font-black" aria-label="Больше">+</button>
+          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-white text-[18px] font-black" aria-label="Меньше">−</button>
+          <span className="flex h-8 min-w-[64px] items-center justify-center rounded-[9px] px-2 text-[12px] font-black" style={{ background: days ? "var(--head-soft)" : "#fff", color: days ? "var(--edge)" : "var(--muted-2)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
+          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-white text-[18px] font-black" aria-label="Больше">+</button>
         </div>
       </div>
       <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">{days === 0 ? "Клиент может отменить сессию в любое время." : `Клиент не сможет отменить менее чем за ${days} дн. до сессии — только через вас.`}</p>
@@ -355,7 +353,7 @@ function CancelLockRow() {
 }
 
 function BulkItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">{children}</button>;
+  return <button onClick={onClick} className="flex w-full items-center gap-2 rounded-[9px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">{children}</button>;
 }
 
 function Segmented({ value, onChange }: { value: View; onChange: (v: View) => void }) {
@@ -373,7 +371,7 @@ function Segmented({ value, onChange }: { value: View; onChange: (v: View) => vo
 function EmptyState({ onAdd, selDay }: { onAdd: () => void; selDay: string | null }) {
   return (
     <div className="py-8 text-center">
-      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[13px] stroke" style={{ background: "var(--head-soft)" }}>
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[15px] stroke" style={{ background: "var(--head-soft)" }}>
         <Icon name="calendar" width={24} />
       </div>
       <p className="t-head">{selDay ? "На этот день записей нет" : "Пока нет предстоящих сессий"}</p>
@@ -412,7 +410,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
       {open && (
         <motion.div className="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[calc(env(safe-area-inset-top)+52px)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <button className="absolute inset-0 bg-[rgba(32,28,24,.42)]" onClick={onClose} aria-label="Закрыть" />
-          <motion.section role="dialog" aria-modal="true" initial={{ y: -18, opacity: 0.6 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -12, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="relative flex max-h-[74dvh] w-full max-w-md flex-col overflow-hidden rounded-[17px] bg-white stroke-lg" style={{ borderColor: "var(--olive-edge)" }}>
+          <motion.section role="dialog" aria-modal="true" initial={{ y: -18, opacity: 0.6 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -12, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="relative flex max-h-[74dvh] w-full max-w-md flex-col overflow-hidden rounded-[19px] bg-white stroke-lg" style={{ borderColor: "var(--olive-edge)" }}>
             <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
               <p className="text-[13px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
               <div className="flex items-center gap-3">
@@ -425,8 +423,8 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
                 <ClientPicker clients={sorted} compact={false} onCreateClient={(name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
               ) : (
                 <div>
-                  <div className="mb-2 flex items-center gap-2 rounded-[9px] bg-[var(--green-soft)] px-3 py-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
+                  <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
                     <span className="text-[13px] font-black">{client.name}</span>
                   </div>
                   <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>

@@ -186,7 +186,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
 
           <div className="relative mt-3">
             {/* Рулетка: лента рисок с затуханием к краям и подсвеченным центром */}
-            <div className="relative overflow-hidden rounded-[16px] bg-white/55 py-1" style={{ border: "var(--bw) solid rgba(32,28,24,.16)", WebkitMaskImage: "linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)", maskImage: "linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)" }}>
+            <div className="relative overflow-hidden rounded-[18px] bg-white/55 py-1" style={{ border: "var(--bw) solid rgba(32,28,24,.16)", WebkitMaskImage: "linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)", maskImage: "linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)" }}>
               <div
                 ref={track}
                 data-testid="mood-roulette"

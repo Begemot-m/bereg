@@ -77,15 +77,15 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
       {/* История и меню дня */}
       {(hiddenPastCount > 0 || hasFutureSlots) && <div className="relative mb-1 flex items-center gap-2">
         {hiddenPastCount > 0 && (
-          <button onClick={() => { tap(); setShowPastEmpty(!showPastEmpty); }} className="rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: showPastEmpty ? "var(--ink)" : "#fff", color: showPastEmpty ? "#fff" : undefined, borderColor: showPastEmpty ? "var(--ink)" : undefined }}>
+          <button onClick={() => { tap(); setShowPastEmpty(!showPastEmpty); }} className={`btn px-3 py-1 text-[12px] ${showPastEmpty ? "" : "btn-accent"}`}>
             {showPastEmpty ? "Скрыть пустые окна" : `Показать все окна · ${hiddenPastCount}`}
           </button>
         )}
-        {hasFutureSlots && <button onClick={() => { tap(); setMenu(!menu); }} className="ml-auto flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-extrabold stroke" style={{ background: "#fff" }}><Icon name="gear" width={14} /> Действия</button>}
+        {hasFutureSlots && <button onClick={() => { tap(); setMenu(!menu); }} className="btn btn-accent ml-auto px-3 py-1 text-[12px]"><Icon name="gear" width={14} color="#fff" /> Действия</button>}
         {hasFutureSlots && menu && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-            <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING} className="absolute right-0 top-8 z-20 w-52 overflow-hidden rounded-[11px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
+            <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING} className="absolute right-0 top-8 z-20 w-52 overflow-hidden rounded-[13px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
               <MenuItem onClick={() => menuAct(futureFree.map((s) => ({ iso: s.iso, patch: { removed: true } })))}>🌙 Сделать выходным</MenuItem>
               <MenuItem onClick={() => menuAct(removedSlots.map((s) => ({ iso: s.iso, patch: { removed: false } })))}>↺ Открыть все окна</MenuItem>
               <MenuItem onClick={() => menuAct(futureNonAppt.map((s) => ({ iso: s.iso, patch: { fmt: "online" } })))}>📹 Все окна — онлайн</MenuItem>
@@ -103,16 +103,16 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
         const st = slotStyle(s.hour);
         if (s.removed) {
           return (
-            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[10px] px-3 py-2 stroke-lg" style={{ background: "#f7f3ea", borderColor: "var(--edge-neutral)", opacity: 0.7 }}>
+            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[11px] px-3 py-2 stroke-lg" style={{ background: "#f7f3ea", borderColor: "var(--edge-neutral)", opacity: 0.7 }}>
               <span className="text-[13px] font-extrabold tnum text-[var(--muted-2)] line-through">{timeF.format(new Date(s.iso))}</span>
               <span className="flex-1 text-[12px] font-semibold text-[var(--muted-2)]">закрыто</span>
-              {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold stroke" style={{ background: "#fff", color: "var(--green-edge)" }}>↺ Открыть</button>}
+              {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="btn btn-accent px-2.5 py-1 text-[11px]">↺ Открыть</button>}
             </motion.div>
           );
         }
         if (s.past) {
           return (
-            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 0.52 }} className="flex items-center gap-2 rounded-[10px] px-3 py-2 stroke-lg" style={{ background: st.bg, borderColor: st.bd }}>
+            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 0.52 }} className="flex items-center gap-2 rounded-[11px] px-3 py-2 stroke-lg" style={{ background: st.bg, borderColor: st.bd }}>
               <span className="text-[13px] font-extrabold tnum line-through">{timeF.format(new Date(s.iso))}</span>
               <span className="flex-1 text-[12px] font-semibold text-[var(--muted)] line-through">пустое окно</span>
               <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
@@ -121,7 +121,7 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
         }
         return (
           <motion.div key={s.iso} layout>
-            <div className="flex items-center gap-2 rounded-[10px] px-3 py-2 stroke-lg" style={{ background: picking ? st.bg : st.bg, borderColor: st.bd }}>
+            <div className="flex items-center gap-2 rounded-[11px] px-3 py-2 stroke-lg" style={{ background: picking ? st.bg : st.bg, borderColor: st.bd }}>
               <span className="text-[13px] font-extrabold tnum">{timeF.format(new Date(s.iso))}</span>
               <button disabled={s.past} onClick={() => { tap(); setPick(picking ? null : s.iso); }} className="flex-1 text-left text-[13px] font-bold text-[var(--muted)] disabled:opacity-70">{s.past ? "прошло" : picking ? "выберите клиента" : "свободное окно"}</button>
               {!s.past && <Icon name={st.icon} width={13} weight="fill" color={st.ic} />}
@@ -148,7 +148,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
   const cancel = useMutation({ mutationFn: () => updateAppointment(appt.id, { status: "cancelled" }), onSuccess: () => { setManage(false); onChanged(); } });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(appt.id, { startsAt: iso }), onSuccess: () => { setResch(false); setManage(false); onChanged(); } });
   return (
-    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="rounded-[10px] stroke-lg" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
+    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="rounded-[11px] stroke-lg" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
       <div className="flex items-center gap-2 px-3 py-2">
         <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bd }} />
         {/* Тап по строке разворачивает управление — как по шестерне */}
@@ -161,20 +161,20 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
         </button>
         <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
         <FmtSwitch fmt={appt.format} onToggle={() => setFmt.mutate(appt.format === "online" ? "offline" : "online")} />
-        <button onClick={() => { tap(); setManage(!manage); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]" style={manage ? { background: "var(--ink)", color: "#fff" } : { background: "var(--surface-2)" }} aria-label="Управлять сессией" aria-expanded={manage}><Icon name="gear" width={15} color={manage ? "#fff" : undefined} /></button>
+        <button onClick={() => { tap(); setManage(!manage); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]" style={manage ? { background: "var(--ink)", color: "#fff" } : { background: "var(--surface-2)" }} aria-label="Управлять сессией" aria-expanded={manage}><Icon name="gear" width={15} color={manage ? "#fff" : undefined} /></button>
       </div>
       <Disclosure open={manage}>
         <div className="px-3 pb-3">
           {resch ? (
-            <div className="rounded-[10px] p-2.5" style={{ background: "#faf7f0" }}>
+            <div className="rounded-[11px] p-2.5" style={{ background: "#faf7f0" }}>
               <p className="mb-2 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
               <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
               <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="soft" onClick={() => setResch(true)}>Перенести</Button>
-              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Отменить</button>
+            <div className="flex gap-2">
+              <button onClick={() => setResch(true)} className="btn btn-accent flex-1 py-2 text-[12px]">Перенести</button>
+              <button onClick={() => cancel.mutate()} className="btn flex-1 py-2 text-[12px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>
             </div>
           )}
         </div>
@@ -194,27 +194,27 @@ export function ClientPicker({ clients, onPick, compact = true, onCreateClient }
   const inTherapy = filtered.filter((c) => c.status === "therapy");
   const others = filtered.filter((c) => c.status !== "therapy");
   const row = (c: { id: number; name: string; status: string }) => (
-    <button key={c.id} onClick={() => onPick(c.id)} className="flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
-      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
+    <button key={c.id} onClick={() => onPick(c.id)} className="flex w-full items-center gap-2 rounded-[9px] px-2 py-1.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
+      <span className="flex h-7 w-7 items-center justify-center rounded-[8px] text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
       <span className="font-tight flex-1 truncate text-[13px] font-bold">{c.name}</span>
       {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--green-edge)]">терапия</span>}
     </button>
   );
   return (
-    <div className={`${compact ? "mt-1.5" : ""} rounded-[10px] p-2.5 stroke`} style={{ background: "#fff" }}>
-      <div className="mb-1.5 flex items-center gap-2 rounded-[8px] bg-[var(--surface-2)] px-2.5 py-1.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+    <div className={`${compact ? "mt-1.5" : ""} rounded-[11px] p-2.5 stroke`} style={{ background: "#fff" }}>
+      <div className="mb-1.5 flex items-center gap-2 rounded-[9px] bg-[var(--surface-2)] px-2.5 py-1.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-[var(--muted-2)]"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-3.8-3.8" /></svg>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск клиента" className="w-full bg-transparent text-[13px] font-semibold outline-none" />
       </div>
       {onCreateClient && (adding ? (
         <form onSubmit={(e) => { e.preventDefault(); const n = newName.trim(); if (n) { onCreateClient(n); setNewName(""); setAdding(false); } }} className="mb-1.5 flex items-center gap-1.5">
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Имя и фамилия" className="w-full rounded-[8px] bg-white px-2.5 py-1.5 text-[13px] font-semibold outline-none" style={{ border: "var(--bw) solid var(--olive-edge)" }} />
-          <button type="submit" disabled={!newName.trim()} className="shrink-0 rounded-[8px] px-2.5 py-1.5 text-[12px] font-black text-white disabled:opacity-40" style={{ background: "var(--olive-edge)" }}>OK</button>
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Имя и фамилия" className="w-full rounded-[9px] bg-white px-2.5 py-1.5 text-[13px] font-semibold outline-none" style={{ border: "var(--bw) solid var(--olive-edge)" }} />
+          <button type="submit" disabled={!newName.trim()} className="shrink-0 rounded-[9px] px-2.5 py-1.5 text-[12px] font-black text-white disabled:opacity-40" style={{ background: "var(--olive-edge)" }}>OK</button>
           <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="shrink-0 px-1 text-[15px] font-black text-[var(--muted-2)]" aria-label="Отмена">✕</button>
         </form>
       ) : (
-        <button onClick={() => { tap(); setAdding(true); }} className="mb-1.5 flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}>
-          <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-white" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="plus" width={14} weight="bold" color="var(--olive-edge)" /></span>
+        <button onClick={() => { tap(); setAdding(true); }} className="mb-1.5 flex w-full items-center gap-2 rounded-[9px] px-2 py-1.5 text-left transition-colors active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}>
+          <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-white" style={{ border: "var(--bw) solid var(--olive-edge)" }}><Icon name="plus" width={14} weight="bold" color="var(--olive-edge)" /></span>
           <span className="flex-1 text-[13px] font-black text-[var(--olive-edge)]">Новый клиент</span>
         </button>
       ))}
@@ -231,6 +231,6 @@ export function ClientPicker({ clients, onPick, compact = true, onCreateClient }
 
 function MenuItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">{children}</button>
+    <button onClick={onClick} className="flex w-full items-center gap-2 rounded-[9px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">{children}</button>
   );
 }

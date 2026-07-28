@@ -29,7 +29,7 @@ export function WorkWithSpecialist({ sessionsDone, nextAt, homework, onChanged }
   const progress = homework.length ? done / homework.length : 0;
 
   return (
-    <section data-tour="work" className="rounded-[18px] p-4" style={{ background: "var(--green-soft)" }}>
+    <section data-tour="work" className="rounded-[20px] p-4" style={{ background: "var(--green-soft)" }}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="t-micro">Работа со специалистом</p>
@@ -68,7 +68,7 @@ export function WorkWithSpecialist({ sessionsDone, nextAt, homework, onChanged }
 
       <div className="mt-3 space-y-2">
         {homework.length === 0
-          ? <p className="t-sub rounded-[13px] bg-white p-3">Заданий пока нет — терапевт пришлёт их после встречи.</p>
+          ? <p className="t-sub rounded-[14px] bg-white p-3">Заданий пока нет — терапевт пришлёт их после встречи.</p>
           : homework.map((hw) => <HomeworkCard key={hw.id} hw={hw} onChanged={onChanged} />)}
       </div>
 
@@ -103,7 +103,7 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
   return (
     <motion.div
       layout
-      className="rounded-[13px] p-3.5"
+      className="rounded-[14px] p-3.5"
       style={isDone
         ? { background: "#fff", opacity: 0.7 }
         : { background: "#fff", boxShadow: `inset 0 0 0 2px ${isNew ? "var(--amber)" : "var(--purple)"}` }}
@@ -153,7 +153,7 @@ export function TherapistBoard({ value, onSave }: { value: string; onSave: (text
   }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section data-tour="board" className="rounded-[18px] p-4" style={{ background: "var(--amber-soft)" }}>
+    <section data-tour="board" className="rounded-[20px] p-4" style={{ background: "var(--amber-soft)" }}>
       <div className="flex items-center justify-between">
         <div>
           <p className="t-micro">Доска для терапевта</p>
@@ -174,7 +174,7 @@ export function TherapistBoard({ value, onSave }: { value: string; onSave: (text
         rows={4}
         maxLength={4000}
         placeholder="Мысли, вопросы, ситуации недели — всё, что хочется вынести на встречу."
-        className="t-body mt-3 w-full resize-none rounded-[13px] bg-white p-3.5 outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
+        className="t-body mt-3 w-full resize-none rounded-[14px] bg-white p-3.5 outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
       />
       <p className="t-cap mt-2">Терапевт видит эту доску — писать в неё можно в любой момент.</p>
     </section>

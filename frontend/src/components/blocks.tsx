@@ -22,7 +22,7 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
               initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 420, damping: 20 }}
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] bg-white"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-white"
             >
               <Icon name={icon} width={28} weight="bold" color="var(--edge)" />
             </motion.span>
@@ -110,7 +110,7 @@ export function ModuleCard({ title, desc, icon, fill = "cream", href, onClick }:
       className="chunk group flex h-full flex-col justify-between p-4 transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
       style={{ background: bg, color: dark ? "#fff" : undefined, transitionTimingFunction: EASE }}
     >
-      <span className="flex h-11 w-11 items-center justify-center rounded-[11px]" style={{ background: "#fff" }}>
+      <span className="flex h-11 w-11 items-center justify-center rounded-[13px]" style={{ background: "#fff" }}>
         <Icon name={icon} width={21} weight="regular" color={dark ? "var(--ink)" : "var(--edge)"} />
       </span>
       <div className="mt-6">
