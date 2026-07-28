@@ -77,14 +77,32 @@
 ```jsx
 <button className="btn">Записаться</button>       {/* тёмный тон, белый текст */}
 <button className="btn btn-soft">Позже</button>    {/* лёгкий фон, чернила */}
+<button className="btn btn-white">В каталог</button> {/* белая, обводка тоном */}
 <button className="btn btn-ink">Оплатить</button>  {/* чернила, белый текст */}
 ```
+
+`btn-white` — для кнопки **внутри** `card-soft`: там `btn-soft` сливается с
+фоном блока. У всех вариантов обводка есть всегда, даже если кнопка свёрстана
+спаном внутри ссылки.
 
 ### Иконка
 
 ```jsx
 <span className="ico h-10 w-10"><Icon name="calendar" /></span>
+<span className="ico ico-white h-10 w-10">…</span>  {/* внутри card-soft */}
 ```
+
+### Стрелка «дальше»
+
+Одна на весь проект. Не рисуйте свою — импортируйте:
+
+```jsx
+import { Arrow } from "@/components/blocks";
+<Arrow />
+```
+
+Вид меняется в `.arrow` в `globals.css` — сразу везде. Раскрывающиеся
+шевроны — тот же `.arrow` плюс поворот на 90°.
 
 ---
 
@@ -122,5 +140,7 @@
 | Размер шрифта в ступени | `.t-*` в `globals.css` |
 | Вид кнопок везде | `.btn` в `globals.css` |
 | Вид статусов везде | `.chip` в `globals.css` |
+| Вид стрелок везде | `.arrow` в `globals.css` |
+| Цвет рамки белых блоков | `--stroke` в `globals.css` (сейчас = `--edge`) |
 
 Одна правка в `globals.css` меняет весь проект — по файлам ходить не нужно.
