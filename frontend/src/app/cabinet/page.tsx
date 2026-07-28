@@ -145,7 +145,7 @@ function Foldable({ icon, title, subtitle, children, defaultOpen = false, tone }
 function ActionRow({ icon, title, sub, onClick, danger }: { icon: IconName; title: string; sub: string; onClick: () => void; danger?: boolean }) {
   return (
     <button onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] px-1.5 py-2 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl stroke" style={{ background: danger ? "var(--salmon-soft)" : "var(--head-soft)" }}><Icon name={icon} width={17} color={danger ? "var(--salmon-edge)" : undefined} /></span>
+      <span className="ico h-9 w-9 shrink-0" style={danger ? { background: "var(--salmon)" } : undefined}><Icon name={icon} width={17} color={danger ? "#fff" : "var(--edge)"} /></span>
       <span className="min-w-0 flex-1">
         <span className={`block text-[13.5px] font-bold ${danger ? "text-[var(--salmon-edge)]" : ""}`}>{title}</span>
         <span className="block text-[11.5px] font-semibold text-[var(--muted)]">{sub}</span>

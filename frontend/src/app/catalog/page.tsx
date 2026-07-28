@@ -130,7 +130,7 @@ export default function CatalogPage() {
       <header className="px-4 pb-14 pt-8 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Специалисты, которые подойдут именно вам.</p></div>
-          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[16px] bg-white px-2 py-2.5" aria-label="Собрать персональную подборку">
+          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[16px] bg-white px-2 py-2.5 stroke" aria-label="Собрать персональную подборку">
             <Icon name="sort" width={20} weight="bold" color="var(--edge)" />
             <span className="text-[9.5px] font-black leading-tight" style={{ color: "var(--edge)" }}>Персональная<br />подборка</span>
           </button>
@@ -169,9 +169,9 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   const soon = psy.nextDays <= 3;
 
   return (
-    <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform duration-200 active:scale-[.99]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
+    <button onClick={onOpen} className="chunk w-full overflow-hidden rounded-[24px] p-0 text-left transition-transform duration-200 active:scale-[.99]">
       <div className="flex gap-3.5 p-4">
-        <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[18px]" style={{ background: "var(--olive-soft)" }}>
+        <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[18px]" style={{ background: "var(--head-soft)" }}>
           <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="106px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -180,23 +180,23 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
             {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" title="Профиль подтверждён"><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
           </div>
            <p className="t-body mt-1.5"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
-           {psy.quote && <p className="t-sub mt-2 border-l-2 pl-2.5 italic" style={{ borderColor: "var(--olive)" }}>«{psy.quote}»</p>}
+           {psy.quote && <p className="t-sub mt-2 pl-2.5 italic" style={{ borderLeft: "2px solid var(--edge)" }}>«{psy.quote}»</p>}
          </div>
        </div>
 
       <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
         <span className="t-cap inline-flex items-center gap-1" style={{ color: "var(--ink)" }}><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /> {psy.rating.toFixed(1)} <span className="text-[var(--muted)]">({psy.reviews})</span></span>
-        <span className="chip" style={{ background: "var(--olive-soft)" }}>{psy.method}</span>
+        <span className="chip">{psy.method}</span>
         <span className="t-cap">{psy.years} {yearsWord(psy.years)} практики</span>
       </div>
 
       {/* Стоимость + ближайшее окно + переход к профилю */}
-      <div className="mt-1 flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
+      <div className="line-top mt-1 flex items-center gap-2 px-4 py-3">
         <div className="min-w-0">
           <p className="t-head">{psy.price.toLocaleString("ru-RU")} ₽<span className="t-cap"> / {psy.minutes} мин</span></p>
-          <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--olive-edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
+          <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
-        <span className="btn ml-auto shrink-0">Записаться →</span>
+        <span className="btn btn-accent ml-auto shrink-0">Записаться →</span>
       </div>
     </button>
   );
@@ -204,7 +204,7 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
 
 function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: () => void }) {
   const blocker = filters.thisWeek ? "свободное окно на этой неделе" : filters.maxPrice ? `цена до ${filters.maxPrice.toLocaleString("ru-RU")} ₽` : "выбранные условия";
-  return <div className="rounded-[22px] bg-[var(--amber-soft)] p-5 text-center stroke-lg" style={{ borderColor: "var(--amber-edge)" }}><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[15px] bg-white stroke"><Icon name="compass" width={23} weight="bold" /></div><h3 className="font-tight mt-3 text-[19px] font-black">Точных совпадений нет</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Сильнее всего ограничивает: {blocker}.</p><Button className="mt-4" onClick={onRelax}>Ослабить условие</Button></div>;
+  return <div className="card-soft p-5 text-center"><div className="flex justify-center"><span className="ico ico-white h-12 w-12"><Icon name="compass" width={23} weight="bold" color="var(--edge)" /></span></div><h3 className="font-tight mt-3 text-[19px] font-black">Точных совпадений нет</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Сильнее всего ограничивает: {blocker}.</p><Button className="mt-4" onClick={onRelax}>Ослабить условие</Button></div>;
 }
 
 function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
@@ -214,8 +214,8 @@ function AttachTherapistButton({ name }: { name: string }) {
   const [attached, setAttached] = useState(() => isAttached(name));
   const add = () => { if (attached) return; success(); attachTherapist(name); setAttached(true); };
   return (
-    <button onClick={add} disabled={attached} className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[15px] px-3 text-[12px] font-black transition-transform active:scale-[0.98] disabled:active:scale-100" style={attached ? { background: "var(--green-soft)", border: "var(--bw-lg) solid var(--green-edge)" } : { background: "var(--olive)", border: "var(--bw-lg) solid var(--olive-edge)" }}>
-      {attached ? <><Icon name="check" width={16} weight="bold" color="var(--green-edge)" /> В вашей терапии</> : <><Icon name="plus" width={16} weight="bold" /> В мою терапию</>}
+    <button onClick={add} aria-disabled={attached} className={`btn min-h-12 min-w-0 flex-1 ${attached ? "btn-soft" : "btn-accent"}`}>
+      {attached ? <><Icon name="check" width={16} weight="bold" color="var(--edge)" /> В вашей терапии</> : <><Icon name="plus" width={16} weight="bold" color="#fff" /> В мою терапию</>}
     </button>
   );
 }
@@ -232,7 +232,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
 
   return <div>
     <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
-      <button onClick={onBack} className="btn mb-3" style={{ ["--fill" as string]: "#fff" }}>
+      <button onClick={onBack} className="btn btn-accent mb-3">
         <span className="text-[15px] leading-none">‹</span> Вернуться в каталог
       </button>
       <div className="flex items-center gap-3">
@@ -257,8 +257,8 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       {/* Действия — сразу под именем, а не через полэкрана */}
       <div className="mt-3.5 flex gap-2">
         <AttachTherapistButton name={psy.name} />
-        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn shrink-0" style={{ ["--fill" as string]: "#fff" }}>
-          <Icon name="telegram" width={16} weight="fill" color={tone.edge} /> Написать
+        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn btn-accent min-h-12 shrink-0">
+          <Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать
         </a>
       </div>
     </div>
@@ -269,12 +269,12 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       <BookingMini psyName={psy.name} tone={tone} onDone={onBack} />
 
       {/* Почему предложен именно этому пользователю */}
-      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="panel-tint bg-[var(--green-soft)] p-3.5"><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
+      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="card-soft p-3.5"><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
 
       <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="chip" style={{ background: tone.soft }}>{topic}</span>)}</div></Section>
 
       {/* Как проходит первая встреча */}
-      <Section title="Как проходит первая встреча"><div className="panel-tint bg-[var(--purple-soft)] p-4"><p className="t-body">{firstSession}</p></div></Section>
+      <Section title="Как проходит первая встреча"><div className="card-soft p-4"><p className="t-body">{firstSession}</p></div></Section>
 
       {/* Голосовое приветствие (демо-слот) */}
       <VoiceGreeting name={psy.name.split(" ")[0]} />
@@ -291,7 +291,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       {psy.education.length > 0 && <EducationBlock psy={psy} />}
 
       {/* Темы, с которыми специалист не работает */}
-      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="panel p-4"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="chip" style={{ background: "var(--surface-2)" }}>{topic}</span>)}</div><p className="t-cap mt-2.5">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></div></Section>}
+      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="chip" style={{ background: "var(--surface-2)" }}>{topic}</span>)}</div><p className="t-cap mt-2.5">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></Section>}
 
       {/* Отзывы — только после подтверждённых встреч */}
       <RatingBlock psy={psy} canRate={wasInTherapy} />
@@ -485,7 +485,7 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
           </div>
         </button>
         <Disclosure open={open} zoom autoScroll={false}>
-          <div className="border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>
+          <div className="line-top p-3">
             <p className="mb-2 text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">Построить маршрут</p>
             <div className="grid grid-cols-3 gap-2">{routes.map((route) => <a key={route.label} href={route.href} target="_blank" rel="noopener noreferrer" onClick={success} className="flex items-center justify-center rounded-[12px] bg-[var(--surface-2)] px-2 py-2.5 text-[10px] font-black stroke">{route.label}</a>)}</div>
           </div>
@@ -497,13 +497,13 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
 
 function TelegramPoster({ psy }: { psy: Psy }) {
   return (
-    <div className="relative overflow-hidden rounded-[22px] bg-[var(--purple)] p-5 stroke-lg" style={{ borderColor: "var(--purple-edge)" }}>
+    <div className="relative overflow-hidden rounded-[22px] p-5" style={{ background: "var(--head)" }}>
       <motion.span aria-hidden className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-white/20" animate={{ y: [0, 8, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
       <div className="relative flex items-start gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white stroke-lg"><Icon name="telegram" width={23} weight="fill" color="var(--purple-edge)" /></span>
+        <span className="ico ico-white h-12 w-12 shrink-0"><Icon name="telegram" width={23} weight="fill" color="var(--edge)" /></span>
         <div><h3 className="font-tight text-[18px] font-black leading-tight">Остались уточняющие вопросы?</h3><p className="mt-1 text-[11.5px] font-bold text-[var(--muted)]">Можете написать специалисту напрямую.</p></div>
       </div>
-      <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={success} className="relative mt-4 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[var(--ink)] py-3 text-[13px] font-black text-white"><Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать в Telegram</a>
+      <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={success} className="btn relative mt-4 w-full py-3"><Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать в Telegram</a>
     </div>
   );
 }
@@ -512,10 +512,10 @@ function TelegramPoster({ psy }: { psy: Psy }) {
 function VoiceGreeting({ name }: { name: string }) {
   return (
     <Section title="Голос специалиста">
-      <div className="flex items-center gap-3 panel p-3.5">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--olive)]" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}><Icon name="pulse" width={20} weight="fill" /></span>
+      <div className="card-soft flex items-center gap-3 p-3.5">
+        <span className="ico h-11 w-11 shrink-0 rounded-full" style={{ background: "var(--edge)" }}><Icon name="pulse" width={20} weight="fill" color="#fff" /></span>
         <div className="flex min-w-0 flex-1 items-center gap-[3px]">
-          {[10, 18, 13, 22, 16, 26, 14, 20, 11, 24, 15, 19, 12].map((h, k) => <span key={k} className="w-[3px] rounded-full bg-[var(--olive-edge)]" style={{ height: h, opacity: 0.5 + (k % 3) * 0.2 }} />)}
+          {[10, 18, 13, 22, 16, 26, 14, 20, 11, 24, 15, 19, 12].map((h, k) => <span key={k} className="w-[3px] rounded-full bg-[var(--edge)]" style={{ height: h, opacity: 0.5 + (k % 3) * 0.2 }} />)}
         </div>
         <div className="shrink-0 text-right">
           <p className="text-[11px] font-black leading-none">приветствие</p>
@@ -531,13 +531,13 @@ function EducationBlock({ psy }: { psy: Psy }) {
   const [open, setOpen] = useState(false);
   return (
     <Section title="Образование">
-      <div className="panel p-4">
-        <ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul>
+      <div>
+        <ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul>
         <button onClick={() => { tap(); setOpen((v) => !v); }} className="mt-3 flex items-center gap-1.5 text-[11px] font-black text-[var(--muted)]" aria-expanded={open}>
-          <Icon name="check" width={13} weight="bold" color="var(--green-edge)" /> Как проверяются документы <span className="transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+          Как проверяются документы <span className="transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
         </button>
         <Disclosure open={open}>
-          <p className="mt-2 rounded-[12px] bg-[var(--green-soft)] p-3 text-[11px] font-semibold leading-relaxed" style={{ border: "1.5px solid var(--green-edge)" }}>Дипломы и сертификаты специалист загружает при регистрации, платформа проверяет их до публикации профиля. Значок «подтверждён» — результат этой проверки, а не оплаты.</p>
+          <p className="card-soft mt-2 p-3 text-[11px] font-semibold leading-relaxed">Дипломы и сертификаты специалист загружает при регистрации, платформа проверяет их до публикации профиля. Значок «подтверждён» — результат этой проверки, а не оплаты.</p>
         </Disclosure>
       </div>
     </Section>
@@ -555,8 +555,8 @@ function RulesSection({ minutes }: { minutes: number }) {
     <Section title="Правила отмены и связи">
       <div className="space-y-2">
         {rules.map((r) => (
-          <div key={r.title} className="flex items-start gap-3 rounded-[16px] bg-white p-3.5 stroke">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--head-soft)] stroke"><Icon name={r.icon} width={15} weight="bold" /></span>
+          <div key={r.title} className="card-soft flex items-start gap-3 p-3.5">
+            <span className="ico ico-white h-8 w-8 shrink-0"><Icon name={r.icon} width={15} weight="bold" color="var(--edge)" /></span>
             <div><p className="text-[12.5px] font-black">{r.title}</p><p className="mt-0.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{r.text}</p></div>
           </div>
         ))}
@@ -587,7 +587,7 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
   const rate = (value: number) => { success(); setMine(value); try { const ratings = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); ratings[psy.id] = value; localStorage.setItem(RATING_KEY, JSON.stringify(ratings)); } catch { /* ignore */ } };
   return (
     <Section title="Рейтинг и оценка">
-      <div className="overflow-hidden rounded-[20px] bg-[var(--amber-soft)] stroke-lg" style={{ borderColor: "var(--amber-edge)" }}>
+      <div className="overflow-hidden rounded-[22px] bg-[var(--amber-soft)]">
         <div className="flex items-center gap-4 p-4">
           {/* Круговой рейтинг с анимированной дугой */}
           {(() => {

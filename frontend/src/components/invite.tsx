@@ -65,11 +65,11 @@ export function InviteBanner({ variant }: { variant: Variant }) {
   const psy = variant === "psy";
   return (
     <>
-      {/* Без заливки: блок держится рамкой тоном раздела, как белые карточки */}
-      <button onClick={() => { tap(); setOpen(true); }} className="card relative w-full overflow-hidden p-5 text-left transition-transform active:scale-[0.99]">
-        <motion.span aria-hidden className="absolute -bottom-6 right-14 h-14 w-14 rounded-full" style={{ background: "rgba(255,255,255,.2)" }} animate={{ y: [0, -8, 0] }} transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }} />
+      {/* Салатовый — в тон блоку настроения дня */}
+      <button onClick={() => { tap(); setOpen(true); }} className="card-soft relative w-full overflow-hidden p-5 text-left transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)" }}>
+        <motion.span aria-hidden className="absolute -bottom-6 right-14 h-14 w-14 rounded-full" style={{ background: "rgba(255,255,255,.35)" }} animate={{ y: [0, -8, 0] }} transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }} />
         <div className="relative flex items-center gap-3.5">
-          <motion.span className="ico h-14 w-14 shrink-0" animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="users" width={26} weight="fill" color="var(--edge)" /></motion.span>
+          <motion.span className="ico ico-white h-14 w-14 shrink-0" animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="users" width={26} weight="fill" color="var(--olive-edge)" /></motion.span>
           <div className="min-w-0 flex-1">
             <p className="t-micro">Приведите {psy ? "коллегу" : "друга"}</p>
             <p className="t-title mt-0.5">{psy ? "Позовите коллег в «Методику»" : "Подарите другу неделю Методика+"}</p>

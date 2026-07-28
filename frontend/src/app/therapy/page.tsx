@@ -188,7 +188,7 @@ function FindTherapistBlock() {
         <span className="block text-[14px] font-black">Найти терапевта</span>
         <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания. Ваша статистика уже собирается ниже.</span>
       </span>
-      <span className="shrink-0 rounded-full bg-[var(--purple)] px-3 py-2 text-[11px] font-black">Подобрать</span>
+      <span className="btn shrink-0">Подобрать</span>
     </Link>
   );
 }
@@ -234,12 +234,12 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
         </div>
       </Link>
       <div className="mt-2.5 flex gap-2">
-        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12px] font-black transition-transform active:scale-[0.98]" style={{ background: "var(--purple)", color: "var(--purple-edge)" }} aria-expanded={bookOpen}>
-          <Icon name="calendar" width={14} weight="bold" color="var(--purple-edge)" /> {bookOpen ? "Свернуть" : "Записаться"}
+        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="btn btn-accent flex-1 py-2.5" aria-expanded={bookOpen}>
+          <Icon name="calendar" width={14} weight="bold" color="#fff" /> {bookOpen ? "Свернуть" : "Записаться"}
         </button>
         {psy?.tg && (
-          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[12px] font-black text-[var(--ink)] transition-transform active:scale-[0.98]">
-            <Icon name="telegram" width={15} weight="fill" color="var(--purple-edge)" /> Написать
+          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn px-4 py-2.5">
+            <Icon name="telegram" width={15} weight="fill" color="#fff" /> Написать
           </a>
         )}
       </div>

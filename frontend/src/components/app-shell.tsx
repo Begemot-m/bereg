@@ -42,7 +42,8 @@ function accentFor(pathname: string) {
   if (pathname.startsWith("/therapy")) return "purple";
   if (pathname.startsWith("/clients")) return "purple";
   if (pathname.startsWith("/tools")) return "peach";
-  if (pathname.startsWith("/catalog")) return "olive";
+  // Каталог — зелёный: тот же тон, что на странице специалиста.
+  if (pathname.startsWith("/catalog")) return "green";
   return "amber";
 }
 

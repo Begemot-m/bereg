@@ -14,7 +14,7 @@ const TG_LINK = `https://t.me/${TG_PHONE}`;
 // переход на сайт центра и связь в Telegram.
 export function CareModule() {
   return (
-    <div className="relative overflow-hidden rounded-[22px] p-5" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
+    <div className="relative overflow-hidden rounded-[22px] p-5" style={{ background: "var(--purple)" }}>
       {/* Плавающий декор — как на постерах в рефах */}
       <motion.span aria-hidden className="absolute -right-8 -top-10 h-28 w-28 rounded-full" style={{ background: "rgba(255,255,255,.28)" }} animate={{ y: [0, 10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
       <motion.span aria-hidden className="absolute -bottom-6 right-12 h-14 w-14 rounded-full" style={{ background: "rgba(255,255,255,.2)" }} animate={{ y: [0, -8, 0] }} transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }} />
@@ -36,8 +36,8 @@ export function CareModule() {
         </a>
 
         {/* Связь в Telegram — с настоящим значком Telegram */}
-        <a href={TG_LINK} target="_blank" rel="noopener noreferrer" onClick={() => tap()} className="mt-4 flex items-center gap-3 rounded-[16px] bg-white p-3 transition-transform active:scale-[0.99]" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}><Icon name="telegram" width={22} weight="fill" color="var(--purple-edge)" /></span>
+        <a href={TG_LINK} target="_blank" rel="noopener noreferrer" onClick={() => tap()} className="card-nested mt-4 flex items-center gap-3 p-3 transition-transform active:scale-[0.99]">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px]" style={{ background: "var(--purple-soft)" }}><Icon name="telegram" width={22} weight="fill" color="var(--purple-edge)" /></span>
           <span className="min-w-0 flex-1">
             <span className="block text-[13px] font-black leading-tight">Мы всегда на связи в Telegram</span>
             <span className="block text-[11px] font-semibold text-[var(--muted)]">Вопросы и пожелания — пишите напрямую нам</span>

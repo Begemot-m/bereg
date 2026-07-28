@@ -7,7 +7,8 @@ import { Arrow, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { tap } from "@/lib/haptics";
 
-export type TodayItem = { icon: IconName; title: string; sub: string; href?: string; onClick?: () => void };
+// tone — если у задания есть собственный цвет (колесо баланса — лавандовое).
+export type TodayItem = { icon: IconName; title: string; sub: string; href?: string; onClick?: () => void; tone?: string };
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -29,11 +30,10 @@ function TodayRow({ item, index }: { item: TodayItem; index: number }) {
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.04 + index * 0.06, duration: 0.32, ease: EASE }}
-      className="group flex items-center gap-3 px-4 py-3 transition-transform active:scale-[0.99]"
-      style={index > 0 ? { borderTop: "var(--bw) solid var(--edge-neutral)" } : undefined}
+      className={`group flex items-center gap-3 px-4 py-3 transition-transform active:scale-[0.99] ${index > 0 ? "line-top" : ""}`}
     >
-      <span className="ico h-10 w-10 shrink-0">
-        <Icon name={item.icon} width={19} weight="bold" color="var(--edge)" />
+      <span className="ico h-10 w-10 shrink-0" style={item.tone ? { background: `var(--${item.tone}-soft)` } : undefined}>
+        <Icon name={item.icon} width={19} weight="bold" color={item.tone ? `var(--${item.tone}-edge)` : "var(--edge)"} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="t-head block">{item.title}</span>

@@ -101,6 +101,9 @@
 [data-accent="olive"]  { --head: var(--olive);  --head-soft: var(--olive-soft);  --accent: var(--olive);  --edge: var(--olive-edge);  --page: color-mix(in srgb, var(--olive) 42%, #fbf8ef); }
 [data-accent="peach"]  { --head: var(--peach);  --head-soft: var(--peach-soft);  --accent: var(--peach);  --edge: var(--peach-edge);  --page: color-mix(in srgb, var(--peach) 46%, #fbf7ee); }
 :root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --edge: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
+/* --stroke переопределяем здесь же: var() считается на элементе, где объявлен,
+   поэтому в :root он бы навсегда застыл янтарным и наследовался вниз. */
+[data-accent] { --stroke: var(--edge); }
 
 /* Совместимость со старыми токенами — плоский bold-стиль */
 :root {
@@ -256,7 +259,7 @@ h1, h2, h3, .font-tight {
 
 /* ── Кнопки ────────────────────────────────────────────────── */
 
-/* Основная: тёмный тон раздела, белый текст, без тени. */
+/* Основная: сплошная чёрная заливка, белый текст. Одна на весь проект. */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -268,26 +271,23 @@ h1, h2, h3, .font-tight {
   font-size: 13px;
   font-weight: 800;
   line-height: 1.2;
-  background: var(--edge);
+  background: var(--ink);
   color: #fff;
-  border: var(--bw) solid var(--edge);
+  border: var(--bw) solid var(--ink);
   transition: transform .12s var(--ease-out);
 }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: .45; pointer-events: none; }
 
+/* Акцентная: тёмный тон раздела. Только там, где кнопка — часть темы
+   раздела: тёмно-зелёная в каталоге, лавандовая в терапии. */
+.btn-accent { background: var(--edge); color: #fff; border-color: var(--edge); }
+
 /* Второстепенная: лёгкая заливка, чернильный текст, обводка тёмным тоном. */
 .btn-soft { background: var(--head-soft); color: var(--ink); border-color: var(--edge); }
 
-/* Та же второстепенная, но внутри цветного блока: там лёгкая заливка
-   сливается с фоном, поэтому белая — и обводка тёмным тоном. */
-.btn-white { background: #fff; color: var(--ink); border-color: var(--edge); }
-
-/* Нейтральная: чернила. Для действий вне цвета раздела. */
-.btn-ink { background: var(--ink); color: #fff; border-color: var(--ink); }
-
 /* ── Стрелка «дальше» ──────────────────────────────────────── */
-/* Одна на весь проект: круг лёгким тоном, шеврон тёмным.
+/* Одна на весь проект: чёрный круг, белый шеврон.
    Меняется здесь — меняется везде. */
 .arrow {
   display: inline-flex;
@@ -297,8 +297,8 @@ h1, h2, h3, .font-tight {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: var(--head-soft);
-  color: var(--edge);
+  background: var(--ink);
+  color: #fff;
   font-size: 15px;
   font-weight: 900;
   line-height: 1;
@@ -318,6 +318,14 @@ h1, h2, h3, .font-tight {
 }
 /* Внутри цветного блока плитка иконки белая — иначе сливается с фоном. */
 .ico-white { background: #fff; }
+/* Инверсия: в белом блоке плитку держит обводка тоном раздела. */
+.ico-line { border: var(--bw) solid var(--edge); }
+/* Тёмная плитка — значок внутри белый. */
+.ico-accent { background: var(--edge); }
+
+/* Разделитель строк в списке. Единственная линия, которая переживает
+   правило «блок внутри блока — без рамки». */
+.line-top { border-top: var(--bw) solid var(--edge); }
 
 /* ============================================================
    Правила, применяемые ко всему проекту разом.
@@ -332,11 +340,12 @@ h1, h2, h3, .font-tight {
 /* 2. Статусы, иконки и всё внутри блоков — без рамок.
       span никогда не бывает карточкой верхнего уровня: это метка,
       иконка или обёртка текста. Кнопка — исключение: у неё обводка
-      по определению, даже когда она свёрстана спаном внутри ссылки. */
-:where(span):not(.keep-style, .btn) { border-width: 0 !important; }
+      по определению, даже когда она свёрстана спаном внутри ссылки.
+      .ico-line и .line-top — заявленные исключения дизайн-системы. */
+:where(span):not(.keep-style, .btn, .ico-line, .line-top) { border-width: 0 !important; }
 
 /* 3. Блок внутри блока — без рамки. */
-:where(.card, .card-soft, .panel, .panel-tint, .chunk) :where(div, span):not(.keep-style, .btn) {
+:where(.card, .card-soft, .panel, .panel-tint, .chunk) :where(div, span):not(.keep-style, .btn, .ico-line, .line-top) {
   border-width: 0 !important;
 }
 

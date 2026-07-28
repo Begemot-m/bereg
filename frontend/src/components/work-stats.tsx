@@ -103,7 +103,7 @@ export function WorkStats({ items, title = "Статистика работы" }
       </div>
 
       {/* Плитки метрик */}
-      <div className="mt-3 grid grid-cols-3 gap-2 border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>
+      <div className="line-top mt-3 grid grid-cols-3 gap-2 p-3">
         <Tile icon="calendar" value={data.sessions} label={period === "week" ? "сессий за неделю" : period === "month" ? "сессий за месяц" : "сессий всего"} />
         <Tile icon="clock" value={data.hours} suffix=" ч" label="длительность" />
         <Tile icon="users" value={data.clients} label="клиентов" />

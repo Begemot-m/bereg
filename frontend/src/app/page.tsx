@@ -95,7 +95,7 @@ function PersonHome({ guest }: { guest: boolean }) {
   const pending = homework.filter((h) => h.status !== "done").length;
   const clientToday: TodayItem[] = [];
   if (pending > 0) clientToday.push({ icon: "note", title: `${pending} ${plural(pending, "задание", "задания", "заданий")} ждут`, sub: "От вашего терапевта", href: "/therapy" });
-  if (therapy && !therapy.wheel) clientToday.push({ icon: "balance", title: "Собрать колесо баланса", sub: "5 минут на себя", href: "/therapy" });
+  if (therapy && !therapy.wheel) clientToday.push({ icon: "balance", title: "Собрать колесо баланса", sub: "5 минут на себя", href: "/therapy", tone: "purple" });
   if (clientToday.length === 0) clientToday.push({ icon: "therapy", title: "Практика на сегодня", sub: "Короткая поддержка себе", href: "/tools" });
   // Терапевт берётся из выбранных в разделе «Терапия» (общий стор).
   const [therapist, setTherapist] = useState<string | null>(null);
@@ -143,20 +143,20 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     if (!therapist) return <FindTherapistCard />;
     const psy = PSYS.find((p) => p.name === therapist);
     return (
-      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-soft flex items-center gap-3 p-4 transition-transform active:scale-[0.99]">
-        <span className="ico h-12 w-12 ico-white"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
+      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card flex items-center gap-3 p-4 transition-transform active:scale-[0.99]">
+        <span className="ico ico-line h-12 w-12"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
           <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
         </span>
-        <span className="btn btn-white shrink-0">Записаться</span>
+        <span className="btn shrink-0">Записаться</span>
       </Link>
     );
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy" onClick={tap} className="card-soft group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
-      <span className="ico h-14 w-14 ico-white text-[21px] font-black">{booking.psyName.charAt(0)}</span>
+    <Link href="/therapy" onClick={tap} className="card group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <span className="ico ico-line h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>{booking.psyName.charAt(0)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
@@ -174,15 +174,15 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
 // Компактный блок подбора терапевта.
 function FindTherapistCard() {
   return (
-    <Link href="/catalog" onClick={tap} className="card-soft flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
-      <span className="ico h-11 w-11 shrink-0 ico-white">
+    <Link href="/catalog" onClick={tap} className="card flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
+      <span className="ico ico-line h-11 w-11 shrink-0">
         <Icon name="compass" width={22} weight="bold" color="var(--edge)" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="t-head block">Подобрать терапевта</span>
         <span className="t-sub block">У вас пока нет специалиста</span>
       </span>
-      <span className="btn btn-white shrink-0">В каталог</span>
+      <span className="btn shrink-0">В каталог</span>
     </Link>
   );
 }
@@ -203,13 +203,13 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
 }
 
 function FocusIcon({ icon }: { icon: IconName }) {
-  return <span className="ico h-14 w-14 ico-white"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
+  return <span className="ico ico-line h-14 w-14"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
 }
 
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
   if (!appointment) {
     return (
-      <Link href="/sessions" onClick={tap} className="card-soft group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
+      <Link href="/sessions" onClick={tap} className="card group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
         <FocusIcon icon="calendar" />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Ближайший шаг</span>
@@ -223,8 +223,8 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href="/sessions" onClick={tap} className="card-soft group relative flex items-center gap-3 overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
-      <span className="ico relative h-14 w-14 ico-white text-[21px] font-black">
+    <Link href="/sessions" onClick={tap} className="card group relative flex items-center gap-3 overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <span className="ico ico-line relative h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>
         {appointment.client.name.charAt(0)}
         {/* пульсирующая точка «скоро» */}
         <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--edge)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
@@ -266,7 +266,7 @@ function GuestStart() {
       <SectionTitle>Как начать</SectionTitle>
       <div className="chunk overflow-hidden">
         {steps.map(([number, title, text], index) => (
-          <div key={number} className="flex gap-3 px-4 py-3.5" style={index ? { borderTop: "var(--bw) solid var(--edge-neutral)" } : undefined}>
+          <div key={number} className={`flex gap-3 px-4 py-3.5 ${index ? "line-top" : ""}`}>
             <span className="tnum flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[14px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{number}</span>
             <span><span className="t-head block">{title}</span><span className="t-sub block">{text}</span></span>
           </div>
@@ -311,19 +311,25 @@ function TourBanner({ role }: { role: Role }) {
   );
 }
 
+// Каждый раздел живёт в своём тоне — плитка на главной берёт его же.
+const ROUTE_TONE: Record<string, string> = { "/sessions": "olive", "/clients": "purple", "/tools": "peach", "/cabinet": "salmon", "/therapy": "purple", "/catalog": "green" };
+
 // Разделы — листающаяся вбок карусель.
 function HomeRoutesCarousel({ items }: { items: { title: string; detail: string; icon: IconName; href: string }[] }) {
   return (
     <section>
       <SectionTitle>Разделы</SectionTitle>
       <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 @md:mx-0 @md:px-0">
-        {items.map((item) => (
-          <Link key={item.href} href={item.href} onClick={tap} className="card-soft w-[164px] shrink-0 snap-start p-4 transition-transform duration-200 active:scale-[0.97]">
-            <span className="ico h-12 w-12 ico-white"><Icon name={item.icon} width={23} weight="bold" color="var(--edge)" /></span>
-            <span className="t-head mt-5 block">{item.title}</span>
-            <span className="t-sub mt-1 block min-h-[34px]">{item.detail}</span>
-          </Link>
-        ))}
+        {items.map((item) => {
+          const tone = ROUTE_TONE[item.href] ?? "amber";
+          return (
+            <Link key={item.href} href={item.href} onClick={tap} className="card-soft w-[164px] shrink-0 snap-start p-4 transition-transform duration-200 active:scale-[0.97]" style={{ background: `var(--${tone}-soft)` }}>
+              <span className="ico ico-white h-12 w-12"><Icon name={item.icon} width={23} weight="bold" color={`var(--${tone}-edge)`} /></span>
+              <span className="t-head mt-5 block">{item.title}</span>
+              <span className="t-sub mt-1 block min-h-[34px]">{item.detail}</span>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
