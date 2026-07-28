@@ -130,9 +130,9 @@ export default function CatalogPage() {
       <header className="px-4 pb-14 pt-8 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Специалисты, которые подойдут именно вам.</p></div>
-          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[16px] bg-white px-2 py-2.5 stroke" aria-label="Собрать персональную подборку">
-            <Icon name="sort" width={20} weight="bold" color="var(--edge)" />
-            <span className="text-[9.5px] font-black leading-tight" style={{ color: "var(--edge)" }}>Персональная<br />подборка</span>
+          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[16px] bg-white px-2 py-2.5" style={{ border: "var(--bw) solid var(--ink)" }} aria-label="Собрать персональную подборку">
+            <Icon name="sort" width={20} weight="bold" color="var(--ink)" />
+            <span className="text-[9.5px] font-black leading-tight">Персональная<br />подборка</span>
           </button>
         </div>
       </header>
@@ -196,7 +196,7 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
           <p className="t-head">{psy.price.toLocaleString("ru-RU")} ₽<span className="t-cap"> / {psy.minutes} мин</span></p>
           <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
-        <span className="btn btn-accent ml-auto shrink-0">Записаться →</span>
+        <span className="btn ml-auto shrink-0">Записаться →</span>
       </div>
     </button>
   );

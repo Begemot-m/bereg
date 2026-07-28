@@ -70,10 +70,10 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
           </Disclosure>
         </>
       ) : onStart ? (
-        <button onClick={() => { tap(); onStart(); }} className="card-nested mt-3 w-full p-3.5 text-left">
-          <p className="text-[14px] font-black">Собрать колесо баланса</p>
-          <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">10 сфер · 30 вопросов · {subtitle}</p>
-        </button>
+        <>
+          <p className="t-sub mt-3">10 сфер, 30 вопросов — {subtitle}.</p>
+          <button onClick={() => { tap(); onStart(); }} className="btn mt-2.5 w-full py-3">Собрать колесо баланса</button>
+        </>
       ) : (
         <p className="card-nested mt-3 p-3 text-[11px] font-semibold text-[var(--muted)]">Появится здесь, когда клиент соберёт колесо между сессиями.</p>
       )}

@@ -20,7 +20,7 @@ export function MoodHomeCard({ mood, moods, onOpen }: { mood?: number; moods: Mo
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
-      className="card relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
+      className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
       style={{ background: mood ? `${tint}2e` : "var(--head-soft)" }}
     >
       <div className="relative flex items-center gap-3">
@@ -66,7 +66,7 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
-      className="card relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
+      className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
       style={{ background: mood ? `${moodColor(value)}33` : "var(--head-soft)" }}
     >
       <div className="flex items-center gap-3">

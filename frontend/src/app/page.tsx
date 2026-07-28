@@ -155,7 +155,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy" onClick={tap} className="card group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+    <Link href="/therapy?booking=1" onClick={tap} className="card group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
       <span className="ico ico-line h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>{booking.psyName.charAt(0)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
 import { Icon } from "@/components/icons";
@@ -19,12 +19,15 @@ export function SlotPicker({
   daysAhead = 21,
   variant = "strip",
   showAvail = false,
+  startDay,
   onPick,
 }: {
   forClient?: boolean;
   daysAhead?: number;
   variant?: "strip" | "calendar";
   showAvail?: boolean;
+  /** День, с которого открываемся: обычно ближайший со свободным окном. */
+  startDay?: string;
   onPick: (iso: string, format: ApptFormat) => void;
 }) {
   const days = useMemo(() => {
@@ -37,7 +40,11 @@ export function SlotPicker({
     });
   }, [daysAhead]);
 
-  const [active, setActive] = useState(() => ymdLocal(days[0]));
+  const [active, setActive] = useState(() => startDay ?? ymdLocal(days[0]));
+  // Ближайший свободный день приходит асинхронно — перескакиваем на него,
+  // пока пользователь сам не выбрал другой.
+  const touched = useRef(false);
+  useEffect(() => { if (startDay && !touched.current) setActive(startDay); }, [startDay]);
 
   const { data: slots = [], isLoading } = useQuery({
     queryKey: ["slots", active, forClient],
@@ -55,7 +62,7 @@ export function SlotPicker({
   return (
     <div>
       {variant === "calendar" ? (
-        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => y && setActive(y)} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} />
+        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => { if (y) { touched.current = true; setActive(y); } }} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} />
       ) : (
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((d) => {
@@ -66,7 +73,7 @@ export function SlotPicker({
             return (
               <button
                 key={key}
-                onClick={() => { select(); setActive(key); }}
+                onClick={() => { select(); touched.current = true; setActive(key); }}
                 className="flex h-[68px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[16px] transition-transform duration-150 active:scale-95 stroke"
                 style={isActive ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--ink)" }}
               >

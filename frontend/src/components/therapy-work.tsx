@@ -119,12 +119,9 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
       </div>
       <button
         onClick={() => { select(); save.mutate(isDone ? "assigned" : "done"); }}
-        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-black transition-transform active:scale-[0.98]"
-        style={isDone
-          ? { background: "var(--surface-2)", color: "var(--muted)" }
-          : { background: "var(--green)", color: "var(--green-edge)" }}
+        className={`btn mt-3 w-full py-2.5 ${isDone ? "btn-white" : ""}`}
       >
-        {isDone ? "Вернуть в работу" : <><Icon name="check" width={15} weight="bold" color="var(--green-edge)" /> Выполнено</>}
+        {isDone ? "Вернуть в работу" : <><Icon name="check" width={15} weight="bold" color="#fff" /> Выполнено</>}
       </button>
       <AnimatePresence>
         {celebrate && (

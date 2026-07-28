@@ -12,13 +12,13 @@ import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
-import { MyBookingsManager } from "@/components/my-bookings";
+import { BookingRow } from "@/components/my-bookings";
 import { SessionCheckin } from "@/components/session-checkin";
-import { WeekReview } from "@/components/week-review";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, SkeletonRow } from "@/components/ui";
 import { bookSlot } from "@/lib/mybookings";
-import { HW_LABEL, listHomework, updateHomework, type Homework, type HwStatus, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
+import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
+import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
@@ -81,6 +81,9 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
   const [moodSheet, setMoodSheet] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  // «Ближайшая сессия» с главной ведёт сюда — сразу к записи.
+  const [openBooking, setOpenBooking] = useState(false);
+  useEffect(() => { setOpenBooking(new URLSearchParams(window.location.search).get("booking") === "1"); }, []);
   const buySub = useMutation({ mutationFn: () => startSubscription("client"), onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; } });
 
   const qc = useQueryClient();
@@ -124,7 +127,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
                 <Link href="/catalog" onClick={tap} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[var(--purple-edge)]" style={{ border: "var(--bw) solid var(--purple-edge)" }} aria-label="Добавить терапевта"><Icon name="plus" width={14} weight="bold" color="currentColor" /></Link>
               </div>
             )}
-            {therapist && <TherapistCard name={therapist} next={next} onRemove={() => therapists.remove(therapist)} />}
+            {therapist && <TherapistCard name={therapist} next={next} bookings={bookings} defaultOpen={openBooking} onRemove={() => therapists.remove(therapist)} />}
           </>
         )}
       </header>
@@ -147,7 +150,6 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
 
           <TherapistBoard value={therapy.board} onSave={onBoard} />
 
-          <WeekReview moods={therapy.moods} homework={homework} />
           <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
         </div>
       </main>
@@ -162,8 +164,8 @@ function MoodStatsBlock({ moods }: { moods: Mood[] }) {
   const [stats, setStats] = useState(false);
   return (
     <div className="space-y-2.5" data-tour="mood-stats">
-      <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-black text-[var(--muted)]" style={{ background: "var(--surface-2)" }} aria-expanded={stats}>
-        <Icon name="chart" width={15} weight="bold" /> {stats ? "Свернуть динамику" : "Динамика настроения"}
+      <button onClick={() => { tap(); setStats(!stats); }} className={`btn w-full py-2.5 ${stats ? "btn-white" : ""}`} aria-expanded={stats}>
+        <Icon name="chart" width={15} weight="bold" color={stats ? "var(--ink)" : "#fff"} /> {stats ? "Свернуть динамику" : "Динамика настроения"}
       </button>
       <Disclosure open={stats}>
         <div className="space-y-2.5">
@@ -173,10 +175,6 @@ function MoodStatsBlock({ moods }: { moods: Mood[] }) {
       </Disclosure>
     </div>
   );
-}
-
-function Metric({ value, label, edge, bg = "var(--green-soft)" }: { value: string; label: string; edge: string; bg?: string }) {
-  return <div className="rounded-[15px] p-2.5 text-center" style={{ background: bg }}><p className="font-tight tnum text-[20px] font-black leading-none">{value}</p><p className="mt-1 text-[9px] font-black uppercase tracking-[.05em]" style={{ color: edge }}>{label}</p></div>;
 }
 
 // Блок подбора терапевта в шапке терапии (когда никого ещё не прикреплено).
@@ -194,17 +192,36 @@ function FindTherapistBlock() {
 }
 
 // Карточка терапевта в стиле каталога — с переходом на его страницу и записью.
-function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking | null; onRemove?: () => void }) {
+function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: string; next: MyBooking | null; bookings: MyBooking[]; defaultOpen?: boolean; onRemove?: () => void }) {
   const psy = PSYS.find((item) => item.name === name);
   const href = psy ? `/catalog?psy=${psy.id}` : "/catalog";
   const portrait = psy ? asset(psy.portrait) : null;
-  const [bookOpen, setBookOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(defaultOpen ?? false);
+  // С главной приходят сразу к записи — параметр читается после монтирования.
+  useEffect(() => { if (defaultOpen) setBookOpen(true); }, [defaultOpen]);
+  // Есть запись — по умолчанию показываем управление ею, а не выбор окна.
+  const [pickSlot, setPickSlot] = useState(false);
   const [booked, setBooked] = useState<{ at: string; format: string } | null>(null);
   const qc = useQueryClient();
+  const invBookings = () => { for (const k of ["my-bookings", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); };
   const book = useMutation({
     mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(name, iso, format),
-    onSuccess: (b) => { success(); setBooked({ at: b.startsAt, format: b.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); },
+    onSuccess: (b) => { success(); setBooked({ at: b.startsAt, format: b.format }); invBookings(); },
   });
+
+  // Мои записи к этому терапевту — ближайшая первой.
+  const mine = useMemo(
+    () => bookings.filter((b) => b.psyName === name && new Date(b.startsAt) > new Date()).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+    [bookings, name],
+  );
+  // Нет записей — календарь открываем на ближайшем дне со свободным окном.
+  const { data: avail } = useQuery({ queryKey: ["month-avail", true], queryFn: () => getMonthAvailability(true) });
+  const firstFree = useMemo(() => {
+    if (!avail) return undefined;
+    const today = ymdLocal(new Date());
+    return Object.keys(avail).filter((day) => day >= today && avail[day] === "free").sort()[0];
+  }, [avail]);
+  const manage = mine.length > 0 && !pickSlot && !booked;
   return (
     <div className="relative mt-3 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
@@ -234,8 +251,8 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
         </div>
       </Link>
       <div className="mt-2.5 flex gap-2">
-        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="btn btn-accent flex-1 py-2.5" aria-expanded={bookOpen}>
-          <Icon name="calendar" width={14} weight="bold" color="#fff" /> {bookOpen ? "Свернуть" : "Записаться"}
+        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className={`btn flex-1 py-2.5 ${bookOpen ? "btn-white" : "btn-accent"}`} aria-expanded={bookOpen}>
+          <Icon name="calendar" width={14} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> {bookOpen ? "Свернуть" : mine.length ? "Моя запись" : "Записаться"}
         </button>
         {psy?.tg && (
           <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn px-4 py-2.5">
@@ -244,73 +261,34 @@ function TherapistCard({ name, next, onRemove }: { name: string; next: MyBooking
         )}
       </div>
       <Disclosure open={bookOpen}>
-        <div className="mt-2.5 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+        <div className="card-soft mt-2.5 p-3">
           {booked ? (
             <div className="text-center">
               <p className="text-[13px] font-black">Вы записаны к {name.split(" ")[0]}</p>
-              <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{new Date(booked.at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {new Date(booked.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {booked.format === "online" ? "онлайн" : "очно"}</p>
-              <button onClick={() => { setBooked(null); setBookOpen(false); }} className="mt-2.5 rounded-full bg-[var(--purple-soft)] px-4 py-1.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>Готово</button>
+              <p className="t-cap mt-1">{new Date(booked.at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {new Date(booked.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+              <button onClick={() => { setBooked(null); setPickSlot(false); }} className="btn mt-2.5 px-4 py-1.5 text-[11px]">Готово</button>
             </div>
+          ) : manage ? (
+            <>
+              {/* Запись уже есть — вместо выбора окна показываем управление ею */}
+              <p className="t-micro mb-2 px-1">Ваши записи</p>
+              <div className="space-y-1.5">
+                {mine.map((item) => <BookingRow key={item.id} b={item} onChange={invBookings} />)}
+              </div>
+              <button onClick={() => { tap(); setPickSlot(true); }} className="btn btn-white mt-2.5 w-full py-2.5">
+                <Icon name="plus" width={14} weight="bold" color="var(--ink)" /> Записаться ещё
+              </button>
+            </>
           ) : (
             <>
               <p className="t-micro mb-1 px-1">Свободные окна</p>
               <p className="t-cap mb-2 px-1">{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
-              <SlotPicker forClient variant="strip" daysAhead={21} onPick={(iso, format) => book.mutate({ iso, format })} />
+              <SlotPicker forClient variant="calendar" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
+              {mine.length > 0 && <button onClick={() => { tap(); setPickSlot(false); }} className="mt-2 w-full py-1.5 text-[12px] font-bold text-[var(--muted)]">Назад к моим записям</button>}
             </>
           )}
         </div>
       </Disclosure>
     </div>
   );
-}
-
-const HW_FLOW: HwStatus[] = ["assigned", "doing", "done"];
-const HW_TONE: Record<HwStatus, string> = { assigned: "amber", doing: "purple", done: "green" };
-
-// Задания от терапевта — тот же блок с историей и процессом, что у психолога.
-function ClientHomework({ items, onChanged }: { items: Homework[]; onChanged: () => void }) {
-  if (!items.length) return <p className="px-1 py-2 text-[12px] font-semibold text-[var(--muted-2)]">Заданий пока нет — терапевт пришлёт их после встречи.</p>;
-  return (
-    <div className="space-y-2">
-      {items.map((hw) => (
-        <HomeworkRow key={hw.id} hw={hw} onChanged={onChanged} />
-      ))}
-    </div>
-  );
-}
-
-function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void }) {
-  const [celebrate, setCelebrate] = useState(false);
-  const save = useMutation({
-    mutationFn: (status: HwStatus) => updateHomework(hw.id, { status }),
-    onSuccess: (_data, status) => { if (status === "done") { success(); setCelebrate(true); setTimeout(() => setCelebrate(false), 2200); } onChanged(); },
-  });
-  const tone = HW_TONE[hw.status];
-  return (
-    <div className="rounded-[16px] bg-white p-3" style={{ border: `var(--bw) solid var(--${tone}-edge)` }}>
-      <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 h-8 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${tone})` }} />
-        <p className={`flex-1 text-[12.5px] font-bold leading-snug ${hw.status === "done" ? "opacity-55 line-through" : ""}`}>{hw.text}</p>
-      </div>
-      <div className="mt-2.5 flex gap-1.5">
-        {HW_FLOW.map((status) => {
-          const on = hw.status === status;
-          return (
-            <button key={status} onClick={() => { select(); save.mutate(status); }} className="flex-1 rounded-full py-1.5 text-[10.5px] font-black transition-colors" style={{ background: on ? `var(--${HW_TONE[status]})` : "#fff", border: `var(--bw) solid var(--${on ? `${HW_TONE[status]}-edge` : "edge-neutral"})`, color: on ? "var(--ink)" : "var(--muted-2)" }}>
-              {HW_LABEL[status]}
-            </button>
-          );
-        })}
-      </div>
-      {celebrate && <p className="mt-2 flex items-center gap-1 text-[11px] font-black text-[var(--green-edge)]"><Icon name="check" width={13} weight="bold" color="var(--green-edge)" /> Задание закрыто — так держать</p>}
-    </div>
-  );
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
 }
