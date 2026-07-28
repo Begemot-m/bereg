@@ -36,7 +36,7 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
             key={key}
             ref={active ? selRef : undefined}
             onClick={onSelect ? () => { select(); onSelect(key); } : undefined}
-            className="flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-full py-1.5"
+            className="keep-ring flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-full py-1.5"
             style={{ scrollSnapAlign: "center", border: active ? "var(--bw) solid var(--edge)" : isToday ? "var(--bw) dashed color-mix(in srgb, var(--edge) 55%, transparent)" : "var(--bw) solid transparent" }}
           >
             <span className="text-[10px] font-bold uppercase" style={{ color: "rgba(32,28,24,.55)" }}>{WEEKDAYS[wd]}</span>

@@ -86,7 +86,7 @@ export function MonthCalendar({
               key={i}
               disabled={disabled}
               onClick={() => { select(); if (multi) onToggle?.(y); else onSelectDay(isSel ? null : y); }}
-              className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-colors duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
+              className={`keep-ring relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-colors duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
               style={style}
             >
               {d.getDate()}
