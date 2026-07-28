@@ -137,7 +137,7 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      <main className="relative -mt-8 min-h-[72vh] rounded-t-[30px] bg-[#fffdf7] px-4 pb-9 pt-4 @md:px-9" style={{ borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <main className="relative -mt-8 min-h-[72vh] rounded-t-[30px] bg-[#fffdf7] px-4 pb-9 pt-4 @md:px-9" >
         <div className="grid grid-cols-2 gap-1 rounded-full bg-white p-1 stroke-lg">
           {([{ id: "personal", label: "Для вас" }, { id: "all", label: "Все специалисты" }] as { id: CatalogMode; label: string }[]).map((tab) => <button key={tab.id} onClick={() => switchMode(tab.id)} className="rounded-full px-2 py-2 text-[11px] font-black transition-colors" style={mode === tab.id ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{tab.label}</button>)}
         </div>
@@ -263,7 +263,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       </div>
     </div>
 
-    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
       {/* Постер встречи и запись — первое, что нужно решить */}
       <PricePoster psy={psy} />
       <BookingMini psyName={psy.name} tone={tone} onDone={onBack} />
@@ -380,7 +380,7 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
           <span className="t-head block">Записаться</span>
           <span className="t-sub block">{label ? `Ближайшее окно — ${label}` : "Посмотреть свободные окна"}</span>
         </span>
-        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="t-title shrink-0 text-[var(--muted-2)]">›</motion.span>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="arrow">›</motion.span>
       </button>
       <Disclosure open={open} autoScroll={false}>
         <div className="px-4 pb-4">

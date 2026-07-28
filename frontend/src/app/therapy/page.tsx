@@ -129,7 +129,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
         )}
       </header>
 
-      <main className="relative -mt-9 rounded-t-[30px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <main className="relative -mt-9 rounded-t-[30px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)" }}>
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
           {/* Настроение → работа со специалистом → доска → динамика → записи. */}

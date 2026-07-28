@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { Arrow } from "@/components/blocks";
 import { buildDays, goodFor, plural, streak, todayState, DAILY_TOTAL } from "@/lib/daily";
 import type { Mood } from "@/lib/clients";
 import type { GoodNote } from "@/lib/therapy";
@@ -107,7 +108,7 @@ function DailyRow({ icon, title, hint, done, onClick }: { icon: IconName; title:
         <span className="block text-[13.5px] font-black leading-tight">{title}</span>
         <span className="block truncate text-[11.5px] font-semibold text-[var(--muted)]">{hint}</span>
       </span>
-      <span className="shrink-0 text-[16px] font-black text-[var(--muted-2)]">›</span>
+      <Arrow />
     </button>
   );
 }

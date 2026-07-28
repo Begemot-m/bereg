@@ -14,7 +14,9 @@
 
   /* Нейтральная обводка для белых/светлых блоков (серая) */
   --edge-neutral: #cabfa8;
-  --stroke: var(--edge-neutral);
+  /* Обводка белого блока — тон раздела. Серый --edge-neutral остаётся
+     только полям ввода, где цветная рамка мешает читать. */
+  --stroke: var(--edge);
 
   /* Палитра блоков — мягкие, приглушённые тона (олива, персик, пыльная лаванда) */
   --amber: #f3ce77;
@@ -90,7 +92,7 @@
 
 /* Тема раздела: --head — цвет шапки/фона, --page — тон страницы (=шапке),
    --edge — тёмный тон акцента для цветных элементов, --accent — акцент/кольца.
-   Обводка белых блоков всегда серая (--edge-neutral); цветные блоки берут свой --edge. */
+   Обводка белых блоков (--stroke) тоже идёт от --edge: рамка всегда в тоне раздела. */
 [data-accent="amber"]  { --head: var(--amber);  --head-soft: var(--amber-soft);  --accent: var(--amber);  --edge: var(--amber-edge);  --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
 [data-accent="green"]  { --head: var(--green);  --head-soft: var(--green-soft);  --accent: var(--green);  --edge: var(--green-edge);  --page: color-mix(in srgb, var(--green) 44%, #fbf8ef); }
 [data-accent="purple"] { --head: var(--purple); --head-soft: var(--purple-soft); --accent: var(--purple); --edge: var(--purple-edge); --page: color-mix(in srgb, var(--purple) 46%, #fbf8ef); }
@@ -168,7 +170,6 @@ h1, h2, h3, .font-tight {
   margin-inline: -1rem;
   min-height: 64vh;
   border-radius: 30px 30px 0 0;
-  border-top: var(--bw-lg) solid var(--edge-neutral);
   background: var(--surface);
   padding: 1.25rem 1rem 1.75rem;
 }
@@ -278,8 +279,33 @@ h1, h2, h3, .font-tight {
 /* Второстепенная: лёгкая заливка, чернильный текст, обводка тёмным тоном. */
 .btn-soft { background: var(--head-soft); color: var(--ink); border-color: var(--edge); }
 
+/* Та же второстепенная, но внутри цветного блока: там лёгкая заливка
+   сливается с фоном, поэтому белая — и обводка тёмным тоном. */
+.btn-white { background: #fff; color: var(--ink); border-color: var(--edge); }
+
 /* Нейтральная: чернила. Для действий вне цвета раздела. */
 .btn-ink { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* ── Стрелка «дальше» ──────────────────────────────────────── */
+/* Одна на весь проект: круг лёгким тоном, шеврон тёмным.
+   Меняется здесь — меняется везде. */
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--head-soft);
+  color: var(--edge);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  padding-bottom: 2px;
+  transition: transform .18s var(--ease-out);
+}
+.group:hover .arrow, .group:active .arrow { transform: translateX(2px); }
 
 /* ── Иконка в плитке ───────────────────────────────────────── */
 .ico {
@@ -290,6 +316,8 @@ h1, h2, h3, .font-tight {
   border-radius: var(--r-sm);
   background: var(--head-soft);
 }
+/* Внутри цветного блока плитка иконки белая — иначе сливается с фоном. */
+.ico-white { background: #fff; }
 
 /* ============================================================
    Правила, применяемые ко всему проекту разом.
@@ -303,18 +331,17 @@ h1, h2, h3, .font-tight {
 
 /* 2. Статусы, иконки и всё внутри блоков — без рамок.
       span никогда не бывает карточкой верхнего уровня: это метка,
-      иконка или обёртка текста. */
-:where(span):not(.keep-style) { border-width: 0 !important; }
+      иконка или обёртка текста. Кнопка — исключение: у неё обводка
+      по определению, даже когда она свёрстана спаном внутри ссылки. */
+:where(span):not(.keep-style, .btn) { border-width: 0 !important; }
 
 /* 3. Блок внутри блока — без рамки. */
-:where(.card, .card-soft, .panel, .panel-tint, .chunk) :where(div, span):not(.keep-style) {
+:where(.card, .card-soft, .panel, .panel-tint, .chunk) :where(div, span):not(.keep-style, .btn) {
   border-width: 0 !important;
 }
 
 /* Отключённая кнопка не должна выглядеть активной. */
-:where(button)[class*="rounded-"]:disabled:not(.keep-ring) {
-  box-shadow: inset 0 0 0 var(--bw) rgba(32, 28, 24, 0.1);
-}
+:where(button)[class*="rounded-"]:disabled:not(.keep-ring) { opacity: .45; }
 
 /* Пилюля-кнопка второго плана — как «График» в сессиях. */
 .pill {

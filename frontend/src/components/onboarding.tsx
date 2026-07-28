@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { Arrow } from "@/components/blocks";
 import { asset } from "@/lib/asset";
 import { APP_NAME } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
@@ -157,7 +158,7 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-white stroke"><Icon name={item.icon} width={22} weight="regular" color="var(--ink)" /></span>
             <span className="flex-1 text-[16px] font-black">{item.title}</span>
-            <span className="text-[18px] font-black text-[var(--muted-2)]">›</span>
+            <Arrow />
           </motion.button>
         ))}
       </div>

@@ -31,7 +31,7 @@ function CountUp({ value, suffix = "" }: { value: number; suffix?: string }) {
 type Item = { startsAt: string; durationMin: number; clientKey: string; cancelled?: boolean };
 
 // Анимированная статистика работы: неделя/месяц, столбики + плитки метрик.
-export function WorkStats({ items, title = "Статистика работы", tone = "olive" }: { items: Item[]; title?: string; tone?: string }) {
+export function WorkStats({ items, title = "Статистика работы" }: { items: Item[]; title?: string }) {
   const [period, setPeriod] = useState<"week" | "month" | "all">("week");
 
   const data = useMemo(() => {
@@ -75,9 +75,9 @@ export function WorkStats({ items, title = "Статистика работы", 
   const max = Math.max(1, ...data.bars.map((b) => b.value));
 
   return (
-    <section className="overflow-hidden rounded-[24px] bg-white">
+    <section className="card overflow-hidden">
       <div className="flex items-center justify-between px-4 pb-2 pt-4">
-        <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{title}</p>
+        <p className="t-micro">{title}</p>
         <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1">
           {(["week", "month", "all"] as const).map((p) => (
             <button key={p} onClick={() => { select(); setPeriod(p); }} className="rounded-full px-2.5 py-1 text-[11px] font-black transition-colors" style={period === p ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{p === "week" ? "Неделя" : p === "month" ? "Месяц" : "Всё"}</button>
@@ -92,7 +92,7 @@ export function WorkStats({ items, title = "Статистика работы", 
             <span className="text-[10px] font-black tabular-nums" style={{ color: b.value ? "var(--ink)" : "var(--muted-2)" }}>{b.value}</span>
             <motion.span
               className="w-full rounded-t-[8px]"
-              style={{ background: b.today ? `var(--${tone})` : `var(--${tone}-soft)`, border: `1.5px solid var(--${tone}-edge)` }}
+              style={{ background: b.today ? "var(--edge)" : "var(--head-soft)" }}
               initial={{ height: 4 }}
               animate={{ height: 8 + (b.value / max) * 84 }}
               transition={{ type: "spring", stiffness: 200, damping: 20, delay: i * 0.05 }}
@@ -104,20 +104,20 @@ export function WorkStats({ items, title = "Статистика работы", 
 
       {/* Плитки метрик */}
       <div className="mt-3 grid grid-cols-3 gap-2 border-t p-3" style={{ borderColor: "var(--edge-neutral)" }}>
-        <Tile icon="calendar" tone={tone} value={data.sessions} label={period === "week" ? "сессий за неделю" : period === "month" ? "сессий за месяц" : "сессий всего"} />
-        <Tile icon="clock" tone="amber" value={data.hours} suffix=" ч" label="часов" />
-        <Tile icon="users" tone="purple" value={data.clients} label="клиентов" />
+        <Tile icon="calendar" value={data.sessions} label={period === "week" ? "сессий за неделю" : period === "month" ? "сессий за месяц" : "сессий всего"} />
+        <Tile icon="clock" value={data.hours} suffix=" ч" label="длительность" />
+        <Tile icon="users" value={data.clients} label="клиентов" />
       </div>
     </section>
   );
 }
 
-function Tile({ icon, tone, value, label, suffix }: { icon: IconName; tone: string; value: number; label: string; suffix?: string }) {
+function Tile({ icon, value, label, suffix }: { icon: IconName; value: number; label: string; suffix?: string }) {
   return (
-    <div className="rounded-[15px] p-2.5 text-center" style={{ background: `var(--${tone}-soft)` }}>
-      <Icon name={icon} width={15} weight="bold" className="mx-auto" />
-      <p className="font-tight tabular-nums mt-1 text-[22px] font-black leading-none"><CountUp value={value} suffix={suffix} /></p>
-      <p className="mx-auto mt-1 max-w-[86px] text-[8.5px] font-black uppercase leading-tight tracking-[.04em] text-[var(--muted)]">{label}</p>
+    <div className="card-soft relative p-2.5 pt-3">
+      <Icon name={icon} width={14} weight="bold" className="absolute right-2.5 top-2.5 opacity-60" />
+      <p className="font-tight tabular-nums text-[28px] font-black leading-none"><CountUp value={value} suffix={suffix} /></p>
+      <p className="mt-1.5 text-[8.5px] font-black uppercase leading-tight tracking-[.04em] text-[var(--muted)]">{label}</p>
     </div>
   );
 }

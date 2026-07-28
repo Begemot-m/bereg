@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { PageHead, SectionTitle } from "@/components/blocks";
+import { Arrow, PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
@@ -68,7 +68,7 @@ function PsyHome() {
     >
       <TourBanner role="psychologist" />
 
-      <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" tone="olive" />
+      <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" />
 
       <HomeRoutesCarousel items={[
         { title: "Сессии", detail: "окна и записи", icon: "calendar", href: "/sessions" },
@@ -94,9 +94,9 @@ function PersonHome({ guest }: { guest: boolean }) {
 
   const pending = homework.filter((h) => h.status !== "done").length;
   const clientToday: TodayItem[] = [];
-  if (pending > 0) clientToday.push({ icon: "note", tone: "coral", title: `${pending} ${plural(pending, "задание", "задания", "заданий")} ждут`, sub: "От вашего терапевта", href: "/therapy" });
-  if (therapy && !therapy.wheel) clientToday.push({ icon: "balance", tone: "purple", title: "Собрать колесо баланса", sub: "5 минут на себя", href: "/therapy" });
-  if (clientToday.length === 0) clientToday.push({ icon: "therapy", tone: "peach", title: "Практика на сегодня", sub: "Короткая поддержка себе", href: "/tools" });
+  if (pending > 0) clientToday.push({ icon: "note", title: `${pending} ${plural(pending, "задание", "задания", "заданий")} ждут`, sub: "От вашего терапевта", href: "/therapy" });
+  if (therapy && !therapy.wheel) clientToday.push({ icon: "balance", title: "Собрать колесо баланса", sub: "5 минут на себя", href: "/therapy" });
+  if (clientToday.length === 0) clientToday.push({ icon: "therapy", title: "Практика на сегодня", sub: "Короткая поддержка себе", href: "/tools" });
   // Терапевт берётся из выбранных в разделе «Терапия» (общий стор).
   const [therapist, setTherapist] = useState<string | null>(null);
   useEffect(() => {
@@ -143,27 +143,28 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     if (!therapist) return <FindTherapistCard />;
     const psy = PSYS.find((p) => p.name === therapist);
     return (
-      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="flex items-center gap-3 rounded-[22px] p-4 transition-transform active:scale-[0.99]" style={{ background: "var(--amber-soft)", border: "var(--bw-lg) solid var(--amber-edge)" }}>
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-white"><Icon name="calendar" width={22} weight="bold" /></span>
+      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-soft flex items-center gap-3 p-4 transition-transform active:scale-[0.99]">
+        <span className="ico h-12 w-12 ico-white"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{therapist}</span>
-          <span className="block text-[14px] font-black leading-tight">Нет ближайших записей к специалисту</span>
+          <span className="t-micro block">{therapist}</span>
+          <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
         </span>
-        <span className="shrink-0 rounded-full bg-white px-3.5 py-2 text-[11px] font-black">Записаться</span>
+        <span className="btn btn-white shrink-0">Записаться</span>
       </Link>
     );
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)] text-[21px] font-black">{booking.psyName.charAt(0)}</span>
+    <Link href="/therapy" onClick={tap} className="card-soft group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <span className="ico h-14 w-14 ico-white text-[21px] font-black">{booking.psyName.charAt(0)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайшая сессия</span>
-          {(() => { const b = whenBadge(booking.startsAt); return b && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase" style={{ background: `var(--${b.tone}-soft)`, color: `var(--${b.tone}-edge)` }}>{b.label}</span>; })()}
+          <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
+          {/* Статус — тёмная заливка и белый текст, чтобы читался с одного взгляда */}
+          {(() => { const b = whenBadge(booking.startsAt); return b && <span className="chip chip-strong uppercase">{b}</span>; })()}
         </span>
-        <span className="mt-1 block truncate text-[18px] font-black leading-tight">{booking.psyName}</span>
-        <span className="block truncate text-[12px] font-bold text-[var(--muted)]">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span>
+        <span className="t-title mt-1 block truncate">{booking.psyName}</span>
+        <span className="t-sub block truncate">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span>
       </span>
       <Arrow />
     </Link>
@@ -173,15 +174,15 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
 // Компактный блок подбора терапевта.
 function FindTherapistCard() {
   return (
-    <Link href="/catalog" onClick={tap} className="flex items-center gap-3 rounded-[20px] p-3.5 transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "2px dashed var(--olive-edge)" }}>
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white">
-        <Icon name="compass" width={22} weight="bold" color="var(--olive-edge)" />
+    <Link href="/catalog" onClick={tap} className="card-soft flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
+      <span className="ico h-11 w-11 shrink-0 ico-white">
+        <Icon name="compass" width={22} weight="bold" color="var(--edge)" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-black leading-tight">Подобрать терапевта</span>
-        <span className="block text-[11px] font-semibold text-[var(--muted)]">У вас пока нет специалиста</span>
+        <span className="t-head block">Подобрать терапевта</span>
+        <span className="t-sub block">У вас пока нет специалиста</span>
       </span>
-      <span className="shrink-0 rounded-full bg-[var(--olive)] px-3 py-2 text-[11px] font-black">Перейти в каталог</span>
+      <span className="btn btn-white shrink-0">В каталог</span>
     </Link>
   );
 }
@@ -202,18 +203,18 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
 }
 
 function FocusIcon({ icon }: { icon: IconName }) {
-  return <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)]"><Icon name={icon} width={24} weight="bold" /></span>;
+  return <span className="ico h-14 w-14 ico-white"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
 }
 
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
   if (!appointment) {
     return (
-      <Link href="/sessions" onClick={tap} className="group flex items-center gap-3 rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
+      <Link href="/sessions" onClick={tap} className="card-soft group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
         <FocusIcon icon="calendar" />
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайший шаг</span>
-          <span className="mt-0.5 block text-[16px] font-black">Открыть окна для записи</span>
-          <span className="block text-[12px] font-semibold text-[var(--muted)]">Предстоящих сессий пока нет</span>
+          <span className="t-micro block">Ближайший шаг</span>
+          <span className="t-head mt-0.5 block">Открыть окна для записи</span>
+          <span className="t-sub block">Предстоящих сессий пока нет</span>
         </span>
         <Arrow />
       </Link>
@@ -222,30 +223,25 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href="/sessions" onClick={tap} className="group relative flex items-center gap-3 overflow-hidden rounded-[22px] bg-white p-4 text-left transition-transform duration-200 active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
-      {/* живое пятно-подсветка */}
-      <motion.span aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-[var(--amber)]" animate={{ scale: [1, 1.2, 1], opacity: [0.14, 0.26, 0.14] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
-      <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[17px] bg-[var(--amber-soft)] text-[21px] font-black">
+    <Link href="/sessions" onClick={tap} className="card-soft group relative flex items-center gap-3 overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <span className="ico relative h-14 w-14 ico-white text-[21px] font-black">
         {appointment.client.name.charAt(0)}
         {/* пульсирующая точка «скоро» */}
-        <motion.span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-[var(--coral)]" style={{ border: "2px solid #fff" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
+        <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--edge)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
       </span>
       <span className="relative min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ближайшая сессия</span>
-          {badge && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase" style={{ background: `var(--${badge.tone}-soft)`, color: `var(--${badge.tone}-edge)` }}>{badge.label}</span>}
+          <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
+          {badge && <span className="chip chip-strong uppercase">{badge}</span>}
         </span>
-        <span className="mt-1 block truncate text-[18px] font-black leading-tight">{appointment.client.name}</span>
-        <span className="block truncate text-[12px] font-bold text-[var(--muted)]">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span>
+        <span className="t-title mt-1 block truncate">{appointment.client.name}</span>
+        <span className="t-sub block truncate">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span>
       </span>
       <Arrow />
     </Link>
   );
 }
 
-function Arrow() {
-  return <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--amber-soft)] text-[19px] font-black text-[var(--amber-edge)] transition-transform duration-200 group-hover:translate-x-0.5">›</span>;
-}
 
 function MoodQuick({ today, moods }: { today?: Mood; moods: Mood[] }) {
   const qc = useQueryClient();
@@ -275,15 +271,11 @@ function GuestStart() {
             <span><span className="t-head block">{title}</span><span className="t-sub block">{text}</span></span>
           </div>
         ))}
-        <div className="px-4 pb-4 pt-2"><Link href="/catalog" onClick={tap} className="flex w-full items-center justify-center rounded-full bg-[var(--ink)] px-5 py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">Начать подбор →</Link></div>
+        <div className="px-4 pb-4 pt-2"><Link href="/catalog" onClick={tap} className="btn w-full py-3 transition-transform active:scale-[0.98]">Начать подбор</Link></div>
       </div>
     </section>
   );
 }
-
-// Что в практике требует движения: кого позвать, где пусто, кого привести.
-// Не сводка, а список действий — на главной полезнее статистики.
-const ROUTE_TONE: Record<string, string> = { "/sessions": "olive", "/clients": "purple", "/tools": "peach", "/cabinet": "salmon", "/therapy": "purple", "/catalog": "olive" };
 
 // Баннер обучения: ярко-лавандовый постер с игровым «!». Запускает прожекторный тур.
 function TourBanner({ role }: { role: Role }) {
@@ -300,22 +292,20 @@ function TourBanner({ role }: { role: Role }) {
     ? "Пошагово покажем, как вести клиентов, записи и практику"
     : "Короткий гид по разделам — за минуту";
   return (
-    <button onClick={() => { tap(); startTour(); }} className="relative w-full overflow-hidden rounded-[22px] p-4 text-left transition-transform active:scale-[0.99]" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)", boxShadow: "0 16px 30px -18px var(--purple-edge)" }}>
-      <span aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-30" style={{ background: "#fff" }} />
-      <span aria-hidden className="pointer-events-none absolute -bottom-10 right-12 h-20 w-20 rounded-full opacity-20" style={{ background: "var(--purple-edge)" }} />
+    <button onClick={() => { tap(); startTour(); }} className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform active:scale-[0.99]">
       <div className="relative flex items-center gap-3.5">
         <motion.span
-          animate={{ scale: [1, 1.14, 1], rotate: [0, -7, 7, 0] }}
+          animate={{ scale: [1, 1.12, 1] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[26px] font-black leading-none"
-          style={{ background: "var(--amber)", border: "var(--bw-lg) solid var(--amber-edge)", boxShadow: "0 0 0 4px rgba(255,255,255,.55)" }}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none text-white"
+          style={{ background: "var(--edge)" }}
         >!</motion.span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[var(--purple-edge)]">Обучение</span>
-          <span className="block text-[15.5px] font-black leading-tight">{title}</span>
-          <span className="mt-0.5 block text-[11.5px] font-semibold" style={{ color: "rgba(32,28,24,.66)" }}>{sub}</span>
+          <span className="t-micro block">Обучение</span>
+          <span className="t-head block">{title}</span>
+          <span className="t-sub mt-0.5 block">{sub}</span>
         </span>
-        <span className="shrink-0 rounded-full bg-[var(--ink)] px-3.5 py-2 text-[11px] font-black text-white">Пройти →</span>
+        <span className="btn shrink-0">Пройти</span>
       </div>
     </button>
   );
@@ -327,16 +317,13 @@ function HomeRoutesCarousel({ items }: { items: { title: string; detail: string;
     <section>
       <SectionTitle>Разделы</SectionTitle>
       <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 @md:mx-0 @md:px-0">
-        {items.map((item) => {
-          const t = ROUTE_TONE[item.href] ?? "amber";
-          return (
-            <Link key={item.href} href={item.href} onClick={tap} className="w-[164px] shrink-0 snap-start rounded-[22px] p-4 transition-transform duration-200 active:scale-[0.97]" style={{ background: `var(--${t}-soft)` }}>
-              <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-white"><Icon name={item.icon} width={23} weight="bold" color={`var(--${t}-edge)`} /></span>
-              <span className="t-head mt-5 block">{item.title}</span>
-              <span className="t-sub mt-1 block min-h-[34px]">{item.detail}</span>
-            </Link>
-          );
-        })}
+        {items.map((item) => (
+          <Link key={item.href} href={item.href} onClick={tap} className="card-soft w-[164px] shrink-0 snap-start p-4 transition-transform duration-200 active:scale-[0.97]">
+            <span className="ico h-12 w-12 ico-white"><Icon name={item.icon} width={23} weight="bold" color="var(--edge)" /></span>
+            <span className="t-head mt-5 block">{item.title}</span>
+            <span className="t-sub mt-1 block min-h-[34px]">{item.detail}</span>
+          </Link>
+        ))}
       </div>
     </section>
   );
@@ -359,17 +346,17 @@ function cap(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-// Относительный день с цветом: сегодня — персик, завтра — олива, вчера — коралл.
-function whenBadge(iso: string): { label: string; tone: string } | undefined {
+// Относительный день. Цвет не нужен: статус всегда в акценте раздела.
+function whenBadge(iso: string): string | undefined {
   const date = new Date(iso);
   const now = new Date();
   const today = new Date(now); today.setHours(0, 0, 0, 0);
   const target = new Date(date); target.setHours(0, 0, 0, 0);
   const diff = Math.round((target.getTime() - today.getTime()) / 86400000);
   // Только относительный день — точное время уже показано в основной строке.
-  if (diff === 0) return { label: "сегодня", tone: "peach" };
-  if (diff === 1) return { label: "завтра", tone: "olive" };
-  if (diff === -1) return { label: "вчера", tone: "coral" };
+  if (diff === 0) return "сегодня";
+  if (diff === 1) return "завтра";
+  if (diff === -1) return "вчера";
   return undefined;
 }
 

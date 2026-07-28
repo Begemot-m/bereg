@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 
 import { Icon } from "@/components/icons";
+import { Arrow } from "@/components/blocks";
 import { APP_NAME, CENTER, CENTER_SITE, CENTER_URL, TAGLINE } from "@/lib/brand";
 import { tap } from "@/lib/haptics";
 
@@ -41,7 +42,7 @@ export function CareModule() {
             <span className="block text-[13px] font-black leading-tight">Мы всегда на связи в Telegram</span>
             <span className="block text-[11px] font-semibold text-[var(--muted)]">Вопросы и пожелания — пишите напрямую нам</span>
           </span>
-          <span className="text-[16px] font-black text-[var(--purple-edge)]">›</span>
+          <Arrow />
         </a>
       </div>
     </div>

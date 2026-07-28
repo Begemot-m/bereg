@@ -4,6 +4,7 @@ import { X } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
+import { Arrow } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { MoodBlob, MoodHead, moodColor } from "@/components/mood-egg";
 import { emotionTone, suggestEmotions } from "@/lib/emotions";
@@ -19,21 +20,19 @@ export function MoodHomeCard({ mood, moods, onOpen }: { mood?: number; moods: Mo
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
-      className="relative w-full overflow-hidden rounded-[24px] p-4 text-left transition-transform duration-200 active:scale-[0.99]"
-      style={{ background: mood ? `${tint}2e` : "var(--amber-soft)", border: `var(--bw-lg) solid ${mood ? tint : "var(--amber-edge)"}` }}
+      className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
+      style={mood ? { background: `${tint}2e` } : undefined}
     >
-      {/* мягкая пульсация фона-пятна */}
-      <motion.span aria-hidden className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full" style={{ background: mood ? tint : "var(--amber)", opacity: 0.22 }} animate={{ scale: [1, 1.18, 1], opacity: [0.16, 0.28, 0.16] }} transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }} />
       <div className="relative flex items-center gap-3">
         <motion.span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
           <MoodBlob value={value} size={70} still />
         </motion.span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Настроение дня</span>
-          <span className="block text-[16px] font-black leading-tight">Какое у вас настроение?</span>
+          <span className="t-micro block">Настроение дня</span>
+          <span className="t-head block">Какое у вас настроение?</span>
           {recent.length >= 2 && <MiniMoodTrend moods={recent} />}
         </span>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[18px] font-black" style={{ background: mood ? `${tint}55` : "var(--amber-soft)", border: `var(--bw) solid ${mood ? tint : "var(--amber-edge)"}`, color: "var(--ink)" }}>›</span>
+        <Arrow />
       </div>
     </button>
   );
@@ -67,18 +66,18 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
-      className="relative w-full overflow-hidden rounded-[22px] p-4 text-left transition-transform duration-200 active:scale-[0.99]"
-      style={{ background: mood ? `${moodColor(value)}33` : "var(--amber-soft)", border: `var(--bw-lg) solid ${mood ? moodColor(value) : "var(--amber-edge)"}` }}
+      className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
+      style={mood ? { background: `${moodColor(value)}33` } : undefined}
     >
       <div className="flex items-center gap-3">
         <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center"><MoodBlob value={value} size={64} still /></span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-black leading-tight">Какое у вас настроение сегодня?</span>
-          <span className="mt-1 block truncate text-[11.5px] font-bold text-[var(--muted)]">
+          <span className="t-head block">Какое у вас настроение сегодня?</span>
+          <span className="t-sub mt-1 block truncate">
             {mood ? [MOOD_LABEL[Math.round(value)], ...(emotions ?? [])].join(" · ") : "Покрутите диск — и отметьте эмоцию дня"}
           </span>
         </span>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[18px] font-black" style={{ background: mood ? `${moodColor(value)}55` : "var(--amber-soft)", border: `var(--bw) solid ${mood ? moodColor(value) : "var(--amber-edge)"}`, color: "var(--ink)" }}>›</span>
+        <Arrow />
       </div>
     </button>
   );

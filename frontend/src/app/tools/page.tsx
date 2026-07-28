@@ -63,7 +63,7 @@ function ClientTools() {
       <PageHead title="Инструменты" sub="Короткая помощь в нужный момент" icon="tools" />
 
       <Reveal y={10}>
-        <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
           <section className="overflow-hidden rounded-[23px] bg-[var(--peach-soft)]" style={{ border: "var(--bw-lg) solid var(--peach-edge)" }}>
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">

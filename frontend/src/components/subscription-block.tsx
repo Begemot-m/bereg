@@ -159,7 +159,7 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
           </span>
           <span className="t-sub mt-0.5 block">{pitch}</span>
         </span>
-        <span className="t-title shrink-0 transition-transform duration-300 text-[var(--muted-2)]" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
+        <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
       </button>
 
       <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>

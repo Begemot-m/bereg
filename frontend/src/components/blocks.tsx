@@ -43,6 +43,11 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
   );
 }
 
+/** Стрелка «дальше». Одна на весь проект — вид меняется в .arrow в globals.css. */
+export function Arrow() {
+  return <span className="arrow" aria-hidden>›</span>;
+}
+
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between">

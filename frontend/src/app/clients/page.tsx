@@ -8,7 +8,7 @@ import { useDeferredValue, useState } from "react";
 
 import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
-import { PageHead } from "@/components/blocks";
+import { Arrow, PageHead } from "@/components/blocks";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonRow } from "@/components/ui";
@@ -215,7 +215,7 @@ function ClientCard({ client: c }: { client: Client }) {
               )}
             </div>
           </div>
-          <span className="t-title shrink-0 text-[var(--muted-2)]">›</span>
+          <Arrow />
         </div>
       </div>
 

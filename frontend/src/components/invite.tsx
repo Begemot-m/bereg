@@ -65,18 +65,19 @@ export function InviteBanner({ variant }: { variant: Variant }) {
   const psy = variant === "psy";
   return (
     <>
-      <button onClick={() => { tap(); setOpen(true); }} className="relative w-full overflow-hidden rounded-[22px] p-5 text-left transition-transform active:scale-[0.99]" style={{ background: "var(--olive)", border: "var(--bw-lg) solid var(--olive-edge)" }}>
-        <motion.span aria-hidden className="absolute -right-8 -top-10 h-28 w-28 rounded-full" style={{ background: "rgba(255,255,255,.28)" }} animate={{ y: [0, 10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
+      {/* Без заливки: блок держится рамкой тоном раздела, как белые карточки */}
+      <button onClick={() => { tap(); setOpen(true); }} className="card relative w-full overflow-hidden p-5 text-left transition-transform active:scale-[0.99]">
         <motion.span aria-hidden className="absolute -bottom-6 right-14 h-14 w-14 rounded-full" style={{ background: "rgba(255,255,255,.2)" }} animate={{ y: [0, -8, 0] }} transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }} />
         <div className="relative flex items-center gap-3.5">
-          <motion.span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-white" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }} animate={{ scale: [1, 1.08, 1], rotate: [0, -5, 5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="heart" width={26} weight="fill" color="var(--olive-edge)" /></motion.span>
+          <motion.span className="ico h-14 w-14 shrink-0" animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="users" width={26} weight="fill" color="var(--edge)" /></motion.span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-[.14em] opacity-70">Приведите {psy ? "коллегу" : "друга"}</p>
-            <p className="mt-0.5 font-tight text-[19px] font-black leading-tight">{psy ? "Позовите коллег в «Методика»" : "Подарите другу неделю Методика+"}</p>
-            <p className="mt-1 text-[11.5px] font-bold">{psy ? "Коллеге — месяц PRO, вам — бонус" : "Другу — 7 дней бесплатно, вам — бонус"}</p>
+            <p className="t-micro">Приведите {psy ? "коллегу" : "друга"}</p>
+            <p className="t-title mt-0.5">{psy ? "Позовите коллег в «Методику»" : "Подарите другу неделю Методика+"}</p>
+            <p className="t-sub mt-1">{psy ? "Коллеге — месяц PRO, вам — бонус" : "Другу — 7 дней бесплатно, вам — бонус"}</p>
           </div>
         </div>
-        <span className="relative mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white"><Icon name="spark" width={15} weight="fill" /> Пригласить</span>
+        {/* Кнопка в цвет обводки блока */}
+        <span className="btn relative mt-3.5 w-full"><Icon name="users" width={15} weight="fill" color="#fff" /> Пригласить</span>
       </button>
       <AnimatePresence>{open && <InviteSheet variant={variant} onClose={() => setOpen(false)} />}</AnimatePresence>
     </>

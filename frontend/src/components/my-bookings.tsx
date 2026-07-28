@@ -67,7 +67,7 @@ function MyRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
           <span className={`block text-[12px] text-[var(--muted)] ${past ? "line-through" : ""}`}>{timeF.format(d)} · {b.format === "online" ? "онлайн" : "очно"}</span>
           {past && <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-wide text-[var(--muted)]">выполнено</span>}
         </span>
-        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="text-[var(--muted-2)]">›</motion.span>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="arrow">›</motion.span>
       </button>
       <Disclosure open={open}>
         <div className="px-4 pb-4">

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { Arrow } from "@/components/blocks";
 import { Button, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
@@ -107,7 +108,7 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
         </div>
         <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">{full ? "Вас находят по всем фильтрам каталога" : gap ? `Дальше: ${gap.title.toLowerCase()}` : "Продолжить заполнение"}</p>
       </div>
-      <span className="shrink-0 text-[var(--muted-2)]">›</span>
+      <Arrow />
     </button>
   );
 }

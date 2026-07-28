@@ -78,9 +78,9 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
 
       <div className="rounded-[20px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <div className="mb-2.5 flex items-center justify-between">
-          <button onClick={() => { select(); setMonth(shiftMonth(month, -1)); }} className="flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-black text-[var(--muted)]" aria-label="Предыдущий месяц">‹</button>
-          <p className="text-[12px] font-black">{monthLabel(month)}</p>
-          <button onClick={() => { select(); setMonth(shiftMonth(month, 1)); }} className="flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-black text-[var(--muted)]" aria-label="Следующий месяц">›</button>
+          <button onClick={() => { select(); setMonth(shiftMonth(month, -1)); }} className="arrow" aria-label="Предыдущий месяц">‹</button>
+          <p className="t-cap">{monthLabel(month)}</p>
+          <button onClick={() => { select(); setMonth(shiftMonth(month, 1)); }} className="arrow" aria-label="Следующий месяц">›</button>
         </div>
         <MoodCalendar month={month} byDay={byDay} />
       </div>

@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { PageHead, SectionTitle } from "@/components/blocks";
+import { Arrow, PageHead, SectionTitle } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
@@ -47,7 +47,7 @@ export default function CabinetPage() {
       </PageHead>
 
       <Reveal y={10}>
-      <div className="-mx-4 min-h-[64vh] space-y-6 rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)", borderTop: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="-mx-4 min-h-[64vh] space-y-6 rounded-t-[30px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
 
         {/* Управление — под роль */}
         <div className="space-y-3">
@@ -130,7 +130,7 @@ function Foldable({ icon, title, subtitle, children, defaultOpen = false, tone }
           <span className="block text-[14px] font-bold">{title}</span>
           <span className="block text-[12px] text-[var(--muted)]">{subtitle}</span>
         </span>
-        <span className="text-[var(--muted-2)] transition-transform duration-300" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
+        <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
       </button>
       <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>
         <div className="min-h-0 overflow-hidden">
@@ -150,7 +150,7 @@ function ActionRow({ icon, title, sub, onClick, danger }: { icon: IconName; titl
         <span className={`block text-[13.5px] font-bold ${danger ? "text-[var(--salmon-edge)]" : ""}`}>{title}</span>
         <span className="block text-[11.5px] font-semibold text-[var(--muted)]">{sub}</span>
       </span>
-      <span className="text-[var(--muted-2)]">›</span>
+      <Arrow />
     </button>
   );
 }
