@@ -105,6 +105,13 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <div className="space-y-3.5">
+      {/* Действия с днём — сверху, они нужны по ходу составления графика */}
+      <div className="grid grid-cols-3 gap-1.5">
+        <ActionChip icon="swap" onClick={() => copyTo(5)}>На будни</ActionChip>
+        <ActionChip icon="calendar" onClick={() => copyTo(7)}>На все дни</ActionChip>
+        <ActionChip icon="note" tone="salmon" disabled={slots.length === 0} onClick={clearDay}>Очистить</ActionChip>
+      </div>
+
       {/* Интервал работы */}
       <div className="flex items-center gap-2">
         <span className="text-[12px] font-bold text-[var(--muted)]">Работаю</span>
@@ -170,13 +177,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 
       <WeekMini hours={draft.hours} from={from} to={to} day={day} onPick={(d) => { select(); setDay(d); }} />
 
-      {/* Действия с днём — компактные видимые чипы */}
-      <div className="grid grid-cols-3 gap-1.5">
-        <ActionChip icon="swap" onClick={() => copyTo(5)}>На будни</ActionChip>
-        <ActionChip icon="calendar" onClick={() => copyTo(7)}>На все дни</ActionChip>
-        <ActionChip icon="note" tone="salmon" disabled={slots.length === 0} onClick={clearDay}>Очистить</ActionChip>
-      </div>
-      <button disabled={save.isPending} onClick={() => save.mutate()} className="w-full rounded-[13px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-50">
+      <button disabled={save.isPending} onClick={() => save.mutate()} className="btn w-full py-3 text-[14px]">
         {save.isSuccess ? "Сохранено ✓" : "Сохранить расписание"}
       </button>
     </div>
@@ -184,11 +185,10 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 }
 
 function ActionChip({ icon, tone = "neutral", disabled, onClick, children }: { icon: IconName; tone?: "neutral" | "salmon"; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
-  const salmon = tone === "salmon";
-  const edge = salmon ? "var(--salmon-edge)" : "var(--edge-neutral)";
-  const col = salmon ? "var(--salmon-edge)" : "var(--ink)";
+  // Белая заливка, рамка тоном раздела; у разрушающего действия свой цвет текста.
+  const col = tone === "salmon" ? "var(--salmon-edge)" : "var(--ink)";
   return (
-    <button disabled={disabled} onClick={onClick} className="flex flex-col items-center justify-center gap-1 rounded-[12px] py-2.5 text-[11px] font-black transition-transform active:scale-95 disabled:opacity-45" style={{ background: salmon ? "var(--salmon-soft)" : "#fff", border: `var(--bw) solid ${edge}`, color: col }}>
+    <button disabled={disabled} onClick={onClick} className="stroke flex flex-col items-center justify-center gap-1 rounded-[12px] py-2.5 text-[11px] font-black transition-transform active:scale-95 disabled:opacity-45" style={{ background: "#fff", color: col }}>
       <Icon name={icon} width={16} weight="bold" color={col} /> {children}
     </button>
   );
@@ -212,8 +212,8 @@ function SlotBlock({ label, hour, fmt, top, height, onRemove, onToggleFmt, onCom
     <motion.div
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
-      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[9px] text-[12px] font-extrabold stroke-lg"
-      style={{ top: top + dy, height, background: st.bg, borderColor: st.bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
+      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[9px] text-[12px] font-extrabold"
+      style={{ top: top + dy, height, background: st.bg, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       <FmtSwitch fmt={fmt} onToggle={onToggleFmt} className="absolute left-1.5 top-1/2 -translate-y-1/2 !text-[9px]" />
       {label}
@@ -254,9 +254,9 @@ function MinuteSlider({ value, onChange }: { value: number; onChange: (v: number
       onPointerUp={() => { dragging.current = false; }}
       className="relative mt-2 h-9 w-full cursor-pointer touch-none select-none"
     >
-      <div className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-full stroke" style={{ background: "var(--head-soft)" }} />
+      <div className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-full" style={{ background: "var(--head-soft)" }} />
       <div className="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full" style={{ left: 0, width: `${pct * 100}%`, background: "var(--head)" }} />
-      <div className="absolute top-1/2 flex h-9 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[12px] font-extrabold" style={{ left: `${pct * 100}%`, background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }}>{value} мин</div>
+      <div className="absolute top-1/2 flex h-9 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[12px] font-extrabold" style={{ left: `${pct * 100}%`, background: "var(--ink)", color: "#fff" }}>{value} мин</div>
     </div>
   );
 }
@@ -268,7 +268,7 @@ const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hour
     <div>
       <p className="mb-1.5 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Неделя</p>
       <div className="flex gap-1.5">
-        {WEEKDAYS.map((label, wd) => {
+        {WEEKDAYS.map((_, wd) => {
           const list = hours[wd] ?? [];
           const isSel = wd === day;
           return (
@@ -282,7 +282,6 @@ const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hour
                   return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: st.bg }} />;
                 })}
               </div>
-              <span className="text-[10px] font-extrabold uppercase" style={{ color: isSel ? "var(--ink)" : "var(--muted-2)" }}>{label}</span>
             </button>
           );
         })}

@@ -12,7 +12,8 @@ import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
 import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
-import { Card } from "@/components/ui";
+import { Card, Input } from "@/components/ui";
+import { isEmail, useAccountEmail } from "@/lib/account";
 import { resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
@@ -62,6 +63,12 @@ export default function CabinetPage() {
           )}
         </div>
 
+        {/* Учётная запись */}
+        <div>
+          <SectionTitle>Учётная запись</SectionTitle>
+          <EmailLink />
+        </div>
+
         {/* Приватность и данные */}
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
@@ -99,6 +106,58 @@ export default function CabinetPage() {
       </div>
       </Reveal>
     </div>
+  );
+}
+
+// Привязка почты: вход не только из Telegram. В демо — на устройстве.
+function EmailLink() {
+  const [email, setEmail] = useAccountEmail();
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState(false);
+  const ok = isEmail(draft);
+
+  if (email && !editing) {
+    return (
+      <Card className="flex items-center gap-3">
+        <span className="ico h-11 w-11 shrink-0"><Icon name="check" width={20} weight="bold" color="var(--edge)" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="t-cap">Почта привязана</p>
+          <p className="font-tight truncate text-[14px] font-bold">{email}</p>
+        </div>
+        <button onClick={() => { tap(); setDraft(email); setEditing(true); }} className="btn btn-white shrink-0 px-3 py-1.5 text-[12px]">Изменить</button>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <p className="t-cap">Привяжите почту, чтобы входить не только через Telegram.</p>
+      <div className="mt-2.5 flex gap-2">
+        <Input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          enterKeyHint="done"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="you@example.com"
+        />
+        <button
+          disabled={!ok}
+          onClick={() => { tap(); setEmail(draft); setEditing(false); }}
+          className="btn btn-accent shrink-0 px-3.5 py-2 text-[12px]"
+        >
+          Привязать
+        </button>
+      </div>
+      {email && (
+        <div className="mt-2 flex items-center justify-between">
+          <button onClick={() => { setEditing(false); setDraft(""); }} className="text-[12px] font-bold text-[var(--muted)]">Отмена</button>
+          <button onClick={() => { if (confirm("Отвязать почту?")) { setEmail(null); setEditing(false); setDraft(""); } }} className="text-[12px] font-bold" style={{ color: "var(--danger)" }}>Отвязать</button>
+        </div>
+      )}
+      {draft && !ok && <p className="mt-1.5 text-[11px] font-semibold" style={{ color: "var(--danger)" }}>Похоже, в адресе опечатка</p>}
+    </Card>
   );
 }
 

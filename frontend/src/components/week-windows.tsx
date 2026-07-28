@@ -126,17 +126,28 @@ function look(s: Slot): Look {
 
 // Выбор клиента: чипы недавних, поиск когда их много, и создание нового
 // прямо отсюда — чтобы не уходить в раздел «Клиенты» посреди записи.
+const FIELD = "min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]";
+const THIN = { border: "1px solid var(--edge)" } as const;
+
 function ClientChips({ onPick }: { onPick: (id: number) => void }) {
   const qc = useQueryClient();
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
+  const [contact, setContact] = useState("");
 
   const create = useMutation({
-    mutationFn: (value: string) => createClient(value, ""),
-    onSuccess: (c) => { qc.invalidateQueries({ queryKey: ["clients"] }); onPick(c.id); },
+    mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), contact.trim()),
+    onSuccess: (c) => { qc.invalidateQueries({ queryKey: ["clients"] }); setAdding(false); setFirst(""); setLast(""); setContact(""); onPick(c.id); },
   });
+
+  // В мини-приложении клавиатура закрывает низ экрана — держим поле в виду.
+  const keepVisible = (e: React.FocusEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+  };
 
   const q = query.trim().toLowerCase();
   const list = [...clients]
@@ -145,35 +156,34 @@ function ClientChips({ onPick }: { onPick: (id: number) => void }) {
 
   if (adding) {
     return (
-      <form
-        onSubmit={(e) => { e.preventDefault(); if (name.trim()) create.mutate(name.trim()); }}
-        className="flex items-center gap-2"
-      >
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Имя нового клиента"
-          className="min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
-        />
-        <button type="submit" disabled={!name.trim() || create.isPending} className="btn btn-accent shrink-0 px-3.5 py-2 text-[12px]">Записать</button>
-        <button type="button" onClick={() => { tap(); setAdding(false); }} className="shrink-0 text-[12px] font-black text-[var(--muted-2)]">Отмена</button>
+      <form onSubmit={(e) => { e.preventDefault(); if (first.trim()) create.mutate(); }} className="space-y-2">
+        <div className="flex gap-2">
+          <input autoFocus value={first} onChange={(e) => setFirst(e.target.value)} onFocus={keepVisible} placeholder="Имя" enterKeyHint="next" autoComplete="off" className={FIELD} style={THIN} />
+          <input value={last} onChange={(e) => setLast(e.target.value)} onFocus={keepVisible} placeholder="Фамилия" enterKeyHint="next" autoComplete="off" className={FIELD} style={THIN} />
+        </div>
+        <input value={contact} onChange={(e) => setContact(e.target.value)} onFocus={keepVisible} placeholder="@telegram или телефон" enterKeyHint="done" autoComplete="off" className={`${FIELD} w-full`} style={THIN} />
+        <div className="flex gap-2">
+          <button type="button" onClick={() => { tap(); setAdding(false); }} className="btn btn-white flex-1 py-2 text-[12px]">Отмена</button>
+          <button type="submit" disabled={!first.trim() || create.isPending} className="btn btn-accent flex-1 py-2 text-[12px]">Создать и записать</button>
+        </div>
       </form>
     );
   }
 
   return (
     <div className="space-y-2">
-      {/* Поиск и «новый» — одной строкой, предложения строкой ниже */}
+      {/* Поиск и «новый клиент» — одной строкой, предложения строкой ниже */}
       <div className="flex items-center gap-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={keepVisible}
           placeholder="Поиск по имени"
-          className="min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
+          className={FIELD}
+          style={THIN}
         />
-        <button onClick={() => { tap(); setAdding(true); }} className="btn btn-accent shrink-0 px-3 py-2 text-[12px]">
-          <Icon name="plus" width={14} weight="bold" color="#fff" /> Новый
+        <button onClick={() => { tap(); setAdding(true); }} className="btn btn-accent shrink-0 px-2.5 py-2 text-[11px]">
+          <Icon name="plus" width={13} weight="bold" color="#fff" /> Новый клиент
         </button>
       </div>
       <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
@@ -384,7 +394,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       <div className="flex items-center gap-1.5">
         <p className="t-micro mr-auto">Кого записать?</p>
         <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
-        <button onClick={() => closeWin.mutate()} className="btn shrink-0 px-3 py-1.5 text-[12px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Удалить окно</button>
+        <button onClick={() => closeWin.mutate()} className="btn shrink-0 px-2.5 py-1 text-[11px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Удалить окно</button>
       </div>
       <ClientChips onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
     </div>

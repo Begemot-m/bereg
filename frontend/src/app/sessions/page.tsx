@@ -183,8 +183,8 @@ function PsySessions() {
       <div className="sheet">
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           {/* Слева — настройка графика */}
-          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="btn btn-accent w-fit px-3 py-1.5 text-[11px]" aria-expanded={scheduleOpen}>
-            <Icon name="gear" width={13} color="#fff" /> График
+          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="btn w-fit px-2.5 py-1 text-[10.5px]" aria-expanded={scheduleOpen}>
+            <Icon name="gear" width={12} color="#fff" /> График
           </button>
 
           {/* Центр — весёлый зелёный крестик быстрой записи */}
@@ -207,9 +207,9 @@ function PsySessions() {
           <button
             onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
             aria-expanded={calOpen}
-            className={`btn w-fit justify-self-end px-3.5 py-2 text-[11.5px] ${calOpen ? "" : "btn-accent"}`}
+            className="btn w-fit justify-self-end px-2.5 py-1 text-[10.5px]"
           >
-            <Icon name="calendar" width={14} weight="bold" color="#fff" />
+            <Icon name="calendar" width={12} weight="bold" color="#fff" />
             {calOpen ? "Свернуть" : "Календарь"}
           </button>
         </div>
@@ -313,14 +313,14 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
       )}
 
       <Disclosure open={open} autoScroll={false}>
-        <div className="mt-3 rounded-[19px] bg-[#fbfaf6] p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        <div className="chunk mt-3 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><p className="text-[14px] font-black">Рабочие часы</p><p className="text-[11px] font-semibold text-[var(--muted)]">{summary} · нажмите на шкалу дня, чтобы добавить окно</p></div>
             {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
           </div>
           <WorkHoursEditor onSaved={onSaved} />
-          {/* Правила приёма живут рядом с графиком, а не в кабинете. */}
-          <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: "var(--edge-neutral)" }}>
+          {/* Правила приёма живут рядом с графиком, а не в кабинете, и одним блоком. */}
+          <div className="line-top mt-4 space-y-3 pt-4">
             <RemindersModule />
             <CancelLockRow />
           </div>
@@ -335,19 +335,18 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
 function CancelLockRow() {
   const [days, setDays] = useCancelLockDays();
   return (
-    <div className="rounded-[15px] bg-[var(--surface-2)] p-3.5">
+    <div className="line-top pt-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white"><Icon name="clock" width={17} weight="bold" color="var(--edge)" /></span>
-          <span className="text-[13px] font-black">Запрет отмены сессий</span>
+        <div>
+          <p className="text-[13px] font-black">Запрет отмены сессий</p>
+          <p className="t-cap mt-0.5">За сколько до встречи клиент уже не отменит</p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-white text-[18px] font-black" aria-label="Меньше">−</button>
-          <span className="flex h-8 min-w-[64px] items-center justify-center rounded-[9px] px-2 text-[12px] font-black" style={{ background: days ? "var(--head-soft)" : "#fff", color: days ? "var(--edge)" : "var(--muted-2)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
-          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-white text-[18px] font-black" aria-label="Больше">+</button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="btn btn-white h-8 w-8 p-0 text-[18px]" aria-label="Меньше">−</button>
+          <span className="tnum flex h-8 min-w-[64px] items-center justify-center rounded-full px-2 text-[12px] font-black" style={{ background: days ? "var(--edge)" : "var(--head-soft)", color: days ? "#fff" : "var(--muted)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
+          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="btn btn-white h-8 w-8 p-0 text-[18px]" aria-label="Больше">+</button>
         </div>
       </div>
-      <p className="mt-2 text-[11px] font-medium text-[var(--muted-2)]">{days === 0 ? "Клиент может отменить сессию в любое время." : `Клиент не сможет отменить менее чем за ${days} дн. до сессии — только через вас.`}</p>
     </div>
   );
 }
