@@ -12,7 +12,7 @@ const BUDGETS = [2500, 3500, 4500, 5500] as const;
 const TIME_LABEL: Record<TimeOfDay, string> = { morning: "Утро", day: "День", evening: "Вечер" };
 
 function ToggleChip({ active, children, onClick, className = "" }: { active: boolean; children: React.ReactNode; onClick: () => void; className?: string }) {
-  return <button type="button" onClick={() => { select(); onClick(); }} className={`rounded-[13px] px-3 py-2 text-[12px] font-black transition-transform active:scale-95 stroke ${className}`} style={active ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>{children}</button>;
+  return <button type="button" onClick={() => { select(); onClick(); }} className={`rounded-[8px] px-3 py-2 text-[12px] font-black transition-transform active:scale-95 stroke ${className}`} style={active ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>{children}</button>;
 }
 
 function toggleValue<T>(list: T[], value: T, limit?: number): T[] {
@@ -59,7 +59,7 @@ export function CatalogSurvey({ open, initial, onClose, onDone, onViewAll }: { o
 }
 
 function StepFrame({ tone, icon, title, text, children }: { tone: string; icon: Parameters<typeof Icon>[0]["name"]; title: string; text: string; children?: React.ReactNode }) {
-  return <div><div className="flex min-h-[118px] items-center justify-center rounded-[20px] stroke-lg" style={{ background: tone }}><div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[#fffdf7] stroke"><Icon name={icon} width={31} weight="bold" /></div></div><h2 className="font-tight mt-4 text-[23px] font-black leading-[1.08]">{title}</h2><p className="mt-2 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{text}</p>{children && <div className="mt-4">{children}</div>}</div>;
+  return <div><div className="flex min-h-[118px] items-center justify-center rounded-[12px] stroke-lg" style={{ background: tone }}><div className="flex h-16 w-16 items-center justify-center rounded-[12px] bg-[#fffdf7] stroke"><Icon name={icon} width={31} weight="bold" /></div></div><h2 className="font-tight mt-4 text-[23px] font-black leading-[1.08]">{title}</h2><p className="mt-2 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{text}</p>{children && <div className="mt-4">{children}</div>}</div>;
 }
 function IntroStep() { return <StepFrame tone="var(--salmon-soft)" icon="compass" title="Найдём тех, с кем может сложиться" text="Несколько коротких ответов помогут не листать сотни анкет. Настройки можно изменить в любой момент." />; }
 function TopicsStep({ prefs, setPrefs }: { prefs: CatalogPrefs; setPrefs: (prefs: CatalogPrefs) => void }) { return <StepFrame tone="var(--amber-soft)" icon="heart" title="С чем хочется поработать?" text="Выберите до трёх тем. Если пока сложно сформулировать — это нормально."><div className="flex flex-wrap gap-2">{TOPICS.map((topic) => <ToggleChip key={topic} active={prefs.topics.includes(topic)} onClick={() => setPrefs({ ...prefs, topics: toggleValue(prefs.topics, topic, 3) })}>{topic}</ToggleChip>)}<ToggleChip active={!prefs.topics.length} onClick={() => setPrefs({ ...prefs, topics: [] })}>Пока не знаю</ToggleChip></div></StepFrame>; }

@@ -14,10 +14,10 @@ export function markTherapyGuideSeen() {
 }
 
 const Screen = ({ children, tone = "var(--page)" }: { children: React.ReactNode; tone?: string }) => (
-  <div className="mx-auto w-[186px] overflow-hidden rounded-[22px] bg-white p-1.5 stroke-lg" style={{ boxShadow: "0 18px 34px -22px rgba(32,28,24,.5)" }}>
-    <div className="overflow-hidden rounded-[16px]" style={{ background: tone }}>
+  <div className="mx-auto w-[186px] overflow-hidden rounded-[13px] bg-white p-1.5 stroke-lg" style={{ boxShadow: "0 18px 34px -22px rgba(32,28,24,.5)" }}>
+    <div className="overflow-hidden rounded-[10px]" style={{ background: tone }}>
       <div className="flex items-center gap-1 px-2.5 pb-1 pt-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--ink)] opacity-40" /><span className="h-1 w-7 rounded-full bg-[var(--ink)] opacity-20" /></div>
-      <div className="min-h-[150px] rounded-t-[13px] bg-[#fffdf7] p-2.5" style={{ borderTop: "1.5px solid rgba(32,28,24,.14)" }}>{children}</div>
+      <div className="min-h-[150px] rounded-t-[8px] bg-[#fffdf7] p-2.5" style={{ borderTop: "1.5px solid rgba(32,28,24,.14)" }}>{children}</div>
     </div>
   </div>
 );
@@ -56,7 +56,7 @@ export const THERAPY_HELP: HelpPage[] = [
     text: "В каталоге добавьте специалиста в свою терапию и выберите свободное окно. Записи, переносы и отмены — в разделе «С терапевтом».",
     illo: (
       <Screen tone="var(--olive-soft)">
-        <div className="rounded-[10px] bg-white p-2" style={{ border: "1.5px solid var(--olive-edge)" }}>
+        <div className="rounded-[6px] bg-white p-2" style={{ border: "1.5px solid var(--olive-edge)" }}>
           <div className="flex items-center gap-1.5"><span className="h-6 w-6 rounded-[7px]" style={{ background: "var(--olive-soft)", border: "1.5px solid var(--olive-edge)" }} /><div className="flex-1 space-y-1"><Bar w="70%" h={5} tone="rgba(32,28,24,.3)" /><Bar w="45%" h={4} /></div></div>
         </div>
         <div className="mt-2 rounded-full py-1 text-center text-[8px] font-black text-white" style={{ background: "var(--ink)" }}>Добавить в терапию</div>

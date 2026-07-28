@@ -30,7 +30,7 @@ export function DailyCard({ moods, notes, onOpenMood, onSaveGood }: {
   const goodText = goodFor(notes);
 
   return (
-    <section className="rounded-[22px] bg-white p-4" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+    <section className="rounded-[13px] bg-white p-4" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[15px] font-black leading-tight">
@@ -98,7 +98,7 @@ function DailyRow({ icon, title, hint, done, onClick }: { icon: IconName; title:
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-[16px] p-3 text-left transition-transform active:scale-[0.99]"
+      className="flex w-full items-center gap-3 rounded-[10px] p-3 text-left transition-transform active:scale-[0.99]"
       style={{ background: done ? "var(--green-soft)" : "var(--surface-2)" }}
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: done ? "var(--green)" : "#fff" }}>
@@ -149,7 +149,7 @@ function GoodSheet({ open, initial, onClose, onSave }: { open: boolean; initial:
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="relative w-full max-w-md rounded-t-[28px] bg-white px-5 pb-[calc(var(--safe-bottom)+20px)] pt-5"
+            className="relative w-full max-w-md rounded-t-[17px] bg-white px-5 pb-[calc(var(--safe-bottom)+20px)] pt-5"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -165,7 +165,7 @@ function GoodSheet({ open, initial, onClose, onSave }: { open: boolean; initial:
               rows={3}
               maxLength={240}
               placeholder="Например: дошла до конца дня без самокритики"
-              className="mt-3 w-full resize-none rounded-[16px] p-3.5 text-[14px] font-semibold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
+              className="mt-3 w-full resize-none rounded-[10px] p-3.5 text-[14px] font-semibold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
               style={{ background: "var(--surface-2)" }}
             />
             <div className="mt-3 flex items-center gap-2">

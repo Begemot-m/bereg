@@ -20,7 +20,7 @@ const PSY_PLANS: Plan[] = [
 const CLIENT_PLAN: Plan = { id: "client", name: "Методика+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
 const BFrame = ({ children }: { children: ReactNode }) => (
-  <div className="flex min-h-[136px] flex-col justify-center gap-2 rounded-[16px] p-3" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>{children}</div>
+  <div className="flex min-h-[136px] flex-col justify-center gap-2 rounded-[10px] p-3" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>{children}</div>
 );
 const NewTag = () => <span className="rounded-full bg-[var(--coral)] px-1.5 py-0.5 text-[8px] font-black uppercase" style={{ border: "1px solid var(--coral-edge)" }}>ново</span>;
 
@@ -52,7 +52,7 @@ function CompareCell({ value }: { value: boolean | string }) {
 // Компактная таблица сравнения «Бесплатно / PRO».
 function FreeVsPro({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={`overflow-hidden rounded-[16px] bg-white ${compact ? "" : "stroke-lg"}`} style={compact ? { border: "var(--bw) solid var(--purple-edge)" } : undefined}>
+    <div className={`overflow-hidden rounded-[10px] bg-white ${compact ? "" : "stroke-lg"}`} style={compact ? { border: "var(--bw) solid var(--purple-edge)" } : undefined}>
       <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 px-3 py-2" style={{ background: "var(--surface-2)", borderBottom: "var(--bw) solid var(--edge-neutral)" }}>
         <span className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Возможность</span>
         <span className="w-14 text-center text-[10px] font-black uppercase text-[var(--muted)]">Free</span>
@@ -71,23 +71,23 @@ function FreeVsPro({ compact = false }: { compact?: boolean }) {
 
 export const PRO_BENEFITS: HelpPage[] = [
   { title: "Что бесплатно, а что в PRO", text: "Запись, график и первые карточки клиентов — бесплатно навсегда. PRO добавляет то, что экономит время на каждой сессии: статистику, сводку недели и шаблоны.", illo: (
-    <div className="rounded-[16px] p-1" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}><FreeVsPro compact /></div>
+    <div className="rounded-[10px] p-1" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}><FreeVsPro compact /></div>
   ) },
   { title: "Вся практика в одном месте", text: "Расписание, клиенты, записи и домашние задания рядом. Меньше рутины — больше времени на работу с людьми.", illo: (
     <BFrame>{["10:00 · Марина · онлайн", "15:00 · свободное окно", "19:00 · Алёна · очно"].map((t, i) => (
-      <div key={t} className="flex items-center gap-2 rounded-[10px] bg-white px-2.5 py-1.5 text-[10px] font-bold" style={{ border: `var(--bw) solid ${["var(--purple-edge)", "var(--edge-neutral)", "var(--green-edge)"][i]}` }}>{t}</div>
+      <div key={t} className="flex items-center gap-2 rounded-[6px] bg-white px-2.5 py-1.5 text-[10px] font-bold" style={{ border: `var(--bw) solid ${["var(--purple-edge)", "var(--edge-neutral)", "var(--green-edge)"][i]}` }}>{t}</div>
     ))}</BFrame>
   ) },
   { title: "Новые инструменты каждый месяц", text: "Мы добавляем методики по научным подходам — колесо баланса, WHO-5, дневники мыслей. Всё уже включено в подписку.", illo: (
     <BFrame>{[["Колесо баланса", true], ["Дневник мыслей КПТ", true], ["Шкала тревоги GAD-7", false]].map(([t, isNew]) => (
-      <div key={t as string} className="flex items-center gap-2 rounded-[10px] bg-white px-2.5 py-1.5" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+      <div key={t as string} className="flex items-center gap-2 rounded-[6px] bg-white px-2.5 py-1.5" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
         <span className="flex h-5 w-5 items-center justify-center rounded-[7px] bg-[var(--purple)]" style={{ border: "1px solid var(--purple-edge)" }}><Icon name="spark" width={11} weight="bold" /></span>
         <span className="flex-1 text-[10px] font-black">{t}</span>{isNew && <NewTag />}
       </div>
     ))}</BFrame>
   ) },
   { title: "Клиент включён между сессиями", text: "Интерактивные трекеры повышают вовлечённость: клиент отмечает настроение и собирает колесо баланса — а вы видите это в его карточке.", illo: (
-    <BFrame><div className="flex justify-center gap-1.5">{["😞", "😕", "😐", "🙂", "😄"].map((f, i) => <span key={i} className="flex h-9 w-9 items-center justify-center rounded-[11px] text-[18px]" style={{ background: i === 3 ? "var(--ink)" : `var(--mood-${i + 1})`, border: `var(--bw) solid ${i === 3 ? "var(--ink)" : "rgba(32,28,24,.4)"}` }}>{f}</span>)}</div><p className="text-center text-[10px] font-black text-[var(--muted)]">клиент отмечает состояние сам</p></BFrame>
+    <BFrame><div className="flex justify-center gap-1.5">{["😞", "😕", "😐", "🙂", "😄"].map((f, i) => <span key={i} className="flex h-9 w-9 items-center justify-center rounded-[7px] text-[18px]" style={{ background: i === 3 ? "var(--ink)" : `var(--mood-${i + 1})`, border: `var(--bw) solid ${i === 3 ? "var(--ink)" : "rgba(32,28,24,.4)"}` }}>{f}</span>)}</div><p className="text-center text-[10px] font-black text-[var(--muted)]">клиент отмечает состояние сам</p></BFrame>
   ) },
   { title: "Прогресс виден обоим", text: "Прогресс-бар и динамика показывают состояние клиента от встречи к встрече — удобно обсуждать изменения и удерживать в терапии.", illo: (
     <BFrame>{[["Тревога", 40, "var(--coral)"], ["Настроение", 72, "var(--green)"], ["Баланс", 61, "var(--purple)"]].map(([label, w, c]) => (
@@ -97,19 +97,19 @@ export const PRO_BENEFITS: HelpPage[] = [
   ) },
   { title: "Профиль появляется в каталоге", text: "Размещение в каталоге — 500 ₽: подтверждённая анкета участвует в подборках на равных. Плата за размещение, а не за место — рейтинг и выдачу купить нельзя.", illo: (
     <BFrame>
-      <div className="flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-2.5 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
-        <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white" style={{ border: "1px solid var(--green-edge)" }}><Icon name="check" width={15} weight="bold" /></span>
+      <div className="flex items-center gap-2 rounded-[6px] bg-[var(--green-soft)] px-2.5 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
+        <span className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-white" style={{ border: "1px solid var(--green-edge)" }}><Icon name="check" width={15} weight="bold" /></span>
         <span className="flex-1 text-[10px] font-black">Профиль опубликован</span>
         <span className="text-[8px] font-black uppercase text-[var(--muted)]">на равных</span>
       </div>
-      {["Совпадение с запросом", "Рейтинг после сессий"].map((t) => <div key={t} className="rounded-[10px] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>{t}</div>)}
+      {["Совпадение с запросом", "Рейтинг после сессий"].map((t) => <div key={t} className="rounded-[6px] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>{t}</div>)}
     </BFrame>
   ) },
 ];
 
 export const CLIENT_BENEFITS: HelpPage[] = [
   { title: "Отмечайте состояние каждый день", text: "Простой ежедневный чек-ин настроения. Видно, как проходят недели, — и легче замечать, что влияет на самочувствие.", illo: (
-    <BFrame><div className="flex justify-center gap-1.5">{["😞", "😕", "😐", "🙂", "😄"].map((f, i) => <span key={i} className="flex h-9 w-9 items-center justify-center rounded-[11px] text-[18px]" style={{ background: i === 3 ? "var(--ink)" : `var(--mood-${i + 1})`, border: `var(--bw) solid ${i === 3 ? "var(--ink)" : "rgba(32,28,24,.4)"}` }}>{f}</span>)}</div><p className="text-center text-[10px] font-black text-[var(--muted)]">как вы сегодня?</p></BFrame>
+    <BFrame><div className="flex justify-center gap-1.5">{["😞", "😕", "😐", "🙂", "😄"].map((f, i) => <span key={i} className="flex h-9 w-9 items-center justify-center rounded-[7px] text-[18px]" style={{ background: i === 3 ? "var(--ink)" : `var(--mood-${i + 1})`, border: `var(--bw) solid ${i === 3 ? "var(--ink)" : "rgba(32,28,24,.4)"}` }}>{f}</span>)}</div><p className="text-center text-[10px] font-black text-[var(--muted)]">как вы сегодня?</p></BFrame>
   ) },
   { title: "Колесо баланса и научные шкалы", text: "Соберите колесо из 10 сфер жизни и пройдите WHO-5. Наглядная карта того, где сейчас ресурс, а где нужна опора.", illo: (
     <BFrame>{[["Здоровье", 70], ["Отношения", 85], ["Работа", 45], ["Отдых", 55]].map(([l, w]) => (
@@ -119,7 +119,7 @@ export const CLIENT_BENEFITS: HelpPage[] = [
   ) },
   { title: "Дневники и практики под рукой", text: "Дневник эмоций и мыслей по КПТ, дыхательные практики и короткие медитации — всё, чтобы поддержать себя между встречами.", illo: (
     <BFrame>{[["Дневник эмоций", "heart"], ["Дыхание 4-7-8", "pulse"], ["Медитация 5 минут", "therapy"]].map(([t, ic]) => (
-      <div key={t as string} className="flex items-center gap-2 rounded-[10px] bg-white px-2.5 py-1.5" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+      <div key={t as string} className="flex items-center gap-2 rounded-[6px] bg-white px-2.5 py-1.5" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
         <span className="flex h-5 w-5 items-center justify-center rounded-[7px] bg-[var(--purple)]" style={{ border: "1px solid var(--purple-edge)" }}><Icon name={ic as IconName} width={11} weight="bold" /></span>
         <span className="flex-1 text-[10px] font-black">{t}</span>
       </div>
@@ -147,9 +147,9 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
     : "Колесо баланса, дневник мыслей и расширенная динамика — для работы между встречами.";
 
   return (
-    <div className="overflow-hidden rounded-[22px]" style={{ background: "var(--purple-soft)" }}>
+    <div className="overflow-hidden rounded-[13px]" style={{ background: "var(--purple-soft)" }}>
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left" aria-expanded={open}>
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px]" style={{ background: "var(--purple)" }}>
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[9px]" style={{ background: "var(--purple)" }}>
           <Icon name="spark" width={22} weight="fill" color="var(--purple-edge)" />
         </span>
         <span className="min-w-0 flex-1">
@@ -165,7 +165,7 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
       <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>
         <div className="min-h-0 overflow-hidden">
           <div className="px-4 pb-4">
-            <div className="rounded-[16px] bg-white p-3">
+            <div className="rounded-[10px] bg-white p-3">
               <div className="mb-1.5 grid grid-cols-[1fr_auto_auto] items-center gap-x-3">
                 <span className="t-micro">Что входит</span>
                 <span className="t-micro w-14 text-center">Free</span>
@@ -181,7 +181,7 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
             </div>
             <button
               onClick={() => { tap(); setDemo(true); }}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[14px] py-3 text-[13px] font-black text-white transition-transform active:scale-[0.98]"
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[8px] py-3 text-[13px] font-black text-white transition-transform active:scale-[0.98]"
               style={{ background: "var(--ink)" }}
             >
               <Icon name="spark" width={15} weight="fill" color="#fff" /> Посмотреть, как это выглядит
@@ -241,7 +241,7 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
   }
 
   return (
-    <section className="overflow-hidden rounded-[24px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+    <section className="overflow-hidden rounded-[14px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       <div className="relative p-5" style={{ background: "linear-gradient(150deg, var(--purple) 0%, var(--purple-soft) 100%)" }}>
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3 py-1 text-[11px] font-black text-white"><Icon name={variant === "client" ? "therapy" : "spark"} width={13} weight="fill" /> {variant === "client" ? "МЕТОДИКА+" : "МЕТОДИКА PRO"}</span>
@@ -255,12 +255,12 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           {perks.map((p) => (
-            <div key={p.label} className="flex items-center gap-2 rounded-[12px] bg-[#fffdf7] px-2.5 py-2" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+            <div key={p.label} className="flex items-center gap-2 rounded-[7px] bg-[#fffdf7] px-2.5 py-2" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
               <Icon name={p.icon} width={15} weight="bold" /><span className="text-[11px] font-black leading-tight">{p.label}</span>
             </div>
           ))}
         </div>
-        <button onClick={() => { tap(); setBenefits(true); }} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white">
+        <button onClick={() => { tap(); setBenefits(true); }} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[8px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white">
           <Icon name="spark" width={15} weight="fill" /> Смотреть возможности
         </button>
       </div>
@@ -314,7 +314,7 @@ function PlanCard({ plan, onPick, loading, defaultOpen = false }: { plan: Plan; 
   const best = plan.best;
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="relative rounded-[18px]" style={{ background: best ? "var(--purple-soft)" : "#fff", border: `var(--bw-lg) solid ${best ? "var(--purple-edge)" : "var(--edge-neutral)"}` }}>
+    <div className="relative rounded-[11px]" style={{ background: best ? "var(--purple-soft)" : "#fff", border: `var(--bw-lg) solid ${best ? "var(--purple-edge)" : "var(--edge-neutral)"}` }}>
       {best && <span className="absolute -top-2.5 left-4 z-[1] rounded-full bg-[var(--ink)] px-2.5 py-0.5 text-[9px] font-black uppercase text-white">{plan.id === "client" ? "рекомендуем" : "основной"}</span>}
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2 p-3.5 text-left" aria-expanded={open}>
         <div className="flex-1"><p className="text-[15px] font-black">{plan.name}</p><p className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">{plan.tag}</p></div>
@@ -328,7 +328,7 @@ function PlanCard({ plan, onPick, loading, defaultOpen = false }: { plan: Plan; 
               <li key={perk} className="flex items-start gap-1.5 text-[11px] font-semibold text-[var(--muted)]"><Icon name="check" width={13} weight="bold" className="mt-0.5 shrink-0" color="var(--green-edge)" />{perk}</li>
             ))}
           </ul>
-          <button onClick={() => { tap(); onPick(); }} disabled={loading} className="mt-3 w-full rounded-[13px] py-2.5 text-[13px] font-black transition-transform active:scale-[0.98] disabled:opacity-50" style={best ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--purple-edge)" }}>
+          <button onClick={() => { tap(); onPick(); }} disabled={loading} className="mt-3 w-full rounded-[8px] py-2.5 text-[13px] font-black transition-transform active:scale-[0.98] disabled:opacity-50" style={best ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--purple-edge)" }}>
             {loading ? "Готовим оплату…" : `Подключить · ${rub(PLAN_PRICE[plan.id])}/мес`}
           </button>
         </div>

@@ -50,7 +50,7 @@ function accentFor(pathname: string) {
 function Wordmark({ small }: { small?: boolean }) {
   return (
     <Link href="/" className="inline-flex items-center gap-2">
-      <span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[16px] font-black text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
+      <span className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[16px] font-black text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
         {APP_NAME.charAt(0)}
       </span>
       <span className={`font-tight font-extrabold ${small ? "text-lg" : "text-xl"}`}>{APP_NAME}</span>
@@ -122,7 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={it.href}
                   href={it.href}
                   onClick={select}
-                  className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
+                  className="flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
                   style={active ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
                 >
                   <Icon name={it.icon} width={19} weight="regular" />
@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link
           href="/cabinet"
           onClick={select}
-          className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
+          className="flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
           style={cabinetActive ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full stroke" style={{ background: "#fff" }}>
@@ -159,13 +159,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Мобайл: нижние табы — плашка с обводкой; вокруг неё прозрачно (без заливки-полосы) */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-4 pb-[calc(var(--safe-bottom)+12px)] @md:hidden">
-          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[30px] bg-white/90 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.12)", boxShadow: "0 12px 30px -16px rgba(32,28,24,.4)" }}>
+          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[18px] bg-white/90 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.12)", boxShadow: "0 12px 30px -16px rgba(32,28,24,.4)" }}>
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
               // Центральная вкладка — приподнятая акцентная кнопка.
               if (it.href === centerHref) return (
                 <Link key={it.href} href={it.href} onClick={select} data-tour={`nav-${it.href.slice(1)}`} className="relative z-[2] flex flex-1 items-center justify-center" aria-label={it.label}>
-                  <motion.span whileTap={{ scale: 0.9 }} className="-mt-7 flex h-14 w-14 items-center justify-center rounded-[20px]" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw-lg) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}`, boxShadow: `0 10px 20px -8px ${active ? "rgba(32,28,24,.5)" : `var(--${centerTone}-edge)`}` }}>
+                  <motion.span whileTap={{ scale: 0.9 }} className="-mt-7 flex h-14 w-14 items-center justify-center rounded-[12px]" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw-lg) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}`, boxShadow: `0 10px 20px -8px ${active ? "rgba(32,28,24,.5)" : `var(--${centerTone}-edge)`}` }}>
                     <Icon name={it.icon} width={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
                   </motion.span>
                 </Link>

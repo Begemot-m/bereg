@@ -143,8 +143,8 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     if (!therapist) return <FindTherapistCard />;
     const psy = PSYS.find((p) => p.name === therapist);
     return (
-      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card flex items-center gap-3 p-4 transition-transform active:scale-[0.99]">
-        <span className="ico ico-line h-12 w-12"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
+      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-plain flex items-center gap-3 p-4 transition-transform active:scale-[0.99]">
+        <span className="ico h-12 w-12"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
           <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
@@ -155,8 +155,8 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy?booking=1" onClick={tap} className="card group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
-      <span className="ico ico-line h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>{booking.psyName.charAt(0)}</span>
+    <Link href="/therapy?booking=1" onClick={tap} className="card-plain group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <span className="ico h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>{booking.psyName.charAt(0)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
@@ -174,8 +174,8 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
 // Компактный блок подбора терапевта.
 function FindTherapistCard() {
   return (
-    <Link href="/catalog" onClick={tap} className="card flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
-      <span className="ico ico-line h-11 w-11 shrink-0">
+    <Link href="/catalog" onClick={tap} className="card-plain flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
+      <span className="ico h-11 w-11 shrink-0">
         <Icon name="compass" width={22} weight="bold" color="var(--edge)" />
       </span>
       <span className="min-w-0 flex-1">
@@ -203,13 +203,13 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
 }
 
 function FocusIcon({ icon }: { icon: IconName }) {
-  return <span className="ico ico-line h-14 w-14"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
+  return <span className="ico h-14 w-14"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
 }
 
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
   if (!appointment) {
     return (
-      <Link href="/sessions" onClick={tap} className="card group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
+      <Link href="/sessions" onClick={tap} className="card-plain group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
         <FocusIcon icon="calendar" />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Ближайший шаг</span>
@@ -223,8 +223,8 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href="/sessions" onClick={tap} className="card group relative flex items-center gap-3 overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
-      <span className="ico ico-line relative h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>
+    <Link href="/sessions" onClick={tap} className="card-plain group relative flex items-center gap-3 overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <span className="ico relative h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>
         {appointment.client.name.charAt(0)}
         {/* пульсирующая точка «скоро» */}
         <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--edge)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
@@ -267,7 +267,7 @@ function GuestStart() {
       <div className="chunk overflow-hidden">
         {steps.map(([number, title, text], index) => (
           <div key={number} className={`flex gap-3 px-4 py-3.5 ${index ? "line-top" : ""}`}>
-            <span className="tnum flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[14px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{number}</span>
+            <span className="tnum flex h-9 w-9 shrink-0 items-center justify-center rounded-[7px] text-[14px] font-black" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>{number}</span>
             <span><span className="t-head block">{title}</span><span className="t-sub block">{text}</span></span>
           </div>
         ))}

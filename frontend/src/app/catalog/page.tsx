@@ -129,15 +129,15 @@ export default function CatalogPage() {
     <div className="-mx-4 -mt-6 @md:-mx-9">
       <header className="px-4 pb-14 pt-8 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-start justify-between gap-3">
-          <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="font-tight mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Специалисты, которые подойдут именно вам.</p></div>
-          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[16px] bg-white px-2 py-2.5" style={{ border: "var(--bw) solid var(--ink)" }} aria-label="Собрать персональную подборку">
+          <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[8px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="font-tight mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Специалисты, которые подойдут именно вам.</p></div>
+          <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[10px] bg-white px-2 py-2.5" style={{ border: "var(--bw) solid var(--ink)" }} aria-label="Собрать персональную подборку">
             <Icon name="sort" width={20} weight="bold" color="var(--ink)" />
             <span className="text-[9.5px] font-black leading-tight">Персональная<br />подборка</span>
           </button>
         </div>
       </header>
 
-      <main className="relative -mt-8 min-h-[72vh] rounded-t-[30px] bg-[#fffdf7] px-4 pb-9 pt-4 @md:px-9" >
+      <main className="relative -mt-8 min-h-[72vh] rounded-t-[18px] bg-[#fffdf7] px-4 pb-9 pt-4 @md:px-9" >
         <div className="grid grid-cols-2 gap-1 rounded-full bg-white p-1 stroke-lg">
           {([{ id: "personal", label: "Для вас" }, { id: "all", label: "Все специалисты" }] as { id: CatalogMode; label: string }[]).map((tab) => <button key={tab.id} onClick={() => switchMode(tab.id)} className="rounded-full px-2 py-2 text-[11px] font-black transition-colors" style={mode === tab.id ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{tab.label}</button>)}
         </div>
@@ -160,7 +160,7 @@ export default function CatalogPage() {
 }
 
 function AllControls({ filters, setFilters, sort, setSort, activeFilters, openFilters }: { filters: CatalogFilters; setFilters: (filters: CatalogFilters) => void; sort: SortMode; setSort: (sort: SortMode) => void; activeFilters: number; openFilters: () => void }) {
-  return <Reveal delay={.03}><div className="mt-4 space-y-2"><label className="flex items-center gap-2 rounded-[15px] bg-white px-3.5 py-2.5 stroke"><Icon name="compass" width={16} color="var(--muted)" /><input value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder="Имя, подход или запрос" className="min-w-0 flex-1 bg-transparent text-[13px] font-bold outline-none placeholder:font-semibold placeholder:text-[var(--muted-2)]" />{filters.query && <button onClick={() => setFilters({ ...filters, query: "" })} className="font-black text-[var(--muted)]" aria-label="Очистить поиск">×</button>}</label><div className="flex gap-2"><button onClick={openFilters} className="relative flex flex-1 items-center justify-center gap-1.5 rounded-[13px] bg-white px-3 py-2 text-[11px] font-black stroke"><Icon name="filter" width={15} weight="bold" /> Фильтры{activeFilters > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--coral)] px-1 text-[10px] stroke">{activeFilters}</span>}</button><label className="flex flex-[1.35] items-center gap-1.5 rounded-[13px] bg-white px-3 py-2 stroke"><Icon name="sort" width={15} weight="bold" /><select value={sort} onChange={(event) => setSort(event.target.value as SortMode)} className="min-w-0 flex-1 bg-transparent text-[11px] font-black outline-none">{SORTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label></div></div></Reveal>;
+  return <Reveal delay={.03}><div className="mt-4 space-y-2"><label className="flex items-center gap-2 rounded-[9px] bg-white px-3.5 py-2.5 stroke"><Icon name="compass" width={16} color="var(--muted)" /><input value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder="Имя, подход или запрос" className="min-w-0 flex-1 bg-transparent text-[13px] font-bold outline-none placeholder:font-semibold placeholder:text-[var(--muted-2)]" />{filters.query && <button onClick={() => setFilters({ ...filters, query: "" })} className="font-black text-[var(--muted)]" aria-label="Очистить поиск">×</button>}</label><div className="flex gap-2"><button onClick={openFilters} className="relative flex flex-1 items-center justify-center gap-1.5 rounded-[8px] bg-white px-3 py-2 text-[11px] font-black stroke"><Icon name="filter" width={15} weight="bold" /> Фильтры{activeFilters > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--coral)] px-1 text-[10px] stroke">{activeFilters}</span>}</button><label className="flex flex-[1.35] items-center gap-1.5 rounded-[8px] bg-white px-3 py-2 stroke"><Icon name="sort" width={15} weight="bold" /><select value={sort} onChange={(event) => setSort(event.target.value as SortMode)} className="min-w-0 flex-1 bg-transparent text-[11px] font-black outline-none">{SORTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label></div></div></Reveal>;
 }
 
 function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
@@ -169,9 +169,9 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   const soon = psy.nextDays <= 3;
 
   return (
-    <button onClick={onOpen} className="chunk w-full overflow-hidden rounded-[24px] p-0 text-left transition-transform duration-200 active:scale-[.99]">
+    <button onClick={onOpen} className="chunk w-full overflow-hidden rounded-[14px] p-0 text-left transition-transform duration-200 active:scale-[.99]">
       <div className="flex gap-3.5 p-4">
-        <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[18px]" style={{ background: "var(--head-soft)" }}>
+        <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[11px]" style={{ background: "var(--head-soft)" }}>
           <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="106px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -207,7 +207,7 @@ function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: 
   return <div className="card-soft p-5 text-center"><div className="flex justify-center"><span className="ico ico-white h-12 w-12"><Icon name="compass" width={23} weight="bold" color="var(--edge)" /></span></div><h3 className="font-tight mt-3 text-[19px] font-black">Точных совпадений нет</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Сильнее всего ограничивает: {blocker}.</p><Button className="mt-4" onClick={onRelax}>Ослабить условие</Button></div>;
 }
 
-function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[20px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
+function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[12px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
 
 // Кнопка «добавить терапевта в мой раздел Терапия» — вверху анкеты.
 function AttachTherapistButton({ name }: { name: string }) {
@@ -263,7 +263,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       </div>
     </div>
 
-    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[30px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[18px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
       {/* Постер встречи и запись — первое, что нужно решить */}
       <PricePoster psy={psy} />
       <BookingMini psyName={psy.name} tone={tone} onDone={onBack} />
@@ -330,7 +330,7 @@ function PricePoster({ psy }: { psy: Psy }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="relative overflow-hidden rounded-[22px] p-5"
+      className="relative overflow-hidden rounded-[13px] p-5"
       style={{ background: tone.bg }}
     >
       <span aria-hidden className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ background: "#fff", opacity: 0.28 }} />
@@ -371,9 +371,9 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
     : null;
 
   return (
-    <div className="overflow-hidden rounded-[22px]" style={{ background: tone.soft }}>
+    <div className="overflow-hidden rounded-[13px]" style={{ background: tone.soft }}>
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left" aria-expanded={open}>
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] bg-white">
           <Icon name="calendar" width={21} weight="bold" color={tone.edge} />
         </span>
         <span className="min-w-0 flex-1">
@@ -384,7 +384,7 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
       </button>
       <Disclosure open={open} autoScroll={false}>
         <div className="px-4 pb-4">
-          <div className="rounded-[16px] bg-white p-3">
+          <div className="rounded-[10px] bg-white p-3">
             <BookFlow psyName={psyName} onDone={onDone} />
           </div>
         </div>
@@ -400,8 +400,8 @@ function MethodList({ psy }: { psy: Psy }) {
   return (
     <Section title="Методы">
       {/* Свёрнуто по умолчанию — раскрывается по нажатию */}
-      <button onClick={() => { tap(); setShow((v) => !v); }} className="flex w-full items-center gap-2.5 rounded-[16px] p-3.5" style={{ background: tone.soft }} aria-expanded={show}>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-white"><Icon name="therapy" width={15} weight="bold" color={tone.edge} /></span>
+      <button onClick={() => { tap(); setShow((v) => !v); }} className="flex w-full items-center gap-2.5 rounded-[10px] p-3.5" style={{ background: tone.soft }} aria-expanded={show}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] bg-white"><Icon name="therapy" width={15} weight="bold" color={tone.edge} /></span>
         <span className="min-w-0 flex-1 text-left"><span className="t-head block truncate">{psy.method}{psy.methods.length > 1 ? ` и ещё ${psy.methods.length - 1}` : ""}</span><span className="t-cap block">нажмите, чтобы раскрыть подходы</span></span>
         <motion.span animate={{ rotate: show ? 180 : 0 }} className="shrink-0 text-[15px] font-black text-[var(--muted)]">⌄</motion.span>
       </button>
@@ -422,11 +422,11 @@ function MethodList({ psy }: { psy: Psy }) {
               variants={{ hidden: { opacity: 0, y: 10, scale: 0.96 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 420, damping: 26 } } }}
               onClick={() => { tap(); setOpen(expanded ? null : method); }}
               aria-expanded={expanded}
-              className={`rounded-[18px] p-3.5 text-left ${expanded ? "col-span-2" : ""}`}
+              className={`rounded-[11px] p-3.5 text-left ${expanded ? "col-span-2" : ""}`}
               style={{ background: main ? tone.soft : "var(--surface-2)" }}
             >
               <motion.span layout="position" className="flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] bg-white">
                   <Icon name="therapy" width={15} weight="bold" color={tone.edge} />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -459,7 +459,7 @@ function MethodList({ psy }: { psy: Psy }) {
 function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
   const [open, setOpen] = useState(false);
   if (psy.format === "online") {
-    return <Section title="Формат и место"><div className="flex items-start gap-3 panel p-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--head-soft)] stroke"><Icon name="video" width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p></div></div></Section>;
+    return <Section title="Формат и место"><div className="flex items-start gap-3 panel p-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-[var(--head-soft)] stroke"><Icon name="video" width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p></div></div></Section>;
   }
   const address = [psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : "", psy.publicExactAddress ? psy.address : ""].filter(Boolean).join(", ");
   const routes = [
@@ -469,7 +469,7 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
   ];
   return (
     <Section title="Формат и место">
-      <div className="overflow-hidden rounded-[20px] bg-white stroke-lg">
+      <div className="overflow-hidden rounded-[12px] bg-white stroke-lg">
         <button onClick={() => { tap(); setOpen((value) => !value); }} className="block w-full text-left" aria-expanded={open}>
           <div className="relative h-[120px] overflow-hidden" style={{ background: "color-mix(in srgb, var(--olive-soft) 65%, white)", backgroundImage: "repeating-linear-gradient(0deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px)" }}>
             {/* дороги */}
@@ -480,14 +480,14 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
             <span className="absolute bottom-2 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[9px] font-black uppercase tracking-[.06em] stroke"><Icon name="route" width={11} weight="bold" /> Маршрут</span>
           </div>
           <div className="flex items-start gap-3 p-4">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[var(--head-soft)] stroke"><Icon name="pin" width={17} weight="bold" /></span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[7px] bg-[var(--head-soft)] stroke"><Icon name="pin" width={17} weight="bold" /></span>
             <div className="min-w-0 flex-1"><p className="text-[13px] font-black leading-snug">{address}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{formatLabel(psy.format)} · языки: {psy.languages.join(", ")}</p>{psy.privateAddressAvailable && <p className="mt-1.5 text-[10px] font-semibold text-[var(--muted-2)]">Точный адрес станет доступен после подтверждения очной записи.</p>}</div>
           </div>
         </button>
         <Disclosure open={open} zoom autoScroll={false}>
           <div className="line-top p-3">
             <p className="mb-2 text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">Построить маршрут</p>
-            <div className="grid grid-cols-3 gap-2">{routes.map((route) => <a key={route.label} href={route.href} target="_blank" rel="noopener noreferrer" onClick={success} className="flex items-center justify-center rounded-[12px] bg-[var(--surface-2)] px-2 py-2.5 text-[10px] font-black stroke">{route.label}</a>)}</div>
+            <div className="grid grid-cols-3 gap-2">{routes.map((route) => <a key={route.label} href={route.href} target="_blank" rel="noopener noreferrer" onClick={success} className="flex items-center justify-center rounded-[7px] bg-[var(--surface-2)] px-2 py-2.5 text-[10px] font-black stroke">{route.label}</a>)}</div>
           </div>
         </Disclosure>
       </div>
@@ -497,7 +497,7 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
 
 function TelegramPoster({ psy }: { psy: Psy }) {
   return (
-    <div className="relative overflow-hidden rounded-[22px] p-5" style={{ background: "var(--head)" }}>
+    <div className="relative overflow-hidden rounded-[13px] p-5" style={{ background: "var(--head)" }}>
       <motion.span aria-hidden className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-white/20" animate={{ y: [0, 8, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
       <div className="relative flex items-start gap-3.5">
         <span className="ico ico-white h-12 w-12 shrink-0"><Icon name="telegram" width={23} weight="fill" color="var(--edge)" /></span>
@@ -566,7 +566,7 @@ function RulesSection({ minutes }: { minutes: number }) {
 }
 
 function PhotoGallery({ psy }: { psy: Psy }) {
-  return <Section title="Фотографии"><div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">{psy.photos!.map((photo, index) => { const src = asset(photo); return <div key={`${photo.slice(0, 24)}-${index}`} className="relative h-[174px] w-[132px] shrink-0 snap-start overflow-hidden rounded-[18px] bg-white stroke-lg"><Image src={src} alt={`${psy.name}, фотография ${index + 1}`} fill sizes="132px" className="object-cover" unoptimized={isInlineImage(src)} /></div>; })}</div></Section>;
+  return <Section title="Фотографии"><div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">{psy.photos!.map((photo, index) => { const src = asset(photo); return <div key={`${photo.slice(0, 24)}-${index}`} className="relative h-[174px] w-[132px] shrink-0 snap-start overflow-hidden rounded-[11px] bg-white stroke-lg"><Image src={src} alt={`${psy.name}, фотография ${index + 1}`} fill sizes="132px" className="object-cover" unoptimized={isInlineImage(src)} /></div>; })}</div></Section>;
 }
 
 function isInlineImage(src: string) { return /^(data:|blob:)/i.test(src); }
@@ -587,7 +587,7 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
   const rate = (value: number) => { success(); setMine(value); try { const ratings = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); ratings[psy.id] = value; localStorage.setItem(RATING_KEY, JSON.stringify(ratings)); } catch { /* ignore */ } };
   return (
     <Section title="Рейтинг и оценка">
-      <div className="overflow-hidden rounded-[22px] bg-[var(--amber-soft)]">
+      <div className="overflow-hidden rounded-[13px] bg-[var(--amber-soft)]">
         <div className="flex items-center gap-4 p-4">
           {/* Круговой рейтинг с анимированной дугой */}
           {(() => {
@@ -624,7 +624,7 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
           </div>
         </div>
         <div className="border-t bg-white/55 p-4" style={{ borderColor: "var(--amber-edge)" }}>
-          {canRate ? <><p className="mb-2 text-center text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Ваша оценка после встречи</p><div className="flex justify-center gap-2">{[1,2,3,4,5].map((value) => <motion.button key={value} whileTap={{ scale: .78 }} animate={mine === value ? { scale: [1, 1.16, 1] } : { scale: 1 }} onClick={() => rate(value)} className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white stroke" aria-label={`Оценка ${value}`}><Icon name="star" width={21} weight={mine >= value ? "fill" : "regular"} color="var(--amber-edge)" /></motion.button>)}</div>{mine > 0 && <p className="mt-2 text-center text-[11px] font-black">Спасибо — оценку можно изменить</p>}</> : <p className="text-center text-[11px] font-semibold text-[var(--muted)]">Оценку можно оставить после состоявшейся сессии.</p>}
+          {canRate ? <><p className="mb-2 text-center text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Ваша оценка после встречи</p><div className="flex justify-center gap-2">{[1,2,3,4,5].map((value) => <motion.button key={value} whileTap={{ scale: .78 }} animate={mine === value ? { scale: [1, 1.16, 1] } : { scale: 1 }} onClick={() => rate(value)} className="flex h-10 w-10 items-center justify-center rounded-[7px] bg-white stroke" aria-label={`Оценка ${value}`}><Icon name="star" width={21} weight={mine >= value ? "fill" : "regular"} color="var(--amber-edge)" /></motion.button>)}</div>{mine > 0 && <p className="mt-2 text-center text-[11px] font-black">Спасибо — оценку можно изменить</p>}</> : <p className="text-center text-[11px] font-semibold text-[var(--muted)]">Оценку можно оставить после состоявшейся сессии.</p>}
         </div>
       </div>
     </Section>

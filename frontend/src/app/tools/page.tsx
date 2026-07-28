@@ -63,8 +63,8 @@ function ClientTools() {
       <PageHead title="Инструменты" sub="Короткая помощь в нужный момент" icon="tools" />
 
       <Reveal y={10}>
-        <div className="-mx-4 min-h-[64vh] rounded-t-[30px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
-          <section className="overflow-hidden rounded-[23px] bg-[var(--peach-soft)]" style={{ border: "var(--bw-lg) solid var(--peach-edge)" }}>
+        <div className="-mx-4 min-h-[64vh] rounded-t-[18px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+          <section className="overflow-hidden rounded-[14px] bg-[var(--peach-soft)]" style={{ border: "var(--bw-lg) solid var(--peach-edge)" }}>
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
@@ -77,7 +77,7 @@ function ClientTools() {
               <img src={asset(recommendation.image)} alt="" className="h-[92px] w-[92px] shrink-0 object-contain" />
             </div>
             <div className="flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--peach-edge)" }}>
-              <button onClick={() => { tap(); setTech(recommendation.tech); }} className="flex-1 rounded-[14px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[.98]">Начать · {recommendation.time}</button>
+              <button onClick={() => { tap(); setTech(recommendation.tech); }} className="flex-1 rounded-[8px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[.98]">Начать · {recommendation.time}</button>
               <span className="rounded-full bg-white px-3 py-2 text-[11px] font-black" style={{ border: "var(--bw) solid var(--peach-edge)" }}>{weekly ? `${weekly} за неделю` : "без спешки"}</span>
             </div>
           </section>
@@ -91,7 +91,7 @@ function ClientTools() {
               const last = history.find((x) => x.tech === t.tech);
               const hasDraft = drafts.includes(t.tech);
               return <Reveal key={t.tech} delay={0.03 + i * 0.04}>
-                <button onClick={() => { tap(); setTech(t.tech); }} className="group flex min-h-[226px] w-full flex-col overflow-hidden rounded-[21px] text-left transition-transform duration-200 active:scale-[.98]" style={{ background: t.bg, border: `var(--bw-lg) solid ${t.edge}` }}>
+                <button onClick={() => { tap(); setTech(t.tech); }} className="group flex min-h-[226px] w-full flex-col overflow-hidden rounded-[13px] text-left transition-transform duration-200 active:scale-[.98]" style={{ background: t.bg, border: `var(--bw-lg) solid ${t.edge}` }}>
                   <div className="relative flex h-[118px] items-center justify-center overflow-hidden">
                     <img src={asset(t.image)} alt="" className="h-[118px] w-[118px] object-contain transition-transform duration-300 group-hover:scale-[1.04]" />
                     <span className="absolute right-2 top-2 rounded-full bg-[#fffdf7] px-2 py-1 text-[10px] font-black" style={{ border: `var(--bw) solid ${t.edge}` }}>{t.time}</span>
@@ -106,7 +106,7 @@ function ClientTools() {
             })}
           </div>
 
-          {history.some((x) => typeof x.before === "number" && typeof x.after === "number") && <section className="mt-5 rounded-[19px] bg-white p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+          {history.some((x) => typeof x.before === "number" && typeof x.after === "number") && <section className="mt-5 rounded-[11px] bg-white p-4" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
             <p className="text-[10px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Личное наблюдение</p>
             <p className="mt-1 font-tight text-[17px] font-black">Практики уже помогают замечать изменения</p>
             <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Это не оценка и не диагноз — только ваша сохранённая динамика до и после.</p>
@@ -117,8 +117,8 @@ function ClientTools() {
             <span className="flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[10px] font-black" style={{ border: "var(--bw) solid var(--green-edge)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            <Link href="/therapy" onClick={() => tap()} className="rounded-[18px] bg-white p-3" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="mood" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
-            <Link href="/therapy" onClick={() => tap()} className="rounded-[18px] bg-white p-3" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="balance" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="rounded-[11px] bg-white p-3" style={{ border: "var(--bw) solid var(--green-edge)" }}><Icon name="mood" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="rounded-[11px] bg-white p-3" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name="balance" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
           </div>
 
 

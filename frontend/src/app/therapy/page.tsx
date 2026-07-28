@@ -101,7 +101,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
       <header className="px-4 pb-16 pt-3 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--purple)]"><Icon name="therapy" width={20} weight="fill" /></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-[7px] bg-[var(--purple)]"><Icon name="therapy" width={20} weight="fill" /></span>
             <div className="leading-none"><h1 className="font-tight text-[20px] font-black">Терапия</h1><p className="font-tight mt-1 text-[12px] font-bold text-[var(--muted)]">Ваш путь между сессиями</p></div>
           </div>
         </div>
@@ -132,7 +132,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
         )}
       </header>
 
-      <main className="relative -mt-9 rounded-t-[30px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)" }}>
+      <main className="relative -mt-9 rounded-t-[18px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)" }}>
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
           {/* Настроение → работа со специалистом → доска → динамика → записи. */}
@@ -180,7 +180,7 @@ function MoodStatsBlock({ moods }: { moods: Mood[] }) {
 // Блок подбора терапевта в шапке терапии (когда никого ещё не прикреплено).
 function FindTherapistBlock() {
   return (
-    <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[20px] bg-[#fffdf7] p-3.5 transition-transform active:scale-[0.99]" style={{ border: "2.5px dashed var(--purple-edge)" }}>
+    <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[12px] bg-[#fffdf7] p-3.5 transition-transform active:scale-[0.99]" style={{ border: "2.5px dashed var(--purple-edge)" }}>
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]"><Icon name="compass" width={24} weight="bold" /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-black">Найти терапевта</span>
@@ -223,17 +223,17 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
   }, [avail]);
   const manage = mine.length > 0 && !pickSlot && !booked;
   return (
-    <div className="relative mt-3 rounded-[20px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+    <div className="relative mt-3 rounded-[12px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
       {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}?`)) onRemove(); }} className="absolute right-2 top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)", color: "var(--salmon-edge)" }} aria-label="Открепить терапевта">×</button>}
       {/* Тап по карточке — на страницу терапевта */}
       <Link href={href} onClick={tap} className="flex gap-3">
         {portrait ? (
-          <div className="relative h-[104px] w-[88px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "var(--purple-soft)" }}>
+          <div className="relative h-[104px] w-[88px] shrink-0 overflow-hidden rounded-[10px]" style={{ background: "var(--purple-soft)" }}>
             <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="88px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
           </div>
         ) : (
-          <div className="flex h-[104px] w-[88px] shrink-0 items-center justify-center rounded-[16px] bg-[var(--green)] text-[24px] font-black" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>{name.charAt(0)}</div>
+          <div className="flex h-[104px] w-[88px] shrink-0 items-center justify-center rounded-[10px] bg-[var(--green)] text-[24px] font-black" style={{ border: "var(--bw-lg) solid var(--green-edge)" }}>{name.charAt(0)}</div>
         )}
         <div className="min-w-0 flex-1">
           <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Ваш терапевт</p>
