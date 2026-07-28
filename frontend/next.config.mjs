@@ -15,9 +15,11 @@ const nextConfig = {
   // Базовый путь доступен в клиенте для ссылок на public-ассеты (картинки маскотов).
   // Метка сборки: видна в кабинете, чтобы отличать свежую версию от той,
   // что вебвью достал из кеша, — иначе «не применилось» не проверить.
+  // Метку сборки задаёт CI — тем же значением он кладёт рядом version.json,
+  // по которому приложение понимает, что вебвью держит старую версию.
   env: {
     NEXT_PUBLIC_BASE_PATH: repo ? `/${repo}` : "",
-    NEXT_PUBLIC_BUILD: new Date().toISOString(),
+    NEXT_PUBLIC_BUILD: process.env.NEXT_PUBLIC_BUILD || new Date().toISOString(),
   },
   ...(isStatic
     ? {

@@ -2,15 +2,13 @@ name: Build and deploy app
 
 # Демо на Pages выкатывается отдельным workflow и этим не затрагивается.
 #
-# Ветка master → staging автоматически. Прод — только вручную, чтобы выкатка
-# на людей всегда была осознанным действием.
+# Пока сервера нет, автозапуск отключён: на каждый пуш он собирал образ и падал
+# на SSH-шаге, вешая красный крест на каждый коммит и съедая минуты CI.
+# Когда сервер появится и секреты SSH_* будут заданы — вернуть блок push:
+#   push:
+#     branches: [master]
+#     paths: ["frontend/**", "deploy/**", ".github/workflows/app-deploy.yml"]
 on:
-  push:
-    branches: [master]
-    paths:
-      - "frontend/**"
-      - "deploy/**"
-      - ".github/workflows/app-deploy.yml"
   workflow_dispatch:
     inputs:
       environment:
