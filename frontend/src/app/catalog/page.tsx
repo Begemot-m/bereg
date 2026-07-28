@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowGlyph } from "@/components/blocks";
 import { AnimatePresence, motion } from "motion/react";
 
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
@@ -196,7 +197,7 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
           <p className="t-head">{psy.price.toLocaleString("ru-RU")} ₽<span className="t-cap"> / {psy.minutes} мин</span></p>
           <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
-        <span className="btn ml-auto shrink-0">Записаться →</span>
+        <span className="btn ml-auto shrink-0">Записаться <ArrowGlyph /></span>
       </div>
     </button>
   );
@@ -233,7 +234,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
   return <div>
     <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
       <button onClick={onBack} className="btn btn-accent mb-3">
-        <span className="text-[15px] leading-none">‹</span> Вернуться в каталог
+        <ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Вернуться в каталог
       </button>
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} />
@@ -380,7 +381,7 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
           <span className="t-head block">Записаться</span>
           <span className="t-sub block">{label ? `Ближайшее окно — ${label}` : "Посмотреть свободные окна"}</span>
         </span>
-        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="arrow">›</motion.span>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="arrow"><ArrowGlyph /></motion.span>
       </button>
       <Disclosure open={open} autoScroll={false}>
         <div className="px-4 pb-4">
@@ -403,7 +404,7 @@ function MethodList({ psy }: { psy: Psy }) {
       <button onClick={() => { tap(); setShow((v) => !v); }} className="flex w-full items-center gap-2.5 rounded-[14px] p-3.5" style={{ background: tone.soft }} aria-expanded={show}>
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-white"><Icon name="therapy" width={15} weight="bold" color={tone.edge} /></span>
         <span className="min-w-0 flex-1 text-left"><span className="t-head block truncate">{psy.method}{psy.methods.length > 1 ? ` и ещё ${psy.methods.length - 1}` : ""}</span><span className="t-cap block">нажмите, чтобы раскрыть подходы</span></span>
-        <motion.span animate={{ rotate: show ? 180 : 0 }} className="shrink-0 text-[15px] font-black text-[var(--muted)]">⌄</motion.span>
+        <motion.span animate={{ rotate: show ? -90 : 90 }} className="shrink-0 text-[var(--muted)]"><ArrowGlyph /></motion.span>
       </button>
       <Disclosure open={show}>
       <motion.div
@@ -534,7 +535,7 @@ function EducationBlock({ psy }: { psy: Psy }) {
       <div>
         <ul className="space-y-1.5">{psy.education.map((item) => <li key={item} className="flex gap-2 text-[12px] font-semibold"><Icon name="check" width={15} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{item}</li>)}</ul>
         <button onClick={() => { tap(); setOpen((v) => !v); }} className="mt-3 flex items-center gap-1.5 text-[11px] font-black text-[var(--muted)]" aria-expanded={open}>
-          Как проверяются документы <span className="transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+          Как проверяются документы <ArrowGlyph className="transition-transform" style={{ transform: open ? "rotate(-90deg)" : "rotate(90deg)" }} />
         </button>
         <Disclosure open={open}>
           <p className="card-soft mt-2 p-3 text-[11px] font-semibold leading-relaxed">Дипломы и сертификаты специалист загружает при регистрации, платформа проверяет их до публикации профиля. Значок «подтверждён» — результат этой проверки, а не оплаты.</p>

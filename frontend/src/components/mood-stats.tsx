@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { ArrowGlyph } from "@/components/blocks";
 import { useMemo, useState } from "react";
 
 import { moodColor } from "@/components/mood-egg";
@@ -78,9 +79,9 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
 
       <div className="rounded-[18px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <div className="mb-2.5 flex items-center justify-between">
-          <button onClick={() => { select(); setMonth(shiftMonth(month, -1)); }} className="arrow" aria-label="Предыдущий месяц">‹</button>
+          <button onClick={() => { select(); setMonth(shiftMonth(month, -1)); }} className="arrow" aria-label="Предыдущий месяц"><ArrowGlyph style={{ transform: "rotate(180deg)" }} /></button>
           <p className="t-cap">{monthLabel(month)}</p>
-          <button onClick={() => { select(); setMonth(shiftMonth(month, 1)); }} className="arrow" aria-label="Следующий месяц">›</button>
+          <button onClick={() => { select(); setMonth(shiftMonth(month, 1)); }} className="arrow" aria-label="Следующий месяц"><ArrowGlyph /></button>
         </div>
         <MoodCalendar month={month} byDay={byDay} />
       </div>
@@ -90,7 +91,7 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
           <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Частые эмоции</p>
           <div className="flex flex-wrap gap-1.5">
             {top.map(([name, count]) => (
-              <span key={name} className="rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: `var(--${emotionTone(name)})`, border: `var(--bw) solid var(--${emotionTone(name)}-edge)` }}>{name} · {count}</span>
+              <span key={name} className="chip" style={{ background: `var(--${emotionTone(name)}-soft)` }}>{name} · {count}</span>
             ))}
           </div>
         </div>

@@ -43,9 +43,21 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
   );
 }
 
-/** Стрелка «дальше». Одна на весь проект — вид меняется в .arrow в globals.css. */
+/**
+ * Форма стрелки. Одна на весь проект: линия с наконечником.
+ * Поворотом получаем «назад» (180°), «вниз»/«раскрыть» (90°).
+ */
+export function ArrowGlyph({ size = 15, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden className={className} style={style}>
+      <path d="M3 8h9M8.5 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Стрелка «дальше» в круге. Вид круга меняется в .arrow в globals.css. */
 export function Arrow() {
-  return <span className="arrow" aria-hidden>›</span>;
+  return <span className="arrow" aria-hidden><ArrowGlyph /></span>;
 }
 
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {

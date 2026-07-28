@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type MouseEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
 
+import { ArrowGlyph } from "@/components/blocks";
 import { tap } from "@/lib/haptics";
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
@@ -20,11 +21,7 @@ export function Button({ variant = "primary", arrow, size = "md", className = ""
   return (
     <button className={`${base} ${tones} ${className}`} style={{ transitionTimingFunction: EASE }} onClick={handle} {...props}>
       {children}
-      {arrow && (
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" className="transition-transform duration-150 group-hover:translate-x-0.5">
-          <path d="M3 8h9M8.5 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
+      {arrow && <ArrowGlyph className="transition-transform duration-150 group-hover:translate-x-0.5" />}
     </button>
   );
 }

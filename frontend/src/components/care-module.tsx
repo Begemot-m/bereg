@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 
 import { Icon } from "@/components/icons";
-import { Arrow } from "@/components/blocks";
+import { Arrow, ArrowGlyph } from "@/components/blocks";
 import { APP_NAME, CENTER, CENTER_SITE, CENTER_URL, TAGLINE } from "@/lib/brand";
 import { tap } from "@/lib/haptics";
 
@@ -32,7 +32,7 @@ export function CareModule() {
         <p className="mt-3 text-[13px] font-bold leading-snug">{TAGLINE}. {APP_NAME} — инструмент центра для качественной помощи и самопомощи.</p>
 
         <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={() => tap()} className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-black text-[var(--ink)] underline-offset-2 hover:underline">
-          {CENTER_SITE} <span className="text-[15px]">→</span>
+          {CENTER_SITE} <ArrowGlyph />
         </a>
 
         {/* Связь в Telegram — с настоящим значком Telegram */}

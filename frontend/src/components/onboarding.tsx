@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { Arrow } from "@/components/blocks";
+import { Arrow, ArrowGlyph } from "@/components/blocks";
 import { asset } from "@/lib/asset";
 import { APP_NAME } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
@@ -119,8 +119,8 @@ export function Onboarding() {
         {/* Низ: назад + стрелка (на интро-экранах) */}
         {!isRole && (
           <div className="flex items-center justify-between">
-            <button onClick={back} disabled={step === 0} className="flex h-11 items-center gap-1 px-2 text-[13px] font-black disabled:opacity-0" style={{ color: "rgba(32,28,24,.6)" }} aria-label="Назад">‹ Назад</button>
-            <motion.button onClick={next} whileTap={{ scale: 0.9 }} className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg" style={{ background: "var(--ink)", color: "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }} aria-label="Дальше"><span className="text-[24px] leading-none">→</span></motion.button>
+            <button onClick={back} disabled={step === 0} className="flex h-11 items-center gap-1 px-2 text-[13px] font-black disabled:opacity-0" style={{ color: "rgba(32,28,24,.6)" }} aria-label="Назад"><ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Назад</button>
+            <motion.button onClick={next} whileTap={{ scale: 0.9 }} className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg" style={{ background: "var(--ink)", color: "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }} aria-label="Дальше"><ArrowGlyph size={24} /></motion.button>
           </div>
         )}
       </div>

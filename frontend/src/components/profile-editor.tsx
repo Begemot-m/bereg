@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { Arrow } from "@/components/blocks";
+import { Arrow, ArrowGlyph } from "@/components/blocks";
 import { Button, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
@@ -191,7 +191,7 @@ function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; na
             <p className="text-[15px] font-black leading-none">{price} ₽<span className="text-[11px] font-bold text-[var(--muted)]"> / {minutes} мин</span></p>
             <p className="mt-1 flex items-center gap-1 text-[10px] font-black text-[var(--muted)]"><Icon name="calendar" width={11} weight="bold" /> {format}</p>
           </div>
-          <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Посмотреть и записаться →</span>
+          <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Посмотреть и записаться <ArrowGlyph /></span>
         </div>
       </div>
     </div>

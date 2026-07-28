@@ -53,7 +53,7 @@ export function useDayWindows() {
 export function NoWorkHours() {
   return (
     <div className="rounded-[13px] py-6 text-center text-[13px] font-semibold text-[var(--muted)]" style={{ background: "#fff" }}>
-      Окна ещё не заданы.<br /><Link href="/cabinet" className="font-extrabold underline">Настроить график в кабинете →</Link>
+      Окна ещё не заданы.<br /><Link href="/cabinet" className="font-extrabold underline">Настроить график в кабинете</Link>
     </div>
   );
 }

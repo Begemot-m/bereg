@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowGlyph } from "@/components/blocks";
 
 import { select } from "@/lib/haptics";
 import { ymdLocal, WEEKDAYS } from "@/lib/schedule";
@@ -52,9 +53,9 @@ export function MonthCalendar({
       <div className="mb-2 flex items-center justify-between">
         <p className="font-tight text-[15px] font-extrabold">{MON[cursor.getMonth()]} {cursor.getFullYear()}</p>
         <div className="flex items-center gap-1">
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className={navBtn}>‹</button>
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className={navBtn}><ArrowGlyph style={{ transform: "rotate(180deg)" }} /></button>
           <button onClick={() => { setCursor(new Date()); onSelectDay(null); }} className="rounded-full px-2.5 py-1 text-[11px] font-bold active:scale-95 transition-transform" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>Сегодня</button>
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className={navBtn}>›</button>
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className={navBtn}><ArrowGlyph /></button>
         </div>
       </div>
       <div className="grid grid-cols-7 gap-x-1 gap-y-0.5">

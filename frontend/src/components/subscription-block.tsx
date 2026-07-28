@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowGlyph } from "@/components/blocks";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 
@@ -159,7 +160,7 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
           </span>
           <span className="t-sub mt-0.5 block">{pitch}</span>
         </span>
-        <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
+        <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}><ArrowGlyph /></span>
       </button>
 
       <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>
@@ -319,7 +320,7 @@ function PlanCard({ plan, onPick, loading, defaultOpen = false }: { plan: Plan; 
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2 p-3.5 text-left" aria-expanded={open}>
         <div className="flex-1"><p className="text-[15px] font-black">{plan.name}</p><p className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">{plan.tag}</p></div>
         <div className="text-right"><p className="font-tight text-[20px] font-black leading-none">{rub(PLAN_PRICE[plan.id])}</p><p className="text-[10px] font-bold text-[var(--muted)]">в месяц</p></div>
-        <span className="text-[16px] font-black text-[var(--muted-2)] transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+        <ArrowGlyph className="shrink-0 text-[var(--muted-2)] transition-transform" style={{ transform: open ? "rotate(-90deg)" : "rotate(90deg)" }} />
       </button>
       <Disclosure open={open}>
         <div className="px-3.5 pb-3.5">

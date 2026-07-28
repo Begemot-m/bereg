@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { ArrowGlyph } from "@/components/blocks";
 
 import { select } from "@/lib/haptics";
 import { ymdLocal, WEEKDAYS } from "@/lib/schedule";
@@ -54,7 +55,7 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
       {/* Аккуратная подсказка: края тают + еле заметный шеврон «листай» */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-5" style={{ background: "linear-gradient(to left, transparent, var(--page))" }} />
       <div className="pointer-events-none absolute inset-y-0 right-0 flex w-9 items-center justify-end pb-1 pr-0.5" style={{ background: "linear-gradient(to right, transparent, var(--page))" }}>
-        <span className="hint-slide text-[15px] font-bold" style={{ color: "var(--edge)" }}>›</span>
+        <span className="hint-slide" style={{ color: "var(--edge)" }}><ArrowGlyph /></span>
       </div>
     </div>
   );

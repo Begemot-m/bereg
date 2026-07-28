@@ -99,7 +99,7 @@ function ClientTools() {
                   <div className="flex flex-1 flex-col bg-white p-3">
                     <h3 className="font-tight text-[15px] font-black leading-tight">{t.title}</h3>
                     <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">{t.desc}</p>
-                    <span className="mt-auto pt-2 text-[10px] font-black uppercase tracking-[.05em]" style={{ color: t.edge }}>{hasDraft ? "продолжить черновик" : last ? "можно повторить" : "попробовать"} →</span>
+                    <span className="mt-auto pt-2 text-[10px] font-black uppercase tracking-[.05em]" style={{ color: t.edge }}>{hasDraft ? "продолжить черновик" : last ? "можно повторить" : "попробовать"}</span>
                   </div>
                 </button>
               </Reveal>;

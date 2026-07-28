@@ -6,12 +6,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { SectionTitle } from "@/components/blocks";
+import { SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
-import { Button, Disclosure, Input, Spinner, Textarea } from "@/components/ui";
+import { Disclosure, Input, Spinner, Textarea } from "@/components/ui";
 import {
   deleteClient,
   derivedStatus,
@@ -23,7 +23,6 @@ import {
   listHomework,
   listMoods,
   sendHomework,
-  statusReason,
   STATUS_LABEL,
   updateClient,
   updateHomework,
@@ -107,7 +106,7 @@ export function ClientDetail() {
       {/* Шапка клиента: цвет = фон раздела, ниже скруглённая линия */}
       <header className="bg-[var(--page)] px-4 pb-14 pt-4 @md:px-9">
         <Link href="/clients" className="btn btn-accent mb-3 px-3.5 py-2 text-[12.5px]">
-          <span className="text-[15px] leading-none">‹</span> Все клиенты
+          <ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Все клиенты
         </Link>
         <div className="flex items-center gap-3.5">
           {/* Крупная рамка фото */}
@@ -115,20 +114,18 @@ export function ClientDetail() {
           <div className="min-w-0 flex-1">
             <h1 className="font-tight truncate text-[22px] font-black leading-tight">{client.name}</h1>
             {client.contact
-              ? <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name={isPhone(client.contact) ? "bell" : "spark"} width={12} weight="fill" /> {formatContact(client.contact)}</span>
+              ? <span className="t-cap mt-1 block">{formatContact(client.contact)}</span>
               : <span className="mt-1 block text-[12px] font-semibold text-[var(--muted-2)]">Контакт не указан</span>}
           </div>
           {/* Статус — правее имени и аватарки */}
-          <span className="shrink-0 self-start rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw) solid var(--${st}-edge)`, color: `var(--${st}-edge)` }}>{STATUS_LABEL[dstatus]}</span>
+          {/* Статус — серой заливкой, как в списке клиентов */}
+          <span className="chip shrink-0 self-start" style={{ background: "var(--surface-2)" }}>{STATUS_LABEL[dstatus]}</span>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <ConnectionChip link={client.link} />
-          <p className="text-[11px] font-semibold text-[var(--muted-2)]">{statusReason(client)} · статус меняется сам</p>
-        </div>
+        <div className="mt-2"><ConnectionChip link={client.link} /></div>
 
         {/* Кнопки — в тонах приложения */}
         <div className="mt-4 flex gap-2">
-          <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "" : "btn-accent"}`}><Icon name="calendar" width={15} weight="bold" color="#fff" /> Записать на окно</button>
+          <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "btn-white" : ""}`}><Icon name="calendar" width={15} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> Записать на окно</button>
           <button
             onClick={() => { tap(); setConnectOpen((v) => !v); setBookOpen(false); }}
             className={`btn flex-1 py-3 ${connectOpen ? "" : "btn-accent"}`}
@@ -197,11 +194,11 @@ export function ClientDetail() {
 
         {/* Заметки */}
         <div>
-          <SectionTitle action={<button onClick={() => { tap(); patch.mutate({ note }); }} className="text-[12px] font-semibold text-[var(--muted)] hover:text-[var(--ink)]">{patch.isSuccess ? "Сохранено" : "Сохранить"}</button>}>Заметки</SectionTitle>
+          <SectionTitle action={<button onClick={() => { tap(); patch.mutate({ note }); }} className="btn btn-accent px-3 py-1 text-[11px]">{patch.isSuccess ? "Сохранено" : "Сохранить"}</button>}>Заметки</SectionTitle>
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={5} placeholder="Приватные заметки о работе…" />
         </div>
 
-        <button onClick={() => { if (confirm("Удалить клиента?")) remove.mutate(); }} className="text-[12px] font-semibold" style={{ color: "var(--danger)" }}>Удалить клиента</button>
+        <button onClick={() => { if (confirm("Удалить клиента?")) remove.mutate(); }} className="btn w-full py-2.5" style={{ background: "var(--danger)", borderColor: "var(--danger)" }}>Удалить клиента</button>
       </main>
     </div>
   );
@@ -216,12 +213,8 @@ function ConnectionChip({ link }: { link: Client["link"] }) {
   }[link];
   const isNeutral = map.tone === "neutral";
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black"
-      style={isNeutral
-        ? { background: "rgba(255,255,255,.6)", border: "var(--bw) solid var(--edge-neutral)", color: "var(--muted)" }
-        : { background: `var(--${map.tone}-soft)`, border: `var(--bw) solid var(--${map.tone}-edge)`, color: `var(--${map.tone}-edge)` }}
-    >
+    /* Без заливки: состояние подключения — подпись, а не акцент */
+    <span className="inline-flex items-center gap-1 text-[10px] font-black" style={{ color: isNeutral ? "var(--muted)" : `var(--${map.tone}-edge)` }}>
       <Icon name={map.icon} width={11} weight="bold" color={isNeutral ? "var(--muted)" : `var(--${map.tone}-edge)`} /> {map.label}
     </span>
   );
@@ -348,7 +341,7 @@ function HomeworkBlock({ clientId, items, onChanged }: { clientId: number; items
         <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="Например: дневник тревоги — 3 записи за неделю" />
         <div className="mt-2 flex items-center justify-between">
           <span className="text-[11px] font-semibold text-[var(--muted-2)]">Скоро — шаблоны техник</span>
-          <Button size="sm" disabled={send.isPending || !text.trim()} onClick={() => send.mutate()} arrow>Отправить</Button>
+          <button disabled={send.isPending || !text.trim()} onClick={() => send.mutate()} className="btn btn-accent px-4 py-2">Отправить <ArrowGlyph /></button>
         </div>
       </div>
       {/* История и процесс выполнения */}
@@ -381,8 +374,8 @@ function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void })
         <div className="space-y-2">
           <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} autoFocus />
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => save.mutate({ text: text.trim() })} disabled={!text.trim()}>Сохранить</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setText(hw.text); }}>Отмена</Button>
+            <button onClick={() => save.mutate({ text: text.trim() })} disabled={!text.trim()} className="btn btn-accent px-4 py-2 text-[12px]">Сохранить</button>
+            <button onClick={() => { setEditing(false); setText(hw.text); }} className="btn btn-white px-4 py-2 text-[12px]">Отмена</button>
           </div>
         </div>
       ) : (
@@ -396,8 +389,8 @@ function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void })
             <span className="rounded-full px-2.5 py-1 text-[10.5px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` }}>{HW_LABEL[hw.status]}</span>
             <span className="text-[10px] font-semibold text-[var(--muted-2)]">{dtf.format(new Date(hw.sentAt))}</span>
             <div className="ml-auto flex gap-1">
-              <button onClick={() => { tap(); setEditing(true); }} className="rounded-full px-2.5 py-1 text-[11px] font-black text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>Поправить</button>
-              <button onClick={() => { if (confirm("Удалить задание?")) del.mutate(); }} className="rounded-full px-2.5 py-1 text-[11px] font-black text-[var(--muted-2)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>Удалить</button>
+              <button onClick={() => { tap(); setEditing(true); }} className="btn px-2.5 py-1 text-[11px]" style={{ background: "var(--purple-edge)", borderColor: "var(--purple-edge)" }}>Поправить</button>
+              <button onClick={() => { if (confirm("Удалить задание?")) del.mutate(); }} className="btn px-2.5 py-1 text-[11px]" style={{ background: "var(--danger)", borderColor: "var(--danger)" }}>Удалить</button>
             </div>
           </div>
         </>

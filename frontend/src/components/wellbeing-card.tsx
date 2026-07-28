@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowGlyph } from "@/components/blocks";
 
 import { Icon } from "@/components/icons";
 import { Disclosure } from "@/components/ui";
@@ -57,7 +58,7 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
           )}
           <button onClick={() => { tap(); setOpen(!open); }} className="card-nested mt-3 flex w-full items-center justify-between px-3.5 py-2.5">
             <span className="text-[12px] font-black">Разбор по сферам</span>
-            <span className="text-[13px] font-black transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+            <ArrowGlyph className="transition-transform" style={{ transform: open ? "rotate(-90deg)" : "rotate(90deg)" }} />
           </button>
           <Disclosure open={open}>
             <div className="card-nested mt-2 p-3.5">

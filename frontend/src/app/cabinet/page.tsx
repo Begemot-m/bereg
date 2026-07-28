@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { Arrow, PageHead, SectionTitle } from "@/components/blocks";
+import { Arrow, PageHead, SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
@@ -130,7 +130,7 @@ function Foldable({ icon, title, subtitle, children, defaultOpen = false, tone }
           <span className="font-tight block text-[14px] font-bold">{title}</span>
           <span className="t-cap block">{subtitle}</span>
         </span>
-        <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}>›</span>
+        <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}><ArrowGlyph /></span>
       </button>
       <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>
         <div className="min-h-0 overflow-hidden">

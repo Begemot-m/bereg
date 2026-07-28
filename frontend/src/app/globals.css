@@ -326,7 +326,6 @@ h1, h2, h3, .font-tight {
   font-size: 15px;
   font-weight: 900;
   line-height: 1;
-  padding-bottom: 2px;
   transition: transform .18s var(--ease-out);
 }
 .group:hover .arrow, .group:active .arrow { transform: translateX(2px); }
