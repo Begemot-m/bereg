@@ -196,7 +196,7 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
           <p className="t-head">{psy.price.toLocaleString("ru-RU")} ₽<span className="t-cap"> / {psy.minutes} мин</span></p>
           <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--olive-edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
-        <span className="btn dark ml-auto shrink-0">Записаться →</span>
+        <span className="btn ml-auto shrink-0">Записаться →</span>
       </div>
     </button>
   );

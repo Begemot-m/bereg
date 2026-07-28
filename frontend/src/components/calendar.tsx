@@ -77,9 +77,10 @@ export function MonthCalendar({
           if (busy) base = { background: "var(--purple)", color: "#3b2c55", border: "var(--bw) solid var(--purple-edge)" };
           else if (free) base = { background: "var(--green-soft)", color: "var(--ink)", border: "var(--bw) solid var(--green-edge)" };
 
+          // Кольцо «сегодня» — обводкой, а не тенью: теней в системе нет.
           const style: React.CSSProperties = isSel
             ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }
-            : { ...base, boxShadow: isToday ? "0 0 0 2px var(--ink)" : undefined };
+            : { ...base, outline: isToday ? "2px solid var(--ink)" : undefined, outlineOffset: "1px" };
 
           return (
             <button
@@ -97,7 +98,7 @@ export function MonthCalendar({
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
         {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }} /> свободно</span>}
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--purple)", border: "var(--bw) solid var(--purple-edge)" }} /> есть записи</span>
-        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full bg-white" style={{ boxShadow: "0 0 0 2px var(--ink)" }} /> сегодня</span>
+        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full bg-white" style={{ outline: "2px solid var(--ink)", outlineOffset: "-2px" }} /> сегодня</span>
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
       </div>
     </div>
