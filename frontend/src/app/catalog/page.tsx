@@ -171,32 +171,32 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   return (
     <button onClick={onOpen} className="w-full overflow-hidden rounded-[24px] bg-white text-left transition-transform duration-200 active:scale-[.99]" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
       <div className="flex gap-3.5 p-4">
-        <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[18px]" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
+        <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[18px]" style={{ background: "var(--olive-soft)" }}>
           <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="106px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center gap-1.5">
-            <h3 className="min-w-0 text-[17px] font-black leading-[1.06]">{psy.name}</h3>
-            {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }} title="Профиль подтверждён"><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
+            <h3 className="t-head min-w-0">{psy.name}</h3>
+            {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" title="Профиль подтверждён"><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
           </div>
-           <p className="mt-1.5 text-[12.5px] font-bold leading-snug"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
-           {psy.quote && <p className="mt-2 border-l-2 pl-2.5 text-[11.5px] font-semibold italic leading-snug text-[var(--muted)]" style={{ borderColor: "var(--olive-edge)" }}>«{psy.quote}»</p>}
+           <p className="t-body mt-1.5"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
+           {psy.quote && <p className="t-sub mt-2 border-l-2 pl-2.5 italic" style={{ borderColor: "var(--olive)" }}>«{psy.quote}»</p>}
          </div>
        </div>
 
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3 text-[11px] font-black">
-        <span className="inline-flex items-center gap-1"><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /> {psy.rating.toFixed(1)} <span className="font-bold text-[var(--muted)]">({psy.reviews})</span></span>
-        <span className="rounded-full bg-[var(--olive-soft)] px-2 py-1" style={{ border: "1.5px solid var(--olive-edge)" }}>{psy.method}</span>
-        <span className="text-[var(--muted)]">{psy.years} {yearsWord(psy.years)} практики</span>
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
+        <span className="t-cap inline-flex items-center gap-1" style={{ color: "var(--ink)" }}><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /> {psy.rating.toFixed(1)} <span className="text-[var(--muted)]">({psy.reviews})</span></span>
+        <span className="chip" style={{ background: "var(--olive-soft)" }}>{psy.method}</span>
+        <span className="t-cap">{psy.years} {yearsWord(psy.years)} практики</span>
       </div>
 
       {/* Стоимость + ближайшее окно + переход к профилю */}
       <div className="mt-1 flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
         <div className="min-w-0">
-          <p className="text-[15px] font-black leading-none">{psy.price.toLocaleString("ru-RU")} ₽<span className="text-[11px] font-bold text-[var(--muted)]"> / {psy.minutes} мин</span></p>
-          <p className="mt-1 flex items-center gap-1 text-[10px] font-black" style={{ color: soon ? "var(--olive-edge)" : "var(--muted)" }}><Icon name="calendar" width={11} weight="bold" /> {nextSlotLabel(psy.nextDays)}</p>
+          <p className="t-head">{psy.price.toLocaleString("ru-RU")} ₽<span className="t-cap"> / {psy.minutes} мин</span></p>
+          <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--olive-edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
-        <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Посмотреть и записаться →</span>
+        <span className="btn dark ml-auto shrink-0">Записаться →</span>
       </div>
     </button>
   );
@@ -232,28 +232,24 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
 
   return <div>
     <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
-      <button onClick={onBack} className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-black" style={{ background: "#fff", color: tone.edge }}>
+      <button onClick={onBack} className="btn mb-3" style={{ ["--fill" as string]: "#fff" }}>
         <span className="text-[15px] leading-none">‹</span> Вернуться в каталог
       </button>
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-1.5"><h1 className="font-tight text-[21px] font-black leading-[1.02]">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
-          <p className="mt-1 text-[11px] font-black text-[var(--muted)]">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
-          {(psy.specialistTypes?.length ?? 0) > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {psy.specialistTypes!.map((type) => (
-                <span key={type} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black" style={{ color: tone.edge }}>{type}</span>
-              ))}
-            </div>
-          )}
+          <div className="flex items-start gap-1.5"><h1 className="t-title">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
+          <p className="t-cap mt-1">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-black">
+            <span className="chip" style={{ background: "#fff" }}>
               <Icon name="star" width={12} weight="fill" color="var(--amber-edge)" />
               <span className="tnum">{psy.rating.toFixed(1)}</span>
-              <span className="font-bold text-[var(--muted)]">· {psy.reviews}</span>
+              <span className="text-[var(--muted)]">· {psy.reviews}</span>
             </span>
-            {psy.style && <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black" style={{ color: tone.edge }}><Icon name="spark" width={11} weight="fill" color={tone.edge} /> {psy.style}</span>}
+            {psy.specialistTypes?.map((type) => (
+              <span key={type} className="chip" style={{ background: "#fff" }}>{type}</span>
+            ))}
+            {psy.style && <span className="chip" style={{ background: "#fff" }}><Icon name="spark" width={11} weight="fill" color={tone.edge} /> {psy.style}</span>}
           </div>
         </div>
       </div>
@@ -261,8 +257,8 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       {/* Действия — сразу под именем, а не через полэкрана */}
       <div className="mt-3.5 flex gap-2">
         <AttachTherapistButton name={psy.name} />
-        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="flex min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-[15px] bg-white px-4 text-[12px] font-black transition-transform active:scale-[0.98]" style={{ color: tone.edge }}>
-          <Icon name="telegram" width={17} weight="fill" color={tone.edge} /> Написать
+        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn shrink-0" style={{ ["--fill" as string]: "#fff" }}>
+          <Icon name="telegram" width={16} weight="fill" color={tone.edge} /> Написать
         </a>
       </div>
     </div>
@@ -273,18 +269,18 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       <BookingMini psyName={psy.name} tone={tone} onDone={onBack} />
 
       {/* Почему предложен именно этому пользователю */}
-      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="panel-tint bg-[var(--green-soft)] p-3.5"><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="flex items-start gap-2 text-[12.5px] font-bold"><Icon name="check" width={14} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
+      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="panel-tint bg-[var(--green-soft)] p-3.5"><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--green-edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
 
-      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="rounded-full px-3 py-1.5 text-[12px] font-black" style={{ background: tone.soft, color: tone.edge }}>{topic}</span>)}</div></Section>
+      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="chip" style={{ background: tone.soft }}>{topic}</span>)}</div></Section>
 
       {/* Как проходит первая встреча */}
-      <Section title="Как проходит первая встреча"><div className="panel-tint bg-[var(--purple-soft)] p-4"><p className="text-[13px] font-semibold leading-relaxed">{firstSession}</p></div></Section>
+      <Section title="Как проходит первая встреча"><div className="panel-tint bg-[var(--purple-soft)] p-4"><p className="t-body">{firstSession}</p></div></Section>
 
       {/* Голосовое приветствие (демо-слот) */}
       <VoiceGreeting name={psy.name.split(" ")[0]} />
 
       {/* Подход и пример работы — без обещаний результата */}
-      {psy.about && <Section title="Как я работаю"><p className="text-[13px] font-semibold leading-relaxed">{psy.about}</p></Section>}
+      {psy.about && <Section title="Как я работаю"><p className="t-body">{psy.about}</p></Section>}
       <MethodList psy={psy} />
 
       {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} />}
@@ -295,7 +291,7 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
       {psy.education.length > 0 && <EducationBlock psy={psy} />}
 
       {/* Темы, с которыми специалист не работает */}
-      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="panel p-4"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-bold text-[var(--muted)]" >{topic}</span>)}</div><p className="mt-2.5 text-[10.5px] font-semibold text-[var(--muted-2)]">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></div></Section>}
+      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="panel p-4"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="chip" style={{ background: "var(--surface-2)" }}>{topic}</span>)}</div><p className="t-cap mt-2.5">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></div></Section>}
 
       {/* Отзывы — только после подтверждённых встреч */}
       <RatingBlock psy={psy} canRate={wasInTherapy} />

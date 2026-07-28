@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito } from "next/font/google";
+import { Golos_Text, Nunito } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
@@ -12,8 +12,11 @@ import { APP_NAME } from "@/lib/brand";
 
 const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
-// Единый скруглённый шрифт для всего интерфейса (как в рефе), с кириллицей.
-const sans = Nunito({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700", "800", "900"], variable: "--font-sans", display: "swap" });
+// Заголовки — Nunito: округлая, это характер бренда.
+const head = Nunito({ subsets: ["latin", "cyrillic"], weight: ["700", "800", "900"], variable: "--font-head", display: "swap" });
+// Текст — Golos Text: сделан под русские интерфейсы и лучше читается в мелких
+// кеглях, а у нас основная масса текста как раз 11–14 px.
+const body = Golos_Text({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700"], variable: "--font-body", display: "swap" });
 
 export const metadata: Metadata = {
   title: `${APP_NAME} — среда для психологической помощи`,
@@ -33,7 +36,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className={sans.variable} suppressHydrationWarning>
+    <html lang="ru" className={`${head.variable} ${body.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning>
         {/* Имя CSS-файла меняется с каждой сборкой, а вебвью Telegram охотно
             кеширует HTML — тогда страница тянет исчезнувший стиль и остаётся
