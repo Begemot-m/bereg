@@ -137,7 +137,7 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
       {rect ? (
         <motion.div
           layout
-          className="pointer-events-none absolute rounded-[11px]"
+          className="pointer-events-none absolute rounded-[14px]"
           initial={false}
           animate={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
           transition={{ duration: 0.34, ease: EASE }}
@@ -158,11 +158,11 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.26, ease: EASE }}
-            className="pointer-events-auto mx-auto w-full max-w-md rounded-[14px] bg-white p-4"
+            className="pointer-events-auto mx-auto w-full max-w-md rounded-[19px] bg-white p-4"
             style={{ boxShadow: "0 24px 48px -20px rgba(32,28,24,.55)" }}
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px]" style={{ background: "var(--head-soft)" }}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]" style={{ background: "var(--head-soft)" }}>
                 <Icon name={step.icon} width={19} weight="bold" color="var(--edge)" />
               </span>
               <div className="min-w-0 flex-1">

@@ -13,7 +13,7 @@ import { select, success, tap } from "@/lib/haptics";
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 const HelpFrame = ({ children }: { children: ReactNode }) => (
-  <div className="flex min-h-[132px] flex-col justify-center gap-2 rounded-[10px] p-3" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>{children}</div>
+  <div className="flex min-h-[132px] flex-col justify-center gap-2 rounded-[13px] p-3" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>{children}</div>
 );
 
 export const WHEEL_HELP: HelpPage[] = [
@@ -24,7 +24,7 @@ export const WHEEL_HELP: HelpPage[] = [
       <HelpFrame>
         <div className="grid grid-cols-2 gap-1.5">
           {WHEEL.slice(0, 6).map((d) => (
-            <div key={d.key} className="flex items-center gap-1.5 rounded-[6px] bg-white px-2 py-1" style={{ border: `var(--bw) solid ${d.edge}` }}>
+            <div key={d.key} className="flex items-center gap-1.5 rounded-[7px] bg-white px-2 py-1" style={{ border: `var(--bw) solid ${d.edge}` }}>
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: d.color, border: `1px solid ${d.edge}` }} />
               <span className="text-[9px] font-black">{d.short}</span>
             </div>
@@ -93,7 +93,7 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
           <div className="sticky top-0 z-[1] bg-[var(--purple)] px-5 py-4" style={{ borderBottom: "var(--bw-lg) solid var(--purple-edge)" }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-[7px] bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name={summary ? "balance" : domain.icon} width={18} weight="bold" /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><Icon name={summary ? "balance" : domain.icon} width={18} weight="bold" /></span>
                 <div><p className="text-[10px] font-black uppercase tracking-[.12em]">{summary ? "Ваш результат" : `Сфера ${step + 1} из ${WHEEL.length}`}</p><p className="text-[14px] font-black leading-tight">{summary ? "Колесо собрано" : domain.label}</p></div>
               </div>
               <button onClick={() => { tap(); onClose(); }} className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[14px] font-black stroke" aria-label="Закрыть">×</button>
@@ -145,7 +145,7 @@ function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers:
   return (
     <div className="space-y-4">
       {/* Круглое колесо баланса — как на странице терапии */}
-      <div className="rounded-[11px] p-3 pt-4" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
+      <div className="rounded-[14px] p-3 pt-4" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
         <WheelChart result={result} size={252} />
         <div className="mt-2 flex items-center justify-center gap-2">
           <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase" style={{ background: tone, border: `var(--bw) solid ${edge}` }}>{band.label}</span>
@@ -163,10 +163,10 @@ function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers:
       {/* Результат уже сохранён автоматически; кнопка просто закрывает окно */}
       <Button className="w-full" onClick={onSave}>Готово — результат сохранён</Button>
       {locked && (
-        <div className="rounded-[11px] p-4" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
+        <div className="rounded-[14px] p-4" style={{ background: "var(--purple-soft)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
           <div className="flex items-center gap-2"><Icon name="therapy" width={18} weight="fill" /><p className="text-[13px] font-black">Больше в Методика+</p></div>
           <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Детальный радар по 10 сферам, история и динамика от встречи к встрече — по подписке 390 ₽/мес.</p>
-          <button onClick={() => { tap(); onUnlock?.(); }} className="mt-3 w-full rounded-[8px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98]">Открыть Методика+ · 390 ₽/мес</button>
+          <button onClick={() => { tap(); onUnlock?.(); }} className="mt-3 w-full rounded-[10px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98]">Открыть Методика+ · 390 ₽/мес</button>
         </div>
       )}
       <p className="text-center text-[10px] font-semibold text-[var(--muted-2)]">Самооценка для разговора с терапевтом · не диагноз.</p>
@@ -176,7 +176,7 @@ function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers:
 
 function StatCard({ title, items, good }: { title: string; items: { d: (typeof WHEEL)[number]; v: number }[]; good?: boolean }) {
   return (
-    <div className="rounded-[9px] bg-white p-3" style={{ border: `var(--bw) solid ${good ? "var(--green-edge)" : "var(--salmon-edge)"}` }}>
+    <div className="rounded-[12px] bg-white p-3" style={{ border: `var(--bw) solid ${good ? "var(--green-edge)" : "var(--salmon-edge)"}` }}>
       <p className="text-[10px] font-black uppercase tracking-[.06em]" style={{ color: good ? "var(--green-edge)" : "var(--salmon-edge)" }}>{title}</p>
       <div className="mt-1.5 space-y-1">
         {items.map(({ d, v }) => (

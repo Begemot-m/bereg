@@ -106,14 +106,14 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
         {/* Герой */}
         <div className="relative p-5" style={{ background: "linear-gradient(150deg, var(--amber), var(--amber-soft))", borderBottom: "var(--bw-lg) solid var(--amber-edge)" }}>
           <button onClick={onClose} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[15px] font-black stroke" aria-label="Закрыть">✕</button>
-          <span className="flex h-12 w-12 items-center justify-center rounded-[9px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="spark" width={24} weight="fill" /></span>
+          <span className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="spark" width={24} weight="fill" /></span>
           <h3 className="font-tight mt-3 text-[20px] font-black leading-tight">{c.title}</h3>
           <p className="mt-1 text-[12px] font-bold text-[var(--muted)]">{c.sub}</p>
         </div>
 
         <div className="space-y-4 p-5">
           {/* Прогресс к плюшке */}
-          <div className="rounded-[10px] p-3.5" style={{ background: "var(--amber-soft)", border: "var(--bw) solid var(--amber-edge)" }}>
+          <div className="rounded-[13px] p-3.5" style={{ background: "var(--amber-soft)", border: "var(--bw) solid var(--amber-edge)" }}>
             <div className="flex items-center justify-between">
               <p className="text-[12px] font-black">Приглашено: {invited}</p>
               <p className="text-[11px] font-bold text-[var(--muted)]">до подарка: {Math.max(0, nextPerk.need - invited)}</p>
@@ -125,14 +125,14 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
           {/* Реферальная ссылка */}
           <div>
             <p className="mb-1.5 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Ваша ссылка-приглашение</p>
-            <div className="flex items-center gap-2 rounded-[8px] bg-white px-3 py-2.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+            <div className="flex items-center gap-2 rounded-[10px] bg-white px-3 py-2.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
               <span className="min-w-0 flex-1 truncate text-[12px] font-bold text-[var(--muted)]">{link.replace(/^https?:\/\//, "")}</span>
               <button onClick={copy} className="shrink-0 rounded-full bg-[var(--head-soft)] px-2.5 py-1 text-[11px] font-black stroke">{copied ? "Скопировано" : "Копировать"}</button>
             </div>
           </div>
 
           {/* Поделиться */}
-          <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => { bump(); success(); }} className="flex w-full items-center justify-center gap-2 rounded-[9px] bg-[var(--ink)] py-3.5 text-[15px] font-black text-white transition-transform active:scale-[0.98]">
+          <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => { bump(); success(); }} className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--ink)] py-3.5 text-[15px] font-black text-white transition-transform active:scale-[0.98]">
             <Icon name="spark" width={17} weight="fill" /> Поделиться в Telegram
           </a>
 
@@ -143,8 +143,8 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
               {perks.map((p) => {
                 const got = invited >= p.need;
                 return (
-                  <div key={p.need} className="flex items-center gap-2.5 rounded-[8px] p-2.5" style={{ background: got ? "var(--green-soft)" : "#fff", border: `var(--bw) solid ${got ? "var(--green-edge)" : "var(--edge-neutral)"}` }}>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] bg-white text-[12px] font-black stroke">{p.need}</span>
+                  <div key={p.need} className="flex items-center gap-2.5 rounded-[10px] p-2.5" style={{ background: got ? "var(--green-soft)" : "#fff", border: `var(--bw) solid ${got ? "var(--green-edge)" : "var(--edge-neutral)"}` }}>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white text-[12px] font-black stroke">{p.need}</span>
                     <span className="min-w-0 flex-1 text-[12px] font-bold">{p.reward}</span>
                     {got ? <Icon name="check" width={16} weight="fill" color="var(--green-edge)" /> : <span className="text-[10px] font-black uppercase text-[var(--muted-2)]">нужно {p.need}</span>}
                   </div>

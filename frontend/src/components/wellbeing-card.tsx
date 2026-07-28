@@ -45,7 +45,7 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
 
       {wheel ? (
         <>
-          <div className="card-nested mt-3 rounded-[10px] p-2">
+          <div className="card-nested mt-3 rounded-[14px] p-2">
             <WheelChart result={wheel} size={248} />
           </div>
           <p className="mt-2.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{band.hint}</p>

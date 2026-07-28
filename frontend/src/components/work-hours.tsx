@@ -124,7 +124,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
           const cnt = (draft.hours[wd] ?? []).length;
           const isSel = day === wd;
           return (
-            <button key={wd} onClick={() => { select(); setDay(wd); }} className="relative flex-1 rounded-[7px] py-1.5 text-[12px] font-extrabold transition-transform active:scale-95 stroke" style={isSel ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: cnt ? "var(--ink)" : "var(--muted-2)" }}>
+            <button key={wd} onClick={() => { select(); setDay(wd); }} className="relative flex-1 rounded-[9px] py-1.5 text-[12px] font-extrabold transition-transform active:scale-95 stroke" style={isSel ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: cnt ? "var(--ink)" : "var(--muted-2)" }}>
               {label}
               {cnt > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-black stroke" style={{ background: "var(--head)", color: "var(--ink)", borderColor: "var(--edge)" }}>{cnt}</span>}
             </button>
@@ -140,7 +140,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
               <span key={i} className="absolute right-1 -translate-y-1/2 text-[10px] font-bold text-[var(--muted-2)] tnum" style={{ top: i * PXH }}>{pad(from + i)}:00</span>
             ))}
           </div>
-          <div ref={railRef} onClick={(e) => placeAt(e.clientY)} className="relative flex-1 overflow-hidden rounded-[8px] stroke-lg" style={{ height: railH, background: "#fff" }}>
+          <div ref={railRef} onClick={(e) => placeAt(e.clientY)} className="relative flex-1 overflow-hidden rounded-[11px] stroke-lg" style={{ height: railH, background: "#fff" }}>
             {/* Часы — сплошной линией, получасы — пунктиром: видно, куда встанет окно. */}
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
               <div key={`h${i}`} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
@@ -176,7 +176,7 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
         <ActionChip icon="calendar" onClick={() => copyTo(7)}>На все дни</ActionChip>
         <ActionChip icon="note" tone="salmon" disabled={slots.length === 0} onClick={clearDay}>Очистить</ActionChip>
       </div>
-      <button disabled={save.isPending} onClick={() => save.mutate()} className="w-full rounded-[8px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-50">
+      <button disabled={save.isPending} onClick={() => save.mutate()} className="w-full rounded-[11px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-50">
         {save.isSuccess ? "Сохранено ✓" : "Сохранить расписание"}
       </button>
     </div>
@@ -188,7 +188,7 @@ function ActionChip({ icon, tone = "neutral", disabled, onClick, children }: { i
   const edge = salmon ? "var(--salmon-edge)" : "var(--edge-neutral)";
   const col = salmon ? "var(--salmon-edge)" : "var(--ink)";
   return (
-    <button disabled={disabled} onClick={onClick} className="flex flex-col items-center justify-center gap-1 rounded-[8px] py-2.5 text-[11px] font-black transition-transform active:scale-95 disabled:opacity-45" style={{ background: salmon ? "var(--salmon-soft)" : "#fff", border: `var(--bw) solid ${edge}`, color: col }}>
+    <button disabled={disabled} onClick={onClick} className="flex flex-col items-center justify-center gap-1 rounded-[10px] py-2.5 text-[11px] font-black transition-transform active:scale-95 disabled:opacity-45" style={{ background: salmon ? "var(--salmon-soft)" : "#fff", border: `var(--bw) solid ${edge}`, color: col }}>
       <Icon name={icon} width={16} weight="bold" color={col} /> {children}
     </button>
   );
@@ -212,7 +212,7 @@ function SlotBlock({ label, hour, fmt, top, height, onRemove, onToggleFmt, onCom
     <motion.div
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
-      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[6px] text-[12px] font-extrabold stroke-lg"
+      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[8px] text-[12px] font-extrabold stroke-lg"
       style={{ top: top + dy, height, background: st.bg, borderColor: st.bd, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       <FmtSwitch fmt={fmt} onToggle={onToggleFmt} className="absolute left-1.5 top-1/2 -translate-y-1/2 !text-[9px]" />

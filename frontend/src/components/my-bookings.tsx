@@ -44,7 +44,7 @@ export function BookingRow({ b, onChange }: { b: MyBooking; onChange: () => void
           </span>
         </button>
         <Icon name={st.icon} width={13} weight="fill" color={st.ic} />
-        <button onClick={toggle} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px]" style={manage ? { background: "var(--ink)", color: "#fff" } : { background: "var(--surface-2)" }} aria-label="Управлять записью" aria-expanded={manage}>
+        <button onClick={toggle} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]" style={manage ? { background: "var(--ink)", color: "#fff" } : { background: "var(--surface-2)" }} aria-label="Управлять записью" aria-expanded={manage}>
           <Icon name="gear" width={15} color={manage ? "#fff" : undefined} />
         </button>
       </div>
@@ -58,7 +58,7 @@ export function BookingRow({ b, onChange }: { b: MyBooking; onChange: () => void
               <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
             </div>
           ) : locked ? (
-            <div className="rounded-[8px] p-3" style={{ background: "var(--salmon-soft)" }}>
+            <div className="rounded-[11px] p-3" style={{ background: "var(--salmon-soft)" }}>
               <p className="text-[13px] font-black" style={{ color: "var(--salmon-edge)" }}>Отменить нельзя</p>
               <p className="t-cap mt-0.5">До сессии меньше {lockDays} дн. Чтобы отменить или перенести — свяжитесь с психологом.</p>
               <button onClick={() => setResch(true)} className="btn btn-white mt-2 px-3 py-1.5 text-[12px]">Перенести</button>

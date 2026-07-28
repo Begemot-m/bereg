@@ -67,8 +67,8 @@
      --bw-lg — крупные блоки и окна (капля потолще). */
   --bw: 2px;
   --bw-lg: 2.5px;
-  --r-block: 13px;
-  --r-sm: 8px;
+  --r-block: 18px;
+  --r-sm: 11px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
@@ -170,7 +170,7 @@ h1, h2, h3, .font-tight {
 .tnum { font-variant-numeric: tabular-nums; }
 
 /* Поле техник и подпись */
-.tf { width: 100%; resize: none; border-radius: 14px; border: var(--bw) solid var(--edge-neutral); background: #fff; padding: 10px 14px; font-size: 14px; font-weight: 500; outline: none; color: var(--ink); }
+.tf { width: 100%; resize: none; border-radius: var(--r-sm); border: var(--bw) solid var(--edge-neutral); background: #fff; padding: 10px 14px; font-size: 14px; font-weight: 500; outline: none; color: var(--ink); }
 .tf::placeholder { color: var(--muted-2); font-weight: 400; }
 .lbl { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 800; color: var(--muted); }
 
@@ -180,11 +180,11 @@ h1, h2, h3, .font-tight {
    ============================================================ */
 
 /* Лист контента под шапкой раздела. Заменяет копипасту
-   «-mx-4 rounded-t-[18px] ... borderTop» по страницам. */
+   «-mx-4 rounded-t-[24px] ... borderTop» по страницам. */
 .sheet {
   margin-inline: -1rem;
   min-height: 64vh;
-  border-radius: 18px 18px 0 0;
+  border-radius: 24px 24px 0 0;
   background: var(--surface);
   padding: 1.25rem 1rem 1.75rem;
 }

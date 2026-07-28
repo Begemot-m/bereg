@@ -56,7 +56,7 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
 
   return (
     <div className="space-y-2.5">
-      <div className="rounded-[12px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="rounded-[16px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{title}</p>
@@ -76,7 +76,7 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
         <MoodLine series={series} />
       </div>
 
-      <div className="rounded-[12px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="rounded-[16px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
         <div className="mb-2.5 flex items-center justify-between">
           <button onClick={() => { select(); setMonth(shiftMonth(month, -1)); }} className="arrow" aria-label="Предыдущий месяц">‹</button>
           <p className="t-cap">{monthLabel(month)}</p>
@@ -86,7 +86,7 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
       </div>
 
       {top.length > 0 && (
-        <div className="rounded-[12px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        <div className="rounded-[16px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
           <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Частые эмоции</p>
           <div className="flex flex-wrap gap-1.5">
             {top.map(([name, count]) => (
@@ -153,7 +153,7 @@ function MoodCalendar({ month, byDay }: { month: Date; byDay: Map<string, Mood> 
           return (
             <div
               key={key}
-              className="flex aspect-square flex-col items-center justify-center rounded-[6px] text-[11px] font-black"
+              className="flex aspect-square flex-col items-center justify-center rounded-[8px] text-[11px] font-black"
               title={entry ? [MOOD_LABEL[entry.mood], ...(entry.emotions ?? [])].join(" · ") : undefined}
               style={{
                 background: entry ? `${moodColor(entry.mood)}` : "var(--surface-2)",

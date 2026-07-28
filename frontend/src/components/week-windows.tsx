@@ -52,7 +52,7 @@ export function useDayWindows() {
 
 export function NoWorkHours() {
   return (
-    <div className="rounded-[8px] py-6 text-center text-[13px] font-semibold text-[var(--muted)]" style={{ background: "#fff" }}>
+    <div className="rounded-[11px] py-6 text-center text-[13px] font-semibold text-[var(--muted)]" style={{ background: "#fff" }}>
       Окна ещё не заданы.<br /><Link href="/cabinet" className="font-extrabold underline">Настроить график в кабинете →</Link>
     </div>
   );
@@ -231,7 +231,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
         layout
         transition={MORPH}
         onClick={onTap}
-        className="flex h-[54px] w-full flex-col items-center justify-center gap-0.5 rounded-[8px]"
+        className="flex h-[54px] w-full flex-col items-center justify-center gap-0.5 rounded-[11px]"
         style={{ background: "var(--surface-2)", color: "var(--muted)" }}
         aria-label="Добавить сессию"
       >
@@ -242,7 +242,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
   }
 
   return (
-    <motion.div layout transition={MORPH} className="col-span-3 rounded-[8px] p-3.5" style={{ background: "var(--surface-2)" }}>
+    <motion.div layout transition={MORPH} className="col-span-3 rounded-[11px] p-3.5" style={{ background: "var(--surface-2)" }}>
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[12.5px] font-black">{iso ? `Кому на ${timeF.format(new Date(iso))}?` : "Во сколько?"}</p>
         <button onClick={() => { setIso(null); onClose(); }} className="text-[15px] font-black text-[var(--muted-2)]" aria-label="Закрыть">✕</button>
@@ -287,7 +287,7 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
       transition={MORPH}
       className={active ? "col-span-3" : ""}
       style={{
-        borderRadius: 8,
+        borderRadius: 11,
         background: st.bg,
         border: st.ring ? `2px dashed ${st.ring}` : "none",
         opacity: slot.past && !active ? 0.6 : 1,
@@ -352,7 +352,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   if (slot.appt) {
     if (resch) {
       return (
-        <div className="rounded-[7px] bg-white p-2.5">
+        <div className="rounded-[10px] bg-white p-2.5">
           <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
           <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
           <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>

@@ -45,8 +45,8 @@ export function RemindersModule() {
       </Panel>
 
       {/* Канал доставки — Telegram-бот */}
-      <button onClick={() => { select(); save({ ...cfg, channel: !cfg.channel }); }} className="flex w-full items-center gap-2.5 rounded-[8px] bg-white p-3 text-left" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-        <span className="flex h-8 w-8 items-center justify-center rounded-[6px]" style={{ background: "var(--head-soft)" }}><Icon name="telegram" width={16} weight="fill" /></span>
+      <button onClick={() => { select(); save({ ...cfg, channel: !cfg.channel }); }} className="flex w-full items-center gap-2.5 rounded-[11px] bg-white p-3 text-left" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+        <span className="flex h-8 w-8 items-center justify-center rounded-[8px]" style={{ background: "var(--head-soft)" }}><Icon name="telegram" width={16} weight="fill" /></span>
         <span className="flex-1"><span className="block text-[13px] font-black">Через Telegram-бот</span><span className="block text-[11px] font-semibold text-[var(--muted)]">Бот пишет клиенту и вам в личку</span></span>
         <Switch on={cfg.channel} />
       </button>
@@ -56,9 +56,9 @@ export function RemindersModule() {
 
 function Panel({ icon, title, hint, children }: { icon: "users" | "user"; title: string; hint: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-[10px] bg-[var(--surface-2)] p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+    <div className="rounded-[13px] bg-[var(--surface-2)] p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
       <div className="mb-2.5 flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><Icon name={icon} width={15} /></span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><Icon name={icon} width={15} /></span>
         <div><p className="text-[13px] font-black leading-none">{title}</p><p className="mt-0.5 text-[10px] font-semibold text-[var(--muted)]">{hint}</p></div>
       </div>
       {children}

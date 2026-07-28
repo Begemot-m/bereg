@@ -75,7 +75,7 @@ export function Onboarding() {
       <div className="relative mx-auto flex h-full w-full max-w-md flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-[calc(env(safe-area-inset-top)+18px)]">
         {/* Верх: логотип + прогресс + пропустить */}
         <div className="flex items-center gap-3">
-          <span className="flex h-7 items-center rounded-[6px] bg-[var(--ink)] px-2 text-[12px] font-black text-[var(--bg)]">{APP_NAME}</span>
+          <span className="flex h-7 items-center rounded-[7px] bg-[var(--ink)] px-2 text-[12px] font-black text-[var(--bg)]">{APP_NAME}</span>
           <div className="flex flex-1 gap-1.5">
             {INTRO.map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />)}
           </div>
@@ -138,8 +138,8 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
   return (
     <div className="flex flex-1 flex-col">
       {/* Фиолетовый залив */}
-      <div className="mt-4 rounded-[16px] p-6 pb-8" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
-        <span className="flex h-11 w-11 items-center justify-center rounded-[8px] bg-white stroke"><Icon name="therapy" width={22} weight="fill" /></span>
+      <div className="mt-4 rounded-[21px] p-6 pb-8" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
+        <span className="flex h-11 w-11 items-center justify-center rounded-[11px] bg-white stroke"><Icon name="therapy" width={22} weight="fill" /></span>
         <h1 className="font-tight mt-4 text-[27px] font-black leading-[1.08]">{firstName ? `${firstName}, с чего` : "С чего"}<br />начнём?</h1>
         <p className="mt-2 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
       </div>
@@ -156,7 +156,7 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
             onClick={() => onPick(item.role)}
             className={`chunk ${item.fill} flex w-full items-center gap-3.5 p-4 text-left`}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] bg-white stroke"><Icon name={item.icon} width={22} weight="regular" color="var(--ink)" /></span>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-white stroke"><Icon name={item.icon} width={22} weight="regular" color="var(--ink)" /></span>
             <span className="flex-1 text-[16px] font-black">{item.title}</span>
             <Arrow />
           </motion.button>
@@ -178,8 +178,8 @@ function Shot({ src, tone, children }: { src?: string; tone: string; children: R
 
 function Phone({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <div className="relative w-[214px] overflow-hidden rounded-[18px] bg-white p-2.5" style={{ boxShadow: "0 30px 52px -22px rgba(32,28,24,.6)", border: `var(--bw-lg) solid ${tone}` }}>
-      <div className="overflow-hidden rounded-[13px] bg-white" style={{ border: "1.5px solid rgba(32,28,24,.12)" }}>
+    <div className="relative w-[214px] overflow-hidden rounded-[24px] bg-white p-2.5" style={{ boxShadow: "0 30px 52px -22px rgba(32,28,24,.6)", border: `var(--bw-lg) solid ${tone}` }}>
+      <div className="overflow-hidden rounded-[18px] bg-white" style={{ border: "1.5px solid rgba(32,28,24,.12)" }}>
         <div className="flex items-center gap-1 px-3 pb-1.5 pt-2.5">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone }} />
           <span className="h-1 w-8 rounded-full bg-[var(--ink)] opacity-15" />
@@ -194,7 +194,7 @@ const Bar = ({ w = "100%", h = 7, tone = "rgba(32,28,24,.14)" }: { w?: string; h
   <span className="block rounded-full" style={{ width: w, height: h, background: tone }} />
 );
 const Box = ({ children, tone = "#fff", edge = "rgba(32,28,24,.16)" }: { children?: ReactNode; tone?: string; edge?: string }) => (
-  <div className="rounded-[7px] p-2" style={{ background: tone, border: `1.5px solid ${edge}` }}>{children}</div>
+  <div className="rounded-[9px] p-2" style={{ background: tone, border: `1.5px solid ${edge}` }}>{children}</div>
 );
 
 // ——— Макеты элементов приложения (без персонажей) ———
@@ -246,7 +246,7 @@ function ToolsMock() {
       </Box>
       <div className="grid grid-cols-2 gap-1.5">
         {[["var(--green)", "Дыхание"], ["var(--amber)", "Дневник"], ["var(--purple)", "Медитация"], ["var(--coral)", "Заземление"]].map(([color, label], i) => (
-          <div key={i} className="rounded-[6px] p-1.5" style={{ background: color as string, border: "1.5px solid rgba(32,28,24,.18)" }}>
+          <div key={i} className="rounded-[8px] p-1.5" style={{ background: color as string, border: "1.5px solid rgba(32,28,24,.18)" }}>
             <span className="block h-4 w-4 rounded-[6px] bg-white" style={{ border: "1.5px solid rgba(32,28,24,.18)" }} />
             <span className="mt-1.5 block text-[7px] font-black">{label}</span>
           </div>
@@ -261,11 +261,11 @@ function ScheduleMock() {
     <div className="space-y-2">
       <div className="flex justify-between">{["пн", "вт", "ср", "чт", "пт"].map((d, i) => <span key={d} className="flex h-7 w-7 items-center justify-center rounded-[8px] text-[7px] font-black" style={{ background: i === 2 ? "var(--ink)" : "#fff", color: i === 2 ? "#fff" : "var(--muted)", border: "1.5px solid rgba(32,28,24,.16)" }}>{d}</span>)}</div>
       {([["10:00", "var(--green-soft)", "var(--green-edge)", "свободно"], ["13:30", "var(--purple-soft)", "var(--purple-edge)", "Марина"], ["18:00", "#fff", "rgba(32,28,24,.16)", "свободно"]] as const).map(([time, bg, edge, who]) => (
-        <div key={time} className="flex items-center gap-1.5 rounded-[6px] p-1.5" style={{ background: bg, border: `1.5px solid ${edge}` }}>
+        <div key={time} className="flex items-center gap-1.5 rounded-[8px] p-1.5" style={{ background: bg, border: `1.5px solid ${edge}` }}>
           <span className="text-[8px] font-black">{time}</span><span className="flex-1 text-[7px] font-bold text-[var(--muted)]">{who}</span>
         </div>
       ))}
-      <div className="flex items-center gap-1 rounded-[6px] bg-[var(--amber-soft)] p-1.5" style={{ border: "1.5px solid var(--amber-edge)" }}><Icon name="bell" width={9} weight="bold" /><span className="text-[7px] font-black">Напоминание за час</span></div>
+      <div className="flex items-center gap-1 rounded-[7px] bg-[var(--amber-soft)] p-1.5" style={{ border: "1.5px solid var(--amber-edge)" }}><Icon name="bell" width={9} weight="bold" /><span className="text-[7px] font-black">Напоминание за час</span></div>
     </div>
   );
 }
