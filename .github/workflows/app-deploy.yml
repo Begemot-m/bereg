@@ -31,8 +31,26 @@ env:
   IMAGE: ghcr.io/begemot-m/bereg
 
 jobs:
+  # Те же ворота, что у демо: на боевой сервер тем более не должно уезжать
+  # то, что не проходит типы, тесты и проверку миграций.
+  check:
+    if: ${{ github.event.inputs.image == '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bunx prisma generate
+      - run: bunx tsc --noEmit
+      - run: bun test
+      - run: node scripts/check-migrations.mjs
+
   build:
     # При откате ничего не собираем — просто берём существующий тег.
+    needs: check
     if: ${{ github.event.inputs.image == '' }}
     runs-on: ubuntu-latest
     permissions:

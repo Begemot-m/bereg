@@ -23,7 +23,7 @@ const PXH = 40;
 const ANCHORS = [0, 30, 45];
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 26 };
 
-function snapMin(raw: number): number {
+export function snapMin(raw: number): number {
   const hour = Math.floor(raw / 60) * 60;
   const candidates = [...ANCHORS.map((a) => hour + a), hour + 60];
   return candidates.reduce((best, c) => (Math.abs(c - raw) < Math.abs(best - raw) ? c : best), candidates[0]);

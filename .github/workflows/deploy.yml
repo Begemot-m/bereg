@@ -15,7 +15,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Ворота: сломанный код не должен доезжать до людей. Типы, тесты и страж
+  # миграций — быстрые проверки, они дешевле одного отката.
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bunx prisma generate
+      - name: Типы
+        run: bunx tsc --noEmit
+      - name: Тесты
+        run: bun test
+      - name: Миграции без разрушающих изменений
+        run: node scripts/check-migrations.mjs
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     defaults:
       run:
