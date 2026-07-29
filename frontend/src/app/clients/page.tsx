@@ -153,6 +153,8 @@ function ClientsList() {
           onCreate={(invite) => { if (!first.trim()) return; setInviteAfter(invite); add.mutate(); }}
         />
 
+        <ModulesTeaser />
+
         <div className="mb-4 flex gap-1 overflow-x-auto">
           {FILTERS.map((f) => (
             <button
@@ -264,6 +266,34 @@ function ClientCard({ client: c }: { client: Client }) {
         )}
       </div>
     </div>
+  );
+}
+
+// Анонс мультитулов: сплошная плашка тоном раздела, без кнопки —
+// обещать нечего, пока модулей нет. Задача блока — застолбить направление.
+function ModulesTeaser() {
+  const kinds = ["КПТ", "Схема-терапия", "Детская", "Семейная", "Травма"];
+  return (
+    <section className="relative mb-4 overflow-hidden rounded-[20px] p-4" style={{ background: "var(--head)" }}>
+      <motion.span
+        aria-hidden
+        className="absolute -right-8 -top-10 h-28 w-28 rounded-full"
+        style={{ background: "rgba(255,255,255,.28)" }}
+        animate={{ y: [0, 9, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="relative flex items-start gap-3">
+        <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="tools" width={21} weight="bold" color="var(--edge)" /></span>
+        <div className="min-w-0 flex-1">
+          <span className="chip chip-strong uppercase">Скоро</span>
+          <h2 className="font-tight mt-1.5 text-[18px] font-black leading-tight">Модули для усиленной работы с клиентом</h2>
+          <p className="t-sub mt-1">Мультитулы под вашу специализацию: протоколы, замеры и материалы к сессии — собраны в один рабочий набор и подставляются в карточку клиента.</p>
+        </div>
+      </div>
+      <div className="no-scrollbar relative -mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1">
+        {kinds.map((k) => <span key={k} className="chip shrink-0 bg-white">{k}</span>)}
+      </div>
+    </section>
   );
 }
 
