@@ -132,6 +132,31 @@ CREATE TABLE "PsyProfile" (
 );
 
 -- CreateTable
+CREATE TABLE "Notification" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "kind" TEXT NOT NULL,
+    "text" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "readAt" TIMESTAMP(3),
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SupportRequest" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER,
+    "topic" TEXT NOT NULL DEFAULT 'other',
+    "text" TEXT NOT NULL,
+    "contact" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "handledAt" TIMESTAMP(3),
+
+    CONSTRAINT "SupportRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Homework" (
     "id" SERIAL NOT NULL,
     "clientId" INTEGER NOT NULL,
@@ -248,6 +273,12 @@ CREATE INDEX "Client_userId_idx" ON "Client"("userId");
 CREATE INDEX "PsyProfile_status_sessionPrice_idx" ON "PsyProfile"("status", "sessionPrice");
 
 -- CreateIndex
+CREATE INDEX "Notification_userId_createdAt_idx" ON "Notification"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "SupportRequest_createdAt_idx" ON "SupportRequest"("createdAt");
+
+-- CreateIndex
 CREATE INDEX "Homework_clientId_sentAt_idx" ON "Homework"("clientId", "sentAt");
 
 -- CreateIndex
@@ -291,6 +322,12 @@ ALTER TABLE "Client" ADD CONSTRAINT "Client_userId_fkey" FOREIGN KEY ("userId") 
 
 -- AddForeignKey
 ALTER TABLE "PsyProfile" ADD CONSTRAINT "PsyProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SupportRequest" ADD CONSTRAINT "SupportRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Homework" ADD CONSTRAINT "Homework_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
