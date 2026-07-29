@@ -2,7 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { z } from "zod";
+
 import { decryptText, encryptText, ownedClient } from "@/lib/server/therapy";
+import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
 
@@ -36,16 +39,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const client = await ownedClient(Number(id), user.id);
     if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-    const body = (await req.json()) as { text?: string };
-    const text = (body.text ?? "").trim();
-    if (!text) return NextResponse.json({ error: "text required" }, { status: 422 });
+    const body = await parseBody(req, z.object({ text: z.string().trim().min(1, "Текст задания пуст").max(2000) }));
 
     const created = await prisma.homework.create({
-      data: { clientId: client.id, text: encryptText(text.slice(0, 2000)) },
+      data: { clientId: client.id, text: encryptText(body.text) },
     });
     return NextResponse.json(toDTO(created), { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    if (e instanceof InvalidBody) return invalidBodyResponse(e);
     throw e;
   }
 }

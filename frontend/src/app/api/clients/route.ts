@@ -1,10 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { z } from "zod";
+
 import { canAddClient } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
+
+const newClientSchema = z.object({
+  name: z.string().trim().min(1, "Укажите имя").max(120),
+  contact: z.string().trim().max(200).optional(),
+  note: z.string().max(4000).optional(),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,9 +43,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const body = (await req.json()) as { name?: string; contact?: string; note?: string };
-    const name = body.name?.trim();
-    if (!name) return NextResponse.json({ error: "name required" }, { status: 422 });
+    const body = await parseBody(req, newClientSchema);
+    const name = body.name;
 
     // Лимит бесплатного тарифа проверяется здесь, а не только в интерфейсе:
     // иначе его обходит один запрос мимо приложения.
@@ -52,13 +60,14 @@ export async function POST(req: NextRequest) {
       data: {
         psychologistId: user.id,
         name,
-        contact: body.contact?.trim() || null,
+        contact: body.contact || null,
         note: body.note ?? "",
       },
     });
     return NextResponse.json(client, { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    if (e instanceof InvalidBody) return invalidBodyResponse(e);
     throw e;
   }
 }

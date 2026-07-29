@@ -1,17 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { z } from "zod";
+
 import { isAdmin } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
 
-type Body = {
-  /** Выдать или снять PRO вручную. Дни: сколько продлить от сегодня. */
-  grantPro?: { days: number; note?: string };
-  revokePro?: boolean;
-  blocked?: boolean;
-};
+// Выдать или снять PRO вручную, заблокировать. Дни ограничены годом:
+// «доступ навсегда» одним нажатием — способ забыть про него навсегда.
+const patchSchema = z.object({
+  grantPro: z.object({ days: z.coerce.number().int().min(1).max(365), note: z.string().max(200).optional() }).optional(),
+  revokePro: z.boolean().optional(),
+  blocked: z.boolean().optional(),
+});
 
 /**
  * Управление пользователем. Всё, что здесь происходит, попадает в аудит:
@@ -30,7 +34,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const target = await prisma.user.findUnique({ where: { id: userId } });
     if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const body = (await req.json()) as Body;
+    const body = await parseBody(req, patchSchema);
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
     if (body.grantPro) {
@@ -94,6 +98,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     return NextResponse.json(fresh);
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    if (e instanceof InvalidBody) return invalidBodyResponse(e);
     throw e;
   }
 }

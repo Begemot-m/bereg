@@ -1,9 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { z } from "zod";
+
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
+
+const bookSchema = z.object({
+  psychologistId: z.coerce.number().int().positive(),
+  startsAt: z.iso.datetime({ offset: true }).or(z.iso.datetime()),
+  durationMin: z.coerce.number().int().min(15).max(240).optional(),
+  format: z.enum(["online", "offline"]).optional(),
+});
 
 type ApptRow = {
   id: number;
@@ -43,12 +53,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const body = (await req.json()) as { psychologistId?: number; startsAt?: string; durationMin?: number; format?: string };
+    const body = await parseBody(req, bookSchema);
 
-    const psychologistId = Number(body.psychologistId);
-    if (!psychologistId) return NextResponse.json({ error: "psychologistId required" }, { status: 422 });
-    const startsAt = new Date(String(body.startsAt));
-    if (Number.isNaN(startsAt.getTime())) return NextResponse.json({ error: "invalid startsAt" }, { status: 422 });
+    const psychologistId = body.psychologistId;
+    const startsAt = new Date(body.startsAt);
+    // Запись в прошлое — не ошибка формата, а ошибка смысла: ловим отдельно.
+    if (startsAt.getTime() < Date.now()) {
+      return NextResponse.json({ error: "Нельзя записаться в прошлое" }, { status: 422 });
+    }
 
     const psy = await prisma.psyProfile.findUnique({ where: { userId: psychologistId } });
     if (!psy || psy.status !== "approved") {
@@ -107,6 +119,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    if (e instanceof InvalidBody) return invalidBodyResponse(e);
     throw e;
   }
 }
