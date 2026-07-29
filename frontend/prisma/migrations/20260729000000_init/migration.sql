@@ -104,10 +104,57 @@ CREATE TABLE "Client" (
     "name" TEXT NOT NULL,
     "contact" TEXT,
     "note" TEXT NOT NULL DEFAULT '',
+    "status" TEXT NOT NULL DEFAULT 'new',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "userId" INTEGER,
+    "link" TEXT NOT NULL DEFAULT 'none',
+    "invitedAt" TIMESTAMP(3),
 
     CONSTRAINT "Client_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Homework" (
+    "id" SERIAL NOT NULL,
+    "clientId" INTEGER NOT NULL,
+    "text" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'assigned',
+    "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Homework_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Mood" (
+    "id" SERIAL NOT NULL,
+    "clientId" INTEGER NOT NULL,
+    "day" DATE NOT NULL,
+    "mood" INTEGER NOT NULL,
+    "emotions" JSONB NOT NULL DEFAULT '[]',
+
+    CONSTRAINT "Mood_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GoodNote" (
+    "id" SERIAL NOT NULL,
+    "clientId" INTEGER NOT NULL,
+    "day" DATE NOT NULL,
+    "text" TEXT NOT NULL,
+
+    CONSTRAINT "GoodNote_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TherapyProfile" (
+    "clientId" INTEGER NOT NULL,
+    "board" TEXT NOT NULL DEFAULT '',
+    "wheel" JSONB,
+    "tutorialSeen" BOOLEAN NOT NULL DEFAULT false,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TherapyProfile_pkey" PRIMARY KEY ("clientId")
 );
 
 -- CreateTable
@@ -177,6 +224,21 @@ CREATE INDEX "AuditLog_action_createdAt_idx" ON "AuditLog"("action", "createdAt"
 CREATE INDEX "Client_psychologistId_idx" ON "Client"("psychologistId");
 
 -- CreateIndex
+CREATE INDEX "Client_userId_idx" ON "Client"("userId");
+
+-- CreateIndex
+CREATE INDEX "Homework_clientId_sentAt_idx" ON "Homework"("clientId", "sentAt");
+
+-- CreateIndex
+CREATE INDEX "Mood_clientId_day_idx" ON "Mood"("clientId", "day");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Mood_clientId_day_key" ON "Mood"("clientId", "day");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GoodNote_clientId_day_key" ON "GoodNote"("clientId", "day");
+
+-- CreateIndex
 CREATE INDEX "Appointment_psychologistId_startsAt_idx" ON "Appointment"("psychologistId", "startsAt");
 
 -- CreateIndex
@@ -202,6 +264,21 @@ ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userI
 
 -- AddForeignKey
 ALTER TABLE "Client" ADD CONSTRAINT "Client_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Client" ADD CONSTRAINT "Client_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Homework" ADD CONSTRAINT "Homework_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Mood" ADD CONSTRAINT "Mood_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GoodNote" ADD CONSTRAINT "GoodNote_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TherapyProfile" ADD CONSTRAINT "TherapyProfile_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

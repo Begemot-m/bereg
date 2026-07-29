@@ -32,6 +32,8 @@ model User {
   auditEntries AuditLog[]
   workHours    WorkHours?
   slotOverrides SlotOverride[]
+  /// Карточки, в которых этот пользователь — клиент (обратная сторона Client.user).
+  clientCards  Client[]       @relation("ClientUser")
 }
 
 /// Шаблон рабочих часов: по одной записи на психолога.
@@ -135,13 +137,72 @@ model Client {
   psychologistId Int
   name           String
   contact        String? // телефон / телеграм / email
-  note           String   @default("") @db.Text
+  note           String   @default("") @db.Text // заметки психолога — шифруются
+  status         String   @default("new") // new | therapy | paused
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  /// Карточку ведёт психолог; если клиент подключил свой профиль — здесь его
+  /// аккаунт. Отсюда же берётся, чьи это настроение и задания.
+  user      User?     @relation("ClientUser", fields: [userId], references: [id], onDelete: SetNull)
+  userId    Int?
+  link      String    @default("none") // none | invited | joined
+  invitedAt DateTime?
+
   appointments Appointment[]
+  homework     Homework[]
+  moods        Mood[]
+  goodNotes    GoodNote[]
+  therapy      TherapyProfile?
 
   @@index([psychologistId])
+  @@index([userId])
+}
+
+/// Домашнее задание от психолога клиенту.
+model Homework {
+  id       Int      @id @default(autoincrement())
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId Int
+  text     String   @db.Text // шифруется
+  status   String   @default("assigned") // assigned | doing | done
+  sentAt   DateTime @default(now())
+
+  @@index([clientId, sentAt])
+}
+
+/// Отметка настроения за день. Одна на день — повторная правит существующую.
+model Mood {
+  id       Int      @id @default(autoincrement())
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId Int
+  day      DateTime @db.Date
+  mood     Int
+  emotions Json     @default("[]")
+
+  @@unique([clientId, day])
+  @@index([clientId, day])
+}
+
+/// «Что хорошего принёс день» — короткая запись клиента. Тоже одна на день.
+model GoodNote {
+  id       Int      @id @default(autoincrement())
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId Int
+  day      DateTime @db.Date
+  text     String   @db.Text // шифруется
+
+  @@unique([clientId, day])
+}
+
+/// Состояние терапии клиента: доска для терапевта и колесо баланса.
+model TherapyProfile {
+  clientId     Int      @id
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  board        String   @default("") @db.Text // шифруется
+  wheel        Json? // { answers: {ключ: number[]}, completedAt }
+  tutorialSeen Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
 }
 
 // Запись на приём.
