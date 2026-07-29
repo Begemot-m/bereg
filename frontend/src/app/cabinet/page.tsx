@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
@@ -14,6 +15,7 @@ import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card, Input } from "@/components/ui";
 import { isEmail, useAccountEmail } from "@/lib/account";
+import { useMe } from "@/lib/me";
 import { resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
@@ -69,6 +71,9 @@ export default function CabinetPage() {
           <EmailLink />
         </div>
 
+        {/* Видно только владельцу платформы */}
+        <AdminEntry />
+
         {/* Приватность и данные */}
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
@@ -105,6 +110,28 @@ export default function CabinetPage() {
 
       </div>
       </Reveal>
+    </div>
+  );
+}
+
+// Вход в админку. Обычный пользователь этого блока не видит и по прямой
+// ссылке ничего не получит: роуты админки отвечают 403.
+function AdminEntry() {
+  const me = useMe();
+  if (!me.data?.isAdmin) return null;
+
+  return (
+    <div>
+      <SectionTitle>Платформа</SectionTitle>
+      <Link href="/admin" onClick={tap} className="card flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
+        <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="gear" width={20} weight="bold" color="#fff" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="t-micro block">Только для вас</span>
+          <span className="t-head mt-0.5 block leading-tight">Админка</span>
+          <span className="t-cap mt-0.5 block">Сводка, пользователи, выдача доступа</span>
+        </span>
+        <Arrow />
+      </Link>
     </div>
   );
 }

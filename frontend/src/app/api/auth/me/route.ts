@@ -12,6 +12,9 @@ export async function GET(req: NextRequest) {
       username: user.username,
       firstName: user.firstName,
       role: user.role,
+      // Интерфейс по этому флагу решает, показывать ли вход в админку.
+      // Права всё равно проверяются на сервере: скрытая кнопка — не защита.
+      isAdmin: user.isAdmin,
     });
   } catch (e) {
     if (e instanceof AuthError) {

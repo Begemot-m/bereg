@@ -11,13 +11,26 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const clientId = url.searchParams.get("clientId");
 
+    // По умолчанию отдаём окно вокруг сегодняшнего дня, а не всю историю:
+    // за год записей тысячи, а на экране нужны ближайшие.
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    const take = Math.min(500, Math.max(1, Number(url.searchParams.get("limit") ?? 200)));
+    const defaultFrom = new Date();
+    defaultFrom.setMonth(defaultFrom.getMonth() - 3);
+
     const appts = await prisma.appointment.findMany({
       where: {
         psychologistId: user.id,
         ...(clientId ? { clientId: Number(clientId) } : {}),
+        startsAt: {
+          gte: from ? new Date(from) : defaultFrom,
+          ...(to ? { lte: new Date(to) } : {}),
+        },
       },
       orderBy: { startsAt: "asc" },
       include: { client: { select: { id: true, name: true } } },
+      take,
     });
     return NextResponse.json(appts);
   } catch (e) {

@@ -26,6 +26,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Invalid initData: ${msg}` }, { status: 401 });
   }
 
+  // Владельцы платформы из ADMIN_USERNAMES получают админку при входе.
+  // Иначе первый админ появлялся бы только запросом в базу руками, а до
+  // базы на новом сервере ещё надо добраться.
+  const owners = (process.env.ADMIN_USERNAMES ?? "")
+    .split(",")
+    .map((n) => n.trim().replace(/^@/, "").toLowerCase())
+    .filter(Boolean);
+  const isOwner = Boolean(tgUser.username && owners.includes(tgUser.username.toLowerCase()));
+
   // Апсерт пользователя по Telegram id.
   const user = await prisma.user.upsert({
     where: { telegramId: tgUser.telegramId },
@@ -33,8 +42,15 @@ export async function POST(req: NextRequest) {
       telegramId: tgUser.telegramId,
       username: tgUser.username,
       firstName: tgUser.firstName,
+      isAdmin: isOwner,
     },
-    update: { username: tgUser.username, firstName: tgUser.firstName },
+    // Права не снимаем при входе: админа, выданного в базе, не должен
+    // гасить забытый список в переменной окружения.
+    update: {
+      username: tgUser.username,
+      firstName: tgUser.firstName,
+      ...(isOwner ? { isAdmin: true } : {}),
+    },
   });
 
   if (user.deletedAt) return NextResponse.json({ error: "Аккаунт удалён" }, { status: 403 });

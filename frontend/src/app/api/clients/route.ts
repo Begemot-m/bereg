@@ -9,9 +9,20 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
+    // Потолок на выдачу: у практикующего психолога карточек сотни, а список
+    // грузится на каждом открытии раздела. Клиент может попросить больше.
+    const url = new URL(req.url);
+    const take = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") ?? 100)));
+    const skip = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+
     const clients = await prisma.client.findMany({
       where: { psychologistId: user.id },
       orderBy: { updatedAt: "desc" },
+      // note — приватные заметки психолога, в списке они не нужны:
+      // лишний трафик и лишняя копия чувствительного текста в браузере.
+      omit: { note: true },
+      take,
+      skip,
     });
     return NextResponse.json(clients);
   } catch (e) {
