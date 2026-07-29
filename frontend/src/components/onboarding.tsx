@@ -65,7 +65,7 @@ export function Onboarding() {
   const back = () => { tap(); setStep((s) => Math.max(0, s - 1)); };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: psySell ? "#fffdf7" : isRole ? "#fbf8ef" : cur.bg, transition: "background-color .5s ease" }}>
+    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: psySell ? "#ffffff" : isRole ? "#fbf8ef" : cur.bg, transition: "background-color .5s ease" }}>
       {/* Декоративные заливки-круги для «постерного» объёма */}
       {!isRole && !psySell && cur && (
         <>

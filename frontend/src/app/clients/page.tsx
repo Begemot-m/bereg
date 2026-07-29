@@ -74,6 +74,7 @@ function ClientsList() {
   const [search, setSearch] = useState("");
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
+  const [contact, setContact] = useState("");
   const [open, setOpen] = useState(false);
 
   const { data: clients = [], isLoading } = useQuery({
@@ -88,7 +89,7 @@ function ClientsList() {
   const pro = isPro(sub);
   const atCap = !pro && clients.length >= FREE_CLIENT_LIMIT;
   const add = useMutation({
-    mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), ""),
+    mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), contact.trim()),
     onSuccess: (c) => {
       success();
       const name = first.trim();
@@ -146,6 +147,8 @@ function ClientsList() {
           last={last}
           setFirst={setFirst}
           setLast={setLast}
+          contact={contact}
+          setContact={setContact}
           pending={add.isPending}
           onCreate={(invite) => { if (!first.trim()) return; setInviteAfter(invite); add.mutate(); }}
         />
@@ -272,32 +275,28 @@ function plural(n: number) {
 }
 
 // Быстрое добавление: имя + фамилия → создаём карточку и открываем её.
-function QuickAddClient({ open, first, last, setFirst, setLast, pending, onCreate }: { open: boolean; first: string; last: string; setFirst: (v: string) => void; setLast: (v: string) => void; pending: boolean; onCreate: (invite: boolean) => void }) {
+function QuickAddClient({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: (invite: boolean) => void }) {
   return (
     <Disclosure open={open} autoScroll={false}>
-      <div className="mb-4 rounded-[16px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--olive-edge)" }}>
+      {/* Тот же порядок полей, что и при добавлении из окна сессии */}
+      <div className="card mb-4 p-3.5">
         <div className="mb-2.5 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[9px]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}><Icon name="user" width={16} weight="bold" /></span>
-          <div><p className="text-[13px] font-black leading-none">Новый клиент</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">Имя и фамилия — карточка откроется сразу</p></div>
+          <span className="ico h-8 w-8"><Icon name="user" width={16} weight="bold" color="var(--edge)" /></span>
+          <div><p className="text-[13px] font-black leading-none">Новый клиент</p><p className="t-cap mt-0.5">Имя, фамилия и контакт — карточка откроется сразу</p></div>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); onCreate(false); }}>
+        <form onSubmit={(e) => { e.preventDefault(); onCreate(false); }} className="space-y-2">
           <div className="flex gap-2">
-            <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Имя" autoFocus />
-            <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Фамилия" />
+            <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Имя" autoFocus enterKeyHint="next" />
+            <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Фамилия" enterKeyHint="next" />
           </div>
-          <button type="submit" disabled={pending || !first.trim()} className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[13px] bg-[var(--ink)] py-2.5 text-[13px] font-black text-white transition-transform active:scale-[0.98] disabled:opacity-40">
+          <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="@telegram или телефон" enterKeyHint="done" />
+          <button type="submit" disabled={pending || !first.trim()} className="btn w-full py-2.5">
             <Icon name="plus" width={15} weight="bold" color="#fff" /> Создать карточку
           </button>
-          <button
-            type="button"
-            disabled={pending || !first.trim()}
-            onClick={() => onCreate(true)}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[13px] py-2.5 text-[13px] font-black transition-transform active:scale-[0.98] disabled:opacity-40"
-            style={{ background: "var(--head-soft)", color: "var(--edge)" }}
-          >
-            <Icon name="telegram" width={15} weight="fill" color="var(--edge)" /> Создать и пригласить в Telegram
+          <button type="button" disabled={pending || !first.trim()} onClick={() => onCreate(true)} className="btn btn-accent w-full py-2.5">
+            <Icon name="telegram" width={15} weight="fill" color="#fff" /> Создать и пригласить в Telegram
           </button>
-          <p className="mt-2 text-center text-[11px] font-semibold text-[var(--muted-2)]">Приглашение открывает Telegram с готовым текстом. Когда клиент подключится, его настроение и задания появятся в карточке.</p>
+          <p className="t-cap text-center">Приглашение открывает Telegram с готовым текстом. Когда клиент подключится, его настроение и задания появятся в карточке.</p>
         </form>
       </div>
     </Disclosure>

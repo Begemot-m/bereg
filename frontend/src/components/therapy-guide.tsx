@@ -17,7 +17,7 @@ const Screen = ({ children, tone = "var(--page)" }: { children: React.ReactNode;
   <div className="mx-auto w-[186px] overflow-hidden rounded-[20px] bg-white p-1.5 stroke-lg" style={{ boxShadow: "0 18px 34px -22px rgba(32,28,24,.5)" }}>
     <div className="overflow-hidden rounded-[14px]" style={{ background: tone }}>
       <div className="flex items-center gap-1 px-2.5 pb-1 pt-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--ink)] opacity-40" /><span className="h-1 w-7 rounded-full bg-[var(--ink)] opacity-20" /></div>
-      <div className="min-h-[150px] rounded-t-[12px] bg-[#fffdf7] p-2.5" style={{ borderTop: "1.5px solid rgba(32,28,24,.14)" }}>{children}</div>
+      <div className="min-h-[150px] rounded-t-[12px] bg-[#ffffff] p-2.5" style={{ borderTop: "1.5px solid rgba(32,28,24,.14)" }}>{children}</div>
     </div>
   </div>
 );

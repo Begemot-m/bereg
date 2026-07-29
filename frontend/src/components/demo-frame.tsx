@@ -53,7 +53,7 @@ export function DemoFrame({ children }: { children: ReactNode }) {
               className="sticky top-0 z-40 hidden items-center justify-between px-5 py-2.5 backdrop-blur-xl md:flex"
               style={{ background: "color-mix(in srgb, var(--bg) 82%, transparent)", borderBottom: "1px solid var(--hairline)" }}
             >
-              <span className="text-[13px] text-[var(--muted-2)]">✕</span>
+              <span className="x-close text-[13px]">✕</span>
               <span className="text-[12px] font-semibold text-[var(--muted)]">{APP_NAME}</span>
               <span className="text-[15px] leading-none text-[var(--muted-2)]">⋮</span>
             </div>

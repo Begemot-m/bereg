@@ -314,18 +314,25 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
       )}
 
       <Disclosure open={open} autoScroll={false}>
-        <div className="chunk mt-3 p-4">
+        {/* Не .chunk: внутри графика рамки осмысленны, а правило «блок внутри
+            блока — без рамки» сняло бы их у шкалы, рейки и мини-недели. */}
+        <div className="mt-3 p-4" style={{ background: "var(--surface)", border: "var(--bw-lg) solid var(--edge)", borderRadius: "var(--r-block)" }}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><p className="text-[14px] font-black">Рабочие часы</p><p className="text-[11px] font-semibold text-[var(--muted)]">{summary} · нажмите на шкалу дня, чтобы добавить окно</p></div>
             {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
           </div>
-          <WorkHoursEditor onSaved={onSaved} />
-          {/* Правила приёма живут рядом с графиком, а не в кабинете, и одним блоком. */}
-          <div className="line-top mt-4 space-y-3 pt-4">
-            <RemindersModule />
-            <CancelLockRow />
-          </div>
-          <button onClick={onToggle} className="mt-3 w-full py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Свернуть настройку</button>
+          {/* Правила приёма живут рядом с графиком, а не в кабинете, и одним
+              блоком — уходят в хвост редактора, прямо над кнопкой сохранения. */}
+          <WorkHoursEditor
+            onSaved={onSaved}
+            tail={
+              <div className="space-y-3 pt-1" style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 14 }}>
+                <RemindersModule />
+                <CancelLockRow />
+              </div>
+            }
+          />
+          <button onClick={onToggle} className="mt-3 w-full py-1.5 text-[12px] font-black" style={{ color: "var(--edge)" }}>Свернуть настройку</button>
         </div>
       </Disclosure>
     </div>
@@ -336,16 +343,17 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
 function CancelLockRow() {
   const [days, setDays] = useCancelLockDays();
   return (
-    <div className="line-top pt-3">
+    <div style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 12 }}>
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-[13px] font-black">Запрет отмены сессий</p>
           <p className="t-cap mt-0.5">За сколько до встречи клиент уже не отменит</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="btn btn-white h-8 w-8 p-0 text-[18px]" aria-label="Меньше">−</button>
-          <span className="tnum flex h-8 min-w-[64px] items-center justify-center rounded-full px-2 text-[12px] font-black" style={{ background: days ? "var(--edge)" : "var(--head-soft)", color: days ? "#fff" : "var(--muted)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
-          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="btn btn-white h-8 w-8 p-0 text-[18px]" aria-label="Больше">+</button>
+        {/* Вид не прыгает: меняется только цвет шрифта — выключено серым, включено акцентом */}
+        <div className="keep-style flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5" style={{ background: "#fff", border: "var(--bw) solid var(--edge)" }}>
+          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }} aria-label="Меньше">−</button>
+          <span className="tnum w-12 text-center text-[12px] font-black" style={{ color: days ? "var(--edge)" : "var(--muted-2)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
+          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }} aria-label="Больше">+</button>
         </div>
       </div>
     </div>

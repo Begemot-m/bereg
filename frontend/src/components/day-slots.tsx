@@ -103,7 +103,7 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
         const st = slotStyle(s.hour);
         if (s.removed) {
           return (
-            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[11px] px-3 py-2 stroke-lg" style={{ background: "#f7f3ea", borderColor: "var(--edge-neutral)", opacity: 0.7 }}>
+            <motion.div key={s.iso} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 rounded-[11px] px-3 py-2 stroke-lg" style={{ background: "var(--surface-2)", borderColor: "var(--edge-neutral)", opacity: 0.7 }}>
               <span className="text-[13px] font-extrabold tnum text-[var(--muted-2)] line-through">{timeF.format(new Date(s.iso))}</span>
               <span className="flex-1 text-[12px] font-semibold text-[var(--muted-2)]">закрыто</span>
               {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: false } })} className="btn btn-accent px-2.5 py-1 text-[11px]">↺ Открыть</button>}
@@ -126,7 +126,7 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
               <button disabled={s.past} onClick={() => { tap(); setPick(picking ? null : s.iso); }} className="flex-1 text-left text-[13px] font-bold text-[var(--muted)] disabled:opacity-70">{s.past ? "прошло" : picking ? "выберите клиента" : "свободное окно"}</button>
               {!s.past && <Icon name={st.icon} width={13} weight="fill" color={st.ic} />}
               {!s.past && <FmtSwitch fmt={s.fmt} onToggle={() => setOv.mutate({ iso: s.iso, patch: { fmt: s.fmt === "online" ? "offline" : "online" } })} />}
-              {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: true } })} className="flex h-6 w-6 items-center justify-center text-[15px] font-black leading-none" style={{ color: "var(--salmon-edge)" }} aria-label="Закрыть окно">✕</button>}
+              {!s.past && <button onClick={() => setOv.mutate({ iso: s.iso, patch: { removed: true } })} className="x-close h-6 w-6 text-[15px]" aria-label="Закрыть окно">✕</button>}
             </div>
             <Disclosure open={picking && !s.past} autoScroll={false}>
               <ClientPicker clients={sortedClients} onPick={(clientId) => book.mutate({ clientId, iso: s.iso, format: s.fmt })} />
@@ -166,7 +166,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
       <Disclosure open={manage}>
         <div className="px-3 pb-3">
           {resch ? (
-            <div className="rounded-[11px] p-2.5" style={{ background: "#faf7f0" }}>
+            <div className="rounded-[11px] p-2.5" style={{ background: "var(--surface-2)" }}>
               <p className="mb-2 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
               <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
               <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
@@ -210,7 +210,7 @@ export function ClientPicker({ clients, onPick, compact = true, onCreateClient }
         <form onSubmit={(e) => { e.preventDefault(); const n = newName.trim(); if (n) { onCreateClient(n); setNewName(""); setAdding(false); } }} className="mb-1.5 flex items-center gap-1.5">
           <input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Имя и фамилия" className="w-full rounded-[9px] bg-white px-2.5 py-1.5 text-[13px] font-semibold outline-none" style={{ border: "var(--bw) solid var(--olive-edge)" }} />
           <button type="submit" disabled={!newName.trim()} className="shrink-0 rounded-[9px] px-2.5 py-1.5 text-[12px] font-black text-white disabled:opacity-40" style={{ background: "var(--olive-edge)" }}>OK</button>
-          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="shrink-0 px-1 text-[15px] font-black text-[var(--muted-2)]" aria-label="Отмена">✕</button>
+          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="x-close px-1 text-[15px]" aria-label="Отмена">✕</button>
         </form>
       ) : (
         <button onClick={() => { tap(); setAdding(true); }} className="mb-1.5 flex w-full items-center gap-2 rounded-[9px] px-2 py-1.5 text-left transition-colors active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}>

@@ -64,8 +64,8 @@ export const SESSIONS_HELP: HelpPage[] = [
     text: "Крестик ✕ закрывает окно на эту дату — оно становится «закрыто» и недоступно для записи. Кнопка «↺ Открыть» возвращает его. Шаблон при этом не меняется.",
     illo: (
       <Frame>
-        <Row bg={AMB.bg} bd={AMB.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span style={{ color: "var(--salmon-edge)" }}>✕</span></Row>
-        <Row bg="#f7f3ea" bd="var(--edge-neutral)" dim><span className="tnum line-through text-[var(--muted-2)]">16:00</span><span className="flex-1 text-[var(--muted-2)]">закрыто</span><span style={{ color: "var(--green-edge)" }}>↺ Открыть</span></Row>
+        <Row bg={AMB.bg} bd={AMB.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span className="x-close">✕</span></Row>
+        <Row bg="var(--surface-2)" bd="var(--edge-neutral)" dim><span className="tnum line-through text-[var(--muted-2)]">16:00</span><span className="flex-1 text-[var(--muted-2)]">закрыто</span><span style={{ color: "var(--green-edge)" }}>↺ Открыть</span></Row>
       </Frame>
     ),
   },
@@ -143,7 +143,7 @@ export const SCHEDULE_HELP: HelpPage[] = [
           <Pill bg="var(--purple-soft)" bd="var(--purple-edge)">онлайн ⇄</Pill>
           <span className="flex-1 text-center text-[11px] font-extrabold">11:00–11:50</span>
           <span>☀</span>
-          <span className="text-[13px] font-black" style={{ color: "var(--salmon-edge)" }}>✕</span>
+          <span className="x-close text-[13px]">✕</span>
         </div>
       </Frame>
     ),
@@ -172,7 +172,7 @@ export function HelpDeck({ title, pages, onClose, onDone, doneLabel = "Поня�
         <motion.div initial={{ y: 30, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk w-full max-w-md p-5" style={{ background: "var(--surface)" }}>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-tight text-[18px] font-extrabold">{title}</h3>
-            <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full stroke text-[15px] font-bold" style={{ background: "#fff" }}>✕</button>
+            <button onClick={onClose} className="x-close h-8 w-8 rounded-full stroke text-[15px]" style={{ background: "#fff" }}>✕</button>
           </div>
 
           <motion.div key={i} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>

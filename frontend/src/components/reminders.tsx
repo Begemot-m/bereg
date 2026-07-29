@@ -39,7 +39,8 @@ export function RemindersModule() {
             <button
               key={m}
               onClick={() => { select(); toggle(m); }}
-              className={`btn px-3 py-1.5 text-[12px] ${on ? "btn-accent" : "btn-white"}`}
+              className={`btn px-3 py-1.5 text-[12px] ${on ? "btn-accent" : ""}`}
+              style={on ? undefined : { background: "#fff", color: "var(--edge)", borderColor: "var(--edge)" }}
             >
               {offsetLabel(m)}
             </button>

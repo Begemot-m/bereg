@@ -254,7 +254,7 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           {perks.map((p) => (
-            <div key={p.label} className="flex items-center gap-2 rounded-[11px] bg-[#fffdf7] px-2.5 py-2" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+            <div key={p.label} className="flex items-center gap-2 rounded-[11px] bg-[#ffffff] px-2.5 py-2" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
               <Icon name={p.icon} width={15} weight="bold" /><span className="text-[11px] font-black leading-tight">{p.label}</span>
             </div>
           ))}
@@ -287,16 +287,16 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
   if (sub.status === "trial") {
     const daysLeft = Math.min(10, trialDaysLeft(sub));
     return {
-      badge: <span className="rounded-full bg-[#fffdf7] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>🎁 Триал</span>,
+      badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>🎁 Триал</span>,
       title: "10 дней бесплатно",
       subtitle: `Полный доступ ко всем инструментам. Карта не нужна — осталось ${daysLeft} ${plural(daysLeft, "день", "дня", "дней")}.`,
-      progress: <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#fffdf7]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><motion.div className="h-full rounded-full bg-[var(--ink)]" initial={{ width: 0 }} animate={{ width: `${(daysLeft / 10) * 100}%` }} transition={{ duration: 0.6 }} /></div>,
+      progress: <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#ffffff]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><motion.div className="h-full rounded-full bg-[var(--ink)]" initial={{ width: 0 }} animate={{ width: `${(daysLeft / 10) * 100}%` }} transition={{ duration: 0.6 }} /></div>,
     };
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
   if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Методика PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
   return {
-    badge: <span className="rounded-full bg-[#fffdf7] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>990 ₽/мес</span>,
+    badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>990 ₽/мес</span>,
     title: "Бесплатный тариф",
     subtitle: "3 клиента со всем функционалом. PRO — клиенты без лимита и каталог новых клиентов.",
     progress: null,
@@ -306,7 +306,7 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
 function clientHero(sub: Subscription): { badge: ReactNode; title: string; subtitle: string; progress: ReactNode } {
   if (sub.clientPro) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активен</span>, title: "Методика+ подключён", subtitle: "Все инструменты для себя открыты. Спасибо, что заботитесь о себе!", progress: null };
   return {
-    badge: <span className="rounded-full bg-[#fffdf7] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>390 ₽/мес</span>,
+    badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>390 ₽/мес</span>,
     title: "Инструменты для себя",
     subtitle: "Настроение, колесо баланса, дневники и практики между сессиями. Терапия работает лучше, когда вы в контакте с собой каждый день.",
     progress: null,

@@ -180,7 +180,7 @@ function MoodStatsBlock({ moods }: { moods: Mood[] }) {
 // Блок подбора терапевта в шапке терапии (когда никого ещё не прикреплено).
 function FindTherapistBlock() {
   return (
-    <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[18px] bg-[#fffdf7] p-3.5 transition-transform active:scale-[0.99]" style={{ border: "2.5px dashed var(--purple-edge)" }}>
+    <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[18px] bg-[#ffffff] p-3.5 transition-transform active:scale-[0.99]" style={{ border: "2.5px dashed var(--purple-edge)" }}>
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]"><Icon name="compass" width={24} weight="bold" /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-black">Найти терапевта</span>
@@ -223,7 +223,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
   }, [avail]);
   const manage = mine.length > 0 && !pickSlot && !booked;
   return (
-    <div className="relative mt-3 rounded-[18px] bg-[#fffdf7] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+    <div className="relative mt-3 rounded-[18px] bg-[#ffffff] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
       {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}?`)) onRemove(); }} className="absolute right-2 top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)", color: "var(--salmon-edge)" }} aria-label="Открепить терапевта">×</button>}
       {/* Тап по карточке — на страницу терапевта */}

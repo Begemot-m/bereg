@@ -2,7 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { memo, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
+
+import { listAppointments } from "@/lib/appointments";
 
 import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon, type IconName } from "@/components/icons";
@@ -46,7 +48,8 @@ function resolveTouch(mins: number, dur: number, others: Span[]): number {
   return mins;
 }
 
-export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
+// tail — что показать перед кнопкой сохранения (правила приёма живут там же).
+export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?: React.ReactNode }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const [draft, setDraft] = useState<WorkHours | null>(null);
@@ -100,18 +103,11 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
     success();
     setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(mins) } : x)));
   };
-  const copyTo = (n: number) => { select(); const next = { ...draft.hours }; for (let d = 0; d < n; d++) next[d] = slots.map((x) => ({ ...x })); setDraft({ ...draft, hours: next }); };
+  const copyTo = (days: number[]) => { select(); const next = { ...draft.hours }; for (const d of days) next[d] = slots.map((x) => ({ ...x })); setDraft({ ...draft, hours: next }); };
   const clearDay = () => { if (slots.length === 0) return; success(); setSlots([]); };
 
   return (
     <div className="space-y-3.5">
-      {/* Действия с днём — сверху, они нужны по ходу составления графика */}
-      <div className="grid grid-cols-3 gap-1.5">
-        <ActionChip icon="swap" onClick={() => copyTo(5)}>На будни</ActionChip>
-        <ActionChip icon="calendar" onClick={() => copyTo(7)}>На все дни</ActionChip>
-        <ActionChip icon="note" tone="salmon" disabled={slots.length === 0} onClick={clearDay}>Очистить</ActionChip>
-      </div>
-
       {/* Интервал работы */}
       <div className="flex items-center gap-2">
         <span className="text-[12px] font-bold text-[var(--muted)]">Работаю</span>
@@ -137,6 +133,14 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
             </button>
           );
         })}
+      </div>
+
+      {/* Действия с выбранным днём — сразу под днями, отделены линиями:
+          видно, что это про график, а не про раздел целиком. */}
+      <div className="flex gap-1.5 py-2" style={{ borderTop: "1px solid var(--edge-neutral)", borderBottom: "1px solid var(--edge-neutral)" }}>
+        <ActionChip icon="swap" onClick={() => copyTo([0, 1, 2, 3, 4])}>На будни</ActionChip>
+        <ActionChip icon="calendar" onClick={() => copyTo([5, 6])}>На выходные</ActionChip>
+        <ActionChip icon="note" tone="salmon" disabled={slots.length === 0} onClick={clearDay}>Очистить</ActionChip>
       </div>
 
       {/* График дня */}
@@ -177,6 +181,8 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 
       <WeekMini hours={draft.hours} from={from} to={to} day={day} onPick={(d) => { select(); setDay(d); }} />
 
+      {tail}
+
       <button disabled={save.isPending} onClick={() => save.mutate()} className="btn w-full py-3 text-[14px]">
         {save.isSuccess ? "Сохранено ✓" : "Сохранить расписание"}
       </button>
@@ -185,11 +191,11 @@ export function WorkHoursEditor({ onSaved }: { onSaved?: () => void }) {
 }
 
 function ActionChip({ icon, tone = "neutral", disabled, onClick, children }: { icon: IconName; tone?: "neutral" | "salmon"; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
-  // Белая заливка, рамка тоном раздела; у разрушающего действия свой цвет текста.
-  const col = tone === "salmon" ? "var(--salmon-edge)" : "var(--ink)";
+  // Плоские и компактные: строкой, без заливки — это подпись к действию.
+  const col = tone === "salmon" ? "var(--salmon-edge)" : "var(--edge)";
   return (
-    <button disabled={disabled} onClick={onClick} className="stroke flex flex-col items-center justify-center gap-1 rounded-[12px] py-2.5 text-[11px] font-black transition-transform active:scale-95 disabled:opacity-45" style={{ background: "#fff", color: col }}>
-      <Icon name={icon} width={16} weight="bold" color={col} /> {children}
+    <button disabled={disabled} onClick={onClick} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-[11px] font-black transition-transform active:scale-95 disabled:opacity-45" style={{ color: col }}>
+      <Icon name={icon} width={14} weight="bold" color={col} /> {children}
     </button>
   );
 }
@@ -222,8 +228,7 @@ function SlotBlock({ label, hour, fmt, top, height, onRemove, onToggleFmt, onCom
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); select(); onRemove(); }}
-          className="flex h-5 w-5 items-center justify-center text-[15px] font-black leading-none"
-          style={{ color: "var(--salmon-edge)" }}
+          className="x-close h-5 w-5 text-[15px]"
           aria-label="Удалить"
         >
           ✕
@@ -264,22 +269,38 @@ function MinuteSlider({ value, onChange }: { value: number; onChange: (v: number
 const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hours: Record<number, WorkSlot[]>; from: number; to: number; day: number; onPick: (d: number) => void }) {
   const H = 60;
   const span = Math.max(1, to - from) * 60;
+  const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
+  // Понедельник текущей недели — от него считаем дату каждого столбца.
+  const monday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }, []);
+  const busy = useMemo(
+    () => new Set(appts.filter((a) => a.status !== "cancelled").map((a) => new Date(a.startsAt).getTime())),
+    [appts],
+  );
+
   return (
     <div>
-      <p className="mb-1.5 text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Неделя</p>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <p className="text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Неделя</p>
+        <span className="flex items-center gap-2.5 text-[10px] font-black text-[var(--muted)]">
+          <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: "var(--head-soft)" }} /> свободно</span>
+          <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: "var(--edge)" }} /> занято</span>
+        </span>
+      </div>
       <div className="flex gap-1.5">
         {WEEKDAYS.map((_, wd) => {
           const list = hours[wd] ?? [];
           const isSel = wd === day;
           return (
             <button key={wd} onClick={() => onPick(wd)} className="flex flex-1 flex-col items-center gap-1">
-              <div className="relative w-full overflow-hidden rounded-[8px] stroke" style={{ height: H, background: "#fff", borderColor: isSel ? "var(--ink)" : undefined, borderWidth: isSel ? 2 : undefined }}>
+              {/* keep-style: рамка тут осмысленна, общее правило её бы сняло */}
+              <div className="keep-style relative w-full overflow-hidden rounded-[8px]" style={{ height: H, background: "#fff", border: `${isSel ? "2px" : "var(--bw)"} solid ${isSel ? "var(--ink)" : "var(--edge)"}` }}>
                 {list.map((s) => {
                   const top = clamp(((toMin(s.t) - from * 60) / span) * H, 0, H);
                   const h = Math.max(3, (s.d / span) * H);
-                  // Цвет — тот же slotStyle, что и у блоков в графике дня.
-                  const st = slotStyle(Math.floor(toMin(s.t) / 60));
-                  return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: st.bg }} />;
+                  const dt = new Date(monday); dt.setDate(monday.getDate() + wd);
+                  const [hh, mm] = s.t.split(":").map(Number); dt.setHours(hh, mm, 0, 0);
+                  const taken = busy.has(dt.getTime());
+                  return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: taken ? "var(--edge)" : "var(--head-soft)" }} />;
                 })}
               </div>
             </button>
@@ -294,10 +315,11 @@ function TimeNum({ label, value, onChange }: { label: string; value: number; onC
   return (
     <div className="flex items-center gap-1">
       <span className="text-[12px] font-bold text-[var(--muted)]">{label}</span>
-      <div className="flex items-center gap-1 rounded-full px-1.5 py-0.5 stroke" style={{ background: "#fff" }}>
-        <button onClick={() => { select(); onChange(Math.max(0, value - 1)); }} className="text-[15px] font-bold leading-none">−</button>
+      {/* keep-style: рамка нужна, а внутри блока её снимает общее правило */}
+      <div className="keep-style flex items-center gap-1 rounded-full px-1.5 py-0.5" style={{ background: "#fff", border: "var(--bw) solid var(--edge)" }}>
+        <button onClick={() => { select(); onChange(Math.max(0, value - 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }}>−</button>
         <span className="w-9 text-center text-[13px] font-extrabold tnum">{pad(value)}:00</span>
-        <button onClick={() => { select(); onChange(Math.min(24, value + 1)); }} className="text-[15px] font-bold leading-none">＋</button>
+        <button onClick={() => { select(); onChange(Math.min(24, value + 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }}>+</button>
       </div>
     </div>
   );

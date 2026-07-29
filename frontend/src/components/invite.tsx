@@ -105,7 +105,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
       <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-md overflow-y-auto p-0" style={{ background: "var(--surface)" }}>
         {/* Герой */}
         <div className="relative p-5" style={{ background: "linear-gradient(150deg, var(--amber), var(--amber-soft))", borderBottom: "var(--bw-lg) solid var(--amber-edge)" }}>
-          <button onClick={onClose} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[15px] font-black stroke" aria-label="Закрыть">✕</button>
+          <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px] stroke" aria-label="Закрыть">✕</button>
           <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="spark" width={24} weight="fill" /></span>
           <h3 className="font-tight mt-3 text-[20px] font-black leading-tight">{c.title}</h3>
           <p className="mt-1 text-[12px] font-bold text-[var(--muted)]">{c.sub}</p>

@@ -43,7 +43,7 @@ export function NotificationBell() {
             <motion.div initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }} transition={{ type: "spring", stiffness: 460, damping: 34 }} onClick={(e) => e.stopPropagation()} className="chunk absolute right-3 top-[calc(var(--top-pad)+48px)] max-h-[70dvh] w-[min(360px,calc(100vw-24px))] origin-top-right overflow-y-auto p-4 @md:right-6 @md:top-20" style={{ background: "var(--surface)" }}>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-tight text-[18px] font-black">Уведомления</h3>
-                <button onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full stroke text-[15px] font-bold" style={{ background: "#fff" }}>✕</button>
+                <button onClick={() => setOpen(false)} className="x-close h-8 w-8 rounded-full stroke text-[15px]" style={{ background: "#fff" }}>✕</button>
               </div>
               {list.length === 0 ? (
                 <p className="py-8 text-center text-[13px] font-semibold text-[var(--muted-2)]">Пока пусто. Здесь появятся изменения по сессиям.</p>

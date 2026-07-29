@@ -13,7 +13,7 @@
   --muted-2: rgba(32, 28, 24, 0.4);
 
   /* Нейтральная обводка для белых/светлых блоков (серая) */
-  --edge-neutral: #cabfa8;
+  --edge-neutral: #d7d5d0;
   /* Обводка белого блока — тон раздела. Серый --edge-neutral остаётся
      только полям ввода, где цветная рамка мешает читать. */
   --stroke: var(--edge);
@@ -107,7 +107,8 @@
 
 /* Совместимость со старыми токенами — плоский bold-стиль */
 :root {
-  --surface-2: #f2ead9;
+  /* Второстепенный фон — спокойный тёплый серый (был бежевый) */
+  --surface-2: #efeeec;
   --hairline: rgba(32, 28, 24, 0.14);
   --shadow: none;
   --shadow-lift: none;
@@ -350,6 +351,17 @@ h1, h2, h3, .font-tight {
    правило «блок внутри блока — без рамки». */
 .line-top { border-top: var(--bw) solid var(--edge); }
 
+/* Крестик «закрыть» — всегда красный, во всём проекте. */
+.x-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--danger);
+  font-weight: 900;
+  line-height: 1;
+}
+
 /* ============================================================
    Правила, применяемые ко всему проекту разом.
    Стили раскиданы инлайном по сотням мест — обходить их правкой
@@ -436,6 +448,17 @@ h1, h2, h3, .font-tight {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* Лента, которая не влезла: курсор-рука и подтаявший правый край — видно,
+   что дальше есть ещё. Метку ставит DragScroll. */
+@media (hover: hover) {
+  .no-scrollbar[data-scrollable] { cursor: grab; }
+  .no-scrollbar[data-dragging] { cursor: grabbing; user-select: none; }
+  .no-scrollbar[data-scrollable] {
+    -webkit-mask-image: linear-gradient(90deg, #000 84%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 84%, transparent 100%);
+  }
+}
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(32,28,24,.18); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }

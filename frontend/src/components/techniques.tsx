@@ -64,7 +64,7 @@ function useDraft<T>(tech: TechKey, initial: T) {
 function Progress({ value, tone }: { value: number; tone: Tone }) {
   const c = TONE[tone];
   const reduce = useReducedMotion();
-  return <div className="h-2.5 overflow-hidden rounded-full bg-[#fffdf7]" style={{ border: `var(--bw) solid ${c.edge}` }}><motion.div className="h-full" animate={{ width: `${clamp(value, 0, 100)}%` }} transition={{ duration: reduce ? 0 : .28, ease: [0.32, 0.72, 0, 1] }} style={{ background: c.bg }} /></div>;
+  return <div className="h-2.5 overflow-hidden rounded-full bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><motion.div className="h-full" animate={{ width: `${clamp(value, 0, 100)}%` }} transition={{ duration: reduce ? 0 : .28, ease: [0.32, 0.72, 0, 1] }} style={{ background: c.bg }} /></div>;
 }
 
 function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progress: number; onClose: () => void; children: ReactNode }) {
@@ -77,10 +77,10 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
       <header className="shrink-0 px-4 pb-5 pt-[max(14px,var(--top-pad))]" style={{ background: c.bg, borderBottom: `var(--bw-lg) solid ${c.edge}` }}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#fffdf7]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
             <div className="min-w-0"><p className="truncate font-tight text-[18px] font-black leading-tight">{meta.title}</p><p className="truncate text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">{meta.based}</p></div>
           </div>
-          <button onClick={() => { tap(); onClose(); }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fffdf7] transition-transform active:scale-95" style={{ border: `var(--bw) solid ${c.edge}` }} aria-label="Закрыть"><X size={18} weight="bold" /></button>
+          <button onClick={() => { tap(); onClose(); }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffffff] transition-transform active:scale-95" style={{ border: `var(--bw) solid ${c.edge}` }} aria-label="Закрыть"><X size={18} weight="bold" /></button>
         </div>
         <div className="mt-4"><Progress value={progress} tone={meta.tone} /></div>
       </header>
@@ -181,7 +181,7 @@ function Breathing({ onProgress }: { onProgress: (n: number) => void }) {
       {/* Расширяющийся пунктирный круг: вдох — растёт, выдох — сжимается */}
       {(() => { const scale = reduce ? 1 : current.name === "Вдох" ? 0.62 + pct * 0.5 : current.name === "Выдох" ? 1.12 - pct * 0.5 : 1.12;
         return <>
-          <motion.div aria-hidden className="absolute rounded-full" style={{ width: 210, height: 210, background: "#fffdf7" }} animate={{ scale: scale * 0.82 }} transition={{ duration: reduce ? 0 : 0.9, ease: "linear" }} />
+          <motion.div aria-hidden className="absolute rounded-full" style={{ width: 210, height: 210, background: "#ffffff" }} animate={{ scale: scale * 0.82 }} transition={{ duration: reduce ? 0 : 0.9, ease: "linear" }} />
           <motion.div aria-hidden className="absolute rounded-full" style={{ width: 210, height: 210, border: `3px dashed ${c.edge}` }} animate={{ scale, rotate: 360 }} transition={{ scale: { duration: reduce ? 0 : 0.9, ease: "linear" }, rotate: { duration: current.seconds, ease: "linear", repeat: Infinity } }} />
           <motion.div aria-hidden className="absolute rounded-full" style={{ width: 210, height: 210, border: `2px dashed ${c.edge}`, opacity: 0.45 }} animate={{ scale: scale * 1.16, rotate: -360 }} transition={{ scale: { duration: reduce ? 0 : 0.9, ease: "linear" }, rotate: { duration: current.seconds * 1.6, ease: "linear", repeat: Infinity } }} />
         </>; })()}

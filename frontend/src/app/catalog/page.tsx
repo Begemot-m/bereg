@@ -138,7 +138,7 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      <main className="relative -mt-8 min-h-[72vh] rounded-t-[27px] bg-[#fffdf7] px-4 pb-9 pt-4 @md:px-9" >
+      <main className="relative -mt-8 min-h-[72vh] rounded-t-[27px] bg-[#ffffff] px-4 pb-9 pt-4 @md:px-9" >
         <div className="grid grid-cols-2 gap-1 rounded-full bg-white p-1 stroke-lg">
           {([{ id: "personal", label: "Для вас" }, { id: "all", label: "Все специалисты" }] as { id: CatalogMode; label: string }[]).map((tab) => <button key={tab.id} onClick={() => switchMode(tab.id)} className="rounded-full px-2 py-2 text-[11px] font-black transition-colors" style={mode === tab.id ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{tab.label}</button>)}
         </div>

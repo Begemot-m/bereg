@@ -255,7 +255,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
     <motion.div layout transition={MORPH} className="col-span-3 rounded-[13px] p-3.5" style={{ background: "var(--surface-2)" }}>
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[12.5px] font-black">Новая сессия</p>
-        <button onClick={() => { setIso(null); onClose(); }} className="text-[15px] font-black text-[var(--muted-2)]" aria-label="Закрыть">✕</button>
+        <button onClick={() => { setIso(null); onClose(); }} className="x-close text-[15px]" aria-label="Закрыть">✕</button>
       </div>
       {times.length === 0 ? (
         <p className="text-[12px] font-semibold text-[var(--muted-2)]">На этот день свободного времени не осталось.</p>
@@ -330,7 +330,7 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
             <span className="absolute right-1.5 top-1.5"><Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>
           </>
         )}
-        {active && <span className="text-[15px] font-black text-[var(--muted-2)]">✕</span>}
+        {active && <span className="x-close text-[15px]">✕</span>}
       </motion.button>
 
       <AnimatePresence initial={false}>

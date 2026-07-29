@@ -41,7 +41,6 @@ export function MonthCalendar({
 }) {
   const [cursor, setCursor] = useState(new Date());
   const has = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
-  const todayY = ymdLocal(new Date());
 
   const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const start = startOfWeek(first);
@@ -64,24 +63,21 @@ export function MonthCalendar({
           const y = ymdLocal(d);
           const inMonth = d.getMonth() === cursor.getMonth();
           const isSel = multi ? multi.has(y) : selected === y;
-          const isToday = y === todayY;
           const a: Avail | undefined = avail?.[y];
 
-          // Различимые состояния: занят — фиолетовая заливка с обводкой,
-          // свободен — зелёный контур (как плитки окон), обычный день — без заливки.
-          // Сегодня — тёмное кольцо, выбранный — сплошная тёмная заливка.
+          // Три состояния и ничего лишнего: свободный день — только обводка,
+          // занятый — обводка и заливка, выбранный — чёрная заливка.
           const busy = has.has(y) || a === "full";
           const free = !busy && a === "free";
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
 
           let base: React.CSSProperties = { color: "var(--ink)" };
-          if (busy) base = { background: "var(--purple)", color: "#3b2c55", border: "var(--bw) solid var(--purple-edge)" };
-          else if (free) base = { background: "var(--green-soft)", color: "var(--ink)", border: "var(--bw) solid var(--green-edge)" };
+          if (busy) base = { background: "var(--head-soft)", color: "var(--ink)", border: "var(--bw) solid var(--edge)" };
+          else if (free) base = { color: "var(--ink)", border: "var(--bw) solid var(--edge)" };
 
-          // Кольцо «сегодня» — обводкой, а не тенью: теней в системе нет.
           const style: React.CSSProperties = isSel
             ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }
-            : { ...base, outline: isToday ? "2px solid var(--ink)" : undefined, outlineOffset: "1px" };
+            : base;
 
           return (
             <button
@@ -97,9 +93,8 @@ export function MonthCalendar({
         })}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
-        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }} /> свободно</span>}
-        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--purple)", border: "var(--bw) solid var(--purple-edge)" }} /> есть записи</span>
-        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full bg-white" style={{ outline: "2px solid var(--ink)", outlineOffset: "-2px" }} /> сегодня</span>
+        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ border: "var(--bw) solid var(--edge)" }} /> свободно</span>}
+        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }} /> есть записи</span>
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
       </div>
     </div>

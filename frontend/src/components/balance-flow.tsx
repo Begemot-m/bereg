@@ -89,7 +89,7 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 backdrop-blur-[2px] @md:items-center" onClick={onClose}>
-        <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 34 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-md overflow-y-auto bg-[#fffdf7]">
+        <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 34 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-md overflow-y-auto bg-[#ffffff]">
           <div className="sticky top-0 z-[1] bg-[var(--purple)] px-5 py-4" style={{ borderBottom: "var(--bw-lg) solid var(--purple-edge)" }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -100,10 +100,10 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
             </div>
             {/* Прогресс-бар со статой */}
             <div className="mt-3 flex items-center gap-2.5">
-              <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-[#fffdf7]" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+              <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-[#ffffff]" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
                 <motion.div className="h-full rounded-full bg-[var(--ink)]" animate={{ width: `${(filled / WHEEL.length) * 100}%` }} transition={{ type: "spring", stiffness: 200, damping: 24 }} />
               </div>
-              <span className="tnum rounded-full bg-[#fffdf7] px-2 py-0.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{pct}%</span>
+              <span className="tnum rounded-full bg-[#ffffff] px-2 py-0.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{pct}%</span>
             </div>
           </div>
 

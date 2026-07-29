@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { DemoFrame } from "@/components/demo-frame";
+import { DragScroll } from "@/components/drag-scroll";
 import { TelegramInit } from "@/components/telegram-init";
 import { VersionCheck } from "@/components/version-check";
 import { Providers } from "./providers";
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
         <TelegramInit />
         <VersionCheck />
+        <DragScroll />
         <Providers>
           {DEMO ? (
             <DemoFrame>
