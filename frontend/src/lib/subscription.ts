@@ -17,6 +17,16 @@ export type Subscription = {
 export const PLAN_PRICE: Record<PlanId, number> = { tools: 990, catalog: 500, client: 390 };
 export const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
 
+// Бесплатный тариф «Старт»: до 3 активных клиентов, дальше — PRO.
+export const FREE_CLIENT_LIMIT = 3;
+
+// PRO активен во время триала и при оплаченной подписке.
+export function isPro(sub?: Subscription | null): boolean {
+  if (!sub) return false;
+  if (sub.status === "trial") return true;
+  return sub.status === "active" && sub.tools;
+}
+
 export function trialDaysLeft(sub: Subscription): number {
   if (!sub.trialEndsAt) return 0;
   return Math.max(0, Math.ceil((new Date(sub.trialEndsAt).getTime() - Date.now()) / 86_400_000));

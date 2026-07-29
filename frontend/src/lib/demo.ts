@@ -248,7 +248,7 @@ function resolveSub(db: DB) {
   if (s.status === "pending" && s.pendingSince && Date.now() - s.pendingSince > 2500) {
     const end = new Date();
     end.setDate(end.getDate() + 30);
-    if (s.pendingPlan === "tools") s.tools = true;
+    if (s.pendingPlan === "tools") { s.tools = true; s.promo = true; } // PRO включает каталог
     else if (s.pendingPlan === "catalog") s.promo = true;
     else if (s.pendingPlan === "client") s.clientPro = true;
     s.status = "active";

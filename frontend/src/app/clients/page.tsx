@@ -14,6 +14,8 @@ import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonRow } from "@/components/ui";
 import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
+import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
+import { ProPaywall } from "@/components/pro-sell";
 
 const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
 
@@ -81,6 +83,10 @@ function ClientsList() {
     refetchInterval: (q) => (q.state.data?.some((c) => c.link === "invited") ? 2500 : false),
   });
   const [inviteAfter, setInviteAfter] = useState(false);
+  const [paywall, setPaywall] = useState(false);
+  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  const pro = isPro(sub);
+  const atCap = !pro && clients.length >= FREE_CLIENT_LIMIT;
   const add = useMutation({
     mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), ""),
     onSuccess: (c) => {
@@ -119,7 +125,7 @@ function ClientsList() {
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по имени" className="!pl-9" />
           </div>
           <motion.button
-            onClick={() => { tap(); setOpen((v) => !v); }}
+            onClick={() => { tap(); if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
             whileTap={{ scale: 0.85 }}
             whileHover={{ scale: 1.06 }}
             animate={{ rotate: open ? 45 : 0 }}
@@ -155,6 +161,17 @@ function ClientsList() {
             </button>
           ))}
         </div>
+
+        {!pro && (
+          <button onClick={() => { tap(); setPaywall(true); }} className="card-soft mb-4 flex w-full items-center gap-3 p-3 text-left" style={atCap ? { background: "var(--amber-soft)" } : undefined}>
+            <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="spark" width={16} weight="bold" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="t-head block">{clients.length}/{FREE_CLIENT_LIMIT} клиентов на бесплатном</span>
+              <span className="t-sub block">{atCap ? "Лимит достигнут — PRO открывает безлимит" : "PRO — безлимит, сводка к сессии, каталог"}</span>
+            </span>
+            <span className="chip chip-strong shrink-0">PRO ›</span>
+          </button>
+        )}
       </Reveal>
 
       {isLoading ? (
@@ -167,6 +184,8 @@ function ClientsList() {
         </Stagger>
       )}
       </div>
+
+      <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={atCap ? `Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки. PRO открывает клиентов без лимита.` : undefined} />
     </div>
   );
 }

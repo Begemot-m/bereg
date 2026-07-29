@@ -15,8 +15,7 @@ const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
-  { id: "tools", name: "Методика PRO", tag: "рабочий кабинет", best: true, perks: ["Клиенты без ограничений", "Статистика и динамика по каждому", "Сводка недели клиента к сессии", "Домашние задания, техники, шаблоны", "Новые методики каждый месяц"] },
-  { id: "catalog", name: "Каталог", tag: "новые клиенты", perks: ["Подтверждённый профиль в каталоге", "Честная выдача без покупки рейтинга", "Статистика показов профиля", "Плата только за размещение — не за место"] },
+  { id: "tools", name: "Методика PRO", tag: "всё включено", best: true, perks: ["Клиенты без ограничений (в бесплатном — 3)", "Сводка недели клиента к сессии", "Статистика и динамика по каждому", "Домашние задания, техники, шаблоны", "Каталог новых клиентов — без комиссии за запись"] },
 ];
 const CLIENT_PLAN: Plan = { id: "client", name: "Методика+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
@@ -32,7 +31,8 @@ const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[
   { label: "Статистика и динамика клиента", free: false, pro: true },
   { label: "Сводка недели к сессии", free: false, pro: true },
   { label: "Домашки, техники, шаблоны", free: false, pro: true },
-  { label: "Размещение в каталоге", free: false, pro: "+500 ₽" },
+  { label: "Размещение в каталоге", free: false, pro: true },
+  { label: "Комиссия за запись", free: "нет", pro: "нет" },
 ];
 
 // То же для клиентского тарифа.
@@ -220,7 +220,7 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
 
   const activeTools = variant === "psy" && sub.status === "active" && sub.tools;
   const clientActive = variant === "client" && sub.clientPro;
-  const shownPlans: Plan[] = variant === "client" ? [CLIENT_PLAN] : activeTools && !sub.promo ? PSY_PLANS.filter((p) => p.id === "catalog") : PSY_PLANS;
+  const shownPlans: Plan[] = variant === "client" ? [CLIENT_PLAN] : activeTools ? [] : PSY_PLANS;
 
   // compact — блок живёт внутри баннера, который уже показал шапку и сравнение.
   if (compact) {
@@ -232,7 +232,6 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
           <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Методика+ активен — все инструменты открыты.</p>
         ) : (
           <>
-            {activeTools && !sub.promo && <p className="text-[12px] font-bold text-[var(--muted)]">Добавьте размещение в каталоге:</p>}
             {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} />)}
             <p className="pt-1 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата через ЮKassa · отмена в любой момент{variant === "psy" ? " · годовая оплата — 2 месяца в подарок" : ""}</p>
           </>
@@ -274,7 +273,6 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
         ) : (
           <>
             {variant === "psy" && !activeTools && <div className="space-y-1.5"><p className="px-1 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Что входит</p><FreeVsPro /></div>}
-            {activeTools && !sub.promo && <p className="text-[12px] font-bold text-[var(--muted)]">Добавьте размещение в каталоге:</p>}
             {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} />)}
             <p className="pt-1 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата через ЮKassa · отмена в любой момент{variant === "psy" ? " · годовая оплата — 2 месяца в подарок" : ""}</p>
           </>
@@ -297,7 +295,7 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     };
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
-  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: sub.promo ? "PRO + каталог активны" : "Методика PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
+  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Методика PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
   return { badge: null, title: "Триал закончился", subtitle: "Подключите тариф, чтобы продолжить работу.", progress: null };
 }
 

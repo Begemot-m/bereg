@@ -10,6 +10,7 @@ import { APP_NAME } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { completeOnboarding, tgUser } from "@/lib/profile";
 import { setRole, type Role } from "@/lib/role";
+import { ProSell } from "@/components/pro-sell";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -54,8 +55,9 @@ const INTRO: Intro[] = [
 
 export function Onboarding() {
   const [step, setStep] = useState(0); // 0..3 — интро, 4 — выбор роли
+  const [psySell, setPsySell] = useState(false); // после выбора «психолог» — продажа PRO
   const tg = tgUser();
-  const isRole = step === INTRO.length;
+  const isRole = step === INTRO.length && !psySell;
   const cur = INTRO[step];
 
   const finish = () => { success(); completeOnboarding(); };
@@ -63,9 +65,9 @@ export function Onboarding() {
   const back = () => { tap(); setStep((s) => Math.max(0, s - 1)); };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: isRole ? "#fbf8ef" : cur.bg, transition: "background-color .5s ease" }}>
+    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: psySell ? "#fffdf7" : isRole ? "#fbf8ef" : cur.bg, transition: "background-color .5s ease" }}>
       {/* Декоративные заливки-круги для «постерного» объёма */}
-      {!isRole && (
+      {!isRole && !psySell && cur && (
         <>
           <span aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full opacity-40" style={{ background: "#fff" }} />
           <span aria-hidden className="pointer-events-none absolute -left-20 top-1/3 h-52 w-52 rounded-full opacity-20" style={{ background: cur.tone }} />
@@ -84,15 +86,17 @@ export function Onboarding() {
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={isRole ? "role" : cur.key}
+            key={psySell ? "psySell" : isRole ? "role" : cur.key}
             initial={{ opacity: 0, x: 26 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -26 }}
             transition={{ duration: 0.28, ease: EASE }}
-            className="flex flex-1 flex-col"
+            className="flex min-h-0 flex-1 flex-col"
           >
-            {isRole ? (
-              <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); finish(); }} />
+            {psySell ? (
+              <PsySell onStart={finish} />
+            ) : isRole ? (
+              <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); if (r === "psychologist") setPsySell(true); else finish(); }} />
             ) : (
               <div className="flex flex-1 flex-col">
                 <span className="mt-6 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
@@ -117,12 +121,27 @@ export function Onboarding() {
         </AnimatePresence>
 
         {/* Низ: назад + стрелка (на интро-экранах) */}
-        {!isRole && (
+        {!isRole && !psySell && (
           <div className="flex items-center justify-between">
             <button onClick={back} disabled={step === 0} className="flex h-11 items-center gap-1 px-2 text-[13px] font-black disabled:opacity-0" style={{ color: "rgba(32,28,24,.6)" }} aria-label="Назад"><ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Назад</button>
             <motion.button onClick={next} whileTap={{ scale: 0.9 }} className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg" style={{ background: "var(--ink)", color: "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }} aria-label="Дальше"><ArrowGlyph size={24} /></motion.button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// После выбора «психолог» — продающий экран PRO с бесплатным стартом.
+function PsySell({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-3">
+        <ProSell art="/sell/onboarding-pro.webp" />
+      </div>
+      <div className="pt-2">
+        <button onClick={() => { tap(); onStart(); }} className="btn w-full py-3.5 text-[14px]">Начать — 14 дней PRO бесплатно</button>
+        <button onClick={() => { tap(); onStart(); }} className="mx-auto mt-2 block py-1 text-[12px] font-black text-[var(--muted)]">Позже, сначала осмотрюсь</button>
       </div>
     </div>
   );

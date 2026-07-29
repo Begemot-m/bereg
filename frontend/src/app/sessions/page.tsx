@@ -21,6 +21,7 @@ import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
 import { createClient, listClients } from "@/lib/clients";
+import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { useRole } from "@/lib/role";
 import { getMonthAvailability, getOverrides, getWorkHours, setOverride, WEEKDAYS, ymdLocal, type WorkHours } from "@/lib/schedule";
 
@@ -385,6 +386,8 @@ function EmptyState({ onAdd, selDay }: { onAdd: () => void; selDay: string | nul
 function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  const atCap = !isPro(sub) && clients.length >= FREE_CLIENT_LIMIT;
   const [client, setClient] = useState<{ id: number; name: string } | null>(null);
   const book = useMutation({
     mutationFn: ({ iso, format }: { iso: string; format: ApptFormat }) => createAppointment({ clientId: client!.id, startsAt: iso, format }),
@@ -419,7 +422,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
             </div>
             <div className="overflow-y-auto p-4">
               {!client ? (
-                <ClientPicker clients={sorted} compact={false} onCreateClient={(name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+                <ClientPicker clients={sorted} compact={false} onCreateClient={atCap ? undefined : (name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
               ) : (
                 <div>
                   <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">
