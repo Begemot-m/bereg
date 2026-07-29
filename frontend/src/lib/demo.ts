@@ -78,7 +78,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v10";
+const KEY = "psy_demo_db_v11";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -166,7 +166,8 @@ function seed(): DB {
       { id: 90, forRole: "psychologist", kind: "system", text: "Добро пожаловать в «Методика». Здесь появляются отмены и переносы сессий.", createdAt: iso(-1, 9, 0), read: false },
       { id: 91, forRole: "client", kind: "system", text: "Добро пожаловать. Здесь будут напоминания и изменения по вашим сессиям.", createdAt: iso(-1, 9, 0), read: false },
     ],
-    sub: { status: "trial", trialEndsAt: iso(10, 12, 0), currentPeriodEnd: null, tools: true, promo: false, clientPro: false, pendingPlan: null, pendingSince: null },
+    // Демо стартует на бесплатном тарифе — виден лимит 3 клиента и пейволл PRO.
+    sub: { status: "expired", trialEndsAt: null, currentPeriodEnd: null, tools: false, promo: false, clientPro: false, pendingPlan: null, pendingSince: null },
   };
 }
 

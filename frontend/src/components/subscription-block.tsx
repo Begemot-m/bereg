@@ -15,7 +15,7 @@ const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
-  { id: "tools", name: "Методика PRO", tag: "всё включено", best: true, perks: ["Клиенты без ограничений (в бесплатном — 3)", "Сводка недели клиента к сессии", "Статистика и динамика по каждому", "Домашние задания, техники, шаблоны", "Каталог новых клиентов — без комиссии за запись"] },
+  { id: "tools", name: "Методика PRO", tag: "безлимит + каталог", best: true, perks: ["Клиенты без лимита (бесплатно — 3, со всем функционалом)", "Каталог новых клиентов — честная выдача", "Комиссии за запись нет", "Весь функционал по клиенту доступен и бесплатно"] },
 ];
 const CLIENT_PLAN: Plan = { id: "client", name: "Методика+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
@@ -26,12 +26,11 @@ const NewTag = () => <span className="rounded-full bg-[var(--coral)] px-1.5 py-0
 
 // Что входит в бесплатную версию, а что — в PRO.
 const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[] = [
-  { label: "Запись и график", free: true, pro: true },
-  { label: "Карточки клиентов", free: "до 3", pro: "без лимита" },
-  { label: "Статистика и динамика клиента", free: false, pro: true },
-  { label: "Сводка недели к сессии", free: false, pro: true },
-  { label: "Домашки, техники, шаблоны", free: false, pro: true },
-  { label: "Размещение в каталоге", free: false, pro: true },
+  { label: "Клиенты", free: "до 3", pro: "без лимита" },
+  { label: "Записи, график, карточки", free: true, pro: true },
+  { label: "Настроение, домашки, шаблоны", free: true, pro: true },
+  { label: "Аналитика и сводка недели", free: true, pro: true },
+  { label: "Каталог новых клиентов", free: false, pro: true },
   { label: "Комиссия за запись", free: "нет", pro: "нет" },
 ];
 
@@ -296,7 +295,12 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
   if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Методика PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
-  return { badge: null, title: "Триал закончился", subtitle: "Подключите тариф, чтобы продолжить работу.", progress: null };
+  return {
+    badge: <span className="rounded-full bg-[#fffdf7] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>990 ₽/мес</span>,
+    title: "Бесплатный тариф",
+    subtitle: "3 клиента со всем функционалом. PRO — клиенты без лимита и каталог новых клиентов.",
+    progress: null,
+  };
 }
 
 function clientHero(sub: Subscription): { badge: ReactNode; title: string; subtitle: string; progress: ReactNode } {

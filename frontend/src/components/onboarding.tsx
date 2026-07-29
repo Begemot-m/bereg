@@ -140,8 +140,8 @@ function PsySell({ onStart }: { onStart: () => void }) {
         <ProSell art="/sell/onboarding-pro.webp" />
       </div>
       <div className="pt-2">
-        <button onClick={() => { tap(); onStart(); }} className="btn w-full py-3.5 text-[14px]">Начать — 14 дней PRO бесплатно</button>
-        <button onClick={() => { tap(); onStart(); }} className="mx-auto mt-2 block py-1 text-[12px] font-black text-[var(--muted)]">Позже, сначала осмотрюсь</button>
+        <button onClick={() => { tap(); onStart(); }} className="btn w-full py-3.5 text-[14px]">Начать бесплатно — 3 клиента</button>
+        <button onClick={() => { tap(); onStart(); }} className="mx-auto mt-2 block py-1 text-[12px] font-black text-[var(--muted)]">PRO подключу, когда вырасту</button>
       </div>
     </div>
   );

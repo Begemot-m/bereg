@@ -9,11 +9,11 @@ import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 import { FREE_CLIENT_LIMIT, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
 
+// PRO отличается от бесплатного двумя вещами: масштаб и новые клиенты.
+// Весь функционал по клиенту (карточка, настроение, домашки, аналитика,
+// сводка недели, шаблоны) доступен и бесплатно — на первых трёх.
 export const PRO_PERKS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "users", title: "Клиенты без лимита", text: "Ведите всю практику, а не первых троих." },
-  { icon: "spark", title: "Сводка недели к сессии", text: "Настроение, домашки и тревоги клиента — за 10 секунд перед встречей." },
-  { icon: "chart", title: "Аналитика и динамика", text: "Прогресс клиента виден от встречи к встрече — есть что показать." },
-  { icon: "note", title: "Шаблоны домашек и техник", text: "Отправляйте задания в один тап, не печатая заново." },
+  { icon: "users", title: "Клиенты без лимита", text: "Ведите всю практику, а не первых троих — со всей аналитикой и сводкой недели." },
   { icon: "compass", title: "Каталог новых клиентов", text: "Честная выдача — место и рейтинг не купить. Комиссии за запись нет." },
 ];
 
@@ -40,19 +40,20 @@ export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: {
   return (
     <div>
       <p className="t-micro" style={{ color: "var(--edge)" }}>Методика PRO</p>
-      <h2 className="t-title mt-1">Ведите практику,<br />а не таблицы</h2>
+      <h2 className="t-title mt-1">Больше клиентов —<br />без потолка</h2>
 
       <div className="mt-3"><SellArt src={art} tone={artTone} /></div>
 
-      <div className="card-soft mt-3 flex items-center gap-3 p-3.5">
-        <span className="ico ico-accent h-10 w-10"><Icon name="check" width={18} weight="bold" /></span>
-        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента — бесплатно.</b> Попробуйте на реальной практике, без карты. Дальше — PRO.</p>
+      <div className="card-soft mt-3 flex items-start gap-3 p-3.5">
+        <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" /></span>
+        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента — бесплатно.</b> Со всем функционалом: карточки, настроение, домашки, аналитика, сводка недели. Без карты.</p>
       </div>
 
-      <ul className="mt-3 space-y-2.5">
+      <p className="t-micro mt-4">PRO открывает</p>
+      <ul className="mt-2 space-y-2.5">
         {PRO_PERKS.map((p) => (
           <li key={p.title} className="flex items-start gap-3">
-            <span className="ico h-9 w-9 shrink-0"><Icon name={p.icon} width={17} weight="bold" /></span>
+            <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name={p.icon} width={17} weight="bold" /></span>
             <span className="min-w-0"><span className="t-head block">{p.title}</span><span className="t-sub block">{p.text}</span></span>
           </li>
         ))}
@@ -73,7 +74,7 @@ export function ProCta({ label = "Подключить PRO", note = true }: { la
       <button onClick={() => { tap(); subscribe.mutate(); }} disabled={subscribe.isPending} className="btn w-full py-3.5 text-[14px]">
         {subscribe.isPending ? "Готовим оплату…" : `${label} · ${rub(PLAN_PRICE.tools)}/мес`}
       </button>
-      {note && <p className="mt-2 text-center text-[10.5px] font-semibold text-[var(--muted)]">14 дней бесплатно · отмена в любой момент · комиссии за запись нет</p>}
+      {note && <p className="mt-2 text-center text-[10.5px] font-semibold text-[var(--muted)]">Отмена в любой момент · комиссии за запись нет</p>}
     </div>
   );
 }
