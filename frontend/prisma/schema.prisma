@@ -30,6 +30,34 @@ model User {
   sessions     Session[]
   consents     Consent[]
   auditEntries AuditLog[]
+  workHours    WorkHours?
+  slotOverrides SlotOverride[]
+}
+
+/// Шаблон рабочих часов: по одной записи на психолога.
+/// hours — { "0": [{ t: "10:00", d: 50, fmt: "online" }], … }, ключ = день недели
+/// с понедельника. Держим JSON, а не таблицей окон: это настройка, её читают
+/// и пишут целиком, а запросов «найди все окна в 10:00 по всем психологам» нет.
+model WorkHours {
+  userId         Int      @id
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hours          Json     @default("{}")
+  sessionMinutes Int      @default(50)
+  updatedAt      DateTime @updatedAt
+}
+
+/// Правка одного окна на конкретную дату поверх шаблона: снято или сменён
+/// формат. Отдельная таблица, потому что записей мало и они точечные.
+model SlotOverride {
+  id       String   @id @default(uuid())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int
+  startsAt DateTime
+  removed  Boolean  @default(false)
+  fmt      String? // online | offline; null — как в шаблоне
+
+  @@unique([userId, startsAt])
+  @@index([userId])
 }
 
 /// Живая сессия устройства. Храним только хэш refresh-токена: утечка базы

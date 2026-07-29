@@ -1,0 +1,39 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+import { getOverrides, setOverride, type SlotFormat } from "@/lib/server/schedule";
+import { AuthError, requireUser } from "@/lib/server/session";
+
+export const runtime = "nodejs";
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = await requireUser(req);
+    return NextResponse.json(await getOverrides(user.id));
+  } catch (e) {
+    if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    throw e;
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const user = await requireUser(req);
+    const body = (await req.json()) as { iso?: string; removed?: boolean; fmt?: SlotFormat };
+    if (!body.iso) return NextResponse.json({ error: "iso required" }, { status: 422 });
+    if (body.fmt && body.fmt !== "online" && body.fmt !== "offline") {
+      return NextResponse.json({ error: "invalid fmt" }, { status: 422 });
+    }
+
+    const patch = {
+      ...(body.removed !== undefined ? { removed: Boolean(body.removed) } : {}),
+      ...(body.fmt !== undefined ? { fmt: body.fmt } : {}),
+    };
+    return NextResponse.json(await setOverride(user.id, body.iso, patch));
+  } catch (e) {
+    if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    if (e instanceof Error && e.message === "invalid iso") {
+      return NextResponse.json({ error: "invalid iso" }, { status: 422 });
+    }
+    throw e;
+  }
+}
