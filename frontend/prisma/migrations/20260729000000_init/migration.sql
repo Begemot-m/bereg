@@ -115,6 +115,23 @@ CREATE TABLE "Client" (
 );
 
 -- CreateTable
+CREATE TABLE "PsyProfile" (
+    "userId" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "primaryMethod" TEXT NOT NULL DEFAULT '',
+    "experienceYears" INTEGER NOT NULL DEFAULT 0,
+    "sessionPrice" INTEGER NOT NULL DEFAULT 0,
+    "sessionMinutes" INTEGER NOT NULL DEFAULT 50,
+    "format" TEXT NOT NULL DEFAULT 'online',
+    "city" TEXT NOT NULL DEFAULT '',
+    "status" TEXT NOT NULL DEFAULT 'review',
+    "data" JSONB NOT NULL DEFAULT '{}',
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PsyProfile_pkey" PRIMARY KEY ("userId")
+);
+
+-- CreateTable
 CREATE TABLE "Homework" (
     "id" SERIAL NOT NULL,
     "clientId" INTEGER NOT NULL,
@@ -164,6 +181,7 @@ CREATE TABLE "Appointment" (
     "clientId" INTEGER NOT NULL,
     "startsAt" TIMESTAMP(3) NOT NULL,
     "durationMin" INTEGER NOT NULL DEFAULT 60,
+    "format" TEXT NOT NULL DEFAULT 'online',
     "status" TEXT NOT NULL DEFAULT 'scheduled',
     "note" TEXT NOT NULL DEFAULT '',
     "reminderSent" BOOLEAN NOT NULL DEFAULT false,
@@ -227,6 +245,9 @@ CREATE INDEX "Client_psychologistId_idx" ON "Client"("psychologistId");
 CREATE INDEX "Client_userId_idx" ON "Client"("userId");
 
 -- CreateIndex
+CREATE INDEX "PsyProfile_status_sessionPrice_idx" ON "PsyProfile"("status", "sessionPrice");
+
+-- CreateIndex
 CREATE INDEX "Homework_clientId_sentAt_idx" ON "Homework"("clientId", "sentAt");
 
 -- CreateIndex
@@ -267,6 +288,9 @@ ALTER TABLE "Client" ADD CONSTRAINT "Client_psychologistId_fkey" FOREIGN KEY ("p
 
 -- AddForeignKey
 ALTER TABLE "Client" ADD CONSTRAINT "Client_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PsyProfile" ADD CONSTRAINT "PsyProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Homework" ADD CONSTRAINT "Homework_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;

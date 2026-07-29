@@ -32,6 +32,7 @@ model User {
   auditEntries AuditLog[]
   workHours    WorkHours?
   slotOverrides SlotOverride[]
+  psyProfile   PsyProfile?
   /// Карточки, в которых этот пользователь — клиент (обратная сторона Client.user).
   clientCards  Client[]       @relation("ClientUser")
 }
@@ -159,6 +160,28 @@ model Client {
   @@index([userId])
 }
 
+/// Публичная анкета психолога — то, что видно в каталоге.
+/// Основная масса полей (методы, темы, фото, ссылки, адрес) лежит в JSON:
+/// это карточка, её читают и пишут целиком. Отдельными колонками вынесено
+/// только то, по чему каталог фильтрует и сортирует.
+model PsyProfile {
+  userId         Int      @id
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  primaryMethod  String   @default("")
+  experienceYears Int     @default(0)
+  sessionPrice   Int      @default(0)
+  sessionMinutes Int      @default(50)
+  format         String   @default("online") // online | offline | both
+  city           String   @default("")
+  /// review — на модерации, approved — опубликована в каталоге
+  status         String   @default("review")
+  data           Json     @default("{}")
+  updatedAt      DateTime @updatedAt
+
+  @@index([status, sessionPrice])
+}
+
 /// Домашнее задание от психолога клиенту.
 model Homework {
   id       Int      @id @default(autoincrement())
@@ -214,6 +237,7 @@ model Appointment {
   clientId       Int
   startsAt       DateTime
   durationMin    Int      @default(60)
+  format         String   @default("online") // online | offline
   status         String   @default("scheduled") // scheduled | done | cancelled
   note           String   @default("") @db.Text
   reminderSent   Boolean  @default(false)
