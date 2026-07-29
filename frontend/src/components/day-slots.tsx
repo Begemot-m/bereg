@@ -172,9 +172,9 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
               <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <button onClick={() => setResch(true)} className="btn btn-accent flex-1 py-2 text-[12px]">Перенести</button>
-              <button onClick={() => cancel.mutate()} className="btn flex-1 py-2 text-[12px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>
+            <div className="flex gap-1.5">
+              <button onClick={() => setResch(true)} className="btn btn-accent px-3 py-1 text-[11px]">Перенести</button>
+              <button onClick={() => cancel.mutate()} className="btn px-3 py-1 text-[11px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>
             </div>
           )}
         </div>

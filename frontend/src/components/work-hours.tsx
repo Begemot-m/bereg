@@ -18,12 +18,15 @@ const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const PXH = 40;
-// Окна встают на получасовую сетку — те же деления, что нарисованы на рейке.
-const GRID = 30;
+// Якоря внутри часа: начало, половина и без пятнадцати. Свободное перетаскивание
+// по минутам никому не нужно — в него невозможно попасть пальцем.
+const ANCHORS = [0, 30, 45];
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 26 };
 
 function snapMin(raw: number): number {
-  return Math.round(raw / GRID) * GRID;
+  const hour = Math.floor(raw / 60) * 60;
+  const candidates = [...ANCHORS.map((a) => hour + a), hour + 60];
+  return candidates.reduce((best, c) => (Math.abs(c - raw) < Math.abs(best - raw) ? c : best), candidates[0]);
 }
 
 const EDGE = 9; // мин — магнит к краю соседнего окна (чтобы липли вплотную)
@@ -156,8 +159,12 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
               <div key={`h${i}`} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
             ))}
+            {/* Пунктиры ровно там, куда прилипает окно: :30 и :45 */}
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
               <div key={`h${i}-half`} className="absolute inset-x-0" style={{ top: (i + 0.5) * PXH, borderTop: "1px dashed var(--edge-neutral)", opacity: 0.7 }} />
+            ))}
+            {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
+              <div key={`h${i}-q`} className="absolute inset-x-0" style={{ top: (i + 0.75) * PXH, borderTop: "1px dashed var(--edge-neutral)", opacity: 0.45 }} />
             ))}
             <AnimatePresence>
               {slots.map((s) => (

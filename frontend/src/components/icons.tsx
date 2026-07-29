@@ -28,7 +28,7 @@ import {
   SlidersHorizontal,
   Star,
   Question,
-  TelegramLogo,
+  PaperPlaneTilt,
   LockSimple,
   MapPinLine,
   type Icon as PhIcon,
@@ -99,7 +99,9 @@ const MAP: Record<IconName, PhIcon> = {
   sort: SlidersHorizontal,
   star: Star,
   question: Question,
-  telegram: TelegramLogo,
+  // Базовый самолётик вместо фирменного логотипа: иконка про «отправить»,
+  // а не про конкретный мессенджер.
+  telegram: PaperPlaneTilt,
   lock: LockSimple,
   route: MapPinLine,
 };

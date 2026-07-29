@@ -118,8 +118,8 @@ export function WeekWindows() {
 type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
 function look(s: Slot): Look {
-  // Занятое окно — сплошная заливка тоном раздела.
-  if (s.appt) return { bg: s.past ? "var(--head-soft)" : "var(--head)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
+  // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
+  if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
   // Свободное окно — пунктир: рамка здесь означает «сюда можно записать».
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
 }
@@ -381,9 +381,9 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => setResch(true)} className="btn btn-accent flex-1 py-2 text-[12px]">Перенести</button>
+          <button onClick={() => setResch(true)} className="btn btn-accent px-3 py-1 text-[11px]">Перенести</button>
           {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-          {!slot.past && <button onClick={() => cancel.mutate()} className="btn flex-1 py-2 text-[12px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Освободить</button>}
+          {!slot.past && <button onClick={() => cancel.mutate()} className="btn px-3 py-1 text-[11px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Освободить</button>}
         </div>
       </div>
     );

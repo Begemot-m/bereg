@@ -8,7 +8,7 @@ import { useDeferredValue, useState } from "react";
 
 import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
-import { Arrow, PageHead } from "@/components/blocks";
+import { PageHead } from "@/components/blocks";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonRow } from "@/components/ui";
@@ -167,9 +167,10 @@ function ClientsList() {
           ))}
         </div>
 
+        {/* Фон как у шапки раздела — счётчик читается как часть раздела, а не как тревога */}
         {!pro && (
-          <button onClick={() => { tap(); setPaywall(true); }} className="card-soft mb-4 flex w-full items-center gap-3 p-3 text-left" style={atCap ? { background: "var(--amber-soft)" } : undefined}>
-            <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="spark" width={16} weight="bold" /></span>
+          <button onClick={() => { tap(); setPaywall(true); }} className="card-soft mb-4 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--page)" }}>
+            <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="spark" width={16} weight="bold" color="#fff" /></span>
             <span className="min-w-0 flex-1">
               <span className="t-head block">{clients.length}/{FREE_CLIENT_LIMIT} клиентов на бесплатном</span>
               <span className="t-sub block">{atCap ? "Лимит достигнут — PRO открывает безлимит" : "PRO — безлимит, сводка к сессии, каталог"}</span>
@@ -240,7 +241,8 @@ function ClientCard({ client: c }: { client: Client }) {
               )}
             </div>
           </div>
-          <Arrow />
+          {/* Явная подпись вместо стрелки: непонятно, что круг открывает карточку */}
+          <span className="btn btn-white shrink-0 self-center px-3 py-1.5 text-[11px]">Открыть карточку</span>
         </div>
       </div>
 
