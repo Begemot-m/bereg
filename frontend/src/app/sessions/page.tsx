@@ -15,6 +15,7 @@ import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
 import { DayAgenda, WeekWindows } from "@/components/week-windows";
 import { RemindersModule } from "@/components/reminders";
+import { SessionInviteButton } from "@/components/session-invite";
 import { WorkHoursEditor } from "@/components/work-hours";
 import { useCancelLockDays } from "@/lib/cancel-policy";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
@@ -214,6 +215,9 @@ function PsySessions() {
             {calOpen ? "Свернуть" : "Календарь"}
           </button>
         </div>
+
+        {/* Позвать клиента на свободное окно — рядом с расписанием, а не в кабинете */}
+        <SessionInviteButton />
 
         <QuickAddBooking open={quickAdd} onClose={() => setQuickAdd(false)} />
         {scheduleReady && (

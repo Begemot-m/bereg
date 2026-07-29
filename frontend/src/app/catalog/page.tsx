@@ -25,7 +25,9 @@ import {
   filterCatalog,
   formatLabel,
   nextSlotLabel,
+  OWN_PROFILE_ID,
   personalSelection,
+  profileToCatalogPsy,
   publishedCatalog,
   PSYS,
   reasonsFor,
@@ -86,14 +88,19 @@ export default function CatalogPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Psy | null>(null);
 
-  // Прямой переход на страницу специалиста: /catalog?psy=<id>
+  // Пришли по ссылке от специалиста: /catalog?psy=<id>&book=1
+  const [invited, setInvited] = useState(false);
   useEffect(() => {
-    const id = Number(new URLSearchParams(window.location.search).get("psy"));
-    if (id) {
-      const psy = PSYS.find((item) => item.id === id);
-      if (psy) { setSelected(psy); setSurveyOpen(false); }
-    }
-  }, []);
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get("psy"));
+    if (!id) return;
+    setInvited(params.get("book") === "1");
+    // Своя анкета в каталоге может быть не опубликована — тогда собираем её
+    // из профиля, иначе приглашение вело бы в пустоту.
+    const psy = PSYS.find((item) => item.id === id)
+      ?? (id === OWN_PROFILE_ID && profile?.name ? profileToCatalogPsy(profile) : undefined);
+    if (psy) { setSelected(psy); setSurveyOpen(false); }
+  }, [profile]);
 
   useEffect(() => {
     try {
@@ -124,7 +131,7 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} onBack={() => setSelected(null)} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} onBack={() => setSelected(null)} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
@@ -221,7 +228,7 @@ function AttachTherapistButton({ name }: { name: string }) {
   );
 }
 
-function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; onBack: () => void }) {
+function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; prefs: CatalogPrefs; invited?: boolean; onBack: () => void }) {
   const tone = T[psy.tone];
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const wasInTherapy = bookings.some((booking) => booking.psyName === psy.name);
@@ -233,9 +240,21 @@ function PsyDetailView({ psy, prefs, onBack }: { psy: Psy; prefs: CatalogPrefs; 
 
   return <div>
     <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
-      <button onClick={onBack} className="btn btn-accent mb-3">
-        <ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Вернуться в каталог
-      </button>
+      {invited ? (
+        // Пришли по личной ссылке: человек не искал каталог, ему нужен этот специалист.
+        <div className="card-plain mb-3 flex items-center gap-3 p-3.5">
+          <span className="ico h-10 w-10 shrink-0"><Icon name="calendar" width={19} weight="bold" color="var(--edge)" /></span>
+          <span className="min-w-0">
+            <span className="t-micro block">Приглашение на сессию</span>
+            <span className="t-head mt-0.5 block leading-tight">{psy.name.split(" ")[0]} открыл{psy.gender === "man" ? "" : "а"} для вас свободные окна</span>
+            <span className="t-cap mt-0.5 block">Выберите удобное время — это займёт минуту</span>
+          </span>
+        </div>
+      ) : (
+        <button onClick={onBack} className="btn btn-accent mb-3">
+          <ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Вернуться в каталог
+        </button>
+      )}
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} />
         <div className="min-w-0 flex-1">
@@ -636,6 +655,46 @@ function BookFlow({ psyName, onDone }: { psyName: string; onDone: () => void }) 
   const qc = useQueryClient();
   const [done, setDone] = useState<{ at: string; format: string } | null>(null);
   const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psyName, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
-  if (done) { const date = new Date(done.at); const finishFastEntry = () => window.dispatchEvent(new CustomEvent("bereg-fast-entry-complete")); return <div className="text-center"><p className="text-[14px] font-black">Вы записаны к {psyName}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {done.format === "online" ? "онлайн" : "очно"}</p><div className="mt-3 flex justify-center gap-2"><Link href="/sessions" onClick={finishFastEntry}><Button size="sm" variant="soft">Мои сессии</Button></Link><Button size="sm" variant="ghost" onClick={() => { finishFastEntry(); onDone(); }}>Готово</Button></div></div>; }
-  return <><p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">День и окно</p><SlotPicker forClient variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
+  if (done) return <BookedNext psyName={psyName} at={done.at} format={done.format} onDone={onDone} />;
+  return <><p className="t-micro mb-2">День и окно</p><SlotPicker forClient variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
+}
+
+// Что делать сразу после записи. Для новичка это первый экран приложения:
+// сначала подтверждаем встречу, потом мягко объясняем, зачем оставаться.
+function BookedNext({ psyName, at, format, onDone }: { psyName: string; at: string; format: string; onDone: () => void }) {
+  const [attached, setAttached] = useState(() => isAttached(psyName));
+  const date = new Date(at);
+  const finishFastEntry = () => window.dispatchEvent(new CustomEvent("bereg-fast-entry-complete"));
+  const attach = () => { success(); attachTherapist(psyName); setAttached(true); };
+
+  return (
+    <div>
+      <div className="text-center">
+        <span className="ico ico-accent mx-auto flex h-12 w-12"><Icon name="check" width={24} weight="bold" color="#fff" /></span>
+        <p className="t-head mt-2">Вы записаны к {psyName.split(" ")[0]}</p>
+        <p className="t-cap mt-1">
+          {date.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })} в {date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {format === "online" ? "онлайн" : "очно"}
+        </p>
+      </div>
+
+      {/* Главный следующий шаг — прикрепить специалиста: без этого раздел
+          «Терапия» пустой и человеку непонятно, ради чего оставаться. */}
+      <div className="card-soft mt-4 p-3.5">
+        <p className="t-micro">Что дальше</p>
+        <p className="t-head mt-1 leading-tight">{attached ? `${psyName.split(" ")[0]} в вашей терапии` : "Добавьте специалиста в «Терапию»"}</p>
+        <p className="t-sub mt-1">
+          {attached
+            ? "Встречи, задания и отметки настроения теперь собираются в одном разделе — специалист видит их к сессии."
+            : "Тогда встречи, задания и настроение будут собираться в одном месте, а специалист увидит вашу динамику к следующей встрече."}
+        </p>
+        {!attached && <button onClick={attach} className="btn btn-accent mt-3 w-full py-2.5"><Icon name="plus" width={15} weight="bold" color="#fff" /> Добавить в мою терапию</button>}
+      </div>
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Link href="/therapy" onClick={finishFastEntry} className="btn w-full py-2.5 text-[12px]">Открыть терапию</Link>
+        <button onClick={() => { finishFastEntry(); onDone(); }} className="btn btn-white w-full py-2.5 text-[12px]">Осмотреться</button>
+      </div>
+      <p className="t-cap mt-2 text-center">Ничего настраивать не нужно — приложение покажет остальное по ходу.</p>
+    </div>
+  );
 }

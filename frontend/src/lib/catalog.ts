@@ -131,7 +131,8 @@ const PUBLIC_PSYS = PSYS.filter((psy) => psy.verified).map((psy) => ({
   address: psy.publicExactAddress ? psy.address : undefined,
 }));
 
-const OWN_PROFILE_ID = 100_001;
+/** Своя анкета в каталоге: по этому id ведёт ссылка-приглашение на запись. */
+export const OWN_PROFILE_ID = 100_001;
 
 export function hasCatalogPlacement(subscription: Subscription | null | undefined, now = Date.now()): boolean {
   if (!subscription) return false;

@@ -104,55 +104,56 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 backdrop-blur-[2px] @md:items-center" onClick={onClose}>
       <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-md overflow-y-auto p-0" style={{ background: "var(--surface)" }}>
         {/* Герой */}
-        <div className="relative p-5" style={{ background: "linear-gradient(150deg, var(--amber), var(--amber-soft))", borderBottom: "var(--bw-lg) solid var(--amber-edge)" }}>
-          <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px] stroke" aria-label="Закрыть">✕</button>
-          <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="spark" width={24} weight="fill" /></span>
-          <h3 className="font-tight mt-3 text-[20px] font-black leading-tight">{c.title}</h3>
-          <p className="mt-1 text-[12px] font-bold text-[var(--muted)]">{c.sub}</p>
+        <div className="relative overflow-hidden p-5" style={{ background: "var(--head)" }}>
+          <motion.span aria-hidden className="absolute -right-8 -top-10 h-28 w-28 rounded-full" style={{ background: "rgba(255,255,255,.3)" }} animate={{ y: [0, 9, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
+          <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
+          <span className="ico ico-white relative h-12 w-12"><Icon name="spark" width={24} weight="fill" color="var(--edge)" /></span>
+          <h3 className="font-tight relative mt-3 text-[20px] font-black leading-tight">{c.title}</h3>
+          <p className="t-sub relative mt-1">{c.sub}</p>
         </div>
 
         <div className="space-y-4 p-5">
           {/* Прогресс к плюшке */}
-          <div className="rounded-[14px] p-3.5" style={{ background: "var(--amber-soft)", border: "var(--bw) solid var(--amber-edge)" }}>
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] font-black">Приглашено: {invited}</p>
-              <p className="text-[11px] font-bold text-[var(--muted)]">до подарка: {Math.max(0, nextPerk.need - invited)}</p>
+          <div className="card-soft p-3.5">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="t-micro">Приглашено</p>
+                <p className="font-tight tnum text-[26px] font-black leading-none">{invited}</p>
+              </div>
+              <p className="t-cap">до подарка: {Math.max(0, nextPerk.need - invited)}</p>
             </div>
-            <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--amber-edge)" }}><motion.div className="h-full rounded-full bg-[var(--ink)]" initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.6 }} /></div>
-            <p className="mt-2 text-[11px] font-bold">🎁 {nextPerk.reward}</p>
+            <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white"><motion.div className="h-full rounded-full" style={{ background: "var(--edge)" }} initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.6 }} /></div>
+            <p className="t-body mt-2">🎁 {nextPerk.reward}</p>
           </div>
+
+          {/* Поделиться — главное действие, поэтому сразу под прогрессом */}
+          <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => { bump(); success(); }} className="btn w-full py-3.5 text-[15px]">
+            <Icon name="spark" width={17} weight="fill" color="#fff" /> Поделиться в Telegram
+          </a>
 
           {/* Реферальная ссылка */}
-          <div>
-            <p className="mb-1.5 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Ваша ссылка-приглашение</p>
-            <div className="flex items-center gap-2 rounded-[12px] bg-white px-3 py-2.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-              <span className="min-w-0 flex-1 truncate text-[12px] font-bold text-[var(--muted)]">{link.replace(/^https?:\/\//, "")}</span>
-              <button onClick={copy} className="shrink-0 rounded-full bg-[var(--head-soft)] px-2.5 py-1 text-[11px] font-black stroke">{copied ? "Скопировано" : "Копировать"}</button>
-            </div>
+          <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2" style={{ border: "1px solid var(--edge)" }}>
+            <span className="t-cap min-w-0 flex-1 truncate">{link.replace(/^https?:\/\//, "")}</span>
+            <button onClick={copy} className="btn btn-accent shrink-0 px-2.5 py-1 text-[11px]">{copied ? "Скопировано" : "Копировать"}</button>
           </div>
-
-          {/* Поделиться */}
-          <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => { bump(); success(); }} className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-[var(--ink)] py-3.5 text-[15px] font-black text-white transition-transform active:scale-[0.98]">
-            <Icon name="spark" width={17} weight="fill" /> Поделиться в Telegram
-          </a>
 
           {/* Дорожная карта плюшек */}
           <div>
-            <p className="mb-2 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Что можно получить</p>
+            <p className="t-micro mb-2">Что можно получить</p>
             <div className="space-y-1.5">
               {perks.map((p) => {
                 const got = invited >= p.need;
                 return (
-                  <div key={p.need} className="flex items-center gap-2.5 rounded-[12px] p-2.5" style={{ background: got ? "var(--green-soft)" : "#fff", border: `var(--bw) solid ${got ? "var(--green-edge)" : "var(--edge-neutral)"}` }}>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-white text-[12px] font-black stroke">{p.need}</span>
-                    <span className="min-w-0 flex-1 text-[12px] font-bold">{p.reward}</span>
-                    {got ? <Icon name="check" width={16} weight="fill" color="var(--green-edge)" /> : <span className="text-[10px] font-black uppercase text-[var(--muted-2)]">нужно {p.need}</span>}
+                  <div key={p.need} className="card-soft flex items-center gap-2.5 p-2.5" style={got ? { background: "var(--green-soft)" } : { background: "var(--surface-2)" }}>
+                    <span className="ico ico-white h-8 w-8 shrink-0 text-[12px] font-black">{p.need}</span>
+                    <span className="t-body min-w-0 flex-1">{p.reward}</span>
+                    {got ? <Icon name="check" width={16} weight="fill" color="var(--green-edge)" /> : <span className="t-cap shrink-0">нужно {p.need}</span>}
                   </div>
                 );
               })}
             </div>
           </div>
-          <p className="text-center text-[10px] font-semibold text-[var(--muted-2)]">Бонусы начисляются, когда приглашённый регистрируется по вашей ссылке.</p>
+          <p className="t-cap text-center">Бонусы начисляются, когда приглашённый регистрируется по вашей ссылке.</p>
         </div>
       </motion.div>
     </motion.div>
