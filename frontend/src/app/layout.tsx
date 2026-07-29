@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
+import { ConsentGate } from "@/components/consent-gate";
 import { DemoFrame } from "@/components/demo-frame";
 import { DragScroll } from "@/components/drag-scroll";
 import { TelegramInit } from "@/components/telegram-init";
@@ -53,13 +54,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <VersionCheck />
         <DragScroll />
         <Providers>
-          {DEMO ? (
-            <DemoFrame>
+          {/* Без согласия приложение не показывается — это требование, а не
+              настройка. В демо и при недоступном бэкенде гейт пропускает. */}
+          <ConsentGate>
+            {DEMO ? (
+              <DemoFrame>
+                <AppShell>{children}</AppShell>
+              </DemoFrame>
+            ) : (
               <AppShell>{children}</AppShell>
-            </DemoFrame>
-          ) : (
-            <AppShell>{children}</AppShell>
-          )}
+            )}
+          </ConsentGate>
         </Providers>
       </body>
     </html>

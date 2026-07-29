@@ -15,8 +15,9 @@ import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card, Input } from "@/components/ui";
 import { isEmail, useAccountEmail } from "@/lib/account";
+import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me";
-import { resetLocalData } from "@/lib/demo";
+import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
@@ -78,8 +79,21 @@ export default function CabinetPage() {
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
           <Card className="space-y-1">
+            <ActionRow
+              icon="note"
+              title="Выгрузить мои данные"
+              sub="Один файл со всем, что о вас хранится"
+              onClick={() => { tap(); window.location.href = "/api/my/export"; }}
+            />
+            <ActionRow
+              icon="book"
+              title="Политика обработки данных"
+              sub="Что храним, зачем и сколько"
+              onClick={() => router.push("/policy")}
+            />
             <ActionRow icon="compass" title="Пройти знакомство заново" sub="Онбординг и экскурсия по разделам" onClick={() => { resetTours(); resetOnboarding(); }} />
             <ActionRow icon="gear" title="Очистить данные на устройстве" sub="Сбросить демо к исходному состоянию" danger onClick={() => { if (confirm("Очистить локальные данные и вернуть демо к началу?")) { resetLocalData(); location.reload(); } }} />
+            <DeleteAccountRow />
           </Card>
         </div>
 
@@ -111,6 +125,36 @@ export default function CabinetPage() {
       </div>
       </Reveal>
     </div>
+  );
+}
+
+// Удаление аккаунта. Двойное подтверждение не для красоты: действие
+// необратимо, а дневник и заметки стираются сразу.
+function DeleteAccountRow() {
+  const [busy, setBusy] = useState(false);
+
+  const remove = async () => {
+    if (!confirm("Удалить аккаунт? Дневник, заметки и колесо будут стёрты безвозвратно.")) return;
+    if (!confirm("Точно? Это нельзя отменить.")) return;
+    setBusy(true);
+    try {
+      await apiFetch("/my/account", { method: "DELETE" });
+      location.href = "/";
+    } catch {
+      alert("Не получилось. Попробуйте ещё раз или напишите в отдел заботы.");
+      setBusy(false);
+    }
+  };
+
+  if (DEMO) return null;
+  return (
+    <ActionRow
+      icon="user"
+      title={busy ? "Удаляем…" : "Удалить аккаунт"}
+      sub="Стирает данные и закрывает доступ"
+      danger
+      onClick={remove}
+    />
   );
 }
 
