@@ -36,5 +36,8 @@ export async function requireUser(req: NextRequest) {
 
   const user = await prisma.user.findUnique({ where: { id: claims.userId } });
   if (!user || user.deletedAt) throw new AuthError("user not found");
+  // Блокировка действует немедленно: сессии гасятся при блокировке, но
+  // живой access-токен иначе доработал бы свои минуты.
+  if (user.blockedAt) throw new AuthError("blocked");
   return user;
 }

@@ -355,10 +355,9 @@ ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_clientId_fkey" FOREIGN KEY
 ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 
--- Одно окно — одна активная запись. Проверка в коде оставляет окно гонки:
--- два клиента жмут «Записаться» одновременно, оба проходят findFirst и
--- оба создают запись. Частичный индекс закрывает это на уровне базы,
--- а отменённые записи не мешают снова занять то же время.
+-- Одно окно — одна активная запись: проверка в коде оставляет окно гонки,
+-- частичный индекс закрывает это на уровне базы, а отменённые записи
+-- не мешают снова занять то же время.
 CREATE UNIQUE INDEX "Appointment_slot_active_key"
   ON "Appointment"("psychologistId", "startsAt")
   WHERE "status" <> 'cancelled';
