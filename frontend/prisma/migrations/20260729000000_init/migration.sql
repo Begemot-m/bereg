@@ -8,6 +8,8 @@ CREATE TABLE "User" (
     "username" TEXT,
     "firstName" TEXT,
     "role" TEXT NOT NULL DEFAULT 'psychologist',
+    "isAdmin" BOOLEAN NOT NULL DEFAULT false,
+    "blockedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "email" TEXT,
     "emailVerifiedAt" TIMESTAMP(3),
@@ -224,6 +226,8 @@ CREATE TABLE "Subscription" (
     "yookassaPaymentId" TEXT,
     "paymentMethodId" TEXT,
     "currentPeriodEnd" TIMESTAMP(3),
+    "grantedBy" INTEGER,
+    "grantedNote" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -350,3 +354,11 @@ ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_clientId_fkey" FOREIGN KEY
 -- AddForeignKey
 ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+
+-- Одно окно — одна активная запись. Проверка в коде оставляет окно гонки:
+-- два клиента жмут «Записаться» одновременно, оба проходят findFirst и
+-- оба создают запись. Частичный индекс закрывает это на уровне базы,
+-- а отменённые записи не мешают снова занять то же время.
+CREATE UNIQUE INDEX "Appointment_slot_active_key"
+  ON "Appointment"("psychologistId", "startsAt")
+  WHERE "status" <> 'cancelled';

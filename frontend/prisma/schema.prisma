@@ -14,6 +14,11 @@ model User {
   username   String?
   firstName  String?
   role       String   @default("psychologist") // psychologist | client
+  /// Администратор платформы. Ставится вручную в базе: через интерфейс выдать
+  /// нельзя, иначе первый же баг в правах раздаёт админку.
+  isAdmin    Boolean  @default(false)
+  /// Блокировка нарушителя: вход остаётся, но доступ к API закрыт.
+  blockedAt  DateTime?
   createdAt  DateTime @default(now())
 
   // Почта привязывается внутри мини-приложения и служит входом в веб-версию.
@@ -287,6 +292,10 @@ model Subscription {
   yookassaPaymentId String?
   paymentMethodId   String? // сохранённый способ оплаты для рекуррента
   currentPeriodEnd  DateTime?
+  /// Кто выдал доступ вручную из админки. Заполнено — значит денег не было,
+  /// и в отчётах такую подписку нельзя считать выручкой.
+  grantedBy         Int?
+  grantedNote       String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }

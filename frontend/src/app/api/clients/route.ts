@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { canAddClient } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 
@@ -25,6 +26,16 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as { name?: string; contact?: string; note?: string };
     const name = body.name?.trim();
     if (!name) return NextResponse.json({ error: "name required" }, { status: 422 });
+
+    // Лимит бесплатного тарифа проверяется здесь, а не только в интерфейсе:
+    // иначе его обходит один запрос мимо приложения.
+    const limit = await canAddClient(user.id);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: "limit_reached", used: limit.used, limit: limit.limit, message: `На бесплатном тарифе доступно ${limit.limit} клиента. Подключите PRO, чтобы вести больше.` },
+        { status: 402 },
+      );
+    }
 
     const client = await prisma.client.create({
       data: {

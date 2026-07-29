@@ -75,17 +75,36 @@ export async function POST(req: NextRequest) {
         },
       }));
 
-    const appt = await prisma.appointment.create({
-      data: {
-        psychologistId,
-        clientId: card.id,
-        startsAt,
-        durationMin: Number(body.durationMin) || psy.sessionMinutes,
-        format: body.format === "offline" ? "offline" : "online",
-      },
-      include,
-    });
-    return NextResponse.json(toDTO(appt), { status: 201 });
+    try {
+      const appt = await prisma.appointment.create({
+        data: {
+          psychologistId,
+          clientId: card.id,
+          startsAt,
+          durationMin: Number(body.durationMin) || psy.sessionMinutes,
+          format: body.format === "offline" ? "offline" : "online",
+        },
+        include,
+      });
+
+      // Психолог узнаёт о записи, не открывая приложение специально.
+      await prisma.notification.create({
+        data: {
+          userId: psychologistId,
+          kind: "booking",
+          text: `Новая запись · ${card.name} · ${startsAt.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`,
+        },
+      });
+
+      return NextResponse.json(toDTO(appt), { status: 201 });
+    } catch (e) {
+      // Гонку ловит уникальный индекс: пока мы проверяли занятость, окно
+      // мог занять другой человек.
+      if (typeof e === "object" && e && (e as { code?: string }).code === "P2002") {
+        return NextResponse.json({ error: "Окно только что заняли" }, { status: 409 });
+      }
+      throw e;
+    }
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

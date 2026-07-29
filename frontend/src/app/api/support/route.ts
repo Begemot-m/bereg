@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
+import { LIMITS, limited } from "@/lib/server/rate-limit";
 import { requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -12,6 +13,10 @@ const TOPICS = new Set(["bug", "billing", "data", "other"]);
  * войти, и именно тогда поддержка нужнее всего; тогда просим контакт.
  */
 export async function POST(req: NextRequest) {
+  // Роут открыт без входа — значит он же и самая доступная мишень для спама.
+  const stop = limited(req, "support", LIMITS.public);
+  if (stop) return stop;
+
   const user = await requireUser(req).catch(() => null);
   const body = (await req.json().catch(() => ({}))) as { topic?: string; text?: string; contact?: string };
 
