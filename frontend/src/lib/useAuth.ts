@@ -21,33 +21,54 @@ export function useAuth() {
       return;
     }
 
-    const wa = getTelegramWebApp();
-    wa?.ready();
-    wa?.expand();
-    // Тёмная тема: красим системный хром Telegram под чёрный фон приложения.
-    wa?.setHeaderColor?.("#050505");
-    wa?.setBackgroundColor?.("#050505");
-    setEnv(isTelegramMiniApp() ? "tma" : "desktop");
+    let cancelled = false;
 
-    (async () => {
-      // В TMA авторизуемся автоматически через initData.
-      if (isTelegramMiniApp()) {
+    // telegram-web-app.js подключён с afterInteractive, то есть появляется
+    // уже после гидрации. Если спросить среду сразу, мини-приложение выглядит
+    // как обычный браузер — и вход не случается вовсе. Ждём так же, как это
+    // делает TelegramInit: короткими попытками, а не одной проверкой.
+    const waitForTelegram = async () => {
+      for (let i = 0; i < 20; i++) {
+        if (isTelegramMiniApp()) return true;
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+      return isTelegramMiniApp();
+    };
+
+    void (async () => {
+      const inTelegram = await waitForTelegram();
+      if (cancelled) return;
+      setEnv(inTelegram ? "tma" : "desktop");
+
+      // Цвет системной полоски ставит TelegramInit по тону раздела —
+      // здесь его трогать не нужно, иначе экраны получат чужой фон.
+      const wa = getTelegramWebApp();
+      wa?.ready();
+      wa?.expand();
+
+      if (inTelegram) {
         const initData = getInitData();
         if (initData) {
           try {
             await loginWithInitData(initData);
-            setState("authed");
-            return;
+            if (!cancelled) setState("authed");
           } catch {
-            setState("anon");
-            return;
+            // Подпись не сошлась или initData просрочен: сервер отвечает 401.
+            // Показываем это словами, а не бесконечной загрузкой.
+            if (!cancelled) setState("anon");
           }
+          return;
         }
       }
+
       // На десктопе: если уже есть токен — считаем авторизованным (Фаза 0).
       // Полноценный десктоп-вход (Telegram Login Widget / email-код) — следующий шаг.
-      setState(getAccess() ? "authed" : "anon");
+      if (!cancelled) setState(getAccess() ? "authed" : "anon");
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { env, state };

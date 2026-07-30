@@ -64,7 +64,7 @@ export function ClientDetail() {
     qc.invalidateQueries({ queryKey: ["homework", id] });
   };
 
-  const { data: client, isLoading } = useQuery({
+  const { data: client, isLoading, isError, refetch } = useQuery({
     queryKey: ["client", id],
     queryFn: () => getClient(id),
     // Пока приглашение «в пути» — подтягиваем карточку, чтобы поймать подключение.
@@ -97,6 +97,14 @@ export function ClientDetail() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); router.push("/clients"); },
   });
 
+  // Упавший запрос выглядел как вечная загрузка: isLoading уже false, а client
+  // так и не появился — условие ниже оставалось истинным навсегда.
+  if (isError) return (
+    <div className="pt-10 text-center">
+      <p className="t-sub">Не удалось загрузить карточку клиента.</p>
+      <button onClick={() => void refetch()} className="btn btn-accent mt-4">Повторить</button>
+    </div>
+  );
   if (isLoading || !client) return <div className="pt-10"><Spinner /></div>;
 
   const dstatus = derivedStatus(client);

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
+import { AuthGate } from "@/components/auth-gate";
 import { Icon, type IconName } from "@/components/icons";
 import { Onboarding } from "@/components/onboarding";
 // Экскурсия по разделам запускается вручную и редко, а лежала в бандле
@@ -14,6 +15,7 @@ const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.Ro
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
 import { useOnboarded } from "@/lib/profile";
+import { useAuth } from "@/lib/useAuth";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
 
 type NavItem = { href: string; label: string; icon: IconName };
@@ -62,6 +64,7 @@ function Wordmark({ small }: { small?: boolean }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { env, state: authState } = useAuth();
   const [role, setRole] = useRole();
   const pathname = usePathname();
   const router = useRouter();
@@ -106,7 +109,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("bereg:tour-start", start);
   }, []);
 
-  if (onboarded === null || fastEntry === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
+  // Пока идёт вход, приложение не показываем: иначе экраны успевают отправить
+  // запросы без токена, получить 401 и остаться в бесконечной загрузке.
+  if (authState === "loading" || onboarded === null || fastEntry === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
+  if (authState === "anon") return <AuthGate env={env} />;
   if (!onboarded && !fastEntry) return <Onboarding />;
 
   return (
