@@ -90,10 +90,16 @@ function PsySessions() {
   const [scheduleFirstVisit, setScheduleFirstVisit] = useState(false);
   const [scheduleReady, setScheduleReady] = useState(false);
 
-  const { data: appts = [], isLoading } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
-  const { data: avail } = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
-  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
-  const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
+  const appointmentsQuery = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
+  const availabilityQuery = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
+  const workQuery = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
+  const overridesQuery = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
+  const appts = appointmentsQuery.data ?? [];
+  const avail = availabilityQuery.data;
+  const work = workQuery.data;
+  const overrides = overridesQuery.data ?? {};
+  const isLoading = appointmentsQuery.isLoading;
+  const loadError = [appointmentsQuery, availabilityQuery, workQuery, overridesQuery].some((query) => query.isError);
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
 
   useEffect(() => {
@@ -139,6 +145,8 @@ function PsySessions() {
     const hasAppt = appts.some((a) => a.status !== "cancelled" && ymdLocal(new Date(a.startsAt)) === y);
     return selDay ? y === selDay && hasAppt : hasAppt;
   });
+
+  if (loadError) return <div className="card-soft p-5 text-center"><p className="t-head">Не удалось загрузить сессии</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void Promise.all([appointmentsQuery.refetch(), availabilityQuery.refetch(), workQuery.refetch(), overridesQuery.refetch()])} className="btn mt-4">Повторить</button></div>;
 
   return (
     <div>
@@ -422,7 +430,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   });
   // Быстро завести нового клиента прямо из записи и сразу выбрать его.
   const create = useMutation({
-    mutationFn: (name: string) => createClient(name, ""),
+    mutationFn: ({ name, contact }: { name: string; contact: string }) => createClient(name, contact),
     onSuccess: (c) => { success(); qc.invalidateQueries({ queryKey: ["clients"] }); setClient({ id: c.id, name: c.name }); },
   });
   const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
@@ -449,7 +457,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
             </div>
             <div className="overflow-y-auto p-4">
               {!client ? (
-                <ClientPicker clients={sorted} compact={false} onCreateClient={atCap ? undefined : (name) => create.mutate(name)} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+                <ClientPicker clients={sorted} compact={false} onCreateClient={atCap ? undefined : (name, contact) => create.mutate({ name, contact })} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
               ) : (
                 <div>
                   <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">

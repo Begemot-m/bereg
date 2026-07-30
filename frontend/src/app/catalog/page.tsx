@@ -222,8 +222,8 @@ function AttachTherapistButton({ name }: { name: string }) {
   const [attached, setAttached] = useState(() => isAttached(name));
   const add = () => { if (attached) return; success(); attachTherapist(name); setAttached(true); };
   return (
-    <button onClick={add} aria-disabled={attached} className={`btn min-h-12 min-w-0 flex-1 ${attached ? "btn-soft" : "btn-accent"}`}>
-      {attached ? <><Icon name="check" width={16} weight="bold" color="var(--edge)" /> В вашей терапии</> : <><Icon name="plus" width={16} weight="bold" color="#fff" /> В мою терапию</>}
+    <button onClick={add} aria-disabled={attached} className={`btn min-h-11 shrink-0 px-4 ${attached ? "btn-soft" : "btn-accent"}`}>
+      {attached ? <><Icon name="check" width={15} weight="bold" color="var(--edge)" /> В терапии</> : <><Icon name="plus" width={15} weight="bold" color="#fff" /> В терапию</>}
     </button>
   );
 }
@@ -277,7 +277,7 @@ function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; pref
       {/* Действия — сразу под именем, а не через полэкрана */}
       <div className="mt-3.5 flex gap-2">
         <AttachTherapistButton name={psy.name} />
-        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn btn-accent min-h-12 shrink-0">
+        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn min-h-11 shrink-0 bg-[var(--ink)] px-4 text-white">
           <Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать
         </a>
       </div>
@@ -289,12 +289,12 @@ function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; pref
       <BookingMini psyName={psy.name} tone={tone} onDone={onBack} />
 
       {/* Почему предложен именно этому пользователю */}
-      {reasons.length > 0 && <Section title="Почему подходит именно вам"><div className="card-soft p-3.5"><ul className="space-y-1.5">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></div></Section>}
+      {reasons.length > 0 && <Section title="Почему подходит именно вам"><ul className="space-y-2">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></Section>}
 
       <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="chip" style={{ background: tone.soft }}>{topic}</span>)}</div></Section>
 
       {/* Как проходит первая встреча */}
-      <Section title="Как проходит первая встреча"><div className="card-soft p-4"><p className="t-body">{firstSession}</p></div></Section>
+      <Section title="Как проходит первая встреча"><p className="t-body">{firstSession}</p></Section>
 
       {/* Голосовое приветствие (демо-слот) */}
       <VoiceGreeting name={psy.name.split(" ")[0]} />
@@ -416,21 +416,13 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
 function MethodList({ psy }: { psy: Psy }) {
   const tone = T[psy.tone];
   const [open, setOpen] = useState<string | null>(null);
-  const [show, setShow] = useState(false);
   return (
     <Section title="Методы">
-      {/* Свёрнуто по умолчанию — раскрывается по нажатию */}
-      <button onClick={() => { tap(); setShow((v) => !v); }} className="flex w-full items-center gap-2.5 rounded-[14px] p-3.5" style={{ background: tone.soft }} aria-expanded={show}>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-white"><Icon name="therapy" width={15} weight="bold" color={tone.edge} /></span>
-        <span className="min-w-0 flex-1 text-left"><span className="t-head block truncate">{psy.method}{psy.methods.length > 1 ? ` и ещё ${psy.methods.length - 1}` : ""}</span><span className="t-cap block">нажмите, чтобы раскрыть подходы</span></span>
-        <motion.span animate={{ rotate: show ? -90 : 90 }} className="shrink-0 text-[var(--muted)]"><ArrowGlyph /></motion.span>
-      </button>
-      <Disclosure open={show}>
       <motion.div
         initial="hidden"
         animate="show"
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
-        className="mt-2 grid grid-cols-2 items-start gap-2"
+        className="grid grid-cols-2 items-start gap-2"
       >
         {psy.methods.map((method) => {
           const expanded = open === method;
@@ -443,7 +435,7 @@ function MethodList({ psy }: { psy: Psy }) {
               onClick={() => { tap(); setOpen(expanded ? null : method); }}
               aria-expanded={expanded}
               className={`rounded-[16px] p-3.5 text-left ${expanded ? "col-span-2" : ""}`}
-              style={{ background: main ? tone.soft : "var(--surface-2)" }}
+              style={{ background: main ? tone.soft : "#fff", border: `1px solid ${main ? tone.edge : "var(--edge-neutral)"}` }}
             >
               <motion.span layout="position" className="flex items-center gap-2">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-white">
@@ -471,7 +463,6 @@ function MethodList({ psy }: { psy: Psy }) {
           );
         })}
       </motion.div>
-      </Disclosure>
     </Section>
   );
 }
@@ -566,17 +557,17 @@ function EducationBlock({ psy }: { psy: Psy }) {
 
 // Правила отмены и связи между сессиями.
 function RulesSection({ minutes }: { minutes: number }) {
-  const rules: { icon: IconName; title: string; text: string }[] = [
-    { icon: "clock", title: "Отмена и перенос", text: "Бесплатно за 24 часа до встречи. Позже — сессия считается состоявшейся." },
-    { icon: "note", title: "Связь между сессиями", text: `Короткие сообщения по договорённости, ответ в рабочее время. Разбор вопросов — на встрече (${minutes} мин).` },
-    { icon: "heart", title: "Это не экстренная помощь", text: "Чат со специалистом не заменяет кризисную линию. При острой ситуации обратитесь в неотложную службу." },
+  const rules: { icon: IconName; tone: string; title: string; text: string }[] = [
+    { icon: "clock", tone: "amber", title: "Отмена и перенос", text: "Бесплатно за 24 часа до встречи. Позже — сессия считается состоявшейся." },
+    { icon: "note", tone: "purple", title: "Связь между сессиями", text: `Короткие сообщения по договорённости, ответ в рабочее время. Разбор вопросов — на встрече (${minutes} мин).` },
+    { icon: "heart", tone: "salmon", title: "Это не экстренная помощь", text: "Чат со специалистом не заменяет кризисную линию. При острой ситуации обратитесь в неотложную службу." },
   ];
   return (
     <Section title="Правила отмены и связи">
       <div className="space-y-2">
         {rules.map((r) => (
-          <div key={r.title} className="card-soft flex items-start gap-3 p-3.5">
-            <span className="ico ico-white h-8 w-8 shrink-0"><Icon name={r.icon} width={15} weight="bold" color="var(--edge)" /></span>
+          <div key={r.title} className="flex items-start gap-3 py-1.5">
+            <span className="ico h-8 w-8 shrink-0" style={{ background: `var(--${r.tone}-edge)` }}><Icon name={r.icon} width={15} weight="bold" color="#fff" /></span>
             <div><p className="text-[12.5px] font-black">{r.title}</p><p className="mt-0.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{r.text}</p></div>
           </div>
         ))}

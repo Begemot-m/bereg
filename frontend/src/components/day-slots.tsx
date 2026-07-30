@@ -185,10 +185,11 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
 
 // Выбор клиента с быстрым поиском; недавние в терапии — сверху.
 // onCreateClient — если задан, показываем «+ Новый клиент» рядом с поиском.
-export function ClientPicker({ clients, onPick, compact = true, onCreateClient }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean; onCreateClient?: (name: string) => void }) {
+export function ClientPicker({ clients, onPick, compact = true, onCreateClient }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean; onCreateClient?: (name: string, contact: string) => void }) {
   const [q, setQ] = useState("");
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newContact, setNewContact] = useState("");
   const query = q.trim().toLowerCase();
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(query) || (c.contact ?? "").toLowerCase().includes(query));
   const inTherapy = filtered.filter((c) => c.status === "therapy");
@@ -207,10 +208,13 @@ export function ClientPicker({ clients, onPick, compact = true, onCreateClient }
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск клиента" className="w-full bg-transparent text-[13px] font-semibold outline-none" />
       </div>
       {onCreateClient && (adding ? (
-        <form onSubmit={(e) => { e.preventDefault(); const n = newName.trim(); if (n) { onCreateClient(n); setNewName(""); setAdding(false); } }} className="mb-1.5 flex items-center gap-1.5">
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Имя и фамилия" className="w-full rounded-[9px] bg-white px-2.5 py-1.5 text-[13px] font-semibold outline-none" style={{ border: "var(--bw) solid var(--olive-edge)" }} />
-          <button type="submit" disabled={!newName.trim()} className="shrink-0 rounded-[9px] px-2.5 py-1.5 text-[12px] font-black text-white disabled:opacity-40" style={{ background: "var(--olive-edge)" }}>OK</button>
-          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="x-close px-1 text-[15px]" aria-label="Отмена">✕</button>
+        <form onSubmit={(e) => { e.preventDefault(); const n = newName.trim(); if (n) { onCreateClient(n, newContact.trim()); setNewName(""); setNewContact(""); setAdding(false); } }} className="mb-1.5 space-y-1.5">
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Имя и фамилия" className="w-full rounded-[9px] bg-white px-2.5 py-1.5 text-[13px] font-semibold outline-none [caret-color:var(--ink)]" style={{ border: "var(--bw) solid var(--olive-edge)" }} />
+          <input value={newContact} onChange={(e) => setNewContact(e.target.value)} placeholder="Телефон или Telegram" className="w-full rounded-[9px] bg-white px-2.5 py-1.5 text-[13px] font-semibold outline-none [caret-color:var(--ink)]" style={{ border: "var(--bw) solid var(--olive-edge)" }} />
+          <div className="flex gap-1.5">
+            <button type="button" onClick={() => { setAdding(false); setNewName(""); setNewContact(""); }} className="btn btn-white flex-1 py-1.5 text-[11px]">Отмена</button>
+            <button type="submit" disabled={!newName.trim()} className="btn flex-1 py-1.5 text-[11px] disabled:opacity-40">Создать</button>
+          </div>
         </form>
       ) : (
         <button onClick={() => { tap(); setAdding(true); }} className="mb-1.5 flex w-full items-center gap-2 rounded-[9px] px-2 py-1.5 text-left transition-colors active:scale-[0.99]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}>

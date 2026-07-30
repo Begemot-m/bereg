@@ -46,17 +46,14 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
       <div className="flex items-center gap-3">
         <ProfilePhoto photo={photo} name={name} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[17px] font-extrabold">{name}</p>
-          <p className="mt-0.5 text-[12px] font-semibold text-[var(--muted)]">{professional ? "Профиль психолога" : "Профиль клиента"}</p>
+          <p className="truncate text-[21px] font-extrabold leading-tight">{name}</p>
+          <button onClick={() => { tap(); setEditing(true); }} className="mt-1 text-[12px] font-bold text-[var(--muted)]">Редактировать профиль</button>
         </div>
         {professional && profile && <VerifyChip status={profile.status} />}
       </div>
       {roleControl}
       {professional && <ProfileProgress profile={profile} onContinue={() => { tap(); setEditing(true); }} />}
-      <div className="flex items-center gap-2">
-        {professional && <button onClick={() => { tap(); setPreview(true); }} className="shrink-0 rounded-full px-3 py-2 text-[11px] font-bold text-[var(--muted)] transition-colors hover:text-[var(--ink)]">Как видят мой профиль</button>}
-        <button onClick={() => { tap(); setEditing(true); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white py-2 text-[11px] font-bold stroke"><Icon name="note" width={13} weight="regular" /> Редактировать профиль</button>
-      </div>
+      {professional && <button onClick={() => { tap(); setPreview(true); }} className="rounded-full px-3 py-2 text-[11px] font-bold text-[var(--muted)] transition-colors hover:text-[var(--ink)]">Как видят мой профиль</button>}
     </div>
 
     <ProfileSheet open={editing} title="Профиль специалиста" onClose={() => setEditing(false)}>
@@ -516,7 +513,7 @@ function BasicProfileForm({ onDone }: { onDone: () => void }) {
 }
 
 function ProfilePhoto({ photo, name, size }: { photo: string | null; name: string; size: "sm" | "lg" }) {
-  const classes = size === "sm" ? "h-14 w-14 rounded-[14px] text-[20px]" : "h-[92px] w-[78px] rounded-[18px] text-[28px]";
+  const classes = size === "sm" ? "h-20 w-20 rounded-[18px] text-[26px]" : "h-[92px] w-[78px] rounded-[18px] text-[28px]";
   if (photo) return <div className={`${classes} shrink-0 overflow-hidden stroke`}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo} alt="" className="h-full w-full object-cover" /></div>;
   return <div className={`${classes} flex shrink-0 items-center justify-center bg-[var(--head-soft)] font-black stroke`}>{name.trim().charAt(0).toUpperCase() || "П"}</div>;
 }

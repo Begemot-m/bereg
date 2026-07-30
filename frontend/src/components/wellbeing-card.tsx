@@ -25,14 +25,14 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
   const lowest = wheelLowest(wheel, 2);
 
   return (
-    <section className="card-soft p-4">
+    <section className="rounded-[20px] bg-[var(--purple-soft)] p-4" data-tour="wheel">
       <div className="flex items-center gap-3">
         <button onClick={onStart ? () => { tap(); onStart(); } : undefined} className="ico ico-accent relative h-14 w-14 shrink-0" aria-label="Колесо баланса">
           <Icon name="balance" width={28} weight="bold" color="#fff" />
           {!wheel && <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--coral)] text-[16px] font-black">!</span>}
         </button>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Колесо баланса</p>
+          <p className="font-tight text-[18px] font-black text-[var(--ink)]">Колесо баланса</p>
           {wheel ? (
             <div className="flex items-end gap-2">
               <span className="font-tight tnum text-[30px] font-black leading-none">{pct}%</span>
@@ -72,8 +72,8 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
         </>
       ) : onStart ? (
         <>
-          <p className="t-sub mt-3">10 сфер, 30 вопросов — {subtitle}.</p>
-          <button onClick={() => { tap(); onStart(); }} className="btn mt-2.5 w-full py-3">Собрать колесо баланса</button>
+          <p className="t-sub mt-3">Посмотрите, где сейчас хватает опоры, а какие сферы жизни просят больше внимания. Результат сохранится в вашей динамике.</p>
+          <button onClick={() => { tap(); onStart(); }} className="btn mt-2.5 w-full py-3"><Icon name="balance" width={17} weight="bold" color="#fff" /> Собрать колесо баланса</button>
         </>
       ) : (
         <p className="card-nested mt-3 p-3 text-[11px] font-semibold text-[var(--muted)]">Появится здесь, когда клиент соберёт колесо между сессиями.</p>

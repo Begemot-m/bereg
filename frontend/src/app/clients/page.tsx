@@ -77,7 +77,7 @@ function ClientsList() {
   const [contact, setContact] = useState("");
   const [open, setOpen] = useState(false);
 
-  const { data: clients = [], isLoading } = useQuery({
+  const { data: clients = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["clients"],
     queryFn: listClients,
     // Пока кого-то пригласили — тихо подтягиваем список, чтобы поймать подключение.
@@ -180,7 +180,9 @@ function ClientsList() {
         )}
       </Reveal>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="card-soft p-5 text-center"><p className="t-head">Не удалось загрузить клиентов</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void refetch()} className="btn mt-4">Повторить</button></div>
+      ) : isLoading ? (
         <div className="space-y-3"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>
       ) : list.length === 0 ? (
         <p className="t-sub px-1">{search ? "Никого не нашли по этому имени." : "Нет клиентов в этом фильтре."}</p>
@@ -308,6 +310,12 @@ function plural(n: number) {
 
 // Быстрое добавление: имя + фамилия → создаём карточку и открываем её.
 function QuickAddClient({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: (invite: boolean) => void }) {
+  const fullName = [first, last].filter(Boolean).join(" ");
+  const setFullName = (value: string) => {
+    const [nextFirst = "", ...rest] = value.split(/\s+/);
+    setFirst(nextFirst);
+    setLast(rest.join(" "));
+  };
   return (
     <Disclosure open={open} autoScroll={false}>
       {/* Тот же порядок полей, что и при добавлении из окна сессии */}
@@ -317,11 +325,8 @@ function QuickAddClient({ open, first, last, contact, setFirst, setLast, setCont
           <div><p className="text-[13px] font-black leading-none">Новый клиент</p><p className="t-cap mt-0.5">Имя, фамилия и контакт — карточка откроется сразу</p></div>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); onCreate(false); }} className="space-y-2">
-          <div className="flex gap-2">
-            <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Имя" autoFocus enterKeyHint="next" />
-            <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Фамилия" enterKeyHint="next" />
-          </div>
-          <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="@telegram или телефон" enterKeyHint="done" />
+          <Input className="[caret-color:var(--ink)]" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Имя и фамилия" autoFocus enterKeyHint="next" />
+          <Input className="[caret-color:var(--ink)]" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Телефон или Telegram" enterKeyHint="done" />
           <button type="submit" disabled={pending || !first.trim()} className="btn w-full py-2.5">
             <Icon name="plus" width={15} weight="bold" color="#fff" /> Создать карточку
           </button>

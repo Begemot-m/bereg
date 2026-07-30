@@ -56,8 +56,10 @@ function useMyTherapists(bookingNames: string[]) {
 
 export default function TherapyPage() {
   const qc = useQueryClient();
-  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
-  const { data: therapy, isLoading: therapyLoading } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
+  const bookingsQuery = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
+  const therapyQuery = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
+  const bookings = bookingsQuery.data ?? [];
+  const therapy = therapyQuery.data;
   const ordered = useMemo(() => [...bookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)), [bookings]);
   const bookingNames = useMemo(() => [...new Set(ordered.map((b) => b.psyName))], [ordered]);
   const therapists = useMyTherapists(bookingNames);
@@ -70,7 +72,8 @@ export default function TherapyPage() {
   const [guideOpen, setGuideOpen] = useState(false);
   useEffect(() => { if (!therapyGuideSeen()) setGuideOpen(true); }, []);
 
-  if (bookingsLoading || therapyLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
+  if (bookingsQuery.isError || therapyQuery.isError) return <div className="card-soft p-5 text-center"><p className="t-head">Не удалось загрузить терапию</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void Promise.all([bookingsQuery.refetch(), therapyQuery.refetch()])} className="btn mt-4">Повторить</button></div>;
+  if (bookingsQuery.isLoading || therapyQuery.isLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
   // Интерфейс терапии показывается всегда — статистика копится независимо от терапевта.
   return <>
     <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onBoard={(board) => save.mutate({ board })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
@@ -139,8 +142,10 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
           {/* Настроение → работа со специалистом → доска → динамика → записи. */}
-          <MoodHomeCard mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />
-          <MoodStatsBlock moods={therapy.moods} />
+          <section className="overflow-hidden rounded-[20px] bg-[var(--head-soft)]" data-tour="mood-stats">
+            <MoodHomeCard embedded mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />
+            <MoodStatsBlock moods={therapy.moods} />
+          </section>
 
           {therapist && (
             <WorkWithSpecialist
@@ -166,12 +171,13 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
 function MoodStatsBlock({ moods }: { moods: Mood[] }) {
   const [stats, setStats] = useState(false);
   return (
-    <div className="space-y-2.5" data-tour="mood-stats">
-      <button onClick={() => { tap(); setStats(!stats); }} className={`btn w-full py-2.5 ${stats ? "btn-white" : ""}`} aria-expanded={stats}>
-        <Icon name="chart" width={15} weight="bold" color={stats ? "var(--ink)" : "#fff"} /> {stats ? "Свернуть динамику" : "Динамика настроения"}
+    <div className="border-t border-black/10 px-3 pb-3 pt-2.5">
+      <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-between rounded-full bg-white/70 px-3 py-2 text-[11px] font-black" aria-expanded={stats}>
+        <span className="inline-flex items-center gap-1.5"><Icon name="chart" width={14} weight="bold" /> {stats ? "Свернуть динамику" : "Посмотреть динамику настроения"}</span>
+        <span>{stats ? "↑" : "→"}</span>
       </button>
       <Disclosure open={stats}>
-        <div className="space-y-2.5">
+        <div className="mt-2.5 space-y-2.5">
           <MoodStats moods={moods} title="Динамика настроения" />
           <p className="px-1 text-[10px] font-semibold text-[var(--muted-2)]">Отметки видит ваш терапевт — они помогают заметить, что меняется между встречами.</p>
         </div>

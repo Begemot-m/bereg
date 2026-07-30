@@ -106,11 +106,12 @@ export async function purgeExpiredSessions() {
 /* ——— Куки ——— */
 
 // httpOnly — недоступны из JS, значит XSS не уносит токен.
-// SameSite=Lax — браузер не шлёт их с чужих сайтов, базовая защита от CSRF.
+// Telegram Web открывает Mini App во внешнем iframe, поэтому production-cookie
+// нужен SameSite=None. CSRF для мутаций закрывает middleware проверкой Origin.
 const base = {
   httpOnly: true,
   secure: env.isProd,
-  sameSite: "lax" as const,
+  sameSite: (env.isProd ? "none" : "lax") as "none" | "lax",
   path: "/",
 };
 

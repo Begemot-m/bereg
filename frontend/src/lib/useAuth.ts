@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { getAccess, loginWithInitData } from "@/lib/api";
+import { hasLiveSession, loginWithInitData } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
 import { getInitData, getTelegramWebApp, isTelegramMiniApp } from "@/lib/telegram";
 
@@ -61,9 +61,10 @@ export function useAuth() {
         }
       }
 
-      // На десктопе: если уже есть токен — считаем авторизованным (Фаза 0).
-      // Полноценный десктоп-вход (Telegram Login Widget / email-код) — следующий шаг.
-      if (!cancelled) setState(getAccess() ? "authed" : "anon");
+      // На десктопе доверяем только живой серверной сессии, а не следам
+      // старого токена в localStorage.
+      const live = await hasLiveSession();
+      if (!cancelled) setState(live ? "authed" : "anon");
     })();
 
     return () => {

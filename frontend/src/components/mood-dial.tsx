@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
@@ -13,15 +13,15 @@ import { MOOD_LABEL } from "@/lib/mascots";
 import type { Mood } from "@/lib/clients";
 
 // Динамичный блок настроения для главной: «дышащий» персонаж + мини-график недели.
-export function MoodHomeCard({ mood, moods, onOpen }: { mood?: number; moods: Mood[]; onOpen: () => void }) {
+export function MoodHomeCard({ mood, moods, onOpen, embedded = false }: { mood?: number; moods: Mood[]; onOpen: () => void; embedded?: boolean }) {
   const value = mood ?? 3;
   const recent = moods.slice(-7);
   const tint = moodColor(value);
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
-      className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
-      style={{ background: mood ? `${tint}2e` : "var(--head-soft)" }}
+      className={`relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99] ${embedded ? "rounded-[18px]" : "card-soft"}`}
+      style={{ background: embedded ? "transparent" : mood ? `${tint}2e` : "var(--head-soft)" }}
     >
       <div className="relative flex items-center gap-3">
         <motion.span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
@@ -30,7 +30,7 @@ export function MoodHomeCard({ mood, moods, onOpen }: { mood?: number; moods: Mo
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Настроение дня</span>
           <span className="t-head block">Какое у вас настроение?</span>
-          {recent.length >= 2 && <MiniMoodTrend moods={recent} />}
+          <MiniMoodTrend moods={recent} />
         </span>
         <Arrow />
       </div>
@@ -40,15 +40,21 @@ export function MoodHomeCard({ mood, moods, onOpen }: { mood?: number; moods: Mo
 
 // Мини-график: столбики настроения за неделю в цвет значения.
 function MiniMoodTrend({ moods }: { moods: Mood[] }) {
+  const byDay = new Map(moods.map((entry) => [entry.date.slice(0, 10), entry]));
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    return byDay.get(date.toISOString().slice(0, 10));
+  });
   return (
     <span className="mt-2 flex items-end gap-1" aria-hidden>
-      {moods.map((entry, index) => (
+      {days.map((entry, index) => (
         <motion.span
           key={index}
           className="w-[7px] shrink-0 rounded-full"
-          style={{ background: moodColor(entry.mood), border: "1px solid rgba(32,28,24,.18)" }}
+          style={{ background: entry ? moodColor(entry.mood) : "rgba(32,28,24,.12)", border: "1px solid rgba(32,28,24,.14)" }}
           initial={{ height: 6 }}
-          animate={{ height: 8 + ((entry.mood - 1) / 4) * 20 }}
+          animate={{ height: entry ? 8 + ((entry.mood - 1) / 4) * 20 : 7 }}
           transition={{ delay: index * 0.05, type: "spring", stiffness: 220, damping: 18 }}
         />
       ))}
@@ -162,11 +168,11 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white text-[var(--ink)]">
-      <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-[max(12px,var(--top-pad))]">
-        <button onClick={() => { tap(); close(); }} className="flex h-10 w-10 items-center justify-center rounded-full bg-white stroke transition-transform active:scale-95" aria-label="Закрыть">
-          <X size={19} weight="bold" />
+      <div className="flex shrink-0 items-center justify-between px-4 pb-2 pt-[max(12px,var(--top-pad))]" style={{ backgroundColor: tint }}>
+        <button onClick={() => { tap(); close(); }} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white transition-transform active:scale-95" aria-label="Вернуться назад">
+          <ArrowLeft size={20} weight="bold" />
         </button>
-        <p className="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[.13em] stroke" style={{ background: `${tint}38` }}>Настроение сегодня</p>
+        <p className="rounded-full bg-black/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.13em] text-white">Настроение сегодня</p>
         <span className="w-10" />
       </div>
 
@@ -176,12 +182,12 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
         </div>
 
         <div className="flex-1 px-4 pb-3 pt-2" style={{ backgroundColor: tint }}>
-          <h2 className="text-center font-tight text-[clamp(27px,7.8vw,36px)] font-black uppercase leading-[0.9] tracking-[-0.04em]">
+          <h2 className="text-center font-tight text-[clamp(27px,7.8vw,36px)] font-black uppercase leading-[0.9] tracking-[-0.04em] text-white">
             Как ваше настроение сегодня?
           </h2>
           <div className="mt-2 flex items-center justify-center gap-2" aria-live="polite">
             <span className="rounded-full bg-[var(--ink)] px-3 py-1 text-[12px] font-black capitalize text-white">{MOOD_LABEL[level]}</span>
-            <span className="text-[11px] font-black tabular-nums text-black/50">{value.toFixed(1)} / 5</span>
+            <span className="text-[11px] font-black tabular-nums text-white/75">{value.toFixed(1)} / 5</span>
           </div>
 
           <div className="relative mt-3">

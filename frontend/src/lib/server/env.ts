@@ -53,10 +53,26 @@ export const env = {
  */
 export function assertEnv() {
   const missing: string[] = [];
-  for (const name of ["DATABASE_URL", "TELEGRAM_BOT_TOKEN", "JWT_SECRET"]) {
+  for (const name of ["DATABASE_URL", "TELEGRAM_BOT_TOKEN", "JWT_SECRET", "DATA_KEY", "APP_URL"]) {
     if (!process.env[name]) missing.push(name);
   }
   if (isProd && missing.length) {
     throw new Error(`Не заданы обязательные переменные окружения: ${missing.join(", ")}`);
+  }
+  if (!isProd) return;
+
+  void env.jwtSecret;
+  const appUrl = new URL(env.appUrl);
+  if (appUrl.protocol !== "https:") throw new Error("APP_URL в production должен использовать https");
+
+  const dataKey = Buffer.from(required("DATA_KEY"), "base64");
+  if (dataKey.length !== 32) throw new Error("DATA_KEY должен содержать 32 байта в base64");
+
+  for (const [name, value] of [
+    ["INITDATA_MAX_AGE_SECONDS", env.initDataMaxAgeSeconds],
+    ["ACCESS_TTL_SECONDS", env.accessTtlSeconds],
+    ["REFRESH_TTL_DAYS", env.refreshTtlDays],
+  ] as const) {
+    if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} должен быть положительным числом`);
   }
 }

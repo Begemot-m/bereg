@@ -9,7 +9,7 @@ import { select, success, tap } from "@/lib/haptics";
 import type { Role } from "@/lib/role";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const KEY = (role: Role) => `bereg:tour:${role}:v3`;
+const KEY = (role: Role) => `bereg:tour:${role}:v4`;
 
 const PAD = 8;      // воздух вокруг подсвеченного элемента
 const CARD = 210;   // примерная высота карточки — решаем, сверху её класть или снизу
@@ -49,19 +49,27 @@ const TOURS: Record<Role, Step[]> = {
     { href: "/", target: '[data-tour="mood"]', icon: "mood", title: "Отмечайте, как вы сегодня", text: "Тап по карточке открывает диск настроения и эмоции. Полминуты в день — и видно настоящий фон недели, а не только «хорошо / плохо»." },
     { href: "/", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Здесь ищут своего специалиста", text: "Подборка собирается по вашему запросу, а не по оплате размещения. Можно ответить на пару вопросов или сразу открыть весь список." },
     { href: "/therapy", target: '[data-tour="mood-stats"]', icon: "chart", title: "Динамика — общий язык с терапевтом", text: "Здесь настроение складывается в график. Терапевт видит эту динамику и приходит на встречу, уже зная, как прошли ваши недели." },
+    { href: "/therapy", target: '[data-tour="wheel"]', icon: "balance", title: "Колесо показывает общую картину", text: "Ответьте на короткие вопросы о важных сферах жизни. Результат сохранится, и позже можно будет сравнить изменения." },
     { href: "/therapy", target: '[data-tour="board"]', icon: "note", title: "Доска, которую видит терапевт", text: "Записывайте сюда мысли и вопросы между встречами — на сессии не придётся вспоминать, с чего вы хотели начать." },
+    { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Практики всегда под рукой", text: "Дыхание и дневник мыслей можно открыть в любой момент. Черновики сохраняются, поэтому упражнение не нужно заканчивать за один раз." },
+    { href: "/cabinet", target: '[data-tour="nav-cabinet"]', icon: "user", title: "Профиль и настройки", text: "В кабинете меняются имя, фото, роль и настройки аккаунта. Здесь же можно снова запустить экскурсию." },
   ],
   psychologist: [
+    { href: "/", target: '[data-tour="nav-sessions"]', icon: "calendar", title: "Сессии — ваш рабочий центр", text: "Здесь собраны график, свободные окна и записи клиентов. Начнём с настройки расписания." },
     { href: "/sessions", target: '[data-tour="schedule"]', icon: "clock", title: "Сначала — рабочие часы", text: "«График» задаёт дни, окна и длительность встречи. Отсюда же напоминания и запрет отмены. Клиенты видят только свободные окна." },
     { href: "/sessions", target: '[data-tour="views"]', icon: "calendar", title: "Неделя — рабочий экран", text: "«Ближайшие» показывают только записи, «Неделя» — все окна. Тап по свободному окну записывает клиента в два движения." },
     { href: "/sessions", target: '[data-tour="quick-add"]', icon: "plus", title: "Запись на любую дату", text: "Плюс открывает быструю запись: выбрать клиента (или завести нового) и свободное окно, не листая неделю." },
+    { href: "/clients", target: '[data-tour="add-client"]', icon: "heart", title: "Добавьте первого клиента", text: "Достаточно имени и контакта. Приглашение свяжет карточку с аккаунтом клиента и включит синхронизацию." },
     { href: "/clients", target: '[data-tour="client-card"]', icon: "users", title: "Карточка клиента", text: "Видно объём работы, задания и настроение между встречами. Тап открывает историю встреч, домашки и колесо баланса." },
-    { href: "/clients", target: '[data-tour="add-client"]', icon: "heart", title: "Новый клиент — и приглашение", text: "Заводите карточку и сразу отправляйте приглашение в Telegram: когда клиент подключится, его отметки появятся у вас." },
+    { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Практики для работы", text: "Покажите клиенту подходящее упражнение или пройдите его сами, чтобы понимать каждый шаг." },
+    { href: "/cabinet", target: '[data-tour="nav-cabinet"]', icon: "user", title: "Профиль специалиста", text: "Заполните методы, запросы, формат и условия. Эти данные формируют карточку в каталоге и фильтры поиска." },
   ],
   guest: [
     { href: "/catalog", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Каталог специалистов", text: "Посмотрите анкеты без обязательств: фото, подход, с чем работает и с чем — нет." },
     { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Практики без записи", text: "Дыхание, разбор мыслей и дневники доступны сразу — специалист для них не нужен." },
     { href: "/cabinet", target: '[data-tour="nav-cabinet"]', icon: "user", title: "Роль меняется здесь", text: "Когда решите, как пользуетесь приложением, переключите роль в кабинете — разделы подстроятся." },
+    { href: "/", target: '[data-tour="mood"]', icon: "mood", title: "Отмечайте состояние", text: "Ежедневная отметка занимает меньше минуты и помогает видеть динамику, а не вспоминать неделю по последнему дню." },
+    { href: "/", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Можно начинать", text: "Откройте каталог, настройте фильтры и посмотрите несколько анкет. Выбор ни к чему не обязывает." },
   ],
 };
 
@@ -122,6 +130,11 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
     select();
     setIndex(index + 1);
   };
+  const close = () => {
+    tap();
+    completeTour(role);
+    onDone();
+  };
 
   // Карточку кладём с той стороны от подсветки, где больше места.
   const below = rect ? rect.bottom + CARD < window.innerHeight - 24 : false;
@@ -135,14 +148,19 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
     <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label="Экскурсия по разделам">
       {/* Прожектор: дыра в затемнении вокруг элемента. Без подсветки — сплошная вуаль. */}
       {rect ? (
-        <motion.div
-          layout
-          className="pointer-events-none absolute rounded-[16px]"
-          initial={false}
-          animate={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
-          transition={{ duration: 0.34, ease: EASE }}
-          style={{ boxShadow: "0 0 0 9999px rgba(32,28,24,.62)", outline: "2px solid rgba(255,255,255,.9)", outlineOffset: 2 }}
-        />
+        <>
+          <motion.div className="pointer-events-none absolute inset-x-0 top-0 bg-[rgba(32,28,24,.68)]" animate={{ height: Math.max(0, rect.top - PAD) }} />
+          <motion.div className="pointer-events-none absolute left-0 bg-[rgba(32,28,24,.68)]" animate={{ top: rect.top - PAD, width: Math.max(0, rect.left - PAD), height: rect.height + PAD * 2 }} />
+          <motion.div className="pointer-events-none absolute right-0 bg-[rgba(32,28,24,.68)]" animate={{ top: rect.top - PAD, left: rect.right + PAD, height: rect.height + PAD * 2 }} />
+          <motion.div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[rgba(32,28,24,.68)]" animate={{ top: rect.bottom + PAD }} />
+          <motion.div
+            className="pointer-events-none absolute rounded-[16px]"
+            initial={false}
+            animate={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
+            transition={{ duration: 0.3, ease: EASE }}
+            style={{ outline: "2px solid rgba(255,255,255,.95)", outlineOffset: 2 }}
+          />
+        </>
       ) : (
         <div className="absolute inset-0" style={{ background: "rgba(32,28,24,.62)" }} />
       )}
@@ -169,6 +187,7 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
                 <p className="t-micro">Экскурсия · {index + 1} из {steps.length}</p>
                 <p className="t-head mt-0.5">{step.title}</p>
               </div>
+              <button onClick={close} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-[15px] font-black" aria-label="Закрыть экскурсию">×</button>
             </div>
 
             <p className="t-sub mt-2.5">{step.text}</p>

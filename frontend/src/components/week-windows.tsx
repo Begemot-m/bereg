@@ -120,7 +120,7 @@ type Look = { bg: string; ring?: string; label: string; labelColor: string };
 function look(s: Slot): Look {
   // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
   if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
-  // Свободное окно — пунктир: рамка здесь означает «сюда можно записать».
+  // Свободное окно отмечено тонкой рамкой: сюда можно записать клиента.
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
 }
 
@@ -155,13 +155,16 @@ function ClientChips({ onPick }: { onPick: (id: number) => void }) {
     .filter((c) => !q || c.name.toLowerCase().includes(q));
 
   if (adding) {
+    const fullName = [first, last].filter(Boolean).join(" ");
+    const changeFullName = (value: string) => {
+      const [nextFirst = "", ...rest] = value.split(/\s+/);
+      setFirst(nextFirst);
+      setLast(rest.join(" "));
+    };
     return (
       <form onSubmit={(e) => { e.preventDefault(); if (first.trim()) create.mutate(); }} className="space-y-2">
-        <div className="flex gap-2">
-          <input autoFocus value={first} onChange={(e) => setFirst(e.target.value)} onFocus={keepVisible} placeholder="Имя" enterKeyHint="next" autoComplete="off" className={FIELD} style={THIN} />
-          <input value={last} onChange={(e) => setLast(e.target.value)} onFocus={keepVisible} placeholder="Фамилия" enterKeyHint="next" autoComplete="off" className={FIELD} style={THIN} />
-        </div>
-        <input value={contact} onChange={(e) => setContact(e.target.value)} onFocus={keepVisible} placeholder="@telegram или телефон" enterKeyHint="done" autoComplete="off" className={`${FIELD} w-full`} style={THIN} />
+        <input autoFocus value={fullName} onChange={(e) => changeFullName(e.target.value)} onFocus={keepVisible} placeholder="Имя и фамилия" enterKeyHint="next" autoComplete="off" className={`${FIELD} w-full [caret-color:var(--ink)]`} style={THIN} />
+        <input value={contact} onChange={(e) => setContact(e.target.value)} onFocus={keepVisible} placeholder="Телефон или Telegram" enterKeyHint="done" autoComplete="off" className={`${FIELD} w-full [caret-color:var(--ink)]`} style={THIN} />
         <div className="flex gap-2">
           <button type="button" onClick={() => { tap(); setAdding(false); }} className="btn btn-white flex-1 py-2 text-[12px]">Отмена</button>
           <button type="submit" disabled={!first.trim() || create.isPending} className="btn btn-accent flex-1 py-2 text-[12px]">Создать и записать</button>
@@ -242,7 +245,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
         transition={MORPH}
         onClick={onTap}
         className="flex h-[54px] w-full flex-col items-center justify-center gap-0.5 rounded-[13px]"
-        style={{ background: "var(--surface-2)", color: "var(--muted)" }}
+        style={{ background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--edge-neutral)" }}
         aria-label="Добавить сессию"
       >
         <Icon name="plus" width={18} weight="bold" color="var(--muted)" />
@@ -301,7 +304,7 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
       style={{
         borderRadius: 13,
         background: st.bg,
-        border: st.ring ? `2px dashed ${st.ring}` : "none",
+        border: st.ring ? `1px solid ${st.ring}` : "none",
         opacity: slot.past && !active ? 0.6 : 1,
         boxShadow: active ? "0 14px 30px -18px rgba(32,28,24,.45)" : "none",
         zIndex: active ? 2 : 1,
