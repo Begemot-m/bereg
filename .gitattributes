@@ -1,0 +1,6 @@
+# Эти файлы исполняются на Linux-сервере. Если git отдаст их с CRLF,
+# bash не найдёт интерпретатор: «/usr/bin/env: bash\r: No such file».
+# Правки с Windows приезжают именно так, поэтому окончания строк фиксируем.
+*.sh text eol=lf
+Caddyfile text eol=lf
+Dockerfile text eol=lf

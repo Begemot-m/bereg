@@ -31,3 +31,14 @@ Thumbs.db
 *.log
 postgres-data/
 redis-data/
+
+# Дампы базы. На сервере /opt/bereg — это рабочая копия репозитория, поэтому
+# копии рядом со скриптом слишком легко уехали бы в git вместе с данными людей.
+deploy/backups/
+backups/
+*.sql.gz.enc
+*.sql.gz
+
+# Скрипт деплоя оставляет их после sed -i.bak и при откате.
+deploy/.env.bak
+deploy/.previous-image
