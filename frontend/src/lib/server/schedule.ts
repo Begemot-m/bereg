@@ -31,8 +31,25 @@ export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>
 }
 
 /** Правки окон в виде, в котором их ждёт клиент: ключ — ISO начала окна. */
-export async function getOverrides(userId: number): Promise<Record<string, OverrideDTO>> {
-  const rows = await prisma.slotOverride.findMany({ where: { userId } });
+/** Окно, за пределами которого данные расписания экрану не нужны. */
+export type Range = { from: Date; to: Date };
+
+/** Ближайшие N дней от полуночи сегодня — ровно то, что рисует календарь. */
+export function horizon(days = 60, back = 0): Range {
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+  from.setDate(from.getDate() - back);
+  const to = new Date(from);
+  to.setDate(to.getDate() + days + back);
+  return { from, to };
+}
+
+export async function getOverrides(userId: number, range?: Range): Promise<Record<string, OverrideDTO>> {
+  // Без окна выборка растёт вместе с историей: через год работы это тысячи
+  // строк, из которых экрану нужны десятки.
+  const rows = await prisma.slotOverride.findMany({
+    where: { userId, ...(range ? { startsAt: { gte: range.from, lte: range.to } } : {}) },
+  });
   const out: Record<string, OverrideDTO> = {};
   for (const r of rows) {
     out[r.startsAt.toISOString()] = {
@@ -118,9 +135,15 @@ export function monthAvailability(
 }
 
 /** Занятые времена психолога: всё, что не отменено. */
-export async function takenTimes(userId: number): Promise<string[]> {
+export async function takenTimes(userId: number, range?: Range): Promise<string[]> {
+  // Занятость нужна только на горизонте календаря. Раньше читались все
+  // записи за всё время — и попадали в память ради проверки двух месяцев.
   const appts = await prisma.appointment.findMany({
-    where: { psychologistId: userId, status: { not: "cancelled" } },
+    where: {
+      psychologistId: userId,
+      status: { not: "cancelled" },
+      ...(range ? { startsAt: { gte: range.from, lte: range.to } } : {}),
+    },
     select: { startsAt: true },
   });
   return appts.map((a) => a.startsAt.toISOString());

@@ -4,9 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 
-import { WheelFlow } from "@/components/balance-flow";
+// Колесо баланса — тридцать вопросов с анимациями. В терапию заходят каждый
+// день, колесо проходят раз в пару недель: в стартовый бандл ему не место.
+const WheelFlow = dynamic(() => import("@/components/balance-flow").then((m) => m.WheelFlow));
 import { Icon } from "@/components/icons";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";

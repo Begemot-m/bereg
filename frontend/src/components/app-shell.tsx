@@ -1,13 +1,16 @@
 "use client";
 
 import { motion } from "motion/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { Onboarding } from "@/components/onboarding";
-import { RoomTour } from "@/components/room-tour";
+// Экскурсия по разделам запускается вручную и редко, а лежала в бандле
+// каждой страницы приложения — app-shell оборачивает все экраны.
+const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.RoomTour));
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
 import { useOnboarded } from "@/lib/profile";

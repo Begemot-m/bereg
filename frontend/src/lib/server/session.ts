@@ -27,14 +27,24 @@ export async function requireUser(req: NextRequest) {
     throw new AuthError("invalid token");
   }
 
+  // Сессия и пользователь берутся одним запросом с JOIN, а не двумя подряд.
+  // Открытие одного экрана поднимает 6–7 endpoint, каждый звал requireUser —
+  // это была дюжина лишних round-trip к базе на каждую навигацию.
+  let user;
   if (claims.sessionId) {
-    const session = await prisma.session.findUnique({ where: { id: claims.sessionId } });
+    const session = await prisma.session.findUnique({
+      where: { id: claims.sessionId },
+      include: { user: true },
+    });
     if (!session || session.revokedAt || session.expiresAt.getTime() < Date.now()) {
       throw new AuthError("session revoked");
     }
+    if (session.userId !== claims.userId) throw new AuthError("session mismatch");
+    user = session.user;
+  } else {
+    user = await prisma.user.findUnique({ where: { id: claims.userId } });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: claims.userId } });
   if (!user || user.deletedAt) throw new AuthError("user not found");
   // Блокировка действует немедленно: сессии гасятся при блокировке, но
   // живой access-токен иначе доработал бы свои минуты.

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getOverrides, setOverride, type SlotFormat } from "@/lib/server/schedule";
+import { getOverrides, horizon, setOverride, type SlotFormat } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -8,7 +8,9 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    return NextResponse.json(await getOverrides(user.id));
+    // Интерфейс показывает недавнее прошлое и три месяца вперёд — дальше
+    // корректировки окон никому не видны.
+    return NextResponse.json(await getOverrides(user.id, horizon(90, 30)));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
