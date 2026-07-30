@@ -42,9 +42,10 @@ COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
 # Схема и миграции — чтобы контейнер мог сам применить migrate deploy
 COPY --from=build --chown=app:app /app/prisma ./prisma
-COPY --from=build --chown=app:app /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build --chown=app:app /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=build --chown=app:app /app/node_modules/prisma ./node_modules/prisma
+# Prisma CLI загружает транзитивные пакеты во время migrate deploy. Копирование
+# только каталогов prisma/@prisma оставляло CLI без зависимостей (например
+# `effect`) и первая миграция падала до обращения к базе.
+COPY --from=build --chown=app:app /app/node_modules ./node_modules
 
 USER app
 EXPOSE 3000

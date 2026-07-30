@@ -26,6 +26,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    env_file: .env
     ports:
       - "80:80"
       - "443:443"
@@ -46,7 +47,9 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-bereg}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?нужен POSTGRES_PASSWORD}
+      # Сервис не запускается без --profile localdb; для локального запуска
+      # пароль нужно явно переопределить в .env.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdb-only-change-me}
       POSTGRES_DB: ${POSTGRES_DB:-bereg}
     volumes:
       - pgdata:/var/lib/postgresql/data
