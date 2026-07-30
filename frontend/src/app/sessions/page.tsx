@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -9,14 +10,22 @@ import { useEffect, useState } from "react";
 import { MonthCalendar } from "@/components/calendar";
 import { PageHead } from "@/components/blocks";
 import { ClientPicker, DaySlots } from "@/components/day-slots";
-import { HelpDeck, SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
+import { SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
+
+// Справка открывается по кнопке «Как это работает?» — до этого не нужна.
+const HelpDeck = dynamic(() => import("@/components/help-deck").then((m) => m.HelpDeck));
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
 import { DayAgenda, WeekWindows } from "@/components/week-windows";
 import { RemindersModule } from "@/components/reminders";
 import { SessionInviteButton } from "@/components/session-invite";
-import { WorkHoursEditor } from "@/components/work-hours";
+// Редактор графика — самый тяжёлый компонент раздела: перетаскивание,
+// пружины, мини-неделя. В начальный бандл «Сессий» ему попадать незачем,
+// его открывают редко и осознанно.
+const WorkHoursEditor = dynamic(() => import("@/components/work-hours").then((m) => m.WorkHoursEditor), {
+  loading: () => <div className="skeleton h-64" />,
+});
 import { useCancelLockDays } from "@/lib/cancel-policy";
 import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
@@ -326,16 +335,20 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
             {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
           </div>
           {/* Правила приёма живут рядом с графиком, а не в кабинете, и одним
-              блоком — уходят в хвост редактора, прямо над кнопкой сохранения. */}
-          <WorkHoursEditor
-            onSaved={onSaved}
-            tail={
-              <div className="space-y-3 pt-1" style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 14 }}>
-                <RemindersModule />
-                <CancelLockRow />
-              </div>
-            }
-          />
+              блоком — уходят в хвост редактора, прямо над кнопкой сохранения.
+              Редактор монтируется только когда настройку раскрыли: он тянет
+              записи и рабочие часы и считает раскладку недели. */}
+          {open && (
+            <WorkHoursEditor
+              onSaved={onSaved}
+              tail={
+                <div className="space-y-3 pt-1" style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 14 }}>
+                  <RemindersModule />
+                  <CancelLockRow />
+                </div>
+              }
+            />
+          )}
           <button onClick={onToggle} className="mt-3 w-full py-1.5 text-[12px] font-black" style={{ color: "var(--edge)" }}>Свернуть настройку</button>
         </div>
       </Disclosure>
@@ -397,8 +410,10 @@ function EmptyState({ onAdd, selDay }: { onAdd: () => void; selDay: string | nul
 // Быстрая запись: сначала клиент (с поиском), затем свободное окно.
 function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  // Быстрая запись закрыта — её данные не нужны. Раньше эти два запроса
+  // уходили при каждом открытии «Сессий», хотя окно никто не открывал.
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: open });
+  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription, enabled: open });
   const atCap = !isPro(sub) && clients.length >= FREE_CLIENT_LIMIT;
   const [client, setClient] = useState<{ id: number; name: string } | null>(null);
   const book = useMutation({

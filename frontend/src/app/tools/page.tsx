@@ -1,13 +1,17 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal } from "@/components/motion";
-import { TechniqueRunner, type TechKey } from "@/components/techniques";
+import type { TechKey } from "@/components/techniques";
+
+// Практика запускается по нажатию — до этого её код не нужен.
+const TechniqueRunner = dynamic(() => import("@/components/techniques").then((m) => m.TechniqueRunner));
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 import { getSubscription, startSubscription } from "@/lib/subscription";
