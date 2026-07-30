@@ -53,6 +53,9 @@ for (const dir of dirs) {
   } catch {
     continue;
   }
+  if (sql.startsWith("\uFEFF")) {
+    problems.push({ dir, what: "UTF-8 BOM в начале файла — PostgreSQL не применит миграцию" });
+  }
   if (ALLOW.test(sql)) continue;
 
   for (const { re, what } of DANGER) {
@@ -65,7 +68,7 @@ if (problems.length === 0) {
   process.exit(0);
 }
 
-console.error("\nМиграция может уничтожить данные и сделать откат невозможным:\n");
+console.error("\nМиграция небезопасна или не сможет примениться:\n");
 for (const p of problems) console.error(`  ${p.dir} — ${p.what}`);
 console.error(`
 Как быть:
