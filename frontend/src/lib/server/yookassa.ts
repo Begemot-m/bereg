@@ -59,6 +59,39 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentR
   };
 }
 
+// Рекуррентное списание по сохранённому способу оплаты (off-session, без
+// подтверждения). Idempotence-Key детерминированный — повтор с тем же ключом
+// не создаёт второй платёж, а возвращает уже существующий (защита от двойного
+// списания, если планировщик тикнет повторно до прихода вебхука).
+export async function chargeRecurring(input: {
+  paymentMethodId: string;
+  amountRub: number;
+  description: string;
+  metadata: Record<string, string>;
+  idempotenceKey: string;
+}): Promise<PaymentResult> {
+  const res = await fetch(`${API}/payments`, {
+    method: "POST",
+    headers: {
+      Authorization: auth(),
+      "Idempotence-Key": input.idempotenceKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      amount: { value: input.amountRub.toFixed(2), currency: "RUB" },
+      capture: true,
+      payment_method_id: input.paymentMethodId,
+      description: input.description,
+      metadata: input.metadata,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`YooKassa recurring charge failed: ${res.status} ${await res.text()}`);
+
+  const data = (await res.json()) as { id: string; status: string };
+  return { id: data.id, status: data.status, confirmationUrl: null };
+}
+
 export type PaymentDetails = {
   id: string;
   status: string; // pending | waiting_for_capture | succeeded | canceled
