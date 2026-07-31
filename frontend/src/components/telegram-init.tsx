@@ -70,6 +70,24 @@ export function syncTelegramChrome(cssColor?: string) {
 
 export function TelegramInit() {
   useEffect(() => {
+    let timer = 0;
+    const centerField = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => target.scrollIntoView({ block: "center", behavior: "smooth" }), 320);
+    };
+    const onFocus = (event: FocusEvent) => centerField(event.target);
+    const onViewport = () => centerField(document.activeElement);
+    document.addEventListener("focusin", onFocus);
+    window.visualViewport?.addEventListener("resize", onViewport);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("focusin", onFocus);
+      window.visualViewport?.removeEventListener("resize", onViewport);
+    };
+  }, []);
+
+  useEffect(() => {
     let tries = 0;
     let cleanup: (() => void) | undefined;
 

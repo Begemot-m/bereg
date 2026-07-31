@@ -2,62 +2,39 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
-import { Icon, type IconName } from "@/components/icons";
-import { asset } from "@/lib/asset";
+import { Icon } from "@/components/icons";
 import { tap } from "@/lib/haptics";
 import { FREE_CLIENT_LIMIT, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
 
 // PRO отличается от бесплатного двумя вещами: масштаб и новые клиенты.
 // Весь функционал по клиенту (карточка, настроение, домашки, аналитика,
 // сводка недели, шаблоны) доступен и бесплатно — на первых трёх.
-export const PRO_PERKS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "users", title: "Клиенты без лимита", text: "Ведите всю практику, а не первых троих — со всей аналитикой и сводкой недели." },
-  { icon: "compass", title: "Каталог новых клиентов", text: "Честная выдача — место и рейтинг не купить. Комиссии за запись нет." },
-];
-
-// Графический слот: положи файл в public/sell/<name>.webp — подхватится.
-// Пока файла нет — мягкая заглушка (её не стыдно показать, но она под замену).
-function SellArt({ src, tone = "var(--purple)" }: { src: string; tone?: string }) {
-  const [broken, setBroken] = useState(false);
-  if (!broken) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={asset(src)} alt="" onError={() => setBroken(true)} className="mx-auto max-h-[220px] w-full rounded-[18px] object-cover" />;
-  }
-  return (
-    <div className="relative flex h-[150px] w-full items-center justify-center overflow-hidden rounded-[18px]" style={{ background: tone }}>
-      <span aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/25" />
-      <span aria-hidden className="pointer-events-none absolute -bottom-12 left-6 h-28 w-28 rounded-full bg-black/10" />
-      <span className="ico h-14 w-14 keep-style" style={{ background: "#fff" }}><Icon name="spark" width={26} weight="fill" /></span>
-      <span className="absolute bottom-2.5 right-3 text-[9px] font-black uppercase tracking-[.1em] text-white/70">графика · слот</span>
-    </div>
-  );
-}
-
 // Продающий контент PRO — используется в онбординге, кабинете и пейволле.
 export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: { art?: string; artTone?: string }) {
+  void art; void artTone;
+  const rows = [
+    ["Клиенты", `до ${FREE_CLIENT_LIMIT}`, "без лимита"],
+    ["Записи и расписание", "всё", "всё"],
+    ["Задания и заметки", "всё", "всё"],
+    ["Статистика работы", "всё", "всё"],
+    ["Каталог новых клиентов", "—", "включён"],
+  ];
   return (
     <div>
       <p className="t-micro" style={{ color: "var(--edge)" }}>Методика PRO</p>
-      <h2 className="t-title mt-1">Больше клиентов —<br />без потолка</h2>
+      <h2 className="t-title mt-1">Больше клиентов —<br /><span className="text-[var(--purple-edge)]">без лимитов</span></h2>
 
-      <div className="mt-3"><SellArt src={art} tone={artTone} /></div>
-
-      <div className="card-soft mt-3 flex items-start gap-3 p-3.5">
+      <div className="card-soft mt-3 flex items-start gap-3 p-3.5" style={{ background: "var(--purple-soft)" }}>
         <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" /></span>
-        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента — бесплатно.</b> Со всем функционалом: карточки, настроение, домашки, аналитика, сводка недели. Без карты.</p>
+        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента бесплатно</b><br />Все функции доступны сразу. Карта не нужна.</p>
       </div>
 
-      <p className="t-micro mt-4">PRO открывает</p>
-      <ul className="mt-2 space-y-2.5">
-        {PRO_PERKS.map((p) => (
-          <li key={p.title} className="flex items-start gap-3">
-            <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name={p.icon} width={17} weight="bold" /></span>
-            <span className="min-w-0"><span className="t-head block">{p.title}</span><span className="t-sub block">{p.text}</span></span>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-3 overflow-hidden rounded-[18px] bg-white stroke">
+        <div className="grid grid-cols-[minmax(0,1fr)_68px_76px] bg-[var(--purple-soft)] px-3 py-2 text-[10px] font-black"><span>Возможности</span><span className="text-center">Бесплатно</span><span className="text-center text-[var(--purple-edge)]">PRO</span></div>
+        {rows.map(([label, free, pro]) => <div key={label} className="line-top grid grid-cols-[minmax(0,1fr)_68px_76px] items-center px-3 py-2.5 text-[10.5px] font-bold"><span>{label}</span><span className="text-center text-[var(--muted)]">{free}</span><span className="text-center font-black text-[var(--purple-edge)]">{pro}</span></div>)}
+      </div>
     </div>
   );
 }

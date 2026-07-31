@@ -85,14 +85,14 @@
   --tg-top: 0px;
   /* На мобильном первый объект всегда ниже Telegram chrome. Даже если клиент
      не отдал inset, кнопка «Закрыть» занимает верхнюю левую часть экрана. */
-  --top-pad: calc(max(var(--safe-top), 68px) + 16px);
+  --top-pad: calc(max(var(--safe-top), 76px) + 18px);
 }
 
 /* В мини-приложении поверх контента висят кнопка закрытия и меню. Полосу под
    них держим независимо от того, что вернул клиент: часть сборок отдаёт нули
    и в safeAreaInset, и в contentSafeAreaInset. */
 [data-tma="1"] {
-  --top-pad: calc(max(var(--safe-top), var(--tg-top), 72px) + 16px);
+  --top-pad: calc(max(var(--safe-top), var(--tg-top), 80px) + 18px);
 }
 
 /* Тема раздела: --head — цвет шапки/фона, --page — тон страницы (=шапке),
@@ -332,6 +332,17 @@ h1, h2, h3, .font-tight {
   font-weight: 800;
   line-height: 1.2;
 }
+.back-link::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  flex: 0 0 auto;
+}
+.back-link[aria-label="Далее"]::before { display: none; }
 .back-link:active { opacity: .65; }
 
 /* Второстепенная: лёгкая заливка, чернильный текст, обводка тёмным тоном. */

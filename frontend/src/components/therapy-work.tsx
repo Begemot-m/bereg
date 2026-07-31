@@ -8,8 +8,6 @@ import { Icon } from "@/components/icons";
 import { updateHomework, type Homework, type HwStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 
-const EASE = [0.16, 1, 0.3, 1] as const;
-
 function plural(n: number, one: string, few: string, many: string): string {
   const a = n % 10, b = n % 100;
   if (a === 1 && b !== 11) return one;
@@ -26,51 +24,27 @@ export function WorkWithSpecialist({ sessionsDone, nextAt, homework, onChanged }
 }) {
   const done = homework.filter((h) => h.status === "done").length;
   const fresh = homework.filter((h) => h.status === "assigned").length;
-  const progress = homework.length ? done / homework.length : 0;
+  const active = homework.filter((h) => h.status !== "done");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const visible = active.length ? active : homework.slice(-1);
 
   return (
     <section data-tour="work" className="rounded-[20px] p-4" style={{ background: "var(--green-soft)" }}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="t-micro">Работа со специалистом</p>
-          <p className="t-title mt-1">{sessionsDone > 0 ? `${sessionsDone} ${plural(sessionsDone, "встреча", "встречи", "встреч")} позади` : "Встречи впереди"}</p>
-        </div>
-        {fresh > 0 && (
-          <motion.span
-            initial={{ scale: 0.7, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 420, damping: 18 }}
-            className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black"
-            style={{ background: "var(--amber)", color: "var(--amber-edge)" }}
-          >
-            <Alert /> {fresh} {plural(fresh, "новое", "новых", "новых")}
-          </motion.span>
-        )}
+      <p className="t-micro">Работа со специалистом</p>
+      <div className="mt-2 grid grid-cols-[112px_1fr] gap-3 rounded-[16px] bg-white p-3">
+        <div><p className="tnum font-tight text-[30px] font-black leading-none">{sessionsDone}</p><p className="t-cap mt-1">{plural(sessionsDone, "встреча", "встречи", "встреч")}</p></div>
+        <div><p className="t-cap">Динамика встреч</p><div className="mt-2 flex h-10 items-end gap-1.5">{[.35,.55,.42,.72,.62,1].map((v, i) => <motion.span key={i} className="flex-1 rounded-t-[5px] bg-[var(--purple-edge)]" initial={{ height: 4 }} animate={{ height: `${Math.max(12, v * Math.min(40, 12 + sessionsDone * 4))}px` }} transition={{ delay: i * .04 }} />)}</div></div>
       </div>
 
-      {homework.length > 0 && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between">
-            <span className="t-cap">Задания</span>
-            <span className="tnum t-cap">{done} из {homework.length}</span>
-          </div>
-          <div className="mt-1.5 h-2 overflow-hidden rounded-full" style={{ background: "#fff" }}>
-            <motion.div
-              className="h-full rounded-full"
-              style={{ background: "var(--green-edge)" }}
-              initial={false}
-              animate={{ width: `${progress * 100}%` }}
-              transition={{ duration: 0.45, ease: EASE }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="mt-3 space-y-2">
+      <div className="mt-4 flex items-center justify-between"><p className="t-head">Задания</p>{fresh > 0 && <span className="t-cap text-[var(--amber-edge)]">{fresh} новых</span>}</div>
+      <div className="mt-2 space-y-2">
         {homework.length === 0
           ? <p className="t-sub rounded-[14px] bg-white p-3">Заданий пока нет — терапевт пришлёт их после встречи.</p>
-          : homework.map((hw) => <HomeworkCard key={hw.id} hw={hw} onChanged={onChanged} />)}
+          : visible.map((hw) => <HomeworkCard key={hw.id} hw={hw} onChanged={onChanged} />)}
       </div>
+
+      {homework.length > visible.length && <button onClick={() => { tap(); setHistoryOpen((v) => !v); }} className="mt-2 inline-flex min-h-9 items-center text-[12px] font-black text-[var(--purple-edge)]">{historyOpen ? "Скрыть историю заданий" : `История заданий · ${done}`}</button>}
+      <AnimatePresence initial={false}>{historyOpen && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-2 space-y-2 overflow-hidden">{homework.filter((hw) => !visible.some((item) => item.id === hw.id)).map((hw) => <HomeworkCard key={hw.id} hw={hw} onChanged={onChanged} />)}</motion.div>}</AnimatePresence>
 
       {nextAt && (
         <p className="t-cap mt-3 flex items-center gap-1.5">
@@ -103,10 +77,7 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
   return (
     <motion.div
       layout
-      className="rounded-[14px] p-3.5"
-      style={isDone
-        ? { background: "#fff", opacity: 0.7 }
-        : { background: "#fff", boxShadow: `inset 0 0 0 2px ${isNew ? "var(--amber)" : "var(--purple)"}` }}
+      className="rounded-[14px] bg-white p-3"
     >
       <div className="flex items-start gap-2.5">
         {isNew && <span className="mt-0.5 shrink-0"><Alert /></span>}
@@ -115,14 +86,12 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
             <Icon name="check" width={11} weight="bold" color="var(--green-edge)" />
           </span>
         )}
-        <p className={`t-body flex-1 ${isDone ? "line-through" : ""}`}>{hw.text}</p>
+        <p className={`t-body min-w-0 flex-1 ${isDone ? "line-through text-[var(--muted)]" : ""}`}>{hw.text}</p>
+        <div className="grid shrink-0 grid-cols-2 rounded-full bg-[var(--surface-2)] p-0.5 text-[9px] font-black">
+          <button onClick={() => { select(); save.mutate("doing"); }} className="rounded-full px-2 py-1" style={!isDone ? { background: "var(--purple-soft)", color: "var(--purple-edge)" } : undefined}>Выполняется</button>
+          <button onClick={() => { select(); save.mutate("done"); }} className="rounded-full px-2 py-1" style={isDone ? { background: "var(--green-soft)", color: "var(--green-edge)" } : undefined}>Выполнено</button>
+        </div>
       </div>
-      <button
-        onClick={() => { select(); save.mutate(isDone ? "assigned" : "done"); }}
-        className={`btn mt-3 w-full py-2.5 ${isDone ? "btn-white" : ""}`}
-      >
-        {isDone ? "Вернуть в работу" : <><Icon name="check" width={15} weight="bold" color="#fff" /> Выполнено</>}
-      </button>
       <AnimatePresence>
         {celebrate && (
           <motion.p

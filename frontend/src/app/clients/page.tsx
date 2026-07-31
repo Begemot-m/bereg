@@ -170,8 +170,8 @@ function ClientsList() {
           <button onClick={() => { tap(); setPaywall(true); }} className="card-soft mb-4 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--page)" }}>
             <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="spark" width={16} weight="bold" color="#fff" /></span>
             <span className="min-w-0 flex-1">
-              <span className="t-head block">{clients.length}/{FREE_CLIENT_LIMIT} клиентов на бесплатном</span>
-              <span className="t-sub block">{atCap ? "Лимит достигнут — PRO открывает безлимит" : "PRO — безлимит, сводка к сессии, каталог"}</span>
+              <span className="t-head block">{clients.length}/{FREE_CLIENT_LIMIT} на бесплатном тарифе</span>
+              {atCap ? <><strong className="t-head mt-1 block">Лимит достигнут</strong><span className="t-sub block">Перейдите на PRO, чтобы открыть безлимитные функции.</span></> : <span className="t-sub block">Все функции доступны для первых трёх клиентов.</span>}
             </span>
             <span className="chip chip-strong shrink-0">PRO ›</span>
           </button>

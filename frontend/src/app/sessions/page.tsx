@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
-import { PageHead } from "@/components/blocks";
+import { ArrowGlyph, PageHead } from "@/components/blocks";
 import { ClientPicker, DaySlots } from "@/components/day-slots";
 import { SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
 
@@ -202,8 +202,8 @@ function PsySessions() {
       <div className="sheet">
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           {/* Слева — настройка графика */}
-          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="btn w-fit px-2.5 py-1 text-[10.5px]" aria-expanded={scheduleOpen}>
-            <Icon name="gear" width={12} color="#fff" /> График
+          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="inline-flex min-h-9 w-fit items-center gap-1.5 text-[12px] font-black text-[var(--edge)]" aria-expanded={scheduleOpen}>
+            {scheduleOpen ? <ArrowGlyph size={13} style={{ transform: "rotate(-90deg)" }} /> : <Icon name="gear" width={14} weight="bold" color="var(--edge)" />} {scheduleOpen ? "Свернуть" : "График"}
           </button>
 
           {/* Центр — весёлый зелёный крестик быстрой записи */}
@@ -226,9 +226,9 @@ function PsySessions() {
           <button
             onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
             aria-expanded={calOpen}
-            className="btn w-fit justify-self-end px-2.5 py-1 text-[10.5px]"
+            className="inline-flex min-h-9 w-fit items-center gap-1.5 justify-self-end text-[12px] font-black text-[var(--edge)]"
           >
-            <Icon name="calendar" width={12} weight="bold" color="#fff" />
+            {calOpen ? <ArrowGlyph size={13} style={{ transform: "rotate(-90deg)" }} /> : <Icon name="calendar" width={14} weight="bold" color="var(--edge)" />}
             {calOpen ? "Свернуть" : "Календарь"}
           </button>
         </div>

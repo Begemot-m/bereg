@@ -16,12 +16,11 @@ import type { Mood } from "@/lib/clients";
 export function MoodHomeCard({ mood, moods, onOpen, embedded = false }: { mood?: number; moods: Mood[]; onOpen: () => void; embedded?: boolean }) {
   const value = mood ?? 3;
   const recent = moods.slice(-7);
-  const tint = moodColor(value);
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
       className={`relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99] ${embedded ? "rounded-[18px]" : "card-soft"}`}
-      style={{ background: embedded ? "transparent" : mood ? `${tint}2e` : "var(--head-soft)" }}
+      style={{ background: "transparent" }}
     >
       <div className="relative flex items-center gap-3">
         <motion.span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
@@ -73,7 +72,7 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
     <button
       onClick={() => { tap(); onOpen(); }}
       className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
-      style={{ background: mood ? `${moodColor(value)}33` : "var(--head-soft)" }}
+      style={{ background: "transparent" }}
     >
       <div className="flex items-center gap-3">
         <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center"><MoodBlob value={value} size={64} still /></span>
