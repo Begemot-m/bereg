@@ -1,0 +1,1083 @@
+<title>Клубок — дизайн-направление</title>
+
+<style>
+  :root {
+    --paper:   #f5f1e6;
+    --paper-2: #ece6d7;
+    --ink:     #1e1c16;
+    --ink-2:   #57533f;
+    --rule:    #dbd4c0;
+    --olive:   #6c7a30;
+    --salmon:  #bf5f47;
+
+    --display: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+    --body: Georgia, "Times New Roman", "Droid Serif", serif;
+    --mono: ui-monospace, "Cascadia Mono", "Consolas", "SF Mono", monospace;
+
+    --col: 63ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:   #15140f;
+      --paper-2: #201e16;
+      --ink:     #f1ede1;
+      --ink-2:   #a29b85;
+      --rule:    #343026;
+      --olive:   #adbc63;
+      --salmon:  #e3866b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:   #15140f;
+    --paper-2: #201e16;
+    --ink:     #f1ede1;
+    --ink-2:   #a29b85;
+    --rule:    #343026;
+    --olive:   #adbc63;
+    --salmon:  #e3866b;
+  }
+  :root[data-theme="light"] {
+    --paper:   #f5f1e6;
+    --paper-2: #ece6d7;
+    --ink:     #1e1c16;
+    --ink-2:   #57533f;
+    --rule:    #dbd4c0;
+    --olive:   #6c7a30;
+    --salmon:  #bf5f47;
+  }
+
+  /* Экраны продукта живут в своей палитре и не переключаются с темой страницы. */
+  .app {
+    --a-bg: #faf5ea;
+    --a-surf: #ffffff;
+    --a-ink: #201c18;
+    --a-mut: #6d675d;
+    --a-mut2: #9a938a;
+    --a-hair: rgba(32,28,24,.09);
+    --a-amber: #f3ce77;      --a-amber-s: #f9e8bc;
+    --a-olive: #b7c079;      --a-olive-s: #dde3b9;  --a-olive-e: #7d8a3e;
+    --a-purple: #c9b8e4;     --a-purple-s: #e7ddf3;
+    --a-coral: #f0a794;      --a-coral-s: #f7cec2;
+    --a-salmon: #ef9f8d;     --a-peach: #f4c19c;
+    --a-green: #a7c79e;      --a-green-s: #d3e2cb;
+    --a-deep: #3d4a2b;
+    --a-skin: #f0c7a4;
+    --a-hairc: #2a2620;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { width: min(var(--col), calc(100% - 48px)); margin-inline: auto; }
+  .bleed { width: min(1180px, calc(100% - 48px)); margin-inline: auto; }
+
+  /* ——— типографика ——— */
+
+  .kick {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--olive);
+    margin: 0 0 14px;
+  }
+
+  h1, h2, h3, .h-alt {
+    font-family: var(--display);
+    text-wrap: balance;
+    letter-spacing: -0.025em;
+    margin: 0;
+  }
+  h1 { font-size: clamp(38px, 7vw, 64px); font-weight: 800; line-height: 1.02; }
+  h2 { font-size: clamp(27px, 4vw, 36px); font-weight: 800; line-height: 1.1; }
+  h3 { font-size: 19px; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; }
+
+  p { margin: 0 0 1.05em; }
+  p:last-child { margin-bottom: 0; }
+  a { color: inherit; }
+  strong { font-weight: 700; color: var(--ink); }
+  em { font-style: italic; }
+
+  .lede { font-size: 21px; line-height: 1.5; color: var(--ink-2); }
+  .note { font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+  .mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  /* ——— структура страницы ——— */
+
+  .hero { padding: clamp(56px, 11vw, 118px) 0 clamp(40px, 6vw, 64px); }
+  .hero-sub { margin-top: 26px; max-width: 54ch; }
+
+  section { padding-block: clamp(46px, 7vw, 88px); border-top: 1px solid var(--rule); }
+  .sec-head { margin-bottom: 40px; }
+  .sec-head h2 { margin-bottom: 16px; }
+
+  .stack { display: flex; flex-direction: column; gap: 22px; }
+  .stack-lg { display: flex; flex-direction: column; gap: 40px; }
+
+  /* ——— две колонки: берём / не берём ——— */
+
+  .split { display: grid; gap: 30px; grid-template-columns: 1fr; }
+  @media (min-width: 820px) { .split { grid-template-columns: 1fr 1fr; gap: 48px; } }
+
+  .col-head {
+    font-family: var(--display);
+    font-size: 13px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    padding-bottom: 12px; margin-bottom: 22px;
+    border-bottom: 2px solid currentColor;
+  }
+  .col-take { color: var(--olive); }
+  .col-skip { color: var(--salmon); }
+
+  .pt { display: flex; flex-direction: column; gap: 26px; }
+  .pt > div > h3 { margin-bottom: 5px; }
+  .pt > div > p { font-size: 16px; color: var(--ink-2); margin: 0; }
+
+  /* ——— телефоны ——— */
+
+  .rail {
+    display: flex; gap: 26px;
+    overflow-x: auto;
+    padding: 6px 0 30px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+  }
+  .rail::-webkit-scrollbar { height: 8px; }
+  .rail::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 99px; }
+
+  .slot { flex: 0 0 281px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 16px; }
+
+  .frame {
+    width: 281px; height: 608px;
+    border-radius: 26px;
+    overflow: hidden;
+    position: relative;
+    background: #faf5ea;
+    box-shadow: 0 2px 4px rgba(30,28,22,.10), 0 26px 50px -28px rgba(30,28,22,.42);
+  }
+  .screen {
+    width: 390px; height: 844px;
+    transform: scale(.72);
+    transform-origin: top left;
+    position: absolute; inset: 0;
+    font-family: var(--display);
+    color: var(--a-ink);
+    line-height: 1.4;
+  }
+
+  .cap { font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+  .cap b { font-family: var(--display); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); display: block; margin-bottom: 4px; font-weight: 700; }
+
+  /* ——— экраны онбординга ——— */
+
+  .ob { position: relative; height: 100%; display: flex; flex-direction: column; }
+  .ob-top { position: absolute; top: 22px; left: 26px; right: 26px; display: flex; align-items: center; gap: 10px; z-index: 3; }
+  .dots { display: flex; gap: 6px; flex: 1; }
+  .dot { height: 3px; flex: 1; border-radius: 99px; background: rgba(32,28,24,.16); }
+  .dot.on { background: var(--a-ink); }
+  .skip { font-size: 13px; font-weight: 600; color: var(--a-mut); }
+
+  .ob-art { position: relative; flex: 1; min-height: 0; }
+  .ob-art svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .ob-text { position: relative; padding: 0 30px 40px; }
+  .ob-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--a-olive-e); margin-bottom: 12px; }
+  .ob-h { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.04; }
+  .ob-p { margin-top: 14px; font-size: 15px; font-weight: 400; line-height: 1.5; color: var(--a-mut); max-width: 30ch; }
+
+  .ob-foot { display: flex; align-items: center; justify-content: space-between; padding: 0 30px 42px; }
+  .ob-cta {
+    display: inline-flex; align-items: center; gap: 9px;
+    height: 52px; padding: 0 30px; border-radius: 99px;
+    background: var(--a-ink); color: #fff;
+    font-size: 16px; font-weight: 700;
+  }
+  .ob-back { font-size: 15px; font-weight: 600; color: var(--a-mut2); }
+
+  /* экран выбора входа */
+  .pick { padding: 92px 30px 42px; display: flex; flex-direction: column; height: 100%; }
+  .pick-h { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+  .pick-p { margin-top: 12px; font-size: 15px; color: var(--a-mut); }
+  .pick-list { margin-top: 30px; display: flex; flex-direction: column; gap: 12px; }
+  .pick-item {
+    display: flex; align-items: center; gap: 15px;
+    padding: 18px 18px;
+    border-radius: 20px;
+    background: var(--a-surf);
+    box-shadow: 0 1px 2px rgba(32,28,24,.05), 0 12px 26px -20px rgba(32,28,24,.35);
+  }
+  .pick-ic { width: 44px; height: 44px; border-radius: 14px; flex: none; display: grid; place-items: center; }
+  .pick-t { display: block; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .pick-s { display: block; font-size: 13.5px; font-weight: 400; color: var(--a-mut); margin-top: 2px; }
+  .pick-pro { margin-top: auto; padding-top: 22px; font-size: 14px; font-weight: 600; color: var(--a-olive-e); display: flex; align-items: center; gap: 7px; }
+
+  /* тур */
+  .tour-veil { position: absolute; inset: 0; background: rgba(32,28,24,.5); }
+  .tour-card {
+    position: absolute; left: 20px; right: 20px; bottom: 118px;
+    background: var(--a-surf); border-radius: 26px; padding: 24px 24px 20px;
+    box-shadow: 0 20px 46px -18px rgba(32,28,24,.5);
+  }
+  .tour-step { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--a-olive-e); }
+  .tour-h { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin-top: 10px; line-height: 1.15; }
+  .tour-p { font-size: 14.5px; font-weight: 400; color: var(--a-mut); margin-top: 8px; line-height: 1.5; }
+  .tour-row { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; }
+  .tour-pill { height: 44px; padding: 0 24px; border-radius: 99px; background: var(--a-ink); color: #fff; font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; }
+  .tour-skip { font-size: 14px; font-weight: 600; color: var(--a-mut2); }
+
+  .nav-mock {
+    position: absolute; left: 16px; right: 16px; bottom: 26px; height: 62px;
+    border-radius: 30px; background: rgba(255,255,255,.94);
+    display: flex; align-items: center; justify-content: space-around;
+    box-shadow: 0 14px 34px -18px rgba(32,28,24,.5);
+  }
+  .nav-i { width: 22px; height: 22px; border-radius: 7px; background: rgba(32,28,24,.22); }
+  .nav-i.lit { background: var(--a-olive-e); box-shadow: 0 0 0 9px var(--a-olive-s); }
+
+  /* ——— было / стало ——— */
+
+  .ba { display: grid; gap: 26px; grid-template-columns: 1fr; }
+  @media (min-width: 860px) { .ba { grid-template-columns: 1fr 1fr; gap: 34px; } }
+
+  .ba-panel { display: flex; flex-direction: column; gap: 14px; }
+  .ba-label { font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .ba-was { color: var(--salmon); }
+  .ba-now { color: var(--olive); }
+  .stage {
+    border-radius: 22px; padding: 20px 18px;
+    font-family: var(--display); color: var(--a-ink); line-height: 1.4;
+    overflow-x: auto;
+  }
+  .stage-warm { background: #f6e2b8; }
+  .stage-cool { background: #ded7f0; }
+  .ba-note { font-size: 14.5px; color: var(--ink-2); line-height: 1.5; }
+
+  /* было: карточка сессии */
+  .w-card { background: var(--a-amber-s); border: 2.5px solid #ca9c3c; border-radius: 22px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+  .w-ic { width: 56px; height: 56px; border-radius: 17px; background: var(--a-amber-s); border: 2px solid #ca9c3c; display: grid; place-items: center; font-size: 21px; font-weight: 900; flex: none; }
+  .w-kick { font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--a-mut); }
+  .w-badge { display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; background: #fadecb; border: 2px solid #d69a6c; margin-left: 8px; }
+  .w-name { font-size: 18px; font-weight: 900; letter-spacing: -0.01em; margin-top: 4px; }
+  .w-meta { font-size: 12px; font-weight: 700; color: var(--a-mut); }
+  .w-arrow { width: 36px; height: 36px; border-radius: 99px; background: var(--a-amber-s); border: 2px solid #ca9c3c; display: grid; place-items: center; font-size: 19px; font-weight: 900; color: #ca9c3c; flex: none; }
+
+  /* стало: карточка сессии */
+  .n-card { background: var(--a-surf); border-radius: 22px; padding: 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 2px rgba(32,28,24,.05), 0 12px 28px -22px rgba(32,28,24,.4); }
+  .n-ic { width: 52px; height: 52px; border-radius: 16px; background: var(--a-amber-s); display: grid; place-items: center; font-size: 20px; font-weight: 700; flex: none; }
+  .n-name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .n-meta { font-size: 15px; font-weight: 400; color: var(--a-mut); margin-top: 3px; }
+  .n-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: #a2622f; }
+  .n-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--a-peach); }
+  .n-arrow { font-size: 22px; color: var(--a-mut2); flex: none; }
+
+  /* было: строка клиента */
+  .w-row { background: var(--a-surf); border: 2.5px solid #9077bd; border-radius: 22px; padding: 12px; display: flex; gap: 10px; align-items: center; overflow: hidden; }
+  .w-stripe { width: 6px; align-self: stretch; border-radius: 99px; background: var(--a-purple); flex: none; }
+  .w-av { width: 52px; height: 52px; border-radius: 14px; background: var(--a-green-s); border: 2px solid #6f9a67; display: grid; place-items: center; font-size: 20px; font-weight: 900; flex: none; }
+  .w-rname { font-size: 16px; font-weight: 900; }
+  .w-pills { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .w-pill { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 99px; }
+  .w-pill.g { background: var(--a-green-s); border: 2px solid #6f9a67; }
+  .w-pill.c { background: var(--a-coral-s); border: 2px solid #cd7a60; }
+  .w-pill.p { background: var(--a-purple-s); border: 2px solid #9077bd; font-size: 10px; }
+
+  /* стало: строка клиента */
+  .n-list { background: var(--a-surf); border-radius: 22px; padding: 4px 18px; box-shadow: 0 1px 2px rgba(32,28,24,.05), 0 12px 28px -22px rgba(32,28,24,.4); }
+  .n-row { display: flex; align-items: center; gap: 14px; padding: 15px 0; }
+  .n-row + .n-row { border-top: 1px solid var(--a-hair); }
+  .n-av { width: 46px; height: 46px; border-radius: 99px; display: grid; place-items: center; font-size: 18px; font-weight: 700; flex: none; }
+  .n-rname { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+  .n-flag { width: 7px; height: 7px; border-radius: 99px; background: var(--a-coral); flex: none; }
+  .n-rmeta { font-size: 14.5px; font-weight: 400; color: var(--a-mut); margin-top: 2px; }
+
+  /* ——— токены ——— */
+
+  .tbl-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: 15px; }
+  th, td { text-align: left; padding: 11px 14px 11px 0; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  th { font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
+  td.num { font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .spec { font-family: var(--display); color: var(--ink); }
+
+  .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+  .sw { width: 92px; }
+  .sw-chip { height: 54px; border-radius: 13px; }
+  .sw-n { font-family: var(--display); font-size: 12px; font-weight: 700; margin-top: 7px; }
+  .sw-v { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+
+  /* ——— иллюстрации ——— */
+
+  .illo-grid { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .illo-card { background: var(--paper-2); border-radius: 20px; padding: 16px; }
+  .illo-card svg { width: 100%; height: auto; display: block; border-radius: 12px; }
+  .illo-t { font-family: var(--display); font-size: 14px; font-weight: 700; margin-top: 12px; }
+  .illo-s { font-size: 14px; color: var(--ink-2); line-height: 1.45; margin-top: 2px; }
+
+  /* ——— шаги ——— */
+
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: grid; grid-template-columns: 26px 1fr; gap: 18px; padding: 20px 0; border-bottom: 1px solid var(--rule); }
+  .step:first-child { border-top: 1px solid var(--rule); }
+  .step-n { font-family: var(--mono); font-size: 13px; color: var(--olive); padding-top: 4px; }
+  .step h3 { margin-bottom: 4px; }
+  .step p { font-size: 16px; color: var(--ink-2); margin: 0; }
+
+  .end { padding-block: clamp(46px, 7vw, 80px) 100px; border-top: 1px solid var(--rule); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  :focus-visible { outline: 2px solid var(--olive); outline-offset: 3px; border-radius: 4px; }
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kick">Клубок · дизайн-направление · 25 июля 2026</p>
+    <h1>Лёгкость — это не стиль, это бюджет внимания</h1>
+    <div class="hero-sub lede">
+      <p>Реф со «Stay&nbsp;Home» работает не из-за пастели и не из-за иллюстраций. Он работает потому, что на экране одна мысль, один объект и одно действие — всё остальное убрано. У нас на экране сейчас двадцать пять объектов, и каждый обведён рамкой.</p>
+      <p>Ниже: что из рефа переносится, а что сломается; онбординг без единого поля ввода; и как выглядят те же компоненты, когда с них снять обводки.</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ РЕФ ============ -->
+  <section>
+    <div class="wrap sec-head">
+      <p class="kick">Разбор рефа</p>
+      <h2>Что переносится, а что нет</h2>
+      <p class="note">Реф — концепт лендингового типа: два экрана, ноль реальных данных, вместо текста lorem ipsum. У нас продукт с расписанием, карточками клиентов, каталогом и дневниками. Часть приёмов переносится один в один, часть развалится на третьем экране.</p>
+    </div>
+
+    <div class="bleed split">
+      <div>
+        <p class="col-head col-take">Беру</p>
+        <div class="pt">
+          <div>
+            <h3>Одна мысль на экран</h3>
+            <p>«Stay Home» — два слова кеглем в четверть экрана. У нас сейчас на постере две строки капсом плюс кикер плюс картинка плюс прогресс плюс «Пропустить». Заголовок должен быть один и крупный, остальное — шёпотом.</p>
+          </div>
+          <div>
+            <h3>Ноль рамок</h3>
+            <p>В рефе нет ни одной обводки. Карточки курсов отделены только заливкой и воздухом, лист контента — скруглением сверху. Ровно то, чего вы хотите, и это работает без потерь.</p>
+          </div>
+          <div>
+            <h3>Органическая форма вместо прямоугольника</h3>
+            <p>Розовое пятно с волнистым краем, перетекающее в кремовый — это даёт мягкость, которой не даст ни один border-radius. У нас есть тон разделов, но он всегда лежит прямоугольником.</p>
+          </div>
+          <div>
+            <h3>Иллюстрация как содержание</h3>
+            <p>Фигура занимает треть экрана и что-то делает. Наши постеры показывают серые полоски в рамке телефона — это не иллюстрация, это отсутствие иллюстрации.</p>
+          </div>
+          <div>
+            <h3>Одна кнопка, и она заметна</h3>
+            <p>«Start Now!» — единственный насыщенный объект на экране. У нас на постере кнопка-стрелка конкурирует с «Пропустить», прогрессом и логотипом.</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="col-head col-skip">Не переношу</p>
+        <div class="pt">
+          <div>
+            <h3>Розовый как основной тон</h3>
+            <p>В психологической платформе розовый читается как «для девочек» и сужает аудиторию — особенно на стороне психологов, которые платят за размещение. Наша кремовая база честнее и уже своя; лёгкость даёт воздух, а не смена хюэ.</p>
+          </div>
+          <div>
+            <h3>Текст 11px серым по розовому</h3>
+            <p>В рефе это lorem, его никто не читает. У нас это будут реальные объяснения на 2.6:1 контраста. Мелкий низкоконтрастный текст — то, чем мы уже болеем; из рефа его брать нельзя.</p>
+          </div>
+          <div>
+            <h3>Табы без состояния</h3>
+            <p>«Course / Books / Watch / Learning» отличаются одной оранжевой точкой снизу. На макете красиво, пальцем не попадёшь и глазом не найдёшь. Активное состояние должно читаться весом и цветом текста.</p>
+          </div>
+          <div>
+            <h3>Иллюстрация в каждой карточке</h3>
+            <p>В рефе иллюстрирована каждая карточка курса. На двадцати специалистах в каталоге это превратится в кашу — там уже работают фото, и это правильнее.</p>
+          </div>
+          <div>
+            <h3>Постер вместо работы</h3>
+            <p>Реф — витрина, у неё нет второго дня использования. Наши экраны человек открывает каждый день, и на них должны помещаться данные. Поэтому постерность живёт в онбординге и пустых состояниях, а не в расписании.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ОНБОРДИНГ ============ -->
+  <section>
+    <div class="wrap sec-head">
+      <p class="kick">Онбординг</p>
+      <h2>Пять экранов, ни одного поля ввода</h2>
+      <p class="note">Задача первого захода — за двадцать секунд объяснить три вещи: здесь ищут своего специалиста, здесь занимаются собой самостоятельно, и здесь разбираются, как всё устроено. Последний экран ставит роль, но спрашивает не «кто вы», а «с чего начнём» — то же решение без ощущения анкеты. Ничего не заполняем, ничего не обещаем словами «качественная работа».</p>
+    </div>
+
+    <div class="bleed">
+      <div class="rail">
+
+        <!-- 1 -->
+        <div class="slot">
+          <div class="frame"><div class="screen app"><div class="ob">
+            <div class="ob-top">
+              <div class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+              <span class="skip">Пропустить</span>
+            </div>
+            <div class="ob-art">
+              <svg viewBox="0 0 390 430" aria-label="Человек с чашкой в тёплом пледе">
+                <path d="M0 0 H390 V286 C328 332, 262 288, 190 310 C118 332, 60 384, 0 344 Z" fill="#f9e8bc"/>
+                <line x1="312" y1="0" x2="312" y2="52" stroke="#7d8a3e" stroke-width="3"/>
+                <path d="M290 52 h44 l-7 28 h-30 z" fill="#b7c079"/>
+                <path d="M312 52 c -20 18, -24 44, -12 62" stroke="#7d8a3e" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <ellipse cx="298" cy="102" rx="14" ry="8" transform="rotate(-28 298 102)" fill="#7d8a3e"/>
+                <path d="M44 314 c -18 -28, -5 -64, 24 -70 c 5 31, -6 57, -24 70 z" fill="#b7c079"/>
+                <path d="M80 320 c 6 -30, 34 -46, 56 -32 c -15 26, -36 38, -56 32 z" fill="#dde3b9"/>
+                <path d="M158 396 C 156 312, 172 280, 196 280 C 220 280, 236 312, 234 396 Z" fill="#ef9f8d"/>
+                <ellipse cx="196" cy="404" rx="124" ry="38" fill="#3d4a2b"/>
+                <path d="M170 316 c -16 12, -20 32, -8 44" stroke="#ef9f8d" stroke-width="20" fill="none" stroke-linecap="round"/>
+                <path d="M222 316 c 16 12, 20 32, 8 44" stroke="#ef9f8d" stroke-width="20" fill="none" stroke-linecap="round"/>
+                <rect x="172" y="330" width="48" height="36" rx="11" fill="#ffffff"/>
+                <path d="M220 339 h9 a10 10 0 0 1 0 20 h-9" fill="none" stroke="#ffffff" stroke-width="7"/>
+                <path d="M186 320 c 9 -13, -9 -21, 0 -34" stroke="#7d8a3e" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <path d="M206 320 c 9 -13, -9 -21, 0 -34" stroke="#7d8a3e" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <circle cx="196" cy="246" r="34" fill="#f0c7a4"/>
+                <path d="M162 246 a34 34 0 0 1 68 0 Z" fill="#2a2620"/>
+                <path d="M162 246 c 0 -12, 10 -16, 20 -14" stroke="#2a2620" stroke-width="9" fill="none" stroke-linecap="round"/>
+                <circle cx="234" cy="224" r="14" fill="#2a2620"/>
+              </svg>
+            </div>
+            <div class="ob-text">
+              <p class="ob-eyebrow">Клубок</p>
+              <p class="ob-h">Психология<br>под рукой</p>
+              <p class="ob-p">Найти своего специалиста, заниматься собой между встречами и понимать, как всё устроено.</p>
+            </div>
+            <div class="ob-foot">
+              <span class="ob-back">&nbsp;</span>
+              <span class="ob-cta">Посмотреть →</span>
+            </div>
+          </div></div></div>
+          <p class="cap"><b>Экран 1 · что это</b>Одна мысль, одна фигура, одна кнопка. Никакого «качественная работа в терапии» — сразу три опоры продукта одним предложением.</p>
+        </div>
+
+        <!-- 2 -->
+        <div class="slot">
+          <div class="frame"><div class="screen app"><div class="ob">
+            <div class="ob-top">
+              <div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+              <span class="skip">Пропустить</span>
+            </div>
+            <div class="ob-art">
+              <svg viewBox="0 0 390 430" aria-label="Две анкеты специалистов и отметка совпадения">
+                <path d="M0 0 H390 V318 C322 356, 250 308, 176 330 C102 352, 58 402, 0 362 Z" fill="#dde3b9"/>
+                <rect x="52" y="112" width="176" height="118" rx="22" fill="#ffffff" transform="rotate(-5 140 171)"/>
+                <circle cx="98" cy="152" r="26" fill="#f0a794" transform="rotate(-5 140 171)"/>
+                <rect x="136" y="136" width="76" height="11" rx="5.5" fill="#3d4a2b" transform="rotate(-5 140 171)"/>
+                <rect x="136" y="156" width="54" height="9" rx="4.5" fill="#c9c3b2" transform="rotate(-5 140 171)"/>
+                <rect x="72" y="192" width="60" height="20" rx="10" fill="#dde3b9" transform="rotate(-5 140 171)"/>
+                <rect x="140" y="192" width="72" height="20" rx="10" fill="#f9e8bc" transform="rotate(-5 140 171)"/>
+                <rect x="160" y="212" width="184" height="124" rx="22" fill="#ffffff" transform="rotate(4 252 274)"/>
+                <circle cx="210" cy="256" r="28" fill="#c9b8e4" transform="rotate(4 252 274)"/>
+                <rect x="252" y="238" width="80" height="12" rx="6" fill="#3d4a2b" transform="rotate(4 252 274)"/>
+                <rect x="252" y="260" width="58" height="9" rx="4.5" fill="#c9c3b2" transform="rotate(4 252 274)"/>
+                <rect x="182" y="296" width="66" height="20" rx="10" fill="#e7ddf3" transform="rotate(4 252 274)"/>
+                <rect x="256" y="296" width="76" height="20" rx="10" fill="#dde3b9" transform="rotate(4 252 274)"/>
+                <circle cx="306" cy="176" r="34" fill="#7d8a3e"/>
+                <path d="M292 176 l10 11 l19 -22" stroke="#ffffff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M40 330 c -16 -26, -4 -58, 22 -64 c 5 28, -6 52, -22 64 z" fill="#b7c079"/>
+              </svg>
+            </div>
+            <div class="ob-text">
+              <p class="ob-eyebrow">Найти своего</p>
+              <p class="ob-h">Не рейтинг,<br>а совпадение</p>
+              <p class="ob-p">Ответите на пару вопросов — покажем десять анкет вместо тысячи. С фото, голосом и честным «с чем не работаю».</p>
+            </div>
+            <div class="ob-foot">
+              <span class="ob-back">‹ Назад</span>
+              <span class="ob-cta">Дальше →</span>
+            </div>
+          </div></div></div>
+          <p class="cap"><b>Экран 2 · первая опора</b>Продаём принцип подбора, а не количество анкет. «Десять вместо тысячи» — проверяемое обещание, в отличие от «качественной работы».</p>
+        </div>
+
+        <!-- 3 -->
+        <div class="slot">
+          <div class="frame"><div class="screen app"><div class="ob">
+            <div class="ob-top">
+              <div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div>
+              <span class="skip">Пропустить</span>
+            </div>
+            <div class="ob-art">
+              <svg viewBox="0 0 390 430" aria-label="Колесо настроения и практики">
+                <path d="M0 0 H390 V306 C318 350, 244 302, 170 326 C96 350, 54 398, 0 358 Z" fill="#e7ddf3"/>
+                <circle cx="196" cy="184" r="86" fill="none" stroke="#f0a794" stroke-width="26" stroke-dasharray="66 204" stroke-dashoffset="0" transform="rotate(-90 196 184)"/>
+                <circle cx="196" cy="184" r="86" fill="none" stroke="#f3ce77" stroke-width="26" stroke-dasharray="66 204" stroke-dashoffset="-68" transform="rotate(-90 196 184)"/>
+                <circle cx="196" cy="184" r="86" fill="none" stroke="#b7c079" stroke-width="26" stroke-dasharray="66 204" stroke-dashoffset="-136" transform="rotate(-90 196 184)"/>
+                <circle cx="196" cy="184" r="86" fill="none" stroke="#a7c79e" stroke-width="26" stroke-dasharray="66 204" stroke-dashoffset="-204" transform="rotate(-90 196 184)"/>
+                <circle cx="196" cy="184" r="58" fill="#faf5ea"/>
+                <circle cx="196" cy="184" r="30" fill="#dde3b9"/>
+                <path d="M184 182 a5 5 0 0 1 10 0" fill="none" stroke="#3d4a2b" stroke-width="5" stroke-linecap="round"/>
+                <path d="M200 182 a5 5 0 0 1 10 0" fill="none" stroke="#3d4a2b" stroke-width="5" stroke-linecap="round"/>
+                <path d="M186 198 c 8 8, 18 8, 24 0" fill="none" stroke="#3d4a2b" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="288" cy="112" r="15" fill="#ffffff"/>
+                <path d="M282 112 l5 5 l9 -11" stroke="#7d8a3e" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="52" y="322" width="62" height="50" rx="10" fill="#b7c079"/>
+                <path d="M83 322 c -24 -11, -31 -42, -11 -58 c 18 13, 22 40, 11 58 z" fill="#7d8a3e"/>
+                <path d="M83 322 c 24 -15, 22 -46, 0 -57 c -13 17, -11 42, 0 57 z" fill="#dde3b9"/>
+                <rect x="256" y="308" width="88" height="64" rx="16" fill="#ffffff"/>
+                <circle cx="282" cy="340" r="15" fill="#f9e8bc"/>
+                <path d="M278 333 l10 7 l-10 7 z" fill="#d3a441"/>
+                <rect x="306" y="330" width="28" height="7" rx="3.5" fill="#c9c3b2"/>
+                <rect x="306" y="345" width="20" height="7" rx="3.5" fill="#ddd7c6"/>
+              </svg>
+            </div>
+            <div class="ob-text">
+              <p class="ob-eyebrow">Работать самому</p>
+              <p class="ob-h">Пять минут,<br>когда тяжело</p>
+              <p class="ob-p">Дыхание, разбор мыслей, дневник настроения, колесо баланса. Бесплатно и без специалиста — а если он есть, он видит динамику.</p>
+            </div>
+            <div class="ob-foot">
+              <span class="ob-back">‹ Назад</span>
+              <span class="ob-cta">Дальше →</span>
+            </div>
+          </div></div></div>
+          <p class="cap"><b>Экран 3 · вторая опора</b>Здесь снимается главное возражение: «мне ещё рано к психологу». Инструменты работают сами по себе и бесплатно — это надо сказать прямо.</p>
+        </div>
+
+        <!-- 4 -->
+        <div class="slot">
+          <div class="frame"><div class="screen app"><div class="ob">
+            <div class="ob-top">
+              <div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></div>
+              <span class="skip">Пропустить</span>
+            </div>
+            <div class="ob-art">
+              <svg viewBox="0 0 390 430" aria-label="Лампа над раскрытой книгой">
+                <path d="M0 0 H390 V296 C324 342, 252 296, 178 320 C104 344, 56 396, 0 352 Z" fill="#f7cec2"/>
+                <line x1="196" y1="0" x2="196" y2="86" stroke="#3d4a2b" stroke-width="4"/>
+                <path d="M144 138 c 0 -32, 24 -52, 52 -52 c 28 0, 52 20, 52 52 z" fill="#f3ce77"/>
+                <ellipse cx="196" cy="138" rx="52" ry="9" fill="#e0b45c"/>
+                <path d="M196 148 L128 268 H264 Z" fill="#f9e8bc" opacity=".62"/>
+                <path d="M112 288 c 26 -20, 58 -20, 84 0 c 26 -20, 58 -20, 84 0 v 56 c -26 -20, -58 -20, -84 0 c -26 -20, -58 -20, -84 0 z" fill="#ffffff"/>
+                <line x1="196" y1="288" x2="196" y2="344" stroke="#e2dccb" stroke-width="4"/>
+                <rect x="128" y="300" width="52" height="7" rx="3.5" fill="#c9c3b2"/>
+                <rect x="128" y="314" width="40" height="7" rx="3.5" fill="#dcd6c5"/>
+                <rect x="212" y="300" width="52" height="7" rx="3.5" fill="#c9c3b2"/>
+                <rect x="212" y="314" width="44" height="7" rx="3.5" fill="#dcd6c5"/>
+                <circle cx="80" cy="212" r="24" fill="#c9b8e4"/>
+                <path d="M72 204 c 0 -10, 16 -10, 16 0 c 0 7, -8 7, -8 13" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+                <circle cx="80" cy="232" r="3.2" fill="#ffffff"/>
+                <circle cx="312" cy="212" r="24" fill="#b7c079"/>
+                <path d="M304 204 c 0 -10, 16 -10, 16 0 c 0 7, -8 7, -8 13" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+                <circle cx="312" cy="232" r="3.2" fill="#ffffff"/>
+              </svg>
+            </div>
+            <div class="ob-text">
+              <p class="ob-eyebrow">Разбираться</p>
+              <p class="ob-h">Понятно,<br>как это устроено</p>
+              <p class="ob-p">Что такое КПТ, чего ждать от первой встречи, как понять, что терапия идёт. Разборы и тесты — без научпоп-воды.</p>
+            </div>
+            <div class="ob-foot">
+              <span class="ob-back">‹ Назад</span>
+              <span class="ob-cta">Дальше →</span>
+            </div>
+          </div></div></div>
+          <p class="cap"><b>Экран 4 · третья опора</b>Портал о психологии — то, что отличает нас от маркетплейса анкет. Формулировка «без научпоп-воды» задаёт тон редакции.</p>
+        </div>
+
+        <!-- 5 -->
+        <div class="slot">
+          <div class="frame"><div class="screen app"><div class="ob">
+            <div class="ob-top">
+              <div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div>
+            </div>
+            <div class="pick">
+              <p class="pick-h">С чего<br>начнём?</p>
+              <p class="pick-p">Ничего не заполняем. Выбор можно сменить в любой момент.</p>
+              <div class="pick-list">
+                <div class="pick-item">
+                  <span class="pick-ic" style="background:#dde3b9">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#3d4a2b" stroke-width="2"/><path d="M16 16l4 4" stroke="#3d4a2b" stroke-width="2" stroke-linecap="round"/></svg>
+                  </span>
+                  <span>
+                    <span class="pick-t">Ищу специалиста</span>
+                    <span class="pick-s">Подбор за пару минут</span>
+                  </span>
+                </div>
+                <div class="pick-item">
+                  <span class="pick-ic" style="background:#e7ddf3">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20s-7-4.3-7-9a4 4 0 017-2.6A4 4 0 0119 11c0 4.7-7 9-7 9z" stroke="#3d4a2b" stroke-width="2" stroke-linejoin="round"/></svg>
+                  </span>
+                  <span>
+                    <span class="pick-t">Хочу заниматься сам</span>
+                    <span class="pick-s">Дневники и практики, бесплатно</span>
+                  </span>
+                </div>
+                <div class="pick-item">
+                  <span class="pick-ic" style="background:#f9e8bc">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="#3d4a2b" stroke-width="2"/><path d="M15 9l-2.2 4.8L8 16l2.2-4.8L15 9z" fill="#3d4a2b"/></svg>
+                  </span>
+                  <span>
+                    <span class="pick-t">Просто смотрю</span>
+                    <span class="pick-s">Осмотреться без выбора</span>
+                  </span>
+                </div>
+              </div>
+              <p class="pick-pro">Я психолог — веду практику →</p>
+            </div>
+          </div></div></div>
+          <p class="cap"><b>Экран 5 · вход, а не анкета</b>Роль ставится вопросом «с чего начнём», а не «кто вы». Психологов кратно меньше и им не нужен продающий тур — поэтому у них отдельный вход строкой, а не карточка в общем ряду.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="wrap stack" style="margin-top: 14px;">
+      <p class="note"><strong>Заодно чинится настоящий баг.</strong> Сейчас <span class="mono">getRole()</span> по умолчанию возвращает <span class="mono">"psychologist"</span> — то есть человек, нажавший «Пропустить», попадает в кабинет психолога. В новой схеме «Пропустить» ведёт на пятый экран, а не в приложение, и роль всегда выбрана осознанно.</p>
+      <p class="note"><strong>И убираются три обучающие модалки.</strong> «Настройте рабочие часы» становится пустым состоянием расписания, «Настройка подборки» — первым состоянием каталога, «Как устроена терапия» — подсказкой внутри блока. Учить надо там, где человек уже стоит и смотрит на проблему.</p>
+    </div>
+  </section>
+
+  <!-- ============ ТУР ============ -->
+  <section>
+    <div class="wrap sec-head">
+      <p class="kick">Тур по разделам</p>
+      <h2>Отдельно от онбординга и по желанию</h2>
+      <p class="note">Онбординг отвечает «что это». Тур отвечает «где что лежит» — и это разные задачи, которые нельзя сваливать в одну карусель. Тур предлагается мягкой карточкой на главной после первого входа, длится сорок секунд, прерывается в любой момент и потом живёт в кабинете как «Тур по приложению».</p>
+    </div>
+
+    <div class="bleed">
+      <div class="rail">
+
+        <div class="slot">
+          <div class="frame"><div class="screen app" style="background:#faf5ea">
+            <div style="padding:64px 24px 0">
+              <p style="font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.05">Добрый вечер,<br>Матвей</p>
+              <p style="font-size:15px;color:#6d675d;margin-top:8px">Суббота, 25 июля</p>
+              <div class="n-card" style="margin-top:24px">
+                <span class="n-ic">М</span>
+                <span style="min-width:0;flex:1">
+                  <span class="n-name" style="display:block">Марина Соколова</span>
+                  <span class="n-meta" style="display:block">Сегодня, 18:00 · онлайн</span>
+                </span>
+                <span class="n-arrow">›</span>
+              </div>
+              <div class="n-card" style="margin-top:14px;background:#dde3b9;box-shadow:none">
+                <span class="n-ic" style="background:#faf5ea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21c0-6 3-10 8-11-1 6-3 9-8 11z" stroke="#3d4a2b" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 21C9 16 6 14 3 13c1 5 4 7 9 8z" stroke="#3d4a2b" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+                <span style="min-width:0;flex:1">
+                  <span class="n-name" style="display:block">Как вы сегодня?</span>
+                  <span class="n-meta" style="display:block">Отметить настроение — минута</span>
+                </span>
+                <span class="n-arrow">›</span>
+              </div>
+            </div>
+            <div style="position:absolute;left:20px;right:20px;bottom:112px;background:#ffffff;border-radius:26px;padding:22px 24px;box-shadow:0 20px 46px -20px rgba(32,28,24,.42)">
+              <p style="font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.25">Показать, что здесь есть?</p>
+              <p style="font-size:14.5px;color:#6d675d;margin-top:6px">Четыре экрана, сорок секунд.</p>
+              <div class="tour-row" style="margin-top:18px">
+                <span class="tour-skip">Не сейчас</span>
+                <span class="tour-pill">Показать</span>
+              </div>
+            </div>
+            <div class="nav-mock"><span class="nav-i lit"></span><span class="nav-i"></span><span class="nav-i"></span><span class="nav-i"></span><span class="nav-i"></span></div>
+          </div></div>
+          <p class="cap"><b>Приглашение</b>Не модалка поверх экрана, а карточка внизу — её можно просто проскроллить мимо. Отказ запоминается, второй раз не спрашиваем.</p>
+        </div>
+
+        <div class="slot">
+          <div class="frame"><div class="screen app" style="background:#faf5ea">
+            <div style="padding:64px 24px 0">
+              <p style="font-size:30px;font-weight:800;letter-spacing:-.03em">Каталог</p>
+              <p style="font-size:15px;color:#6d675d;margin-top:6px">Не рейтинг лучших, а те, кто подходит вам</p>
+              <div class="n-card" style="margin-top:22px;align-items:flex-start">
+                <span class="n-ic" style="width:64px;height:78px;border-radius:18px;background:#dde3b9"></span>
+                <span style="min-width:0;flex:1">
+                  <span class="n-name" style="display:block">Ирина Верещагина</span>
+                  <span class="n-meta" style="display:block">Помогаю с тревогой, паническими атаками и границами</span>
+                  <span class="n-meta" style="display:block;margin-top:6px;color:#201c18;font-weight:600">3 500 ₽ · окно завтра</span>
+                </span>
+              </div>
+              <div class="n-card" style="margin-top:14px;align-items:flex-start">
+                <span class="n-ic" style="width:64px;height:78px;border-radius:18px;background:#f7cec2"></span>
+                <span style="min-width:0;flex:1">
+                  <span class="n-name" style="display:block">Анна Рыжова</span>
+                  <span class="n-meta" style="display:block">Помогаю с травмой, тревогой и нарушениями сна</span>
+                  <span class="n-meta" style="display:block;margin-top:6px;color:#201c18;font-weight:600">4 000 ₽ · окно в среду</span>
+                </span>
+              </div>
+            </div>
+            <div class="tour-veil"></div>
+            <div class="nav-mock" style="z-index:2"><span class="nav-i"></span><span class="nav-i lit"></span><span class="nav-i"></span><span class="nav-i"></span><span class="nav-i"></span></div>
+            <div class="tour-card">
+              <p class="tour-step">Каталог · 2 из 4</p>
+              <p class="tour-h">Здесь ищут своего</p>
+              <p class="tour-p">Подборка собирается по вашему запросу, а не по оплате размещения. Можно смотреть и без подбора — открыт весь список.</p>
+              <div class="tour-row">
+                <span class="tour-skip">Закрыть</span>
+                <span class="tour-pill">Дальше</span>
+              </div>
+            </div>
+          </div></div>
+          <p class="cap"><b>Шаг тура</b>Подсвечивается реальная вкладка внизу, экран под ней настоящий. Одно предложение на раздел плюс одно уточнение — больше не читают.</p>
+        </div>
+
+        <div class="slot">
+          <div class="frame"><div class="screen app" style="background:#faf5ea">
+            <div style="padding:64px 24px 0">
+              <p style="font-size:30px;font-weight:800;letter-spacing:-.03em">Инструменты</p>
+              <p style="font-size:15px;color:#6d675d;margin-top:6px">Короткая помощь в нужный момент</p>
+              <div class="n-card" style="margin-top:22px">
+                <span class="n-ic" style="background:#e7ddf3"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="#4a3f63" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" stroke="#4a3f63" stroke-width="1.8"/></svg></span>
+                <span style="min-width:0;flex:1">
+                  <span class="n-name" style="display:block">Спокойное дыхание</span>
+                  <span class="n-meta" style="display:block">1–5 минут · бесплатно</span>
+                </span>
+                <span class="n-arrow">›</span>
+              </div>
+            </div>
+            <div class="tour-veil"></div>
+            <div class="nav-mock" style="z-index:2"><span class="nav-i"></span><span class="nav-i"></span><span class="nav-i"></span><span class="nav-i"></span><span class="nav-i"></span></div>
+            <div class="tour-card">
+              <p class="tour-step">Последний шаг</p>
+              <p class="tour-h">Почему здесь, а не в поиске</p>
+              <div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;gap:11px;align-items:flex-start">
+                  <span style="width:9px;height:9px;border-radius:99px;background:#7d8a3e;margin-top:7px;flex:none"></span>
+                  <span style="font-size:14.5px;line-height:1.45"><b style="font-weight:700">Подбор не продаётся.</b> <span style="color:#6d675d">Платное размещение не двигает анкету вверх.</span></span>
+                </div>
+                <div style="display:flex;gap:11px;align-items:flex-start">
+                  <span style="width:9px;height:9px;border-radius:99px;background:#7d8a3e;margin-top:7px;flex:none"></span>
+                  <span style="font-size:14.5px;line-height:1.45"><b style="font-weight:700">Между сессиями не теряется.</b> <span style="color:#6d675d">Терапевт видит только то, что вы открыли.</span></span>
+                </div>
+                <div style="display:flex;gap:11px;align-items:flex-start">
+                  <span style="width:9px;height:9px;border-radius:99px;background:#7d8a3e;margin-top:7px;flex:none"></span>
+                  <span style="font-size:14.5px;line-height:1.45"><b style="font-weight:700">Инструменты бесплатны.</b> <span style="color:#6d675d">И работают без специалиста.</span></span>
+                </div>
+              </div>
+              <div class="tour-row"><span class="tour-skip">&nbsp;</span><span class="tour-pill">Понятно</span></div>
+            </div>
+          </div></div>
+          <p class="cap"><b>Отличия — в конце тура</b>Спорить с гуглом на первом экране рано: человек ещё не знает, с чем сравнивать. К четвёртому шагу он уже видел разделы — и три пункта ложатся на увиденное.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ БЕЗ РАМОК ============ -->
+  <section>
+    <div class="wrap sec-head">
+      <p class="kick">Без рамок</p>
+      <h2>Те же компоненты, снятые обводки</h2>
+      <p class="note">Обводка тратит место дважды: сама линия плюс отступ, который ей нужен, чтобы не липнуть к тексту. На карточке с тремя уровнями вложенности это около 55&nbsp;px из 390 — пятнадцать процентов ширины экрана. Именно за счёт них основной текст поднимается с 12–13&nbsp;px до 15.</p>
+    </div>
+
+    <div class="bleed stack-lg">
+
+      <div class="ba">
+        <div class="ba-panel">
+          <p class="ba-label ba-was">Было — карточка «Ближайшая сессия»</p>
+          <div class="stage stage-warm app">
+            <div class="w-card">
+              <span class="w-ic">М</span>
+              <span style="min-width:0;flex:1">
+                <span class="w-kick">Ближайшая сессия<span class="w-badge">сегодня</span></span>
+                <span class="w-name" style="display:block">Марина Соколова</span>
+                <span class="w-meta">Сб, 25 июл., 18:00 · онлайн</span>
+              </span>
+              <span class="w-arrow">›</span>
+            </div>
+          </div>
+          <p class="ba-note">Четыре уровня обводки: карточка, квадрат инициала, бейдж, круг-шеврон. Кикер капсом дублирует то, что и так очевидно. Всё набрано весом 900 — имя не выделяется, потому что выделено всё.</p>
+        </div>
+
+        <div class="ba-panel">
+          <p class="ba-label ba-now">Стало</p>
+          <div class="stage stage-warm app">
+            <div class="n-card">
+              <span class="n-ic">М</span>
+              <span style="min-width:0;flex:1">
+                <span class="n-name" style="display:block">Марина Соколова</span>
+                <span class="n-meta" style="display:block">Сегодня, 18:00 · онлайн</span>
+              </span>
+              <span class="n-arrow">›</span>
+            </div>
+          </div>
+          <p class="ba-note">Ноль обводок, отделение — мягкой тенью. Кикер и бейдж «сегодня» слились в саму строку времени: «Сегодня, 18:00» говорит то же самое двумя словами вместо трёх элементов. Имя 17/700, детали 15/400 — иерархия появилась из типографики.</p>
+        </div>
+      </div>
+
+      <div class="ba">
+        <div class="ba-panel">
+          <p class="ba-label ba-was">Было — список клиентов</p>
+          <div class="stage stage-cool app">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="w-row">
+                <span class="w-stripe"></span>
+                <span class="w-av">А</span>
+                <span style="min-width:0;flex:1">
+                  <span class="w-rname">Алёна Ким <span class="w-pill p">В терапии</span></span>
+                  <span class="w-pills"><span class="w-pill g">1 встреча · 0.8 ч</span><span class="w-pill c">26 июл., 11:30</span></span>
+                </span>
+              </div>
+              <div class="w-row">
+                <span class="w-stripe"></span>
+                <span class="w-av">Д</span>
+                <span style="min-width:0;flex:1">
+                  <span class="w-rname">Дмитрий Орлов <span class="w-pill p">В терапии</span></span>
+                  <span class="w-pills"><span class="w-pill g">новый</span><span class="w-pill c">28 июл., 13:00</span></span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <p class="ba-note">Шесть обведённых фигур в одной строке и три цвета, ни один из которых ничего не означает. Бейдж «В терапии» стоит у всех — значит, не различает никого. Дата в коралловой пилюле кричит громче имени.</p>
+        </div>
+
+        <div class="ba-panel">
+          <p class="ba-label ba-now">Стало</p>
+          <div class="stage stage-cool app">
+            <div class="n-list">
+              <div class="n-row">
+                <span class="n-av" style="background:#dde3b9">А</span>
+                <span style="min-width:0;flex:1">
+                  <span class="n-rname">Алёна Ким</span>
+                  <span class="n-rmeta" style="display:block">1 встреча · 0,8 ч · 26 июля, 11:30</span>
+                </span>
+                <span class="n-arrow">›</span>
+              </div>
+              <div class="n-row">
+                <span class="n-av" style="background:#e7ddf3">Д</span>
+                <span style="min-width:0;flex:1">
+                  <span class="n-rname">Дмитрий Орлов <span class="n-flag" title="нужна запись"></span></span>
+                  <span class="n-rmeta" style="display:block">Новый · 28 июля, 13:00</span>
+                </span>
+                <span class="n-arrow">›</span>
+              </div>
+            </div>
+          </div>
+          <p class="ba-note">Карточек нет вовсе — есть список на общей поверхности, строки разделены волосяной линией. Метрики стали одной читаемой строкой 14.5/400 вместо трёх пилюль. Цвет остался ровно один: точка у того, кому нужна запись. Теперь она видна.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="wrap" style="margin-top: 44px;">
+      <h3 style="margin-bottom:16px">Где рамка остаётся</h3>
+      <div class="stack">
+        <p class="note"><strong>Поля ввода.</strong> Здесь обводка — аффорданс «сюда печатают», ровно как на вашей доске UI&nbsp;Components. Но тоньше: 1.5&nbsp;px нейтральным тоном, при фокусе 2&nbsp;px акцентом.</p>
+        <p class="note"><strong>Состояние выбора.</strong> Активный чип, вкладка, выбранная дата. Обводка сообщает состояние — это работа, а не украшение.</p>
+        <p class="note"><strong>Плавающие слои.</strong> Нижнее меню, шиты, модалки. Им нужна граница с тем, что лежит под ними.</p>
+        <p class="note">Всё остальное — 176 инлайновых <span class="mono">border</span> и 225 классов <span class="mono">stroke</span> — уходит в тень и отступ.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ТОКЕНЫ ============ -->
+  <section>
+    <div class="wrap sec-head">
+      <p class="kick">Система</p>
+      <h2>Из чего это собирается</h2>
+      <p class="note">Ноль новых сущностей: те же цвета, только с другими ролями. Главная работа — свести 35 размеров шрифта к семи, 24 радиуса к четырём и вернуть в проект вес 400, которого сейчас нет вообще.</p>
+    </div>
+
+    <div class="bleed stack-lg">
+
+      <div>
+        <h3 style="margin-bottom:18px">Типографика: 35 → 7</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Роль</th><th>Размер / высота</th><th>Вес</th><th>Где</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="spec" style="font-size:26px;font-weight:800;letter-spacing:-.03em">Display</td><td class="num">30 / 1.05</td><td class="num">800</td><td>Заголовок экрана, постер онбординга</td></tr>
+              <tr><td class="spec" style="font-size:20px;font-weight:700;letter-spacing:-.02em">Title</td><td class="num">20 / 1.2</td><td class="num">700</td><td>Заголовок карточки-героя</td></tr>
+              <tr><td class="spec" style="font-size:17px;font-weight:700">Headline</td><td class="num">17 / 1.25</td><td class="num">700</td><td>Имя, название практики, строка списка</td></tr>
+              <tr><td class="spec" style="font-size:15px;font-weight:400">Body</td><td class="num">15 / 1.45</td><td class="num">400</td><td><strong>Основной текст. Сейчас 12–13</strong></td></tr>
+              <tr><td class="spec" style="font-size:13px;font-weight:500">Callout</td><td class="num">13 / 1.4</td><td class="num">500</td><td>Вторичное под заголовком</td></tr>
+              <tr><td class="spec" style="font-size:12px;font-weight:600">Caption</td><td class="num">12 / 1.3</td><td class="num">600</td><td>Подписи. Нижняя граница читаемого</td></tr>
+              <tr><td class="spec" style="font-size:11px;font-weight:700">Micro</td><td class="num">11</td><td class="num">700</td><td>Только числа и бейджи, не для чтения</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:16px"><span class="mono">font-black</span> сейчас стоит 374 раза, <span class="mono">font-medium</span> и <span class="mono">font-normal</span> — 5 раз на двоих. В новой шкале 900 не участвует вовсе: максимум 800, и только у Display.</p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:18px">Радиусы: 24 → 4</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Токен</th><th>Значение</th><th>Где</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">--r-xs</td><td class="num">10</td><td>Чипы, мелкие плашки</td></tr>
+              <tr><td class="mono">--r-sm</td><td class="num">14</td><td>Поля ввода, иконочные плитки</td></tr>
+              <tr><td class="mono">--r-md</td><td class="num">20</td><td>Карточки</td></tr>
+              <tr><td class="mono">--r-lg</td><td class="num">28</td><td>Листы, шиты, меню</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:16px">Правило вложенности: внутренний радиус = внешний минус паддинг. Тогда скругления концентричны и не «плывут» — сейчас на карточках соседствуют 22 и 17 без причины.</p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:18px">Тени: две, обе почти невидимые</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Токен</th><th>Значение</th><th>Где</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">--lift-1</td><td class="num">0 1px 2px /.05 + 0 12px 28px -22px /.40</td><td>Карточка на листе</td></tr>
+              <tr><td class="mono">--lift-2</td><td class="num">0 20px 46px -20px /.42</td><td>Шит, меню, тур</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:16px">Два слоя: контактный в 1&nbsp;px и рассеянный. Один слой даёт «наклейку», три — мыло. Альфа выше 0.10 в контактном слое сразу читается как эффект, а не как поверхность.</p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:18px">Цвет: тот же, роли другие</h3>
+        <div class="swatches">
+          <div class="sw"><div class="sw-chip" style="background:#faf5ea;box-shadow:inset 0 0 0 1px rgba(32,28,24,.12)"></div><p class="sw-n">Основа</p><p class="sw-v">#faf5ea</p></div>
+          <div class="sw"><div class="sw-chip" style="background:#ffffff;box-shadow:inset 0 0 0 1px rgba(32,28,24,.12)"></div><p class="sw-n">Лист</p><p class="sw-v">#ffffff</p></div>
+          <div class="sw"><div class="sw-chip" style="background:#201c18"></div><p class="sw-n">Чернила</p><p class="sw-v">#201c18</p></div>
+          <div class="sw"><div class="sw-chip" style="background:#7d8a3e"></div><p class="sw-n">Акцент</p><p class="sw-v">#7d8a3e</p></div>
+          <div class="sw"><div class="sw-chip" style="background:#a7c79e"></div><p class="sw-n">Успех</p><p class="sw-v">#a7c79e</p></div>
+          <div class="sw"><div class="sw-chip" style="background:#f4c19c"></div><p class="sw-n">Внимание</p><p class="sw-v">#f4c19c</p></div>
+          <div class="sw"><div class="sw-chip" style="background:#ef9f8d"></div><p class="sw-n">Ошибка</p><p class="sw-v">#ef9f8d</p></div>
+          <div class="sw"><div class="sw-chip" style="background:#6d675d"></div><p class="sw-n">Вторичный</p><p class="sw-v">#6d675d</p></div>
+        </div>
+        <div class="stack" style="margin-top:20px">
+          <p class="note"><strong>Тон раздела живёт только в фоне страницы и в иконке раздела.</strong> Внутри карточек хроматика — семантическая: успех, внимание, ошибка. Правило: не больше двух цветных пятен в одном экране плюс акцент главного действия.</p>
+          <p class="note"><strong>Вторичный текст переезжает с <span class="mono">rgba(32,28,24,.40)</span> на сплошной <span class="mono">#6d675d</span>.</strong> Прозрачность давала 2.1–2.5:1 на цветных подложках; сплошной тон держит 4.6:1 на белом и не разваливается на тинтах.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ ИЛЛЮСТРАЦИИ ============ -->
+  <section>
+    <div class="wrap sec-head">
+      <p class="kick">Иллюстрации</p>
+      <h2>Четыре сцены и правило, по которому рисуются следующие</h2>
+      <p class="note">Сцены выше нарисованы прямо здесь — это векторы, их можно забрать в <span class="mono">public/onboarding/</span> как есть или отдать иллюстратору как раскадровку. Стиль взят из рефа, палитра — наша: вместо оранжевого с тёмно-синим работают лососевый, олива и глубокая зелень.</p>
+    </div>
+
+    <div class="bleed">
+      <div class="illo-grid">
+        <div class="illo-card">
+          <svg viewBox="0 0 200 150" aria-hidden="true">
+            <rect width="200" height="150" rx="12" fill="#f9e8bc"/>
+            <path d="M78 140 C 77 92, 87 74, 100 74 C 113 74, 123 92, 122 140 Z" fill="#ef9f8d"/>
+            <ellipse cx="100" cy="144" rx="64" ry="20" fill="#3d4a2b"/>
+            <circle cx="100" cy="55" r="21" fill="#f0c7a4"/>
+            <path d="M79 55 a21 21 0 0 1 42 0 Z" fill="#2a2620"/>
+            <path d="M79 55 c 0 -8, 6 -10, 12 -9" stroke="#2a2620" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <circle cx="124" cy="41" r="9" fill="#2a2620"/>
+          </svg>
+          <p class="illo-t">Фигура</p>
+          <p class="illo-s">Голова — круг, волосы — дуга плюс пучок, корпус — одна кривая. Лица нет: без черт сцена не навязывает эмоцию.</p>
+        </div>
+
+        <div class="illo-card">
+          <svg viewBox="0 0 200 150" aria-hidden="true">
+            <rect width="200" height="150" rx="12" fill="#faf5ea"/>
+            <path d="M0 0 H200 V84 C166 112, 128 78, 90 92 C52 106, 32 138, 0 112 Z" fill="#dde3b9"/>
+            <path d="M40 138 c -16 -22, -4 -50, 20 -55 c 4 24, -6 45, -20 55 z" fill="#b7c079"/>
+            <path d="M70 141 c 5 -24, 29 -36, 46 -24 c -12 21, -30 29, -46 24 z" fill="#7d8a3e"/>
+          </svg>
+          <p class="illo-t">Пятно и растения</p>
+          <p class="illo-s">Волнистый край вместо прямого — то, что даёт мягкость в рефе. Листья — две-три дуги, не ботаника.</p>
+        </div>
+
+        <div class="illo-card">
+          <svg viewBox="0 0 200 150" aria-hidden="true">
+            <rect width="200" height="150" rx="12" fill="#e7ddf3"/>
+            <circle cx="100" cy="75" r="46" fill="none" stroke="#f0a794" stroke-width="15" stroke-dasharray="36 108" transform="rotate(-90 100 75)"/>
+            <circle cx="100" cy="75" r="46" fill="none" stroke="#f3ce77" stroke-width="15" stroke-dasharray="36 108" stroke-dashoffset="-36" transform="rotate(-90 100 75)"/>
+            <circle cx="100" cy="75" r="46" fill="none" stroke="#b7c079" stroke-width="15" stroke-dasharray="36 108" stroke-dashoffset="-72" transform="rotate(-90 100 75)"/>
+            <circle cx="100" cy="75" r="46" fill="none" stroke="#a7c79e" stroke-width="15" stroke-dasharray="36 108" stroke-dashoffset="-108" transform="rotate(-90 100 75)"/>
+            <circle cx="100" cy="75" r="31" fill="#faf5ea"/>
+          </svg>
+          <p class="illo-t">Диаграммы</p>
+          <p class="illo-s">Колесо собрано из четырёх кругов со штриховым пунктиром — двенадцать строк вместо длинных path. Так же строится и колесо баланса в продукте.</p>
+        </div>
+
+        <div class="illo-card">
+          <svg viewBox="0 0 200 150" aria-hidden="true">
+            <rect width="200" height="150" rx="12" fill="#f7cec2"/>
+            <line x1="100" y1="0" x2="100" y2="34" stroke="#3d4a2b" stroke-width="3"/>
+            <path d="M70 66 c 0 -18, 13 -32, 30 -32 c 17 0, 30 14, 30 32 z" fill="#f3ce77"/>
+            <ellipse cx="100" cy="66" rx="30" ry="5" fill="#e0b45c"/>
+            <path d="M100 72 L64 130 H136 Z" fill="#f9e8bc" opacity=".6"/>
+          </svg>
+          <p class="illo-t">Свет</p>
+          <p class="illo-s">Конус — треугольник с прозрачностью 0.6. Единственный эффект во всём наборе; ни градиентов, ни блюра.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap stack" style="margin-top:32px">
+      <p class="note"><strong>Правило набора:</strong> три цвета на сцену плюс кремовый фон, никаких обводок и теней внутри иллюстрации, ни одного градиента. Фигура всегда что-то делает — держит чашку, читает, смотрит; статичная фигура анфас читается как иконка, а не как сцена.</p>
+      <p class="note"><strong>Что делать с маскотами.</strong> В <span class="mono">public/mascots/</span> лежит 66 файлов и модульный персонаж — это отдельная система для настроения, и она хорошая. Смешивать её с постерными сценами не надо: маскот живёт в дневнике и отражает состояние, сцена живёт в онбординге и объясняет раздел. Разные работы.</p>
+    </div>
+  </section>
+
+  <!-- ============ ЧТО ДАЛЬШЕ ============ -->
+  <section class="end">
+    <div class="wrap sec-head">
+      <p class="kick">Порядок работ</p>
+      <h2>С чего начинать</h2>
+    </div>
+    <div class="wrap">
+      <div class="steps">
+        <div class="step">
+          <span class="step-n">01</span>
+          <div>
+            <h3>Токены</h3>
+            <p>Шкала из семи размеров, четыре радиуса, две тени, сплошной вторичный цвет — в <span class="mono">globals.css</span>, и примитивы <span class="mono">ui.tsx</span> под них. Два файла, визуально пока почти ничего не меняется.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">02</span>
+          <div>
+            <h3>Онбординг и тур</h3>
+            <p>Пять экранов, четыре SVG-сцены, отдельный тур, фикс роли по умолчанию. Даёт быстрый видимый результат и чинит настоящий баг с «Пропустить».</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">03</span>
+          <div>
+            <h3>Разрамочивание</h3>
+            <p>Сначала свести 176 инлайновых <span class="mono">border</span> к утилитам, потом менять утилиты — иначе это правка 176 мест руками. Порядок: главная, клиенты, сессии, терапия, каталог.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">04</span>
+          <div>
+            <h3>Тишина</h3>
+            <p>82 капслок-кикера, 20 бесконечных анимаций, веса 900. Работа механическая, но её много — примерно 25 файлов.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">05</span>
+          <div>
+            <h3>Состояния</h3>
+            <p><span class="mono">focus-visible</span>, подтверждение после записи и сдачи задания, пустые состояния вместо трёх обучающих модалок.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>

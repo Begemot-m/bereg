@@ -71,6 +71,14 @@ find "$BACKUP_DIR" -maxdepth 1 -name 'bereg-*.sql.gz.enc' -type f -mtime "+${KEE
 
 # Необязательная вторая копия у другого провайдера.
 if [ -n "${BACKUP_S3_BUCKET:-}" ]; then
+  # Бакет задан, а клиента нет — это опечатка в .env, а не «ну и ладно».
+  # Молча пропустить нельзя: тогда все решат, что внешняя копия есть.
+  if ! command -v aws >/dev/null 2>&1; then
+    echo "[backup] ОШИБКА: BACKUP_S3_BUCKET задан, но команды aws нет."
+    echo "[backup] Локальная копия создана, ВНЕШНЕЙ НЕТ. Либо поставьте awscli,"
+    echo "[backup] либо очистите BACKUP_S3_BUCKET в .env, если S3 не используется."
+    exit 1
+  fi
   echo "[backup] загрузка в S3"
   aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3 cp "$BACKUP_DIR/$FILE" "s3://$BACKUP_S3_BUCKET/$FILE"
 
