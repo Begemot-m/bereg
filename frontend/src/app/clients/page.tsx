@@ -17,8 +17,6 @@ import { select, success, tap } from "@/lib/haptics";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
 
-const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
-
 const APP_URL = "https://begemot-m.github.io/bereg/";
 
 const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
@@ -221,8 +219,12 @@ function ClientCard({ client: c }: { client: Client }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="t-head truncate">{c.name}</p>
-              {/* Статус — серой заливкой, чернилами: он не должен спорить с именем */}
-              <span className="t-micro shrink-0 rounded-full px-2 py-1" style={{ background: "var(--surface-2)", color: "var(--ink)" }}>{STATUS_LABEL[s]}</span>
+              <span
+                className="shrink-0 rounded-full px-2 py-1 text-[12px] font-black"
+                style={{ background: s === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
+              >
+                {STATUS_LABEL[s]}
+              </span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="t-cap inline-flex items-center gap-1.5">
@@ -244,7 +246,12 @@ function ClientCard({ client: c }: { client: Client }) {
             </div>
           </div>
           {/* Явная подпись вместо стрелки: непонятно, что круг открывает карточку */}
-          <span className="btn btn-white shrink-0 self-center px-3 py-1.5 text-[11px]">Открыть карточку</span>
+          <span
+            className="t-cap inline-flex shrink-0 items-center gap-1.5 self-center rounded-full px-3.5 py-2 font-black"
+            style={{ background: "#fff", border: "var(--bw) solid var(--purple-edge)", color: "var(--purple-edge)" }}
+          >
+            <Icon name="user" width={13} weight="bold" color="var(--purple-edge)" /> Открыть карточку
+          </span>
         </div>
       </div>
 

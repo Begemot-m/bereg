@@ -56,6 +56,7 @@ const T: Record<Tone, { bg: string; soft: string; edge: string }> = {
   salmon: { bg: "var(--salmon)", soft: "var(--salmon-soft)", edge: "var(--salmon-edge)" },
   sky: { bg: "var(--sky)", soft: "#d5e8ef", edge: "#5f95ab" },
 };
+const CATALOG_TONE = { bg: "var(--tiffany)", soft: "var(--tiffany-soft)", edge: "var(--tiffany-edge)" };
 
 const SORTS: { value: SortMode; label: string }[] = [
   { value: "recommended", label: "Рекомендованные" },
@@ -215,7 +216,7 @@ function CatalogEmpty({ filters, onRelax }: { filters: CatalogFilters; onRelax: 
   return <div className="card-soft p-5 text-center"><div className="flex justify-center"><span className="ico ico-white h-12 w-12"><Icon name="compass" width={23} weight="bold" color="var(--edge)" /></span></div><h3 className="font-tight mt-3 text-[19px] font-black">Точных совпадений нет</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Сильнее всего ограничивает: {blocker}.</p><Button className="mt-4" onClick={onRelax}>Ослабить условие</Button></div>;
 }
 
-function Portrait({ psy, size }: { psy: Psy; size: number }) { const tone = T[psy.tone]; const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[18px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
+function Portrait({ psy, size, tone = T[psy.tone] }: { psy: Psy; size: number; tone?: { bg: string; soft: string; edge: string } }) { const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[18px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
 
 // Кнопка «добавить терапевта в мой раздел Терапия» — вверху анкеты.
 function AttachTherapistButton({ name }: { name: string }) {
@@ -229,7 +230,7 @@ function AttachTherapistButton({ name }: { name: string }) {
 }
 
 function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; prefs: CatalogPrefs; invited?: boolean; onBack: () => void }) {
-  const tone = T[psy.tone];
+  const tone = CATALOG_TONE;
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const wasInTherapy = bookings.some((booking) => booking.psyName === psy.name);
   const reasons = reasonsFor(psy, prefs);
@@ -256,7 +257,7 @@ function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; pref
         </button>
       )}
       <div className="flex items-center gap-3">
-        <Portrait psy={psy} size={98} />
+        <Portrait psy={psy} size={98} tone={tone} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5"><h1 className="t-title">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
           <p className="t-cap mt-1">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
@@ -341,9 +342,9 @@ function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) 
   return <>{shown.toLocaleString("ru-RU", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</>;
 }
 
-// Постер встречи: цена и длительность крупно, в тоне специалиста.
+// Постер встречи: цена и длительность крупно, в тоне каталога.
 function PricePoster({ psy }: { psy: Psy }) {
-  const tone = T[psy.tone];
+  const tone = CATALOG_TONE;
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -414,7 +415,7 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
 }
 
 function MethodList({ psy }: { psy: Psy }) {
-  const tone = T[psy.tone];
+  const tone = CATALOG_TONE;
   const [open, setOpen] = useState<string | null>(null);
   return (
     <Section title="Методы">

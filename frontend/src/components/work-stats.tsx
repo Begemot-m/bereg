@@ -104,18 +104,18 @@ export function WorkStats({ items, title = "Статистика работы" }
 
       {/* Плитки метрик */}
       <div className="line-top mt-3 grid grid-cols-3 gap-2 p-3">
-        <Tile icon="calendar" value={data.sessions} label={period === "week" ? "сессий за неделю" : period === "month" ? "сессий за месяц" : "сессий всего"} />
+        <Tile icon="calendar" value={data.sessions} label={period === "week" ? "сессий за неделю" : period === "month" ? "сессий за месяц" : "сессий всего"} tone="olive" />
         <Tile icon="clock" value={data.hours} suffix=" ч" label="длительность" />
-        <Tile icon="users" value={data.clients} label="клиентов" />
+        <Tile icon="users" value={data.clients} label="клиентов" tone="purple" />
       </div>
     </section>
   );
 }
 
-function Tile({ icon, value, label, suffix }: { icon: IconName; value: number; label: string; suffix?: string }) {
+function Tile({ icon, value, label, suffix, tone }: { icon: IconName; value: number; label: string; suffix?: string; tone?: "olive" | "purple" }) {
   return (
-    <div className="card-soft relative p-2.5 pt-3">
-      <Icon name={icon} width={14} weight="bold" className="absolute right-2.5 top-2.5 opacity-60" />
+    <div className="card-soft relative p-2.5 pt-3" style={tone ? { background: `var(--${tone}-soft)` } : undefined}>
+      <Icon name={icon} width={14} weight="bold" className="absolute right-2.5 top-2.5 opacity-60" color={tone ? `var(--${tone}-edge)` : undefined} />
       <p className="font-tight tabular-nums text-[28px] font-black leading-none"><CountUp value={value} suffix={suffix} /></p>
       <p className="mt-1.5 text-[8.5px] font-black uppercase leading-tight tracking-[.04em] text-[var(--muted)]">{label}</p>
     </div>

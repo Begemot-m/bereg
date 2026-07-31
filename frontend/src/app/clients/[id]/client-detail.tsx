@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { SectionTitle, ArrowGlyph } from "@/components/blocks";
@@ -13,7 +13,6 @@ import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, Input, Spinner, Textarea } from "@/components/ui";
 import {
-  deleteClient,
   derivedStatus,
   formatContact,
   getClient,
@@ -40,7 +39,7 @@ import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { getClientTherapy } from "@/lib/therapy";
 
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
+const STATUS_TONE: Record<ClientStatus, string> = { therapy: "olive", new: "purple", paused: "amber" };
 
 // Ссылка-приглашение клиента подключить свой профиль.
 function inviteLink(id: number): string {
@@ -55,7 +54,6 @@ export function ClientDetail() {
   const params = useParams();
   const search = useSearchParams();
   const id = Number(search.get("id") ?? params.id);
-  const router = useRouter();
   const qc = useQueryClient();
   const inv = () => {
     qc.invalidateQueries({ queryKey: ["client", id] });
@@ -92,11 +90,6 @@ export function ClientDetail() {
 
   const patch = useMutation({ mutationFn: (p: Parameters<typeof updateClient>[1]) => updateClient(id, p), onSuccess: inv });
   const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => createAppointment({ clientId: id, startsAt: iso, format }), onSuccess: () => { success(); setBookOpen(false); inv(); } });
-  const remove = useMutation({
-    mutationFn: () => deleteClient(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); router.push("/clients"); },
-  });
-
   // Упавший запрос выглядел как вечная загрузка: isLoading уже false, а client
   // так и не появился — условие ниже оставалось истинным навсегда.
   if (isError) return (
@@ -128,21 +121,24 @@ export function ClientDetail() {
               ? <span className="t-cap mt-1 block">{formatContact(client.contact)}</span>
               : <span className="mt-1 block text-[12px] font-semibold text-[var(--muted-2)]">Контакт не указан</span>}
           </div>
-          {/* Статус — правее имени и аватарки */}
-          {/* Статус — серой заливкой, как в списке клиентов */}
-          <span className="chip shrink-0 self-start" style={{ background: "var(--surface-2)" }}>{STATUS_LABEL[dstatus]}</span>
+          <span
+            className="shrink-0 self-start rounded-full px-2 py-1 text-[12px] font-black"
+            style={{ background: dstatus === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
+          >
+            {STATUS_LABEL[dstatus]}
+          </span>
         </div>
         <div className="mt-2"><ConnectionChip link={client.link} /></div>
 
         {/* Кнопки — в тонах приложения */}
         <div className="mt-4 flex gap-2">
-          <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "btn-white" : ""}`}><Icon name="calendar" width={15} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> Записать на окно</button>
+          <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "btn-white" : "btn-accent"}`}><Icon name="calendar" width={15} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> Записать на окно</button>
           <button
             onClick={() => { tap(); setConnectOpen((v) => !v); setBookOpen(false); }}
-            className={`btn flex-1 py-3 ${connectOpen ? "" : "btn-accent"}`}
+            className={`btn flex-1 py-3 ${connectOpen ? "btn-white" : "btn-accent"}`}
             aria-expanded={connectOpen}
           >
-            <Icon name={client.link === "joined" ? "check" : "spark"} width={15} weight="bold" color="#fff" />
+            <Icon name={client.link === "joined" ? "check" : "spark"} width={15} weight="bold" color={connectOpen ? "var(--ink)" : "#fff"} />
             {client.link === "joined" ? "Подключён" : client.link === "invited" ? "Приглашение" : "Пригласить"}
           </button>
         </div>
@@ -209,7 +205,6 @@ export function ClientDetail() {
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={5} placeholder="Приватные заметки о работе…" />
         </div>
 
-        <button onClick={() => { if (confirm("Удалить клиента?")) remove.mutate(); }} className="btn w-full py-2.5" style={{ background: "var(--danger)", borderColor: "var(--danger)" }}>Удалить клиента</button>
       </main>
     </div>
   );
@@ -273,7 +268,7 @@ function ClientConnect({ client, onChanged }: { client: Client; onChanged: () =>
             </div>
             <div className="mt-2 flex gap-2">
               <button onClick={copy} className="btn btn-accent flex-1 py-2 text-[12px]">{copied ? "Ссылка скопирована" : "Скопировать ссылку"}</button>
-              <a href={share} target="_blank" rel="noopener noreferrer" className="btn flex-1 py-2 text-[12px]"><Icon name="spark" width={13} weight="fill" /> В Telegram</a>
+              <a href={share} target="_blank" rel="noopener noreferrer" className="btn btn-accent flex-1 py-2 text-[12px]"><Icon name="spark" width={13} weight="fill" /> В Telegram</a>
             </div>
           </>
         ) : (
@@ -400,7 +395,7 @@ function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void })
             <span className="rounded-full px-2.5 py-1 text-[10.5px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` }}>{HW_LABEL[hw.status]}</span>
             <span className="text-[10px] font-semibold text-[var(--muted-2)]">{dtf.format(new Date(hw.sentAt))}</span>
             <div className="ml-auto flex gap-1">
-              <button onClick={() => { tap(); setEditing(true); }} className="btn px-2.5 py-1 text-[11px]" style={{ background: "var(--purple-edge)", borderColor: "var(--purple-edge)" }}>Поправить</button>
+              <button onClick={() => { tap(); setEditing(true); }} className="btn btn-accent px-2.5 py-1 text-[11px]">Поправить</button>
               <button onClick={() => { if (confirm("Удалить задание?")) del.mutate(); }} className="btn px-2.5 py-1 text-[11px]" style={{ background: "var(--danger)", borderColor: "var(--danger)" }}>Удалить</button>
             </div>
           </div>
