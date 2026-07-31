@@ -36,7 +36,7 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
           {wheel ? (
             <div className="flex items-end gap-2">
               <span className="font-tight tnum text-[30px] font-black leading-none">{pct}%</span>
-              <span className="chip mb-0.5 uppercase" style={{ background: tone.bg }}>{band.label}</span>
+              <span className="t-cap mb-0.5 rounded-full px-2.5 py-1 font-semibold" style={{ background: tone.bg }}>{band.label}</span>
             </div>
           ) : (
             <p className="text-[13px] font-bold text-[var(--muted)]">{onStart ? "Колесо ещё не собрано" : "Клиент ещё не проходил колесо"}</p>

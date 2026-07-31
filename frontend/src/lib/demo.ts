@@ -66,6 +66,7 @@ type DB = {
   overrides: Record<string, SlotOverride>;
   support: Support[];
   notifications: Notif[];
+  accountEmail: { email: string; verified: boolean } | null;
   sub: {
     status: "trial" | "active" | "pending" | "expired";
     trialEndsAt: string | null;
@@ -166,6 +167,7 @@ function seed(): DB {
       { id: 90, forRole: "psychologist", kind: "system", text: "Добро пожаловать в «Методика». Здесь появляются отмены и переносы сессий.", createdAt: iso(-1, 9, 0), read: false },
       { id: 91, forRole: "client", kind: "system", text: "Добро пожаловать. Здесь будут напоминания и изменения по вашим сессиям.", createdAt: iso(-1, 9, 0), read: false },
     ],
+    accountEmail: null,
     // Демо стартует на бесплатном тарифе — виден лимит 3 клиента и пейволл PRO.
     sub: { status: "expired", trialEndsAt: null, currentPeriodEnd: null, tools: false, promo: false, clientPro: false, pendingPlan: null, pendingSince: null },
   };
@@ -199,6 +201,7 @@ function load(): DB {
       if (!db.notifications) db.notifications = s.notifications;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
+      if (db.accountEmail === undefined) db.accountEmail = null;
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
       // миграция: подключение клиента — активные считаем уже присоединившимися
       for (const c of db.clients) {
@@ -235,7 +238,11 @@ export function exportLocalData(): string {
 
 // Сброс демо-данных к исходному состоянию (клиенты, записи, настроение и т.д.).
 export function resetLocalData() {
-  if (typeof window !== "undefined") localStorage.removeItem(KEY);
+  if (typeof window === "undefined") return;
+  const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter((key): key is string => Boolean(key));
+  for (const key of keys) {
+    if (key.startsWith("psy_") || key.startsWith("bereg") || key.startsWith("notify:") || key.startsWith("quiet:")) localStorage.removeItem(key);
+  }
 }
 
 const fmtWhen = (iso: string) => new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -345,6 +352,26 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   const body = init.body ? (JSON.parse(init.body as string) as Record<string, unknown>) : {};
   const clean = path.split("?")[0];
   const q = new URLSearchParams(path.split("?")[1] ?? "");
+
+  if (clean === "/my/email") {
+    if (method === "GET") return delay(({ email: db.accountEmail?.email ?? null, verified: Boolean(db.accountEmail?.verified), canConfirm: Boolean(db.accountEmail && !db.accountEmail.verified) }) as T);
+    if (method === "PUT") {
+      const email = String(body.email ?? "").trim().toLowerCase();
+      db.accountEmail = { email, verified: false };
+      save(db);
+      return delay(({ email, verified: false, canConfirm: true, message: "Ссылка для подтверждения отправлена на почту" }) as T);
+    }
+    if (method === "POST" && db.accountEmail) {
+      db.accountEmail.verified = true;
+      save(db);
+      return delay(({ email: db.accountEmail.email, verified: true }) as T);
+    }
+    if (method === "DELETE") {
+      db.accountEmail = null;
+      save(db);
+      return delay(undefined as T);
+    }
+  }
 
   // clients
   if (clean === "/clients" && method === "GET") {

@@ -64,3 +64,16 @@ export function otpLetter(code: string): { subject: string; text: string } {
     ].join("\n"),
   };
 }
+
+export function emailConfirmationLetter(link: string): { subject: string; text: string } {
+  return {
+    subject: "Подтвердите почту в «Методике»",
+    text: [
+      "Подтвердите адрес почты, чтобы входить в «Методику» с планшета или компьютера:",
+      "",
+      link,
+      "",
+      "Ссылка действует 10 минут. Если вы не привязывали почту — просто удалите это письмо.",
+    ].join("\n"),
+  };
+}

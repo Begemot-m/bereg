@@ -12,6 +12,7 @@ import Image from "next/image";
 const WheelFlow = dynamic(() => import("@/components/balance-flow").then((m) => m.WheelFlow));
 import { Icon } from "@/components/icons";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
+import { moodColor } from "@/components/mood-egg";
 import { TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
@@ -95,8 +96,6 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
   const qc = useQueryClient();
   const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(ME) });
   const invHomework = () => qc.invalidateQueries({ queryKey: ["my-homework"] });
-  const done = homework.filter((h) => h.status === "done").length;
-  const taskProgress = homework.length ? Math.round(done / homework.length * 100) : 0;
   const completedSessions = bookings.filter((b) => new Date(b.startsAt) < new Date()).length;
   const todayEntry = [...therapy.moods].reverse().find((e) => e.date.slice(0, 10) === new Date().toISOString().slice(0, 10));
   const startFlow = () => { tap(); setShowGuide(!therapy.tutorialSeen); setFlowOpen(true); };
@@ -142,7 +141,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
           {/* Настроение → работа со специалистом → доска → динамика → записи. */}
-          <section className="overflow-hidden rounded-[20px] bg-[var(--head-soft)]" data-tour="mood-stats">
+          <section className="overflow-hidden rounded-[20px]" style={{ background: todayEntry?.mood ? `${moodColor(todayEntry.mood)}2e` : "var(--head-soft)" }} data-tour="mood-stats">
             <MoodHomeCard embedded mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />
             <MoodStatsBlock moods={therapy.moods} />
           </section>
@@ -150,7 +149,6 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
           {therapist && (
             <WorkWithSpecialist
               sessionsDone={completedSessions}
-              nextAt={next?.startsAt ?? null}
               homework={homework}
               onChanged={invHomework}
             />
@@ -203,7 +201,7 @@ function FindTherapistBlock() {
 // Карточка терапевта в стиле каталога — с переходом на его страницу и записью.
 function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: string; next: MyBooking | null; bookings: MyBooking[]; defaultOpen?: boolean; onRemove?: () => void }) {
   const psy = PSYS.find((item) => item.name === name);
-  const href = psy ? `/catalog?psy=${psy.id}` : "/catalog";
+  const href = psy ? `/catalog?psy=${psy.id}&from=therapy` : "/catalog?from=therapy";
   const portrait = psy ? asset(psy.portrait) : null;
   const [bookOpen, setBookOpen] = useState(defaultOpen ?? false);
   // С главной приходят сразу к записи — параметр читается после монтирования.
@@ -260,8 +258,8 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
         </div>
       </Link>
       <div className="mt-2.5 flex gap-2">
-        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className={`btn flex-1 py-2.5 ${bookOpen ? "btn-white" : "btn-accent"}`} aria-expanded={bookOpen}>
-          <Icon name="calendar" width={14} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> {bookOpen ? "Свернуть" : mine.length ? "Моя запись" : "Записаться"}
+        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="btn btn-accent flex-1 py-2.5" aria-expanded={bookOpen}>
+          <Icon name="calendar" width={14} weight="bold" color="#fff" /> {bookOpen ? "Свернуть" : mine.length ? "Моя запись" : "Записаться"}
         </button>
         {psy?.tg && (
           <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn px-4 py-2.5">
@@ -270,7 +268,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
         )}
       </div>
       <Disclosure open={bookOpen}>
-        <div className="card-soft mt-2.5 p-3">
+        <div className="mt-2.5 rounded-[16px] p-3" style={{ background: "var(--page)" }}>
           {booked ? (
             <div className="text-center">
               <p className="text-[13px] font-black">Вы записаны к {name.split(" ")[0]}</p>
@@ -292,7 +290,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
             <>
               <p className="t-micro mb-1 px-1">Свободные окна</p>
               <p className="t-cap mb-2 px-1">{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
-              <SlotPicker forClient variant="calendar" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
+              <SlotPicker forClient variant="calendar" calendarTone="blend" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
               {mine.length > 0 && <button onClick={() => { tap(); setPickSlot(false); }} className="back-link mt-2 w-full justify-center">Назад к моим записям</button>}
             </>
           )}

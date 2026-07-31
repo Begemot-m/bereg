@@ -19,6 +19,7 @@ export function SlotPicker({
   daysAhead = 21,
   variant = "strip",
   showAvail = false,
+  calendarTone = "card",
   startDay,
   onPick,
 }: {
@@ -26,6 +27,7 @@ export function SlotPicker({
   daysAhead?: number;
   variant?: "strip" | "calendar";
   showAvail?: boolean;
+  calendarTone?: "card" | "blend";
   /** День, с которого открываемся: обычно ближайший со свободным окном. */
   startDay?: string;
   onPick: (iso: string, format: ApptFormat) => void;
@@ -62,7 +64,7 @@ export function SlotPicker({
   return (
     <div>
       {variant === "calendar" ? (
-        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => { if (y) { touched.current = true; setActive(y); } }} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} />
+        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => { if (y) { touched.current = true; setActive(y); } }} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} tone={calendarTone} />
       ) : (
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((d) => {
@@ -101,10 +103,10 @@ export function SlotPicker({
                 key={s.start}
                 onClick={() => { tap(); onPick(s.start, s.fmt); }}
                 className="flex flex-col items-center justify-center gap-0.5 rounded-[12px] py-2.5 text-[14px] font-black transition-transform duration-150 active:scale-95"
-                style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)", color: "var(--ink)" }}
+                style={{ background: "#fff", border: "var(--bw) solid var(--edge)", color: "var(--ink)" }}
               >
                 <span className="tnum">{timeF.format(new Date(s.start))}</span>
-                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[.04em]" style={{ color: "var(--green-edge)" }}><Icon name={s.fmt === "online" ? "video" : "pin"} width={10} weight="bold" />{s.fmt === "online" ? "онлайн" : "очно"}</span>
+                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[.04em] text-[var(--edge)]"><Icon name={s.fmt === "online" ? "video" : "pin"} width={10} weight="bold" />{s.fmt === "online" ? "онлайн" : "очно"}</span>
               </button>
             ))}
           </div>

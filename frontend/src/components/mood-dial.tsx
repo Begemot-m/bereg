@@ -19,8 +19,8 @@ export function MoodHomeCard({ mood, moods, onOpen, embedded = false }: { mood?:
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
-      className={`relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99] ${embedded ? "rounded-[18px]" : "card-soft"}`}
-      style={{ background: mood ? `${tint}2e` : embedded ? "transparent" : "var(--head-soft)" }}
+      className={`relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99] ${embedded ? "" : "card-soft"}`}
+      style={{ background: embedded ? "transparent" : mood ? `${tint}2e` : "var(--head-soft)" }}
     >
       <div className="relative flex items-center gap-3">
         <motion.span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>

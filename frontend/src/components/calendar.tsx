@@ -46,7 +46,7 @@ export function MonthCalendar({
   const start = startOfWeek(first);
   const cells = Array.from({ length: 42 }, (_, i) => addDays(start, i));
 
-  const navBtn = "arrow active:scale-90";
+  const navBtn = "flex h-8 w-8 items-center justify-center bg-transparent text-[var(--edge)] transition-transform active:scale-90";
   return (
     <div className={tone === "blend" ? "px-0.5" : "chunk p-3.5"} style={tone === "blend" ? { background: "transparent" } : undefined}>
       <div className="mb-2 flex items-center justify-between">
@@ -93,8 +93,8 @@ export function MonthCalendar({
         })}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
-        {avail && <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ border: "var(--bw) solid var(--edge)" }} /> свободно</span>}
-        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }} /> есть записи</span>
+        {avail && <span className="flex items-center gap-1.5"><span className="keep-style h-3.5 w-3.5 rounded-full" style={{ border: "var(--bw) solid var(--edge)" }} /> свободно</span>}
+        <span className="flex items-center gap-1.5"><span className="keep-style h-3.5 w-3.5 rounded-full" style={{ background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }} /> есть записи</span>
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
       </div>
     </div>

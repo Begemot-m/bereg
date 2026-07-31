@@ -55,16 +55,16 @@ function ClientTools() {
 
       <Reveal y={10}>
         <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
-          <section className="overflow-hidden rounded-[20px] bg-[var(--ink)] text-white">
+          <section className="overflow-hidden rounded-[20px] bg-[var(--head-soft)] text-[var(--ink)]">
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="chip bg-white uppercase text-[var(--ink)]">Скоро в Методике</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">Больше опоры между встречами</h2>
-                <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-white/75">Тесты для самодиагностики, AI-ассистент, база знаний и новые практики уже в работе.</p>
+                <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-[var(--muted)]">Тесты для самодиагностики, AI-ассистент, база знаний и новые практики уже в работе.</p>
               </div>
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-white/15"><Icon name="spark" width={28} weight="fill" color="#fff" /></span>
+              <span className="ico ico-accent h-14 w-14 shrink-0"><Icon name="compass" width={28} weight="bold" color="#fff" /></span>
             </div>
           </section>
 
@@ -91,12 +91,6 @@ function ClientTools() {
               </Reveal>;
             })}
           </div>
-
-          {history.some((x) => typeof x.before === "number" && typeof x.after === "number") && <section className="card-soft mt-5 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Личное наблюдение</p>
-            <p className="mt-1 font-tight text-[17px] font-black">Практики уже помогают замечать изменения</p>
-            <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Это не оценка и не диагноз — только ваша сохранённая динамика до и после.</p>
-          </section>}
 
           <div className="mb-2 mt-6 flex items-end justify-between">
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Ещё для себя</p>

@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { syncTelegramChrome } from "@/components/telegram-init";
@@ -78,6 +79,7 @@ function yearsWord(value: number) {
 }
 
 export default function CatalogPage() {
+  const router = useRouter();
   const profile = useProfile();
   const { data: subscription } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const [mode, setMode] = useState<CatalogMode>("personal");
@@ -88,11 +90,13 @@ export default function CatalogPage() {
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Psy | null>(null);
+  const [returnToTherapy, setReturnToTherapy] = useState(false);
 
   // Пришли по ссылке от специалиста: /catalog?psy=<id>&book=1
   const [invited, setInvited] = useState(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    setReturnToTherapy(params.get("from") === "therapy");
     const id = Number(params.get("psy"));
     if (!id) return;
     setInvited(params.get("book") === "1");
@@ -132,13 +136,13 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} onBack={() => setSelected(null)} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} backLabel={returnToTherapy ? "вернуться в терапию" : "вернуться в каталог"} onBack={() => returnToTherapy ? router.push("/therapy") : setSelected(null)} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
       <header className="px-4 pb-14 pt-8 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-start justify-between gap-3">
-          <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="font-tight mt-2 max-w-[250px] text-[12px] font-bold leading-snug text-[var(--muted)]">Специалисты, которые подойдут именно вам.</p></div>
+          <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="font-tight mt-2 max-w-[270px] text-[12px] font-bold leading-snug text-[var(--muted)]">Проверенные специалисты, которые подойдут именно вам</p></div>
           <button onClick={() => { tap(); setSurveyOpen(true); }} className="flex w-[92px] shrink-0 flex-col items-center gap-1 rounded-[14px] bg-white px-2 py-2.5" style={{ border: "var(--bw) solid var(--ink)" }} aria-label="Собрать персональную подборку">
             <Icon name="sort" width={20} weight="bold" color="var(--ink)" />
             <span className="text-[9.5px] font-black leading-tight">Персональная<br />подборка</span>
@@ -229,7 +233,7 @@ function AttachTherapistButton({ name }: { name: string }) {
   );
 }
 
-function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; prefs: CatalogPrefs; invited?: boolean; onBack: () => void }) {
+function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy: Psy; prefs: CatalogPrefs; invited?: boolean; backLabel: string; onBack: () => void }) {
   const tone = CATALOG_TONE;
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const wasInTherapy = bookings.some((booking) => booking.psyName === psy.name);
@@ -252,7 +256,7 @@ function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; pref
           </span>
         </div>
       ) : (
-        <button onClick={onBack} className="back-link mb-3">вернуться в каталог</button>
+        <button onClick={onBack} className="back-link mb-3">{backLabel}</button>
       )}
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} tone={tone} />

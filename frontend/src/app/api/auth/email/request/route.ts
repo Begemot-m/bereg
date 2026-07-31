@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({ where: { email } });
 
-  if (user && !user.deletedAt && !user.blockedAt) {
+  if (user && user.emailVerifiedAt && !user.deletedAt && !user.blockedAt) {
     const code = await issueCode(email, clientIp(req));
     const letter = otpLetter(code);
     await sendMail({ to: email, ...letter });

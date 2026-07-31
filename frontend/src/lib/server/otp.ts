@@ -7,7 +7,7 @@
 //   — ответ на запрос кода одинаковый для существующей и несуществующей
 //     почты, иначе форма превращается в проверку «есть ли такой аккаунт».
 
-import { createHash, randomInt, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 import { prisma } from "@/lib/server/prisma";
 
@@ -20,8 +20,7 @@ export function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }
 
-export async function issueCode(email: string, ip: string | null): Promise<string> {
-  const code = generateCode();
+async function issueSecret(email: string, secret: string, ip: string | null): Promise<string> {
   const expiresAt = new Date(Date.now() + TTL_MINUTES * 60_000);
 
   // Прошлые коды для этой почты гасим: иначе их накапливается пачка,
@@ -32,9 +31,17 @@ export async function issueCode(email: string, ip: string | null): Promise<strin
   });
 
   await prisma.emailOtp.create({
-    data: { email, codeHash: hash(code).toString("base64"), expiresAt, ip },
+    data: { email, codeHash: hash(secret).toString("base64"), expiresAt, ip },
   });
-  return code;
+  return secret;
+}
+
+export async function issueCode(email: string, ip: string | null): Promise<string> {
+  return issueSecret(email, generateCode(), ip);
+}
+
+export async function issueEmailToken(email: string, ip: string | null): Promise<string> {
+  return issueSecret(email, randomBytes(32).toString("base64url"), ip);
 }
 
 export type CheckResult = { ok: true } | { ok: false; reason: "expired" | "wrong" | "too_many" };
@@ -63,6 +70,17 @@ export async function checkCode(email: string, code: string): Promise<CheckResul
 
   await prisma.emailOtp.update({ where: { id: otp.id }, data: { usedAt: new Date() } });
   return { ok: true };
+}
+
+export async function consumeEmailToken(token: string): Promise<{ ok: true; email: string } | { ok: false }> {
+  const codeHash = hash(token).toString("base64");
+  const otp = await prisma.emailOtp.findFirst({
+    where: { codeHash, usedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!otp) return { ok: false };
+  await prisma.emailOtp.update({ where: { id: otp.id }, data: { usedAt: new Date() } });
+  return { ok: true, email: otp.email };
 }
 
 export const normalizeEmail = (raw: string) => raw.trim().toLowerCase();

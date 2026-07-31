@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +15,7 @@ import { ProfileEditor } from "@/components/profile-editor";
 import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card, Input } from "@/components/ui";
-import { isEmail, useAccountEmail } from "@/lib/account";
+import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
@@ -78,13 +79,11 @@ export default function CabinetPage() {
         {/* Приватность и данные */}
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
+          <div className="card-soft mb-3 flex items-start gap-3 p-4">
+            <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="lock" width={21} weight="bold" color="var(--edge)" /></span>
+            <p className="t-body">Ваши данные конфиденциальны. Чувствительные сведения хранятся в зашифрованном виде. При желании вы можете удалить все сведения о себе и использовании сервиса.</p>
+          </div>
           <Card className="space-y-1">
-            <ActionRow
-              icon="note"
-              title="Выгрузить мои данные"
-              sub="Один файл со всем, что о вас хранится"
-              onClick={() => { tap(); window.location.href = "/api/my/export"; }}
-            />
             <ActionRow
               icon="book"
               title="Политика обработки данных"
@@ -92,7 +91,7 @@ export default function CabinetPage() {
               onClick={() => router.push("/policy")}
             />
             <ActionRow icon="compass" title="Пройти знакомство заново" sub="Онбординг и экскурсия по разделам" onClick={() => { resetTours(); resetOnboarding(); }} />
-            <ActionRow icon="gear" title="Очистить данные на устройстве" sub="Сбросить демо к исходному состоянию" danger onClick={() => { if (confirm("Очистить локальные данные и вернуть демо к началу?")) { resetLocalData(); location.reload(); } }} />
+            <ActionRow icon="gear" title="Очистить данные на устройстве" sub="Удалить все сведения о себе" danger onClick={() => { if (confirm("Удалить все данные на этом устройстве?")) { resetLocalData(); location.reload(); } }} />
             <DeleteAccountRow />
           </Card>
         </div>
@@ -116,7 +115,7 @@ export default function CabinetPage() {
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}><Icon name="therapy" width={22} weight="bold" /></span>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-black">Методика</p>
-              <p className="text-[11.5px] font-semibold text-[var(--muted)]">Демо-прототип · центр «Амур и Психея». Данные живут только на этом устройстве.</p>
+              <p className="text-[11.5px] font-semibold text-[var(--muted)]">Платформа центра «Амур и Психея».</p>
               <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Сборка от {buildLabel()}</p>
             </div>
           </Card>
@@ -180,22 +179,69 @@ function AdminEntry() {
   );
 }
 
-// Привязка почты: вход не только из Telegram. В демо — на устройстве.
 function EmailLink() {
-  const [email, setEmail] = useAccountEmail();
+  const qc = useQueryClient();
+  const account = useQuery({
+    queryKey: ["account-email"],
+    queryFn: getAccountEmail,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => query.state.data?.email && !query.state.data.verified ? 5000 : false,
+  });
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState("");
   const ok = isEmail(draft);
+  const email = account.data?.email ?? null;
+
+  const bind = useMutation({
+    mutationFn: bindAccountEmail,
+    onSuccess: (data) => {
+      qc.setQueryData(["account-email"], data);
+      setNotice(data.message ?? "Ссылка для подтверждения отправлена на почту");
+      setEditing(false);
+    },
+    onError: () => setNotice("Не удалось отправить письмо. Попробуйте ещё раз."),
+  });
+  const verify = useMutation({
+    mutationFn: confirmAccountEmail,
+    onSuccess: (data) => { qc.setQueryData(["account-email"], data); setNotice(""); },
+  });
+  const unbind = useMutation({
+    mutationFn: unbindAccountEmail,
+    onSuccess: () => { qc.setQueryData(["account-email"], { email: null, verified: false }); setDraft(""); setEditing(false); setNotice(""); },
+  });
+
+  if (email && account.data?.verified && !editing) {
+    return (
+      <Card>
+        <div className="flex items-center gap-3">
+          <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="check" width={20} weight="bold" color="#fff" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="t-head">Подтверждено</p>
+            <p className="t-cap truncate">{email}</p>
+          </div>
+          <button onClick={() => { tap(); setDraft(email); setEditing(true); }} className="btn btn-white shrink-0 px-3 py-1.5 text-[12px]">Изменить</button>
+        </div>
+        <p className="t-body mt-3">Теперь вы можете пользоваться десктопной версией в браузере на планшете или компьютере.</p>
+      </Card>
+    );
+  }
 
   if (email && !editing) {
     return (
-      <Card className="flex items-center gap-3">
-        <span className="ico h-11 w-11 shrink-0"><Icon name="check" width={20} weight="bold" color="var(--edge)" /></span>
-        <div className="min-w-0 flex-1">
-          <p className="t-cap">Почта привязана</p>
-          <p className="font-tight truncate text-[14px] font-bold">{email}</p>
+      <Card>
+        <div className="flex items-center gap-3">
+          <span className="ico h-11 w-11 shrink-0"><Icon name="telegram" width={20} weight="bold" color="var(--edge)" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="t-head">Подтверждение отправлено</p>
+            <p className="t-cap truncate">{email}</p>
+          </div>
         </div>
-        <button onClick={() => { tap(); setDraft(email); setEditing(true); }} className="btn btn-white shrink-0 px-3 py-1.5 text-[12px]">Изменить</button>
+        <p className="t-body mt-3">{notice || "Перейдите по ссылке из письма, чтобы подтвердить адрес."}</p>
+        <div className="mt-3 flex gap-2">
+          {account.data?.canConfirm && <button onClick={() => { tap(); verify.mutate(); }} disabled={verify.isPending} className="btn btn-accent flex-1">Подтвердить</button>}
+          <button onClick={() => { tap(); setDraft(email); setEditing(true); }} className="btn btn-white flex-1">Изменить</button>
+        </div>
       </Card>
     );
   }
@@ -214,20 +260,21 @@ function EmailLink() {
           placeholder="you@example.com"
         />
         <button
-          disabled={!ok}
-          onClick={() => { tap(); setEmail(draft); setEditing(false); }}
+          onClick={() => { tap(); bind.mutate(draft); }}
+          disabled={!ok || bind.isPending}
           className="btn btn-accent shrink-0 px-3.5 py-2 text-[12px]"
         >
-          Привязать
+          {bind.isPending ? "Отправляем…" : "Привязать"}
         </button>
       </div>
       {email && (
         <div className="mt-2 flex items-center justify-between">
           <button onClick={() => { setEditing(false); setDraft(""); }} className="text-[12px] font-bold text-[var(--muted)]">Отмена</button>
-          <button onClick={() => { if (confirm("Отвязать почту?")) { setEmail(null); setEditing(false); setDraft(""); } }} className="text-[12px] font-bold" style={{ color: "var(--danger)" }}>Отвязать</button>
+          <button onClick={() => { if (confirm("Отвязать почту?")) unbind.mutate(); }} className="text-[12px] font-bold" style={{ color: "var(--danger)" }}>Отвязать</button>
         </div>
       )}
       {draft && !ok && <p className="mt-1.5 text-[11px] font-semibold" style={{ color: "var(--danger)" }}>Похоже, в адресе опечатка</p>}
+      {notice && <p className="t-cap mt-2" style={{ color: "var(--danger)" }}>{notice}</p>}
     </Card>
   );
 }

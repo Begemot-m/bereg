@@ -16,9 +16,8 @@ function plural(n: number, one: string, few: string, many: string): string {
 }
 
 // Один блок вместо трёх: сколько прошло встреч, что с заданиями и сами задания.
-export function WorkWithSpecialist({ sessionsDone, nextAt, homework, onChanged }: {
+export function WorkWithSpecialist({ sessionsDone, homework, onChanged }: {
   sessionsDone: number;
-  nextAt: string | null;
   homework: Homework[];
   onChanged: () => void;
 }) {
@@ -46,12 +45,6 @@ export function WorkWithSpecialist({ sessionsDone, nextAt, homework, onChanged }
       {homework.length > visible.length && <button onClick={() => { tap(); setHistoryOpen((v) => !v); }} className="mt-2 inline-flex min-h-9 items-center text-[12px] font-black text-[var(--purple-edge)]">{historyOpen ? "Скрыть историю заданий" : `История заданий · ${done}`}</button>}
       <AnimatePresence initial={false}>{historyOpen && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-2 space-y-2 overflow-hidden">{homework.filter((hw) => !visible.some((item) => item.id === hw.id)).map((hw) => <HomeworkCard key={hw.id} hw={hw} onChanged={onChanged} />)}</motion.div>}</AnimatePresence>
 
-      {nextAt && (
-        <p className="t-cap mt-3 flex items-center gap-1.5">
-          <Icon name="calendar" width={13} weight="bold" color="var(--green-edge)" />
-          Следующая встреча: {new Date(nextAt).toLocaleString("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
-        </p>
-      )}
     </section>
   );
 }
@@ -81,16 +74,12 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
     >
       <div className="flex items-start gap-2.5">
         {isNew && <span className="mt-0.5 shrink-0"><Alert /></span>}
-        {isDone && (
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--green)" }}>
-            <Icon name="check" width={11} weight="bold" color="var(--green-edge)" />
-          </span>
-        )}
+        {isDone && <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green-edge)]"><Icon name="check" width={11} weight="bold" color="#fff" /></span>}
         <p className={`t-body min-w-0 flex-1 ${isDone ? "line-through text-[var(--muted)]" : ""}`}>{hw.text}</p>
-        <div className="grid shrink-0 grid-cols-2 rounded-full bg-[var(--surface-2)] p-0.5 text-[9px] font-black">
-          <button onClick={() => { select(); save.mutate("doing"); }} className="rounded-full px-2 py-1" style={!isDone ? { background: "var(--purple-soft)", color: "var(--purple-edge)" } : undefined}>Выполняется</button>
-          <button onClick={() => { select(); save.mutate("done"); }} className="rounded-full px-2 py-1" style={isDone ? { background: "var(--green-soft)", color: "var(--green-edge)" } : undefined}>Выполнено</button>
-        </div>
+      </div>
+      <div className="mt-2.5 grid w-full grid-cols-2 rounded-full bg-[var(--surface-2)] p-0.5 text-[11px] font-black">
+        <button onClick={() => { select(); save.mutate("doing"); }} className="rounded-full px-3 py-2" style={!isDone ? { background: "var(--purple-edge)", color: "#fff" } : { color: "var(--muted)" }}>Выполняется</button>
+        <button onClick={() => { select(); save.mutate("done"); }} className="rounded-full px-3 py-2" style={isDone ? { background: "var(--green-edge)", color: "#fff" } : { color: "var(--muted)" }}>Выполнено</button>
       </div>
       <AnimatePresence>
         {celebrate && (
