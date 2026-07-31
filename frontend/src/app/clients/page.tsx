@@ -255,12 +255,14 @@ function ClientCard({ client: c }: { client: Client }) {
           {c.nextAt ? `Ближайшая · ${relDay(c.nextAt)}` : "Записи нет"}
         </span>
         <div className="mt-2 flex flex-wrap justify-end gap-2">
-          <span
-            className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 font-black"
+          <Link
+            href={`/clients/?id=${c.id}`}
+            onClick={tap}
+            className="t-cap relative z-20 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 font-black"
             style={{ background: "#fff", border: "var(--bw) solid var(--purple-edge)", color: "var(--purple-edge)" }}
           >
             <Icon name="user" width={13} weight="bold" color="var(--purple-edge)" /> Открыть карточку
-          </span>
+          </Link>
           {href && (
             <a
               href={href}

@@ -1,16 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { Arrow, ArrowGlyph } from "@/components/blocks";
-import { asset } from "@/lib/asset";
 import { APP_NAME } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { completeOnboarding, tgUser } from "@/lib/profile";
 import { setRole, type Role } from "@/lib/role";
-import { ProSell } from "@/components/pro-sell";
+import { FREE_CLIENT_LIMIT } from "@/lib/subscription";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -31,25 +29,25 @@ const INTRO: Intro[] = [
     key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Найти своего специалиста", "Отслеживать динамику настроения и сессий", "Самостоятельная помощь на каждый день"],
-    img: "/onboarding/intro-1.webp", mock: <OverviewMock />,
+    mock: <OverviewMock />,
   },
   {
     key: "catalog", kicker: "каталог", title: "Умный подбор специалистов",
     bg: "var(--tiffany-soft)", soft: "#effaf7", tone: "var(--tiffany-edge)",
     points: ["Персональный подбор вместо рейтинга", "Честные отзывы после встреч", "Удобный поиск по запросу"],
-    img: "/onboarding/intro-2.webp", mock: <CatalogMock />,
+    mock: <CatalogMock />,
   },
   {
     key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний",
     bg: "var(--olive-soft)", soft: "#f3f5df", tone: "var(--olive-edge)",
     points: ["Подберём лучшие практики между сессиями", "С отслеживанием настроения", "Дыхание, дневники, колесо баланса"],
-    img: "/onboarding/intro-3.webp", mock: <ToolsMock />,
+    mock: <ToolsMock />,
   },
   {
     key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Формирование свободных окон для записи", "CRM-система для ведения клиентов", "Напоминания о встречах"],
-    img: "/onboarding/intro-4.webp", mock: <ScheduleMock />,
+    mock: <ScheduleMock />,
   },
 ];
 
@@ -57,12 +55,21 @@ export function Onboarding() {
   const [step, setStep] = useState(0); // 0..3 — интро, 4 — выбор роли
   const [psySell, setPsySell] = useState(false); // после выбора «психолог» — продажа PRO
   const tg = tgUser();
+  const swipeX = useRef<number | null>(null);
   const isRole = step === INTRO.length && !psySell;
   const cur = INTRO[step];
 
   const finish = () => { success(); completeOnboarding(); };
   const next = () => { select(); setStep((s) => Math.min(INTRO.length, s + 1)); };
   const back = () => { tap(); setStep((s) => Math.max(0, s - 1)); };
+  const endSwipe = (x: number) => {
+    const start = swipeX.current;
+    swipeX.current = null;
+    if (start == null || isRole || psySell) return;
+    const delta = x - start;
+    if (Math.abs(delta) < 48) return;
+    if (delta < 0) next(); else back();
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" data-accent="purple" style={{ background: psySell ? "#ffffff" : isRole ? "var(--tiffany-soft)" : cur.bg, transition: "background-color .5s ease" }}>
@@ -74,7 +81,14 @@ export function Onboarding() {
         </>
       )}
 
-      <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col px-4 pb-[calc(var(--safe-bottom)+18px)] pt-[var(--top-pad)] min-[360px]:px-5 min-[390px]:px-6">
+      {!isRole && !psySell && (
+        <>
+          <button type="button" onClick={back} disabled={step === 0} className="absolute bottom-16 left-0 top-[calc(var(--top-pad)+48px)] z-20 w-[15%] disabled:pointer-events-none" aria-label="Предыдущий экран" />
+          <button type="button" onClick={next} className="absolute bottom-16 right-0 top-[calc(var(--top-pad)+48px)] z-20 w-[15%]" aria-label="Следующий экран" />
+        </>
+      )}
+
+      <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col px-4 pb-[calc(var(--safe-bottom)+18px)] pt-[var(--top-pad)] min-[360px]:px-5 min-[390px]:px-6 md:pt-8">
         {/* Верх: логотип + прогресс + пропустить */}
         <div className="flex items-center gap-3">
           <span className="flex h-7 items-center rounded-[8px] bg-[var(--ink)] px-2 text-[12px] font-black text-[var(--bg)]">{APP_NAME}</span>
@@ -91,7 +105,10 @@ export function Onboarding() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -26 }}
             transition={{ duration: 0.28, ease: EASE }}
-            className="flex min-h-0 flex-1 flex-col"
+            className="relative flex min-h-0 flex-1 flex-col touch-pan-y"
+            onPointerDown={(event) => { if (!isRole && !psySell) swipeX.current = event.clientX; }}
+            onPointerUp={(event) => endSwipe(event.clientX)}
+            onPointerCancel={() => { swipeX.current = null; }}
           >
             {psySell ? (
               <PsySell onStart={finish} />
@@ -113,18 +130,18 @@ export function Onboarding() {
                 <div className="relative flex min-h-[238px] flex-1 items-center justify-center py-3">
                   <span aria-hidden className="pointer-events-none absolute h-[min(300px,82vw)] w-[min(300px,82vw)] rounded-full" style={{ background: cur.soft, opacity: 0.75 }} />
                   <span aria-hidden className="pointer-events-none absolute bottom-2 h-24 w-52 rounded-full blur-2xl" style={{ background: cur.tone, opacity: 0.25 }} />
-                  <Shot src={cur.img} tone={cur.tone}>{cur.mock}</Shot>
+                  <Shot tone={cur.tone}>{cur.mock}</Shot>
                 </div>
               </div>
             )}
           </motion.div>
         </AnimatePresence>
 
-        {/* Низ: назад + стрелка (на интро-экранах) */}
+        {/* Текстовая навигация остаётся доступной помимо свайпа и тап-зон. */}
         {!isRole && !psySell && (
-          <div className="flex items-center justify-between">
-            <button onClick={back} disabled={step === 0} className="back-link disabled:opacity-0" aria-label="Назад">Назад</button>
-            <motion.button onClick={next} whileTap={{ scale: 0.9 }} className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg" style={{ background: "var(--ink)", color: "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }} aria-label="Дальше"><ArrowGlyph size={24} /></motion.button>
+          <div className="relative z-30 flex items-center justify-between">
+            <button onClick={back} disabled={step === 0} className="back-link disabled:opacity-0" style={{ color: cur.tone }} aria-label="Назад">Назад</button>
+            <button onClick={next} className="back-link" style={{ color: cur.tone }} aria-label="Далее">Далее</button>
           </div>
         )}
       </div>
@@ -134,36 +151,70 @@ export function Onboarding() {
 
 // После выбора «психолог» — продающий экран PRO с бесплатным стартом.
 function PsySell({ onStart }: { onStart: () => void }) {
+  const rows: { icon: IconName; label: string; free: string; pro: string }[] = [
+    { icon: "users", label: "Клиенты", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
+    { icon: "calendar", label: "Записи и расписание", free: "всё", pro: "всё" },
+    { icon: "note", label: "Задания и заметки", free: "всё", pro: "всё" },
+    { icon: "chart", label: "Статистика работы", free: "всё", pro: "всё" },
+    { icon: "compass", label: "Каталог новых клиентов", free: "—", pro: "включён" },
+  ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-3">
-        <ProSell art="/sell/onboarding-pro.webp" />
+      <div className="min-h-0 flex-1 overflow-y-auto pb-4 pt-4">
+        <span className="ico ico-accent h-12 w-12"><Icon name="users" width={23} weight="bold" color="#fff" /></span>
+        <p className="t-micro mt-3" style={{ color: "var(--purple-edge)" }}>Для психологов</p>
+        <h1 className="font-tight mt-1 text-[clamp(25px,7vw,30px)] font-black leading-[1.02] text-[var(--ink)]">
+          Больше клиентов<br /><span style={{ color: "var(--purple-edge)" }}>без лимитов</span>
+        </h1>
+
+        <div className="mt-4 rounded-[20px] p-4" style={{ background: "var(--purple-soft)" }}>
+          <div className="flex items-start gap-3">
+            <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" color="#fff" /></span>
+            <div>
+              <p className="t-head text-[var(--ink)]">{FREE_CLIENT_LIMIT} клиента бесплатно</p>
+              <p className="t-sub mt-0.5">Все функции доступны сразу. Карта не нужна.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-[18px] bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+          <div className="grid grid-cols-[minmax(0,1fr)_72px_82px] items-center bg-[var(--purple-soft)] px-3 py-2.5 text-[11px] font-black">
+            <span>Возможности</span><span className="text-center">Бесплатно</span><span className="text-center" style={{ color: "var(--purple-edge)" }}>PRO</span>
+          </div>
+          {rows.map((row) => (
+            <div key={row.label} className="line-top grid grid-cols-[minmax(0,1fr)_72px_82px] items-center gap-1 px-3 py-2.5">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--purple-edge)]"><Icon name={row.icon} width={13} weight="bold" color="#fff" /></span>
+                <span className="text-[11px] font-bold leading-tight text-[var(--ink)]">{row.label}</span>
+              </span>
+              <span className="text-center text-[10.5px] font-bold text-[var(--muted)]">{row.free}</span>
+              <span className="text-center text-[10.5px] font-black" style={{ color: "var(--purple-edge)" }}>{row.pro}</span>
+            </div>
+          ))}
+        </div>
       </div>
       <div className="pt-2">
-        <button onClick={() => { tap(); onStart(); }} className="btn w-full py-3.5 text-[14px]">Начать бесплатно — 3 клиента</button>
-        <button onClick={() => { tap(); onStart(); }} className="mx-auto mt-2 block py-1 text-[12px] font-black text-[var(--muted)]">PRO подключу, когда вырасту</button>
+        <button onClick={() => { tap(); onStart(); }} className="btn btn-accent w-full py-3.5 text-[14px]"><Icon name="plus" width={17} weight="bold" color="#fff" /> Начать бесплатно</button>
       </div>
     </div>
   );
 }
 
-// Экран выбора роли: фиолетовый залив сверху, кнопки — ниже, под рукой.
 function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
-  const roles: { role: Role; title: string; icon: IconName; fill: string }[] = [
-    { role: "psychologist", title: "Я психолог", icon: "users", fill: "fill-green" },
-    { role: "client", title: "Я ищу специалиста", icon: "heart", fill: "fill-purple" },
-    { role: "guest", title: "Я хочу заниматься сам", icon: "compass", fill: "fill-amber" },
+  const roles: { role: Role; title: string; text: string; icon: IconName; tone: string }[] = [
+    { role: "psychologist", title: "Я психолог", text: "Клиенты, записи и практика", icon: "users", tone: "purple" },
+    { role: "client", title: "Я ищу специалиста", text: "Подбор и сопровождение", icon: "heart", tone: "tiffany" },
+    { role: "guest", title: "Я занимаюсь сам", text: "Практики и наблюдения", icon: "compass", tone: "olive" },
   ];
   return (
     <div className="flex flex-1 flex-col">
-      <div className="mt-4 rounded-[23px] p-5 pb-6 min-[390px]:p-6 min-[390px]:pb-8" style={{ background: "var(--tiffany-soft)", border: "var(--bw-lg) solid var(--tiffany-edge)" }}>
-        <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white stroke"><Icon name="therapy" width={22} weight="fill" /></span>
-        <h1 className="font-tight mt-4 text-[27px] font-black leading-[1.08]">{firstName ? `${firstName}, с чего` : "С чего"}<br />начнём?</h1>
+      <div className="mt-5">
+        <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--purple-edge)]"><Icon name="therapy" width={24} weight="fill" color="#fff" /></span>
+        <h1 className="font-tight mt-4 text-[27px] font-black leading-[1.08] text-[var(--ink)]">{firstName ? `${firstName}, с чего` : "С чего"}<br />начнём?</h1>
         <p className="mt-2 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
       </div>
 
-      {/* Кнопки — ниже залива, в зоне большого пальца */}
-      <div className="mt-auto space-y-2.5 pt-4 min-[390px]:space-y-3 min-[390px]:pt-6">
+      <div className="mt-5">
         {roles.map((item, k) => (
           <motion.button
             key={item.role}
@@ -172,11 +223,11 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
             transition={{ delay: 0.05 + k * 0.07, duration: 0.4, ease: EASE }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onPick(item.role)}
-            className={`chunk ${item.fill} flex w-full items-center gap-3 p-3.5 text-left min-[390px]:gap-3.5 min-[390px]:p-4`}
+            className={`flex w-full items-center gap-3 py-4 text-left ${k ? "line-top" : ""}`}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white stroke"><Icon name={item.icon} width={22} weight="regular" color="var(--ink)" /></span>
-            <span className="flex-1 text-[16px] font-black">{item.title}</span>
-            <Arrow />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style={{ background: `var(--${item.tone}-edge)` }}><Icon name={item.icon} width={21} weight="bold" color="#fff" /></span>
+            <span className="min-w-0 flex-1"><span className="t-head block text-[var(--ink)]">{item.title}</span><span className="t-sub mt-0.5 block">{item.text}</span></span>
+            <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: `var(--${item.tone}-soft)`, border: `2px solid var(--${item.tone}-edge)` }} />
           </motion.button>
         ))}
       </div>
@@ -184,13 +235,9 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
   );
 }
 
-// Слот под реальный скрин; если файла нет — макет элемента приложения в рамке телефона.
-function Shot({ src, tone, children }: { src?: string; tone: string; children: ReactNode }) {
-  const [broken, setBroken] = useState(false);
-  if (src && !broken) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={asset(src)} alt="" onError={() => setBroken(true)} className="max-h-[min(36dvh,310px)] max-w-full object-contain drop-shadow-[0_24px_44px_rgba(32,28,24,0.4)]" />;
-  }
+// Адаптивный снимок актуальных элементов интерфейса. Он использует общие
+// токены приложения и не остаётся в старой палитре после её обновления.
+function Shot({ tone, children }: { tone: string; children: ReactNode }) {
   return <Phone tone={tone}>{children}</Phone>;
 }
 
@@ -227,12 +274,13 @@ function OverviewMock() {
       <Box>
         <Bar w="55%" h={6} tone="rgba(32,28,24,.3)" />
         <div className="mt-1.5 flex items-end justify-center gap-[3px]">
-          {[10, 16, 12, 20, 26, 22, 30].map((height, i) => <span key={i} className="w-[7px] rounded-full" style={{ height, background: i > 3 ? "var(--green)" : "var(--amber)", border: "1px solid rgba(32,28,24,.18)" }} />)}
+          {[10, 16, 12, 20, 26, 22, 30].map((height, i) => <span key={i} className="w-[7px] rounded-full" style={{ height, background: i === 4 ? "var(--olive-edge)" : "var(--amber-soft)", border: "1px solid rgba(32,28,24,.18)" }} />)}
         </div>
       </Box>
-      <div className="grid grid-cols-2 gap-1.5">
-        <Box tone="var(--green-soft)" edge="var(--green-edge)"><span className="block text-center text-[13px] font-black leading-none">12</span><span className="mt-1 block text-center text-[6px] font-black uppercase text-[var(--muted)]">встреч</span></Box>
-        <Box tone="var(--purple-soft)" edge="var(--purple-edge)"><span className="block text-center text-[13px] font-black leading-none">9 ч</span><span className="mt-1 block text-center text-[6px] font-black uppercase text-[var(--muted)]">всего</span></Box>
+      <div className="grid grid-cols-3 gap-1">
+        <Box tone="var(--olive-soft)" edge="var(--olive-edge)"><span className="block text-center text-[13px] font-black leading-none">4</span><span className="mt-1 block text-center text-[5.5px] font-black uppercase text-[var(--muted)]">сессии</span></Box>
+        <Box tone="var(--amber-soft)" edge="var(--amber-edge)"><span className="block text-center text-[13px] font-black leading-none">4 ч</span><span className="mt-1 block text-center text-[5.5px] font-black uppercase text-[var(--muted)]">работы</span></Box>
+        <Box tone="var(--purple-soft)" edge="var(--purple-edge)"><span className="block text-center text-[13px] font-black leading-none">3</span><span className="mt-1 block text-center text-[5.5px] font-black uppercase text-[var(--muted)]">клиента</span></Box>
       </div>
     </div>
   );
