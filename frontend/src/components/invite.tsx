@@ -30,8 +30,8 @@ const COPY: Record<Variant, { title: string; sub: string; share: string }> = {
     share: "Веду практику в «Методика» — удобные инструменты и забота о клиентах между сессиями. Присоединяйтесь:",
   },
   client: {
-    title: "Поделитесь заботой",
-    sub: "Позовите друга в «Методика». Вам — подарки, другу — тёплый старт.",
+    title: "Подарите другу заботу о себе",
+    sub: "",
     share: "Забочусь о себе в «Методика»: настроение, практики, колесо баланса. Попробуй и ты:",
   },
 };
@@ -72,8 +72,8 @@ export function InviteBanner({ variant }: { variant: Variant }) {
           <motion.span className="ico ico-white h-14 w-14 shrink-0" animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="users" width={26} weight="fill" color="var(--olive-edge)" /></motion.span>
           <div className="min-w-0 flex-1">
             <p className="t-micro">Приведите {psy ? "коллегу" : "друга"}</p>
-            <p className="t-title mt-0.5">{psy ? "Позовите коллег в «Методику»" : "Подарите другу неделю Методика+"}</p>
-            <p className="t-sub mt-1">{psy ? "Коллеге — месяц PRO, вам — бонус" : "Другу — 7 дней бесплатно, вам — бонус"}</p>
+            <p className="t-title mt-0.5">{psy ? "Позовите коллег в «Методику»" : "Подарите другу заботу о себе"}</p>
+            {psy && <p className="t-sub mt-1">Коллеге — месяц PRO, вам — бонус</p>}
           </div>
         </div>
         {/* Кнопка в цвет обводки блока */}
@@ -92,7 +92,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
   const [copied, setCopied] = useState(false);
   useEffect(() => { setCode(refCode()); setInvited(Number(localStorage.getItem("bereg_invited") || 0)); }, []);
 
-  const link = `${appUrl()}?ref=${code}`;
+  const link = variant === "client" ? `https://t.me/murpsybot?start=${code}` : `${appUrl()}?ref=${code}`;
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(c.share)}`;
   const bump = () => { const n = invited + 1; setInvited(n); localStorage.setItem("bereg_invited", String(n)); };
   const copy = async () => { try { await navigator.clipboard.writeText(link); success(); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ } };
@@ -109,12 +109,12 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
           <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
           <span className="ico ico-white relative h-12 w-12"><Icon name="spark" width={24} weight="fill" color="var(--edge)" /></span>
           <h3 className="font-tight relative mt-3 text-[20px] font-black leading-tight">{c.title}</h3>
-          <p className="t-sub relative mt-1">{c.sub}</p>
+          {c.sub && <p className="t-sub relative mt-1">{c.sub}</p>}
         </div>
 
         <div className="space-y-4 p-5">
           {/* Прогресс к плюшке */}
-          <div className="card-soft p-3.5">
+          {variant === "psy" && <div className="card-soft p-3.5">
             <div className="flex items-end justify-between">
               <div>
                 <p className="t-micro">Приглашено</p>
@@ -124,21 +124,24 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
             </div>
             <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white"><motion.div className="h-full rounded-full" style={{ background: "var(--edge)" }} initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.6 }} /></div>
             <p className="t-body mt-2">🎁 {nextPerk.reward}</p>
-          </div>
+          </div>}
 
           {/* Поделиться — главное действие, поэтому сразу под прогрессом */}
           <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => { bump(); success(); }} className="btn w-full py-3.5 text-[15px]">
-            <Icon name="spark" width={17} weight="fill" color="#fff" /> Поделиться в Telegram
+            <Icon name="telegram" width={17} weight="fill" color="#fff" /> Поделиться в Telegram
           </a>
 
           {/* Реферальная ссылка */}
-          <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2" style={{ border: "1px solid var(--edge)" }}>
-            <span className="t-cap min-w-0 flex-1 truncate">{link.replace(/^https?:\/\//, "")}</span>
-            <button onClick={copy} className="btn btn-accent shrink-0 px-2.5 py-1 text-[11px]">{copied ? "Скопировано" : "Копировать"}</button>
+          <div>
+            {variant === "client" && <p className="t-micro mb-2">Ссылка на Telegram-бота</p>}
+            <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2" style={{ border: "1px solid var(--edge)" }}>
+              <span className="t-cap min-w-0 flex-1 truncate">{link.replace(/^https?:\/\//, "")}</span>
+              <button onClick={copy} className="btn btn-accent shrink-0 px-2.5 py-1 text-[11px]">{copied ? "Скопировано" : "Копировать"}</button>
+            </div>
           </div>
 
           {/* Дорожная карта плюшек */}
-          <div>
+          {variant === "psy" && <div>
             <p className="t-micro mb-2">Что можно получить</p>
             <div className="space-y-1.5">
               {perks.map((p) => {
@@ -152,8 +155,8 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
                 );
               })}
             </div>
-          </div>
-          <p className="t-cap text-center">Бонусы начисляются, когда приглашённый регистрируется по вашей ссылке.</p>
+          </div>}
+          {variant === "psy" && <p className="t-cap text-center">Бонусы начисляются, когда приглашённый регистрируется по вашей ссылке.</p>}
         </div>
       </motion.div>
     </motion.div>

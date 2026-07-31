@@ -140,7 +140,7 @@ export function Onboarding() {
         {/* Текстовая навигация остаётся доступной помимо свайпа и тап-зон. */}
         {!isRole && !psySell && (
           <div className="relative z-30 flex items-center justify-between">
-            <button onClick={back} disabled={step === 0} className="back-link disabled:opacity-0" style={{ color: cur.tone }} aria-label="Назад">Назад</button>
+            <button onClick={back} disabled={step === 0} className="back-link disabled:opacity-0" aria-label="Назад">Назад</button>
             <button onClick={next} className="back-link" style={{ color: cur.tone }} aria-label="Далее">Далее</button>
           </div>
         )}

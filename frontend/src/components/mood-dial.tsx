@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowLeft } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
@@ -16,11 +15,12 @@ import type { Mood } from "@/lib/clients";
 export function MoodHomeCard({ mood, moods, onOpen, embedded = false }: { mood?: number; moods: Mood[]; onOpen: () => void; embedded?: boolean }) {
   const value = mood ?? 3;
   const recent = moods.slice(-7);
+  const tint = moodColor(value);
   return (
     <button
       onClick={() => { tap(); onOpen(); }}
       className={`relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99] ${embedded ? "rounded-[18px]" : "card-soft"}`}
-      style={{ background: "transparent" }}
+      style={{ background: mood ? `${tint}2e` : embedded ? "transparent" : "var(--head-soft)" }}
     >
       <div className="relative flex items-center gap-3">
         <motion.span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
@@ -72,7 +72,7 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
     <button
       onClick={() => { tap(); onOpen(); }}
       className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]"
-      style={{ background: "transparent" }}
+      style={{ background: mood ? `${moodColor(value)}33` : "var(--head-soft)" }}
     >
       <div className="flex items-center gap-3">
         <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center"><MoodBlob value={value} size={64} still /></span>
@@ -167,12 +167,10 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white text-[var(--ink)]">
-      <div className="flex shrink-0 items-center justify-between px-4 pb-2 pt-[max(12px,var(--top-pad))]" style={{ backgroundColor: tint }}>
-        <button onClick={() => { tap(); close(); }} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white transition-transform active:scale-95" aria-label="Вернуться назад">
-          <ArrowLeft size={20} weight="bold" />
-        </button>
-        <p className="rounded-full bg-black/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.13em] text-white">Настроение сегодня</p>
-        <span className="w-10" />
+      <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center bg-white px-4 pb-2 pt-[max(12px,var(--top-pad))]">
+        <button onClick={() => { tap(); close(); }} className="back-link justify-self-start" aria-label="Вернуться назад">Назад</button>
+        <p className="t-micro">Настроение сегодня</p>
+        <span />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">

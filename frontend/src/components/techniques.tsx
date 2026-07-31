@@ -76,7 +76,7 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
     <motion.section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[var(--surface)] @md:h-[min(844px,94dvh)] @md:rounded-[27px]" initial={reduce ? false : { y: 28, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={reduce ? undefined : { y: 20, opacity: 0 }} transition={{ duration: .24, ease: [0.32, 0.72, 0, 1] }} style={{ border: `var(--bw-lg) solid ${c.edge}` }}>
       <header className="shrink-0 px-4 pb-5 pt-[max(14px,var(--top-pad))]" style={{ background: c.bg, borderBottom: `var(--bw-lg) solid ${c.edge}` }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0 rounded-full bg-white px-3" style={{ color: c.edge }}>Назад</button>
+          <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0">Назад</button>
           <div className="min-w-0 flex-1"><p className="truncate font-tight text-[18px] font-black leading-tight">{meta.title}</p><p className="truncate text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">{meta.based}</p></div>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
         </div>
