@@ -51,7 +51,6 @@ bun run check
 - `DESIGN.md` — дизайн-система;
 - `BACKEND.md` — Prisma, API и база;
 - `RELEASE.md` и `UPDATES.md` — деплой и обновления;
-- `docs/` — завершённые планы, QA-материалы и архив;
 - `deploy/` — продакшен-конфигурация, выкладка и бэкапы.
 
 Корневой `docker-compose.yml` поднимает только локальный PostgreSQL.
