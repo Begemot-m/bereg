@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
@@ -18,7 +18,6 @@ import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
 import { DayAgenda, WeekWindows } from "@/components/week-windows";
-import { RemindersModule } from "@/components/reminders";
 import { SessionInviteButton } from "@/components/session-invite";
 // Редактор графика — самый тяжёлый компонент раздела: перетаскивание,
 // пружины, мини-неделя. В начальный бандл «Сессий» ему попадать незачем,
@@ -79,6 +78,7 @@ type View = "soon" | "week";
 
 function PsySessions() {
   const qc = useQueryClient();
+  const search = useSearchParams();
   const [view, setView] = useState<View>("soon");
   const [selDay, setSelDay] = useState<string | null>(null);
   // Календарь — не вкладка, а разворот верхней плашки вместо ленты дат.
@@ -101,6 +101,17 @@ function PsySessions() {
   const isLoading = appointmentsQuery.isLoading;
   const loadError = [appointmentsQuery, availabilityQuery, workQuery, overridesQuery].some((query) => query.isError);
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
+
+  useEffect(() => {
+    const appointmentId = Number(search.get("appointment"));
+    const requestedDate = search.get("date");
+    const target = appointmentId ? appts.find((item) => item.id === appointmentId) : null;
+    const date = target ? ymdLocal(new Date(target.startsAt)) : requestedDate;
+    if (!date) return;
+    setView("soon");
+    setCalOpen(false);
+    setSelDay(date);
+  }, [appts, search]);
 
   useEffect(() => {
     const seen = window.localStorage.getItem(SCHEDULE_SETUP_KEY) === "1";
@@ -351,7 +362,6 @@ function ScheduleSetup({ work, firstVisit, open, onOpen, onToggle, onLater, onHe
               onSaved={onSaved}
               tail={
                 <div className="space-y-3 pt-1" style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 14 }}>
-                  <RemindersModule />
                   <CancelLockRow />
                 </div>
               }

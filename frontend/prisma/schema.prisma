@@ -9,39 +9,42 @@ datasource db {
 
 // Пользователь платформы. В МВП вход через Telegram → это психолог.
 model User {
-  id         Int      @id @default(autoincrement())
-  telegramId BigInt   @unique
+  id         Int       @id @default(autoincrement())
+  telegramId BigInt    @unique
   username   String?
   firstName  String?
-  role       String   @default("psychologist") // psychologist | client
+  role       String    @default("psychologist") // psychologist | client
   /// Администратор платформы. Ставится вручную в базе: через интерфейс выдать
   /// нельзя, иначе первый же баг в правах раздаёт админку.
-  isAdmin    Boolean  @default(false)
+  isAdmin    Boolean   @default(false)
   /// Блокировка нарушителя: вход остаётся, но доступ к API закрыт.
   blockedAt  DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   // Почта привязывается внутри мини-приложения и служит входом в веб-версию.
-  email           String?   @unique
-  emailVerifiedAt DateTime?
+  email             String?   @unique
+  emailVerifiedAt   DateTime?
+  /// Дополнительное напоминание клиенту за 2 часа. За 24 часа обязательно.
+  sessionReminder2h Boolean   @default(false)
 
   // Мягкое удаление: по требованию об удалении ПД гасим доступ сразу,
   // физическая очистка идёт отдельным заданием с записью в аудит.
   deletedAt DateTime?
 
-  clients      Client[]
-  appointments Appointment[]
-  subscription Subscription?
-  sessions     Session[]
-  consents     Consent[]
-  auditEntries AuditLog[]
-  workHours    WorkHours?
-  slotOverrides SlotOverride[]
-  psyProfile   PsyProfile?
+  clients            Client[]
+  appointments       Appointment[]
+  subscription       Subscription?
+  sessions           Session[]
+  consents           Consent[]
+  auditEntries       AuditLog[]
+  workHours          WorkHours?
+  slotOverrides      SlotOverride[]
+  psyProfile         PsyProfile?
   /// Карточки, в которых этот пользователь — клиент (обратная сторона Client.user).
-  clientCards   Client[]         @relation("ClientUser")
-  notifications Notification[]
-  supportRequests SupportRequest[]
+  clientCards        Client[]           @relation("ClientUser")
+  notifications      Notification[]
+  telegramDeliveries TelegramDelivery[]
+  supportRequests    SupportRequest[]
 }
 
 /// Шаблон рабочих часов: по одной записи на психолога.
@@ -172,19 +175,19 @@ model Client {
 /// это карточка, её читают и пишут целиком. Отдельными колонками вынесено
 /// только то, по чему каталог фильтрует и сортирует.
 model PsyProfile {
-  userId         Int      @id
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name           String
-  primaryMethod  String   @default("")
-  experienceYears Int     @default(0)
-  sessionPrice   Int      @default(0)
-  sessionMinutes Int      @default(50)
-  format         String   @default("online") // online | offline | both
-  city           String   @default("")
+  userId          Int      @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  primaryMethod   String   @default("")
+  experienceYears Int      @default(0)
+  sessionPrice    Int      @default(0)
+  sessionMinutes  Int      @default(50)
+  format          String   @default("online") // online | offline | both
+  city            String   @default("")
   /// review — на модерации, approved — опубликована в каталоге
-  status         String   @default("review")
-  data           Json     @default("{}")
-  updatedAt      DateTime @updatedAt
+  status          String   @default("review")
+  data            Json     @default("{}")
+  updatedAt       DateTime @updatedAt
 
   @@index([status, sessionPrice])
 }
@@ -205,13 +208,13 @@ model Notification {
 /// Обращение в поддержку. Храним у себя, а не только шлём в чат: иначе
 /// потерянное сообщение никак не найти, а человек ждёт ответа.
 model SupportRequest {
-  id        Int      @id @default(autoincrement())
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id        Int       @id @default(autoincrement())
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId    Int?
-  topic     String   @default("other")
-  text      String   @db.Text
+  topic     String    @default("other")
+  text      String    @db.Text
   contact   String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   handledAt DateTime?
 
   @@index([createdAt])
@@ -265,21 +268,45 @@ model TherapyProfile {
 
 // Запись на приём.
 model Appointment {
-  id             Int      @id @default(autoincrement())
-  psychologist   User     @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
-  psychologistId Int
-  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId       Int
-  startsAt       DateTime
-  durationMin    Int      @default(60)
-  format         String   @default("online") // online | offline
-  status         String   @default("scheduled") // scheduled | done | cancelled
-  note           String   @default("") @db.Text
-  reminderSent   Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  id                 Int                @id @default(autoincrement())
+  psychologist       User               @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId     Int
+  client             Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId           Int
+  startsAt           DateTime
+  durationMin        Int                @default(60)
+  format             String             @default("online") // online | offline
+  status             String             @default("scheduled") // scheduled | done | cancelled
+  note               String             @default("") @db.Text
+  reminderSent       Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  telegramDeliveries TelegramDelivery[]
 
   @@index([psychologistId, startsAt])
   @@index([clientId])
+}
+
+/// Очередь сообщений Telegram. Одна встреча может породить несколько
+/// независимых доставок: событие расписания и напоминания за 24/2 часа.
+model TelegramDelivery {
+  id            Int         @id @default(autoincrement())
+  recipient     User        @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId   Int
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId Int
+  audience      String // psychologist | client
+  kind          String // booking | reschedule | cancel | reminder_24h | reminder_2h
+  payload       Json        @default("{}")
+  scheduledFor  DateTime
+  sentAt        DateTime?
+  cancelledAt   DateTime?
+  attempts      Int         @default(0)
+  lastError     String?
+  createdAt     DateTime    @default(now())
+
+  @@index([scheduledFor, sentAt, cancelledAt])
+  @@index([appointmentId, kind])
+  @@index([recipientId, createdAt])
 }
 
 // Подписка психолога (оплата через ЮKassa).

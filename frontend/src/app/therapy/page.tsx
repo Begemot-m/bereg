@@ -88,7 +88,13 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
   const [showGuide, setShowGuide] = useState(false);
   // «Ближайшая сессия» с главной ведёт сюда — сразу к записи.
   const [openBooking, setOpenBooking] = useState(false);
-  useEffect(() => { setOpenBooking(new URLSearchParams(window.location.search).get("booking") === "1"); }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const appointmentId = Number(params.get("appointment"));
+    const target = appointmentId ? bookings.find((item) => item.id === appointmentId) : null;
+    if (target && target.psyName !== therapists.active) therapists.setActive(target.psyName);
+    setOpenBooking(params.get("booking") === "1" || Boolean(target));
+  }, [bookings, therapists.active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const qc = useQueryClient();
   const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(ME) });

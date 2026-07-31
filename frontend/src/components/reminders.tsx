@@ -1,59 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { select } from "@/lib/haptics";
-
-const KEY = "bereg_reminders_v1";
-
-// Смещения напоминаний (в минутах до сессии).
-const CLIENT_OFFSETS = [1440, 120, 15] as const;
-const offsetLabel = (m: number) => (m >= 60 ? (m % 60 === 0 ? `за ${m / 60} ${plural(m / 60, "час", "часа", "часов")}` : `за ${Math.floor(m / 60)} ч ${m % 60} м`) : `за ${m} минут`);
-
-type Config = { client: number[] };
-
-const DEFAULT: Config = { client: [1440, 120] };
-
-function load(): Config {
-  if (typeof window === "undefined") return DEFAULT;
-  try { const raw = localStorage.getItem(KEY); if (raw) return { ...DEFAULT, ...JSON.parse(raw) }; } catch { /* ignore */ }
-  return DEFAULT;
-}
+import { getReminderSettings, setReminderSettings } from "@/lib/reminders";
 
 // Когда напомнить клиенту о сессии. Живёт в одном блоке с запретом отмены —
 // это два правила приёма, а не две разные настройки.
 export function RemindersModule() {
-  const [cfg, setCfg] = useState<Config>(DEFAULT);
-  useEffect(() => { setCfg(load()); }, []);
-  const save = (next: Config) => { setCfg(next); localStorage.setItem(KEY, JSON.stringify(next)); };
-  const toggle = (v: number) => save({ client: cfg.client.includes(v) ? cfg.client.filter((x) => x !== v) : [...cfg.client, v].sort((a, b) => b - a) });
+  const qc = useQueryClient();
+  const settings = useQuery({ queryKey: ["reminder-settings"], queryFn: getReminderSettings });
+  const save = useMutation({
+    mutationFn: setReminderSettings,
+    onSuccess: (data) => qc.setQueryData(["reminder-settings"], data),
+  });
+  const reminder2h = settings.data?.reminder2h ?? false;
 
   return (
-    <div>
-      <p className="text-[13px] font-black">Напоминание клиенту</p>
-      <p className="t-cap mt-0.5">За сколько предупредить о сессии</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {CLIENT_OFFSETS.map((m) => {
-          const on = cfg.client.includes(m);
-          return (
-            <button
-              key={m}
-              onClick={() => { select(); toggle(m); }}
-              className={`btn px-3 py-1.5 text-[12px] ${on ? "btn-accent" : ""}`}
-              style={on ? undefined : { background: "#fff", color: "var(--edge)", borderColor: "var(--edge)" }}
-            >
-              {offsetLabel(m)}
-            </button>
-          );
-        })}
+    <div className="card space-y-3 p-4">
+      <div className="flex items-start gap-3">
+        <span className="ico ico-accent h-10 w-10 shrink-0">24</span>
+        <div className="min-w-0 flex-1"><p className="t-head">За 24 часа</p><p className="t-cap mt-0.5">Обязательное напоминание о каждой сессии</p></div>
+        <span className="chip chip-strong">Всегда</span>
       </div>
+      <div className="line-top flex items-center gap-3 pt-3">
+        <div className="min-w-0 flex-1"><p className="t-head">За 2 часа</p><p className="t-cap mt-0.5">Дополнительное напоминание, если вам так удобнее</p></div>
+        <button
+          role="switch"
+          aria-checked={reminder2h}
+          disabled={settings.isLoading || save.isPending}
+          onClick={() => { select(); save.mutate(!reminder2h); }}
+          className="relative h-7 w-12 shrink-0 rounded-full disabled:opacity-50"
+          style={{ background: reminder2h ? "var(--edge)" : "var(--surface-2)", border: "var(--bw) solid var(--edge)" }}
+        >
+          <span className="absolute top-[2px] h-[19px] w-[19px] rounded-full bg-white transition-transform" style={{ left: 2, transform: `translateX(${reminder2h ? 20 : 0}px)`, border: "1px solid var(--edge)" }} />
+        </button>
+      </div>
+      <p className="t-cap">Бот пришлёт сообщения в Telegram и откроет нужную запись одним нажатием.</p>
     </div>
   );
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10, m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
-  return many;
 }

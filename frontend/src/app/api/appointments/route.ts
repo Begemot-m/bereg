@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
 
 export const runtime = "nodejs";
 
@@ -48,13 +49,14 @@ export async function POST(req: NextRequest) {
       durationMin?: number;
       note?: string;
     };
+    const clientId = body.clientId;
 
-    if (!body.clientId || !body.startsAt) {
+    if (!clientId || !body.startsAt) {
       return NextResponse.json({ error: "clientId and startsAt required" }, { status: 422 });
     }
 
     // Клиент должен принадлежать этому психологу — защита от IDOR.
-    const client = await prisma.client.findUnique({ where: { id: body.clientId } });
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client || client.psychologistId !== user.id) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
@@ -64,15 +66,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "invalid startsAt" }, { status: 422 });
     }
 
-    const appt = await prisma.appointment.create({
-      data: {
-        psychologistId: user.id,
-        clientId: body.clientId,
-        startsAt,
-        durationMin: body.durationMin ?? 60,
-        note: body.note ?? "",
-      },
-      include: { client: { select: { id: true, name: true } } },
+    const appt = await prisma.$transaction(async (tx) => {
+      const created = await tx.appointment.create({
+        data: {
+          psychologistId: user.id,
+          clientId,
+          startsAt,
+          durationMin: body.durationMin ?? 60,
+          note: body.note ?? "",
+        },
+        include: { client: { select: { id: true, name: true } } },
+      });
+      if (client.userId) {
+        const clientUser = await tx.user.findUnique({ where: { id: client.userId }, select: { sessionReminder2h: true } });
+        await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: client.userId, audience: "client", kind: "booking" });
+        await replaceClientReminders(tx, {
+          appointmentId: created.id,
+          clientUserId: client.userId,
+          startsAt,
+          reminder2h: clientUser?.sessionReminder2h ?? false,
+        });
+      }
+      return created;
     });
     return NextResponse.json(appt, { status: 201 });
   } catch (e) {

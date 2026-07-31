@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { cancelPendingReminders, queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     });
     if (busy) return NextResponse.json({ error: "Слот уже занят" }, { status: 409 });
 
-    const updated = await prisma.appointment.update({ where: { id: appt.id }, data: { startsAt } });
+    const updated = await prisma.$transaction(async (tx) => {
+      const row = await tx.appointment.update({ where: { id: appt.id }, data: { startsAt, reminderSent: false } });
+      await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: appt.psychologistId, audience: "psychologist", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
+      await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: user.id, audience: "client", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
+      await replaceClientReminders(tx, { appointmentId: appt.id, clientUserId: user.id, startsAt, reminder2h: user.sessionReminder2h });
+      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "reschedule", text: `Клиент перенёс встречу на ${startsAt.toLocaleString("ru-RU")}` } });
+      return row;
+    });
     return NextResponse.json({
       id: updated.id,
       startsAt: updated.startsAt.toISOString(),
@@ -49,7 +57,13 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     const appt = await myAppointment(Number(id), user.id);
     if (!appt) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    await prisma.appointment.update({ where: { id: appt.id }, data: { status: "cancelled" } });
+    await prisma.$transaction(async (tx) => {
+      await tx.appointment.update({ where: { id: appt.id }, data: { status: "cancelled" } });
+      await cancelPendingReminders(tx, appt.id);
+      await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: appt.psychologistId, audience: "psychologist", kind: "cancel" });
+      await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: user.id, audience: "client", kind: "cancel" });
+      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "cancel", text: `Клиент отменил встречу ${appt.startsAt.toLocaleString("ru-RU")}` } });
+    });
     return new NextResponse(null, { status: 204 });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });

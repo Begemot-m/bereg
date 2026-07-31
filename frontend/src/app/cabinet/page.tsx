@@ -12,6 +12,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
+import { RemindersModule } from "@/components/reminders";
 import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card, Input } from "@/components/ui";
@@ -63,6 +64,13 @@ export default function CabinetPage() {
             null
           )}
         </div>
+
+        {!psy && (
+          <div>
+            <SectionTitle>Напоминания о сессиях</SectionTitle>
+            <RemindersModule />
+          </div>
+        )}
 
         {/* Учётная запись */}
         <div>

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
+import { queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
 
 export const runtime = "nodejs";
 
@@ -88,24 +89,34 @@ export async function POST(req: NextRequest) {
       }));
 
     try {
-      const appt = await prisma.appointment.create({
-        data: {
-          psychologistId,
-          clientId: card.id,
-          startsAt,
-          durationMin: Number(body.durationMin) || psy.sessionMinutes,
-          format: body.format === "offline" ? "offline" : "online",
-        },
-        include,
-      });
+      const appt = await prisma.$transaction(async (tx) => {
+        const created = await tx.appointment.create({
+          data: {
+            psychologistId,
+            clientId: card.id,
+            startsAt,
+            durationMin: Number(body.durationMin) || psy.sessionMinutes,
+            format: body.format === "offline" ? "offline" : "online",
+          },
+          include,
+        });
 
-      // Психолог узнаёт о записи, не открывая приложение специально.
-      await prisma.notification.create({
-        data: {
-          userId: psychologistId,
-          kind: "booking",
-          text: `Новая запись · ${card.name} · ${startsAt.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`,
-        },
+        await tx.notification.create({
+          data: {
+            userId: psychologistId,
+            kind: "booking",
+            text: `Новая запись · ${card.name} · ${startsAt.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`,
+          },
+        });
+        await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: psychologistId, audience: "psychologist", kind: "booking" });
+        await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: user.id, audience: "client", kind: "booking" });
+        await replaceClientReminders(tx, {
+          appointmentId: created.id,
+          clientUserId: user.id,
+          startsAt,
+          reminder2h: user.sessionReminder2h,
+        });
+        return created;
       });
 
       return NextResponse.json(toDTO(appt), { status: 201 });

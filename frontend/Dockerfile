@@ -17,7 +17,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # DATABASE_URL нужен prisma generate только как строка — к базе он не ходит.
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
-RUN bunx prisma generate && bun run build
+RUN bunx prisma generate && bun run build \
+ && bun build scripts/bot.ts --target=node --outfile dist/bot.js --external @prisma/client
 
 # ── Рантайм ────────────────────────────────────────────────────────────────
 # node, а не bun: standalone-сборка Next рассчитана на Node и это самый
@@ -40,6 +41,7 @@ RUN useradd --system --uid 1001 --create-home app
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
+COPY --from=build --chown=app:app /app/dist ./dist
 # Схема и миграции — чтобы контейнер мог сам применить migrate deploy
 COPY --from=build --chown=app:app /app/prisma ./prisma
 # Prisma CLI загружает транзитивные пакеты во время migrate deploy. Копирование

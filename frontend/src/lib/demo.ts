@@ -67,6 +67,7 @@ type DB = {
   support: Support[];
   notifications: Notif[];
   accountEmail: { email: string; verified: boolean } | null;
+  reminderSettings: { reminder2h: boolean };
   sub: {
     status: "trial" | "active" | "pending" | "expired";
     trialEndsAt: string | null;
@@ -168,6 +169,7 @@ function seed(): DB {
       { id: 91, forRole: "client", kind: "system", text: "Добро пожаловать. Здесь будут напоминания и изменения по вашим сессиям.", createdAt: iso(-1, 9, 0), read: false },
     ],
     accountEmail: null,
+    reminderSettings: { reminder2h: false },
     // Демо стартует на бесплатном тарифе — виден лимит 3 клиента и пейволл PRO.
     sub: { status: "expired", trialEndsAt: null, currentPeriodEnd: null, tools: false, promo: false, clientPro: false, pendingPlan: null, pendingSince: null },
   };
@@ -202,6 +204,7 @@ function load(): DB {
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.overrides) db.overrides = {};
       if (db.accountEmail === undefined) db.accountEmail = null;
+      if (!db.reminderSettings) db.reminderSettings = s.reminderSettings;
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
       // миграция: подключение клиента — активные считаем уже присоединившимися
       for (const c of db.clients) {
@@ -370,6 +373,15 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       db.accountEmail = null;
       save(db);
       return delay(undefined as T);
+    }
+  }
+
+  if (clean === "/my/reminders") {
+    if (method === "GET") return delay(({ reminder24h: true, reminder2h: db.reminderSettings.reminder2h }) as T);
+    if (method === "PUT") {
+      db.reminderSettings.reminder2h = Boolean(body.reminder2h);
+      save(db);
+      return delay(({ reminder24h: true, reminder2h: db.reminderSettings.reminder2h }) as T);
     }
   }
 

@@ -40,6 +40,20 @@ services:
       driver: json-file
       options: { max-size: "10m", max-file: "5" }
 
+  bot:
+    image: ${APP_IMAGE:-ghcr.io/begemot-m/bereg:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    command: ["node", "dist/bot.js"]
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
   # Локальная база — только для staging/разработки: docker compose --profile localdb up
   postgres:
     profiles: ["localdb"]
