@@ -18,9 +18,9 @@ const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const PXH = 40;
-// Якоря внутри часа: начало, половина и без пятнадцати. Свободное перетаскивание
+// Якоря внутри часа: каждые пятнадцать минут. Свободное перетаскивание
 // по минутам никому не нужно — в него невозможно попасть пальцем.
-const ANCHORS = [0, 30, 45];
+const ANCHORS = [0, 15, 30, 45];
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 26 };
 
 export function snapMin(raw: number): number {
@@ -85,7 +85,7 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
     // Сначала — ровное деление сетки. Прилипание к соседу только если на сетке занято.
     let mins = clamp(snapMin(start + ((clientY - rect.top) / PXH) * 60), start, end - len);
     if (overlaps(mins, len, others)) {
-      mins = clamp(resolveTouch(mins, len, others), start, end - len);
+      mins = clamp(snapMin(resolveTouch(mins, len, others)), start, end - len);
       if (overlaps(mins, len, others)) { select(); return; }
     }
     success();
@@ -101,7 +101,7 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
   const commitMove = (s: WorkSlot, dyPx: number) => {
     const others = slots.filter((x) => x.t !== s.t).map((x) => ({ s: toMin(x.t), e: toMin(x.t) + x.d }));
     let mins = clamp(snapMin(toMin(s.t) + (dyPx / PXH) * 60), start, end - s.d);
-    if (overlaps(mins, s.d, others)) mins = clamp(resolveTouch(mins, s.d, others), start, end - s.d);
+    if (overlaps(mins, s.d, others)) mins = clamp(snapMin(resolveTouch(mins, s.d, others)), start, end - s.d);
     if (overlaps(mins, s.d, others) || mins === toMin(s.t)) { if (mins !== toMin(s.t)) select(); return; }
     success();
     setSlots(slots.map((x) => (x.t === s.t ? { ...x, t: hhmm(mins) } : x)));
@@ -159,12 +159,9 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
               <div key={`h${i}`} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
             ))}
-            {/* Пунктиры ровно там, куда прилипает окно: :30 и :45 */}
+            {/* Получасы — пунктиром; четверти остаются только магнитными якорями. */}
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
               <div key={`h${i}-half`} className="absolute inset-x-0" style={{ top: (i + 0.5) * PXH, borderTop: "1px dashed var(--edge-neutral)", opacity: 0.7 }} />
-            ))}
-            {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
-              <div key={`h${i}-q`} className="absolute inset-x-0" style={{ top: (i + 0.75) * PXH, borderTop: "1px dashed var(--edge-neutral)", opacity: 0.45 }} />
             ))}
             <AnimatePresence>
               {slots.map((s) => (
@@ -225,8 +222,8 @@ function SlotBlock({ label, hour, fmt, top, height, onRemove, onToggleFmt, onCom
     <motion.div
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
-      className="absolute inset-x-1 flex touch-none items-center justify-center rounded-[9px] text-[12px] font-extrabold"
-      style={{ top: top + dy, height, background: st.bg, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
+      className="keep-style absolute inset-x-1 flex touch-none items-center justify-center rounded-[9px] text-[12px] font-extrabold"
+      style={{ top: top + dy, height, background: st.bg, border: "1px solid color-mix(in srgb, var(--edge) 48%, transparent)", color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       <FmtSwitch fmt={fmt} onToggle={onToggleFmt} className="absolute left-1.5 top-1/2 -translate-y-1/2 !text-[9px]" />
       {label}

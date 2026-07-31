@@ -2,18 +2,19 @@ import { describe, expect, test } from "bun:test";
 
 import { snapMin } from "./work-hours";
 
-// Окна в графике липнут к :00, :30 и :45. Это уже ломалось однажды: сетка
-// была получасовой, и в :45 попасть было нельзя в принципе.
+// Окна в графике липнут к каждой четверти часа.
 describe("прилипание окна к якорям часа", () => {
   const h = (hour: number, min = 0) => hour * 60 + min;
 
   test("ровный час остаётся ровным", () => {
     expect(snapMin(h(10))).toBe(h(10));
+    expect(snapMin(h(10, 15))).toBe(h(10, 15));
   });
 
   test("тянется к ближайшему якорю", () => {
     expect(snapMin(h(10, 5))).toBe(h(10, 0));
-    expect(snapMin(h(10, 20))).toBe(h(10, 30));
+    expect(snapMin(h(10, 20))).toBe(h(10, 15));
+    expect(snapMin(h(10, 24))).toBe(h(10, 30));
     expect(snapMin(h(10, 40))).toBe(h(10, 45));
     expect(snapMin(h(10, 44))).toBe(h(10, 45));
   });
@@ -29,7 +30,7 @@ describe("прилипание окна к якорям часа", () => {
   });
 
   test("промежуточных значений не бывает", () => {
-    const allowed = new Set([0, 30, 45]);
+    const allowed = new Set([0, 15, 30, 45]);
     for (let m = 0; m < 24 * 60; m += 1) {
       expect(allowed.has(snapMin(m) % 60)).toBe(true);
     }

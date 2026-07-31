@@ -482,7 +482,7 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
     <Section title="Формат и место">
       <div className="overflow-hidden rounded-[18px] bg-white stroke-lg">
         <button onClick={() => { tap(); setOpen((value) => !value); }} className="block w-full text-left" aria-expanded={open}>
-          <div className="relative h-[120px] overflow-hidden" style={{ background: "color-mix(in srgb, var(--olive-soft) 65%, white)", backgroundImage: "repeating-linear-gradient(0deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px)" }}>
+          <div className="relative h-[120px] overflow-hidden" style={{ background: "color-mix(in srgb, var(--tiffany-soft) 65%, white)", backgroundImage: "repeating-linear-gradient(0deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px)" }}>
             {/* дороги */}
             <span className="absolute left-0 top-[62%] h-3 w-full -rotate-3 bg-white stroke" />
             <span className="absolute left-[32%] top-0 h-full w-3 rotate-[7deg] bg-white stroke" />

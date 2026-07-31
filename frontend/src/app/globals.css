@@ -36,10 +36,14 @@
   --salmon-edge: #d1725b;
   --pink: #f1b3aa;
   --sky: #a7cfdf;
-  /* Олива — для сессий и каталога терапевтов */
+  /* Олива — для сессий */
   --olive: #b7c079;
   --olive-soft: #dde3b9;
   --olive-edge: #97a558;
+  /* Тиффани — для каталога и профилей специалистов */
+  --tiffany: #9edbcd;
+  --tiffany-soft: #d8f1eb;
+  --tiffany-edge: #4f9f90;
   /* Персик — для инструментов */
   --peach: #f4c19c;
   --peach-soft: #fadecb;
@@ -99,6 +103,7 @@
 [data-accent="coral"]  { --head: var(--coral);  --head-soft: var(--coral-soft);  --accent: var(--coral);  --edge: var(--coral-edge);  --page: color-mix(in srgb, var(--coral) 44%, #fbf7ee); }
 [data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); --edge: var(--salmon-edge); --page: color-mix(in srgb, var(--salmon) 44%, #fbf7ee); }
 [data-accent="olive"]  { --head: var(--olive);  --head-soft: var(--olive-soft);  --accent: var(--olive);  --edge: var(--olive-edge);  --page: color-mix(in srgb, var(--olive) 42%, #fbf8ef); }
+[data-accent="tiffany"] { --head: var(--tiffany); --head-soft: var(--tiffany-soft); --accent: var(--tiffany); --edge: var(--tiffany-edge); --page: color-mix(in srgb, var(--tiffany) 42%, #f8fcfa); }
 [data-accent="peach"]  { --head: var(--peach);  --head-soft: var(--peach-soft);  --accent: var(--peach);  --edge: var(--peach-edge);  --page: color-mix(in srgb, var(--peach) 46%, #fbf7ee); }
 :root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --edge: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
 /* --stroke переопределяем здесь же: var() считается на элементе, где объявлен,

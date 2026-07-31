@@ -171,7 +171,7 @@ function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; na
       <p className="mb-2 text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">Карточка в каталоге</p>
       <div className="overflow-hidden rounded-[22px] bg-white" style={{ border: "var(--bw-lg) solid var(--edge-neutral)", boxShadow: "0 16px 32px -22px rgba(32,28,24,.42)" }}>
         <div className="flex gap-3.5 p-4">
-          <div className="relative flex h-[132px] w-[106px] shrink-0 items-center justify-center overflow-hidden rounded-[16px] text-[30px] font-black" style={{ border: "var(--bw-lg) solid var(--olive-edge)", background: "var(--olive-soft)" }}>
+          <div className="relative flex h-[132px] w-[106px] shrink-0 items-center justify-center overflow-hidden rounded-[16px] text-[30px] font-black" style={{ border: "var(--bw-lg) solid var(--tiffany-edge)", background: "var(--tiffany-soft)" }}>
             {photo ? <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo} alt="" className="h-full w-full object-cover" /></> : (name.trim().charAt(0).toUpperCase() || "П")}
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
@@ -180,7 +180,7 @@ function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; na
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>
             </div>
             <p className="mt-1.5 text-[12.5px] font-bold leading-snug"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
-            {profile?.quote && <p className="mt-2 border-l-2 pl-2.5 text-[11.5px] font-semibold italic leading-snug text-[var(--muted)]" style={{ borderColor: "var(--olive-edge)" }}>«{profile.quote}»</p>}
+            {profile?.quote && <p className="mt-2 border-l-2 pl-2.5 text-[11.5px] font-semibold italic leading-snug text-[var(--muted)]" style={{ borderColor: "var(--tiffany-edge)" }}>«{profile.quote}»</p>}
           </div>
         </div>
         <div className="mt-1 flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
@@ -424,7 +424,7 @@ function MethodsStep({ draft, update }: { draft: PsyProfile; update: (patch: Par
         const active = draft.methods.includes(method);
         const primary = draft.primaryMethod === method;
         return (
-          <span key={method} className="inline-flex items-center overflow-hidden rounded-full" style={{ border: `var(--bw) solid var(--${active ? "olive-edge" : "edge-neutral"})`, background: active ? "var(--olive)" : "#fff" }}>
+          <span key={method} className="inline-flex items-center overflow-hidden rounded-full" style={{ border: `var(--bw) solid var(--${active ? "tiffany-edge" : "edge-neutral"})`, background: active ? "var(--tiffany)" : "#fff" }}>
             <button onClick={() => { select(); toggleMethod(method); }} className="py-2 pl-3 pr-1.5 text-[11px] font-black" style={{ color: "var(--ink)" }}>{method}</button>
             {active && <button onClick={() => { select(); setPrimary(method); }} className="flex h-7 w-7 items-center justify-center" aria-label={primary ? "Основной метод" : "Сделать основным"}><Icon name="star" width={14} weight={primary ? "fill" : "regular"} color={primary ? "var(--amber-edge)" : "var(--muted)"} /></button>}
           </span>
@@ -465,7 +465,7 @@ function FormatStep({ draft, update, updateLocation }: { draft: PsyProfile; upda
 
 function FormatToggle({ active, icon, label, onClick }: { active: boolean; icon: IconName; label: string; onClick: () => void }) {
   return (
-    <button onClick={() => { select(); onClick(); }} className="flex items-center justify-center gap-2 rounded-[14px] py-3 text-[13px] font-black transition-transform active:scale-[0.98]" style={{ background: active ? "var(--olive)" : "#fff", border: `var(--bw) solid var(--${active ? "olive-edge" : "edge-neutral"})`, color: "var(--ink)" }}>
+    <button onClick={() => { select(); onClick(); }} className="flex items-center justify-center gap-2 rounded-[14px] py-3 text-[13px] font-black transition-transform active:scale-[0.98]" style={{ background: active ? "var(--tiffany)" : "#fff", border: `var(--bw) solid var(--${active ? "tiffany-edge" : "edge-neutral"})`, color: "var(--ink)" }}>
       <Icon name={icon} width={17} weight="bold" /> {label}
     </button>
   );
@@ -490,7 +490,7 @@ function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
 
 // Без заливки: шаг анкеты — это список выборов, фон под ним только рябит.
 function StepCard({ title, hint, children }: { title: string; hint: string; children: ReactNode }) { return <section className="chunk space-y-4 p-4"><div><h4 className="font-tight text-[18px] font-black">{title}</h4><p className="t-cap mt-1">{hint}</p></div>{children}</section>; }
-function Choice({ active, onClick, children, tone = "olive" }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string }) { return <motion.button layout initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} whileTap={{ scale: 0.9 }} onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black" style={active ? { background: `var(--${tone})`, color: "var(--ink)", border: `var(--bw) solid var(--${tone}-edge)` } : { background: "white", border: "var(--bw) solid var(--edge-neutral)" }}>{children}</motion.button>; }
+function Choice({ active, onClick, children, tone = "tiffany" }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string }) { return <motion.button layout initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} whileTap={{ scale: 0.9 }} onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black" style={active ? { background: `var(--${tone})`, color: "var(--ink)", border: `var(--bw) solid var(--${tone}-edge)` } : { background: "white", border: "var(--bw) solid var(--edge-neutral)" }}>{children}</motion.button>; }
 
 // Компактный ввод своего варианта — добавляет строку в список по Enter/кнопке.
 function ChipInput({ placeholder, onAdd }: { placeholder: string; onAdd: (value: string) => void }) {
