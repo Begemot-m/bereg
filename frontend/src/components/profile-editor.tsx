@@ -323,7 +323,7 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
     </div>
     </div>
     {livePreview && (
-      <aside className="mt-5 min-w-0 @xl:sticky @xl:top-4 @xl:mt-0 @xl:max-h-[calc(100dvh-32px)] @xl:overflow-y-auto">
+      <aside className="hidden min-w-0 @xl:sticky @xl:top-4 @xl:block @xl:max-h-[calc(100dvh-32px)] @xl:overflow-y-auto">
         <div className="mb-2 flex items-center gap-2 px-1"><Icon name="user" width={15} weight="bold" color="var(--edge)" /><p className="t-head">Так профиль выглядит для клиента</p></div>
         <PublicProfilePreview profile={draft} name={draft.name || displayName()} photo={draft.photos[0] ?? displayPhoto()} />
       </aside>
