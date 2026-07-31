@@ -155,7 +155,7 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
         <button onClick={() => { tap(); setManage(!manage); }} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={manage}>
           <span className={`text-[13px] font-extrabold tnum ${past ? "line-through" : ""}`}>{timeF.format(new Date(appt.startsAt))}</span>
           <span className="min-w-0 flex-1">
-            <span className={`font-tight block truncate text-[13px] font-bold ${past ? "line-through" : ""}`}>{appt.client.name}</span>
+            <span className={`font-tight block break-words text-[13px] font-bold leading-tight ${past ? "line-through" : ""}`}>{appt.client.name}</span>
             {past && <span className="block text-[9px] font-extrabold uppercase tracking-wide text-[var(--muted)]">выполнено</span>}
           </span>
         </button>
@@ -196,9 +196,9 @@ export function ClientPicker({ clients, onPick, compact = true, onCreateClient }
   const others = filtered.filter((c) => c.status !== "therapy");
   const row = (c: { id: number; name: string; status: string }) => (
     <button key={c.id} onClick={() => onPick(c.id)} className="flex w-full items-center gap-2 rounded-[9px] px-2 py-1.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
-      <span className="flex h-7 w-7 items-center justify-center rounded-[8px] text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
-      <span className="font-tight flex-1 truncate text-[13px] font-bold">{c.name}</span>
-      {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--green-edge)]">терапия</span>}
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--olive-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
+      <span className="font-tight min-w-0 flex-1 break-words text-[13px] font-bold leading-tight">{c.name}</span>
+      {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--olive-edge)]">терапия</span>}
     </button>
   );
   return (

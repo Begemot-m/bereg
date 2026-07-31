@@ -119,7 +119,7 @@ type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
 function look(s: Slot): Look {
   // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
-  if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", label: s.appt.client.name.split(" ")[0], labelColor: "var(--ink)" };
+  if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", label: s.appt.client.name, labelColor: "var(--ink)" };
   // Свободное окно отмечено тонкой рамкой: сюда можно записать клиента.
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
 }
@@ -197,8 +197,8 @@ function ClientChips({ onPick }: { onPick: (id: number) => void }) {
             className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[12px] font-black"
             style={{ background: "#fff" }}
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black" style={{ background: c.status === "therapy" ? "var(--green-soft)" : "var(--surface-2)" }}>{c.name.charAt(0)}</span>
-            {c.name.split(" ")[0]}
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black" style={{ background: c.status === "therapy" ? "var(--olive-soft)" : "var(--surface-2)" }}>{c.name.charAt(0)}</span>
+            <span className="max-w-[180px] whitespace-normal break-words text-left leading-tight">{c.name}</span>
           </button>
         ))}
         {list.length === 0 && <span className="px-1 py-1.5 text-[12px] font-semibold text-[var(--muted-2)]">Никого не нашли</span>}
@@ -314,13 +314,13 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
         layout="position"
         onClick={onTap}
         disabled={slot.past && !slot.appt && !active}
-        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : "relative flex h-[54px] w-full flex-col items-center justify-center gap-0.5 px-1"}
+        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : "relative flex min-h-[60px] w-full flex-col items-center justify-center gap-0.5 px-1 py-2"}
         aria-expanded={active}
       >
         <span className={`tnum font-black leading-none ${active ? "text-[17px]" : "text-[13.5px]"} ${slot.past ? "line-through" : ""}`}>{slot.t}</span>
         <span className={`min-w-0 ${active ? "flex-1" : "max-w-full"}`}>
           {/* В раскрытом окне дата и время — чернилами, а не тоном окна */}
-          <span className={`block truncate font-bold ${active ? "text-[12.5px]" : "text-[9.5px]"}`} style={{ color: active ? "var(--ink)" : st.labelColor }}>
+          <span className={`block break-words font-bold leading-[1.05] ${active ? "text-[12.5px]" : "text-[9.5px]"}`} style={{ color: active ? "var(--ink)" : st.labelColor }}>
             {active ? `${slot.dur} мин · ${cap(dLong.format(new Date(slot.iso)))}` : st.label}
           </span>
         </span>
@@ -380,7 +380,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         {/* Имя сверху, действия — строкой под ним */}
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
-          <span className="truncate text-[13px] font-black">{slot.appt.client.name}</span>
+          <span className="min-w-0 break-words text-[13px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
         <div className="flex gap-1.5">

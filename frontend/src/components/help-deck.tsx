@@ -191,7 +191,7 @@ export function HelpDeck({ title, pages, onClose, onDone, doneLabel = "Поня�
           </div>
 
           <div className="mt-4 flex gap-2">
-            {i > 0 && <Button variant="soft" size="sm" onClick={() => { tap(); setI(i - 1); }}>Назад</Button>}
+            {i > 0 && <button className="back-link" onClick={() => { tap(); setI(i - 1); }}>Назад</button>}
             <Button className="flex-1" onClick={() => { last ? (onDone ? onDone() : onClose()) : (select(), setI(i + 1)); }}>{last ? doneLabel : "Далее"}</Button>
           </div>
         </motion.div>

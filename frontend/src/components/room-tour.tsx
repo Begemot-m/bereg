@@ -200,7 +200,7 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
 
             <div className="mt-3 flex items-center gap-2">
               {index > 0 && (
-                <button onClick={() => { tap(); setIndex(index - 1); }} className="rounded-full px-4 py-2.5 text-[13px] font-black text-[var(--muted)]">Назад</button>
+                <button onClick={() => { tap(); setIndex(index - 1); }} className="back-link">Назад</button>
               )}
               <button
                 onClick={next}

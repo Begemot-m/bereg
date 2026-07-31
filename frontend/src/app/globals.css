@@ -91,7 +91,7 @@
    них держим независимо от того, что вернул клиент: часть сборок отдаёт нули
    и в safeAreaInset, и в contentSafeAreaInset. */
 [data-tma="1"] {
-  --top-pad: calc(max(var(--safe-top), 44px) + max(var(--tg-top), 56px) + 20px);
+  --top-pad: calc(max(var(--safe-top), var(--tg-top), 56px) + 12px);
 }
 
 /* Тема раздела: --head — цвет шапки/фона, --page — тон страницы (=шапке),
@@ -153,6 +153,11 @@ body {
   font-size: 14px;
   line-height: 1.34;
   -webkit-font-smoothing: antialiased;
+}
+
+button,
+a {
+  min-width: 0;
 }
 
 h1, h2, h3, .font-tight {
@@ -301,13 +306,32 @@ h1, h2, h3, .font-tight {
   color: #fff;
   border: var(--bw) solid var(--ink);
   transition: transform .12s var(--ease-out);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: .45; pointer-events: none; }
 
 /* Акцентная: тёмный тон раздела. Только там, где кнопка — часть темы
-   раздела: тёмно-зелёная в каталоге, лавандовая в терапии. */
+   раздела: тёмный тиффани в каталоге, лавандовая в терапии. */
 .btn-accent { background: var(--edge); color: #fff; border-color: var(--edge); }
+
+/* Возврат на предыдущий экран: только текст в тёмном акценте раздела. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--edge);
+  font-family: var(--font-head), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.back-link:active { opacity: .65; }
 
 /* Второстепенная: лёгкая заливка, чернильный текст, обводка тёмным тоном. */
 .btn-soft { background: var(--head-soft); color: var(--ink); border-color: var(--edge); }

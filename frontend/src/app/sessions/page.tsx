@@ -445,9 +445,9 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[calc(env(safe-area-inset-top)+52px)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div className="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[var(--top-pad)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <button className="absolute inset-0 bg-[rgba(32,28,24,.42)]" onClick={onClose} aria-label="Закрыть" />
-          <motion.section role="dialog" aria-modal="true" initial={{ y: -18, opacity: 0.6 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -12, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="relative flex max-h-[74dvh] w-full max-w-md flex-col overflow-hidden rounded-[19px] bg-white stroke-lg" style={{ borderColor: "var(--olive-edge)" }}>
+          <motion.section role="dialog" aria-modal="true" initial={{ y: -18, opacity: 0.6 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -12, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }} className="relative flex max-h-[min(74dvh,calc(100dvh-var(--top-pad)-12px))] w-full max-w-md flex-col overflow-hidden rounded-[19px] bg-white stroke-lg" style={{ borderColor: "var(--olive-edge)" }}>
             <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
               <p className="text-[13px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
               <div className="flex items-center gap-3">
@@ -462,7 +462,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
                 <div>
                   <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">
                     <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
-                    <span className="text-[13px] font-black">{client.name}</span>
+                    <span className="min-w-0 break-words text-[13px] font-black leading-tight">{client.name}</span>
                   </div>
                   <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
                   <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />

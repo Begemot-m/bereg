@@ -293,7 +293,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
               <p className="t-micro mb-1 px-1">Свободные окна</p>
               <p className="t-cap mb-2 px-1">{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
               <SlotPicker forClient variant="calendar" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
-              {mine.length > 0 && <button onClick={() => { tap(); setPickSlot(false); }} className="mt-2 w-full py-1.5 text-[12px] font-bold text-[var(--muted)]">Назад к моим записям</button>}
+              {mine.length > 0 && <button onClick={() => { tap(); setPickSlot(false); }} className="back-link mt-2 w-full justify-center">Назад к моим записям</button>}
             </>
           )}
         </div>

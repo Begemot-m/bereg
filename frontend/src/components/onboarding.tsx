@@ -29,25 +29,25 @@ type Intro = {
 const INTRO: Intro[] = [
   {
     key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой",
-    bg: "var(--amber)", soft: "var(--amber-soft)", tone: "var(--amber-edge)",
+    bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Найти своего специалиста", "Отслеживать динамику настроения и сессий", "Самостоятельная помощь на каждый день"],
     img: "/onboarding/intro-1.webp", mock: <OverviewMock />,
   },
   {
     key: "catalog", kicker: "каталог", title: "Умный подбор специалистов",
-    bg: "var(--green)", soft: "var(--green-soft)", tone: "var(--green-edge)",
+    bg: "var(--tiffany-soft)", soft: "#effaf7", tone: "var(--tiffany-edge)",
     points: ["Персональный подбор вместо рейтинга", "Честные отзывы после встреч", "Удобный поиск по запросу"],
     img: "/onboarding/intro-2.webp", mock: <CatalogMock />,
   },
   {
     key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний",
-    bg: "var(--coral)", soft: "var(--coral-soft)", tone: "var(--coral-edge)",
+    bg: "var(--olive-soft)", soft: "#f3f5df", tone: "var(--olive-edge)",
     points: ["Подберём лучшие практики между сессиями", "С отслеживанием настроения", "Дыхание, дневники, колесо баланса"],
     img: "/onboarding/intro-3.webp", mock: <ToolsMock />,
   },
   {
     key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами",
-    bg: "var(--purple)", soft: "var(--purple-soft)", tone: "var(--purple-edge)",
+    bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Формирование свободных окон для записи", "CRM-система для ведения клиентов", "Напоминания о встречах"],
     img: "/onboarding/intro-4.webp", mock: <ScheduleMock />,
   },
@@ -65,7 +65,7 @@ export function Onboarding() {
   const back = () => { tap(); setStep((s) => Math.max(0, s - 1)); };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" data-accent="purple" style={{ background: psySell ? "#ffffff" : isRole ? "#fbf8ef" : cur.bg, transition: "background-color .5s ease" }}>
+    <div className="fixed inset-0 z-50 overflow-y-auto" data-accent="purple" style={{ background: psySell ? "#ffffff" : isRole ? "var(--tiffany-soft)" : cur.bg, transition: "background-color .5s ease" }}>
       {/* Декоративные заливки-круги для «постерного» объёма */}
       {!isRole && !psySell && cur && (
         <>
@@ -74,7 +74,7 @@ export function Onboarding() {
         </>
       )}
 
-      <div className="relative mx-auto flex h-full w-full max-w-md flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-[calc(env(safe-area-inset-top)+18px)]">
+      <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col px-4 pb-[calc(var(--safe-bottom)+18px)] pt-[var(--top-pad)] min-[360px]:px-5 min-[390px]:px-6">
         {/* Верх: логотип + прогресс + пропустить */}
         <div className="flex items-center gap-3">
           <span className="flex h-7 items-center rounded-[8px] bg-[var(--ink)] px-2 text-[12px] font-black text-[var(--bg)]">{APP_NAME}</span>
@@ -99,9 +99,9 @@ export function Onboarding() {
               <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); if (r === "psychologist") setPsySell(true); else finish(); }} />
             ) : (
               <div className="flex flex-1 flex-col">
-                <span className="mt-6 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
-                <h1 className="font-tight mt-3 text-[27px] font-black leading-[1.08]">{cur.title}</h1>
-                <ul className="mt-4 space-y-2">
+                <span className="mt-[clamp(12px,3vh,24px)] inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
+                <h1 className="font-tight mt-3 text-[clamp(23px,7vw,27px)] font-black leading-[1.08]">{cur.title}</h1>
+                <ul className="mt-3 space-y-1.5 min-[390px]:mt-4 min-[390px]:space-y-2">
                   {cur.points.map((p, i) => (
                     <motion.li key={p} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: `1.5px solid ${cur.tone}` }}><Icon name="check" width={12} weight="bold" color={cur.tone} /></span>
@@ -110,8 +110,8 @@ export function Onboarding() {
                   ))}
                 </ul>
                 {/* «Арт»-зона: макет элемента приложения на мягкой цветной подложке */}
-                <div className="relative flex min-h-0 flex-1 items-center justify-center py-3">
-                  <span aria-hidden className="pointer-events-none absolute h-[300px] w-[300px] rounded-full" style={{ background: cur.soft, opacity: 0.75 }} />
+                <div className="relative flex min-h-[238px] flex-1 items-center justify-center py-3">
+                  <span aria-hidden className="pointer-events-none absolute h-[min(300px,82vw)] w-[min(300px,82vw)] rounded-full" style={{ background: cur.soft, opacity: 0.75 }} />
                   <span aria-hidden className="pointer-events-none absolute bottom-2 h-24 w-52 rounded-full blur-2xl" style={{ background: cur.tone, opacity: 0.25 }} />
                   <Shot src={cur.img} tone={cur.tone}>{cur.mock}</Shot>
                 </div>
@@ -123,7 +123,7 @@ export function Onboarding() {
         {/* Низ: назад + стрелка (на интро-экранах) */}
         {!isRole && !psySell && (
           <div className="flex items-center justify-between">
-            <button onClick={back} disabled={step === 0} className="flex h-11 items-center gap-1 px-2 text-[13px] font-black disabled:opacity-0" style={{ color: "rgba(32,28,24,.6)" }} aria-label="Назад"><ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Назад</button>
+            <button onClick={back} disabled={step === 0} className="back-link disabled:opacity-0" aria-label="Назад">Назад</button>
             <motion.button onClick={next} whileTap={{ scale: 0.9 }} className="flex h-14 w-14 items-center justify-center rounded-full stroke-lg" style={{ background: "var(--ink)", color: "#fff", boxShadow: "0 12px 24px -10px rgba(32,28,24,.5)" }} aria-label="Дальше"><ArrowGlyph size={24} /></motion.button>
           </div>
         )}
@@ -156,15 +156,14 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
   ];
   return (
     <div className="flex flex-1 flex-col">
-      {/* Фиолетовый залив */}
-      <div className="mt-4 rounded-[23px] p-6 pb-8" style={{ background: "var(--purple)", border: "var(--bw-lg) solid var(--purple-edge)" }}>
+      <div className="mt-4 rounded-[23px] p-5 pb-6 min-[390px]:p-6 min-[390px]:pb-8" style={{ background: "var(--tiffany-soft)", border: "var(--bw-lg) solid var(--tiffany-edge)" }}>
         <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white stroke"><Icon name="therapy" width={22} weight="fill" /></span>
         <h1 className="font-tight mt-4 text-[27px] font-black leading-[1.08]">{firstName ? `${firstName}, с чего` : "С чего"}<br />начнём?</h1>
         <p className="mt-2 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
       </div>
 
       {/* Кнопки — ниже залива, в зоне большого пальца */}
-      <div className="mt-auto space-y-3 pt-6">
+      <div className="mt-auto space-y-2.5 pt-4 min-[390px]:space-y-3 min-[390px]:pt-6">
         {roles.map((item, k) => (
           <motion.button
             key={item.role}
@@ -173,7 +172,7 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
             transition={{ delay: 0.05 + k * 0.07, duration: 0.4, ease: EASE }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onPick(item.role)}
-            className={`chunk ${item.fill} flex w-full items-center gap-3.5 p-4 text-left`}
+            className={`chunk ${item.fill} flex w-full items-center gap-3 p-3.5 text-left min-[390px]:gap-3.5 min-[390px]:p-4`}
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white stroke"><Icon name={item.icon} width={22} weight="regular" color="var(--ink)" /></span>
             <span className="flex-1 text-[16px] font-black">{item.title}</span>
@@ -190,14 +189,14 @@ function Shot({ src, tone, children }: { src?: string; tone: string; children: R
   const [broken, setBroken] = useState(false);
   if (src && !broken) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={asset(src)} alt="" onError={() => setBroken(true)} className="max-h-full w-auto object-contain drop-shadow-[0_24px_44px_rgba(32,28,24,0.4)]" />;
+    return <img src={asset(src)} alt="" onError={() => setBroken(true)} className="max-h-[min(36dvh,310px)] max-w-full object-contain drop-shadow-[0_24px_44px_rgba(32,28,24,0.4)]" />;
   }
   return <Phone tone={tone}>{children}</Phone>;
 }
 
 function Phone({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <div className="relative w-[214px] overflow-hidden rounded-[27px] bg-white p-2.5" style={{ boxShadow: "0 30px 52px -22px rgba(32,28,24,.6)", border: `var(--bw-lg) solid ${tone}` }}>
+    <div className="relative w-[min(214px,64vw)] overflow-hidden rounded-[27px] bg-white p-2.5" style={{ boxShadow: "0 30px 52px -22px rgba(32,28,24,.6)", border: `var(--bw-lg) solid ${tone}` }}>
       <div className="overflow-hidden rounded-[20px] bg-white" style={{ border: "1.5px solid rgba(32,28,24,.12)" }}>
         <div className="flex items-center gap-1 px-3 pb-1.5 pt-2.5">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone }} />

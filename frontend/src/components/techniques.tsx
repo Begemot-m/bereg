@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Pause, Play, SpeakerHigh, SpeakerSlash, X } from "@phosphor-icons/react";
+import { Pause, Play, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
@@ -80,7 +80,7 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
             <div className="min-w-0"><p className="truncate font-tight text-[18px] font-black leading-tight">{meta.title}</p><p className="truncate text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">{meta.based}</p></div>
           </div>
-          <button onClick={() => { tap(); onClose(); }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffffff] transition-transform active:scale-95" style={{ border: `var(--bw) solid ${c.edge}` }} aria-label="Закрыть"><X size={18} weight="bold" /></button>
+          <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0" style={{ color: c.edge }}>Назад</button>
         </div>
         <div className="mt-4"><Progress value={progress} tone={meta.tone} /></div>
       </header>
@@ -115,7 +115,7 @@ function Primary({ onClick, disabled, children }: { onClick: () => void; disable
 }
 
 function Back({ onClick }: { onClick: () => void }) {
-  return <button onClick={() => { tap(); onClick(); }} className="mt-5 flex w-full items-center justify-center gap-1.5 rounded-[14px] bg-white py-3 text-[13px] font-black" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><ArrowLeft size={16} weight="bold" /> Назад</button>;
+  return <button onClick={() => { tap(); onClick(); }} className="back-link mt-5 w-full justify-center">Назад</button>;
 }
 
 function Rating({ value, onChange, tone, label }: { value: number; onChange: (v: number) => void; tone: Tone; label: string }) {
@@ -268,7 +268,7 @@ function ThoughtJournalList({ journal, onOpen }: { journal: JournalEntry[]; onOp
 function ThoughtEntryView({ entry, onBack, onDelete }: { entry: JournalEntry; onBack: () => void; onDelete: () => void }) {
   const row = (label: string, value: string) => value ? <div><p className="lbl">{label}</p><p className="mt-0.5 text-[13px] font-semibold leading-relaxed">{value}</p></div> : null;
   return <div>
-    <div className="mb-4 flex items-center justify-between"><button onClick={onBack} className="flex items-center gap-1 text-[12px] font-black text-[var(--muted)]"><ArrowLeft size={15} weight="bold" /> К истории</button><span className="text-[11px] font-bold text-[var(--muted-2)]">{journalDate.format(new Date(entry.date))}</span></div>
+    <div className="mb-4 flex items-center justify-between"><button onClick={onBack} className="back-link">К истории</button><span className="text-[11px] font-bold text-[var(--muted-2)]">{journalDate.format(new Date(entry.date))}</span></div>
     <div className="flex items-center gap-2"><span className="rounded-full bg-[var(--purple-soft)] px-3 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{entry.emotion}</span><span className="tnum rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>интенсивность {entry.before} → {entry.after}</span></div>
     <div className="mt-4 space-y-4 rounded-[16px] bg-white p-4" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
       {row("Ситуация", entry.situation)}

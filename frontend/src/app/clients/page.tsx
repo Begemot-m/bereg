@@ -217,15 +217,13 @@ function ClientCard({ client: c }: { client: Client }) {
             {c.name.charAt(0)}
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="t-head truncate">{c.name}</p>
-              <span
-                className="shrink-0 rounded-full px-2 py-1 text-[12px] font-black"
-                style={{ background: s === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
-              >
-                {STATUS_LABEL[s]}
-              </span>
-            </div>
+            <p className="t-head break-words leading-tight">{c.name}</p>
+            <span
+              className="mt-1 inline-flex rounded-full px-2 py-1 text-[12px] font-black"
+              style={{ background: s === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
+            >
+              {STATUS_LABEL[s]}
+            </span>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="t-cap inline-flex items-center gap-1.5">
                 <Icon name="check" width={13} weight="bold" color={`var(--${tone}-edge)`} />
@@ -245,36 +243,37 @@ function ClientCard({ client: c }: { client: Client }) {
               )}
             </div>
           </div>
-          {/* Явная подпись вместо стрелки: непонятно, что круг открывает карточку */}
-          <span
-            className="t-cap inline-flex shrink-0 items-center gap-1.5 self-center rounded-full px-3.5 py-2 font-black"
-            style={{ background: "#fff", border: "var(--bw) solid var(--purple-edge)", color: "var(--purple-edge)" }}
-          >
-            <Icon name="user" width={13} weight="bold" color="var(--purple-edge)" /> Открыть карточку
-          </span>
         </div>
       </div>
 
-      <div className="relative z-10 mt-3 flex items-center gap-2">
+      <div className="relative z-10 mt-3">
         <span
-          className="t-cap pointer-events-none inline-flex flex-1 items-center gap-1.5 rounded-full px-3 py-2"
+          className="t-cap pointer-events-none flex w-full items-center gap-1.5 rounded-full px-3 py-2"
           style={{ background: "var(--surface-2)", color: c.nextAt ? "var(--ink)" : "var(--muted-2)" }}
         >
           <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--muted)" : "var(--muted-2)"} />
           {c.nextAt ? `Ближайшая · ${relDay(c.nextAt)}` : "Записи нет"}
         </span>
-        {href && (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={tap}
-            className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2"
-            style={{ background: `var(--${tone}-edge)`, color: "#fff" }}
+        <div className="mt-2 flex flex-wrap justify-end gap-2">
+          <span
+            className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 font-black"
+            style={{ background: "#fff", border: "var(--bw) solid var(--purple-edge)", color: "var(--purple-edge)" }}
           >
-            <Icon name="telegram" width={13} weight="fill" color="#fff" /> Написать
-          </a>
-        )}
+            <Icon name="user" width={13} weight="bold" color="var(--purple-edge)" /> Открыть карточку
+          </span>
+          {href && (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={tap}
+              className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 font-black"
+              style={{ background: `var(--${tone}-edge)`, border: `var(--bw) solid var(--${tone}-edge)`, color: "#fff" }}
+            >
+              <Icon name="telegram" width={13} weight="fill" color="#fff" /> Написать
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

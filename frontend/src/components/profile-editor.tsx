@@ -303,7 +303,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
 
     <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
       <div className="flex gap-2">
-        <Button variant="soft" onClick={back} disabled={index === 0}>Назад</Button>
+        <button className="back-link disabled:opacity-0" onClick={back} disabled={index === 0}>Назад</button>
         {index === STEPS.length - 1
           ? <Button className="flex-1" onClick={save}>Опубликовать профиль</Button>
           : <Button className="flex-1" onClick={next}>Продолжить</Button>}

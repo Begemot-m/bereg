@@ -109,24 +109,22 @@ export function ClientDetail() {
     <div className="-mx-4 -mt-6 @md:-mx-9">
       {/* Шапка клиента: цвет = фон раздела, ниже скруглённая линия */}
       <header className="bg-[var(--page)] px-4 pb-14 pt-4 @md:px-9">
-        <Link href="/clients" className="btn btn-accent mb-3 px-3.5 py-2 text-[12.5px]">
-          <ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Все клиенты
-        </Link>
+        <Link href="/clients" className="back-link mb-3">Все клиенты</Link>
         <div className="flex items-center gap-3.5">
           {/* Крупная рамка фото */}
           <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[18px] text-[26px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }}>{client.name.charAt(0)}</div>
           <div className="min-w-0 flex-1">
-            <h1 className="font-tight truncate text-[22px] font-black leading-tight">{client.name}</h1>
+            <h1 className="font-tight break-words text-[clamp(19px,5.6vw,22px)] font-black leading-tight">{client.name}</h1>
             {client.contact
               ? <span className="t-cap mt-1 block">{formatContact(client.contact)}</span>
               : <span className="mt-1 block text-[12px] font-semibold text-[var(--muted-2)]">Контакт не указан</span>}
+            <span
+              className="mt-1.5 inline-flex rounded-full px-2 py-1 text-[12px] font-black"
+              style={{ background: dstatus === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
+            >
+              {STATUS_LABEL[dstatus]}
+            </span>
           </div>
-          <span
-            className="shrink-0 self-start rounded-full px-2 py-1 text-[12px] font-black"
-            style={{ background: dstatus === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
-          >
-            {STATUS_LABEL[dstatus]}
-          </span>
         </div>
         <div className="mt-2"><ConnectionChip link={client.link} /></div>
 

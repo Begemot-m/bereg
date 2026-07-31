@@ -121,7 +121,7 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
                   ))}
                 </motion.div>
                 <div className="mt-5 flex gap-2">
-                  {step > 0 && <Button variant="soft" onClick={() => { tap(); setStep((v) => v - 1); }}>Назад</Button>}
+                  {step > 0 && <button className="back-link" onClick={() => { tap(); setStep((v) => v - 1); }}>Назад</button>}
                   <Button className="flex-1" onClick={next}>{step === WHEEL.length - 1 ? "Показать результат" : "Дальше"}</Button>
                 </div>
                 <p className="mt-3 text-center text-[10px] font-semibold text-[var(--muted-2)]">Самооценка для разговора с терапевтом · не диагноз.</p>

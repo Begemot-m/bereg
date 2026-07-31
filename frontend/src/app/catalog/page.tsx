@@ -252,9 +252,7 @@ function PsyDetailView({ psy, prefs, invited = false, onBack }: { psy: Psy; pref
           </span>
         </div>
       ) : (
-        <button onClick={onBack} className="btn btn-accent mb-3">
-          <ArrowGlyph style={{ transform: "rotate(180deg)" }} /> Вернуться в каталог
-        </button>
+        <button onClick={onBack} className="back-link mb-3">Вернуться в каталог</button>
       )}
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} tone={tone} />
