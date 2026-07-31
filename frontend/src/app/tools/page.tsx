@@ -1,12 +1,11 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { PageHead } from "@/components/blocks";
-import { Icon, type IconName } from "@/components/icons";
+import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import type { TechKey } from "@/components/techniques";
 
@@ -14,16 +13,7 @@ import type { TechKey } from "@/components/techniques";
 const TechniqueRunner = dynamic(() => import("@/components/techniques").then((m) => m.TechniqueRunner));
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
-import { getSubscription, startSubscription } from "@/lib/subscription";
-
-// Что открывает Методика+ (по подписке).
-const PREMIUM: { title: string; desc: string; icon: IconName }[] = [
-  { title: "Детальное колесо баланса", desc: "Радар по 10 сферам и история", icon: "balance" },
-  { title: "Дневник эмоций", desc: "Отмечать состояния по дням", icon: "heart" },
-  { title: "Медитации и практики", desc: "Короткие аудио на каждый день", icon: "therapy" },
-];
-
-// Инструменты клиента: часть бесплатна, часть — по подписке «Методика+». Интерактивные — с tech.
+// Интерактивные клиентские практики.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
   { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.png", bg: "#d9edf3", edge: "#5f95ab" },
   { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики и вести историю", time: "2–7 мин", image: "/practices/automatic-thoughts.png", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
@@ -40,9 +30,6 @@ function ClientTools() {
   const [tech, setTech] = useState<TechKey | null>(null);
   const [history, setHistory] = useState<PracticeHistory>([]);
   const [drafts, setDrafts] = useState<TechKey[]>([]);
-  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
-  const buy = useMutation({ mutationFn: () => startSubscription("client"), onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; } });
-  const pro = !!sub?.clientPro;
 
   useEffect(() => {
     try { setHistory(JSON.parse(localStorage.getItem("bereg-practice-history-v1") || "[]")); } catch { setHistory([]); }
@@ -55,14 +42,14 @@ function ClientTools() {
 
       <Reveal y={10}>
         <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
-          <section className="overflow-hidden rounded-[20px] bg-[var(--head-soft)] text-[var(--ink)]">
+          <section className="overflow-hidden rounded-[20px] bg-[var(--ink)] text-white">
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="chip bg-white uppercase text-[var(--ink)]">Скоро в Методике</span>
+                  <span className="chip uppercase text-white" style={{ background: "var(--edge)" }}>Скоро в Методике</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">Больше опоры между встречами</h2>
-                <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-[var(--muted)]">Тесты для самодиагностики, AI-ассистент, база знаний и новые практики уже в работе.</p>
+                <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-white/75">Тесты для самодиагностики, AI-ассистент, база знаний и новые практики уже в работе.</p>
               </div>
               <span className="ico ico-accent h-14 w-14 shrink-0"><Icon name="compass" width={28} weight="bold" color="#fff" /></span>
             </div>
@@ -97,8 +84,8 @@ function ClientTools() {
             <span className="chip" style={{ background: "var(--green-soft)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--green-soft)" }}><Icon name="mood" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
-            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--purple-soft)" }}><Icon name="balance" width={20} weight="bold" /><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--green-soft)" }}><span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--green-edge)]"><Icon name="mood" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--purple-soft)" }}><span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--purple-edge)]"><Icon name="balance" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
           </div>
 
 

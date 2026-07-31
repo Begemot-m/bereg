@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
@@ -36,10 +37,15 @@ const STEPS: StepDefinition[] = [
 
 export function ProfileEditor({ embedded = false, professional = true, roleControl }: { embedded?: boolean; professional?: boolean; roleControl?: ReactNode }) {
   const profile = useProfile();
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const [preview, setPreview] = useState(false);
   const name = profile?.name || displayName();
   const photo = displayPhoto();
+  const openEditor = () => {
+    tap();
+    if (professional) router.push("/cabinet/profile");
+    else setEditing(true);
+  };
 
   return <>
     <div className={embedded ? "space-y-4" : "chunk p-4"}>
@@ -47,22 +53,23 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
         <ProfilePhoto photo={photo} name={name} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[21px] font-extrabold leading-tight">{name}</p>
-          <button onClick={() => { tap(); setEditing(true); }} className="mt-1 text-[12px] font-bold text-[var(--muted)]">Редактировать профиль</button>
+          <button onClick={openEditor} className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="edit" width={12} weight="bold" color="currentColor" /> Редактировать профиль</button>
         </div>
         {professional && profile && <VerifyChip status={profile.status} />}
       </div>
       {roleControl}
-      {professional && <ProfileProgress profile={profile} onContinue={() => { tap(); setEditing(true); }} />}
-      {professional && <button onClick={() => { tap(); setPreview(true); }} className="rounded-full px-3 py-2 text-[11px] font-bold text-[var(--muted)] transition-colors hover:text-[var(--ink)]">Как видят мой профиль</button>}
+      {professional && <ProfileProgress profile={profile} onContinue={openEditor} />}
     </div>
 
     <ProfileSheet open={editing} title="Профиль специалиста" onClose={() => setEditing(false)}>
-      {professional ? <ProfileForm onDone={() => setEditing(false)} /> : <BasicProfileForm onDone={() => setEditing(false)} />}
-    </ProfileSheet>
-    <ProfileSheet open={preview} title="Так профиль видит клиент" onClose={() => setPreview(false)}>
-      <PublicProfilePreview profile={profile} name={name} photo={photo} />
+      <BasicProfileForm onDone={() => setEditing(false)} />
     </ProfileSheet>
   </>;
+}
+
+export function ProfessionalProfileEditor() {
+  const router = useRouter();
+  return <ProfileForm livePreview onDone={() => router.push("/cabinet")} />;
 }
 
 // Статус верификации профиля — компактный чип.
@@ -159,7 +166,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
   </article>;
 }
 
-// Карточка-миниатюра ровно как в каталоге — «как видят мой профиль».
+// Карточка-миниатюра повторяет представление специалиста в каталоге.
 function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; name: string; photo: string | null }) {
   const topics = profile?.topics ?? [];
   const helps = topics.length ? topics.slice(0, 3).join(", ") : "разными запросами";
@@ -200,12 +207,13 @@ function Tag({ children }: { children: ReactNode }) { return <span className="ro
 function SectionTitle({ icon, title }: { icon: IconName; title: string }) { return <div className="mb-2 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[var(--head-soft)] stroke"><Icon name={icon} width={14} weight="bold" /></span><p className="text-[12px] font-extrabold text-[var(--muted)]">{title}</p></div>; }
 function PreviewEmpty({ text }: { text: string }) { return <p className="t-sub px-1">{text}</p>; }
 
-function ProfileForm({ onDone }: { onDone: () => void }) {
+function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; livePreview?: boolean }) {
+  const flowSteps = livePreview ? STEPS.slice(0, -1) : STEPS;
   const [draft, setDraft] = useState<PsyProfile>(() => mergeProfile(getPsyProfile()));
   const [step, setStep] = useState<number>(() => {
     const profile = mergeProfile(getPsyProfile());
-    const firstGap = STEPS.slice(0, -1).findIndex((item) => !isComplete(item.id, profile));
-    return firstGap < 0 ? STEPS.length - 1 : firstGap;
+    const firstGap = flowSteps.findIndex((item) => !isComplete(item.id, profile));
+    return firstGap < 0 ? flowSteps.length - 1 : firstGap;
   });
   const [error, setError] = useState("");
   const [published, setPublished] = useState(false);
@@ -232,7 +240,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
 
   const openStep = (target: number) => { tap(); setError(""); setStep(target); };
   // Пролистывать можно всегда — незаполненные шаги подсвечены цветом в полосе сверху.
-  const next = () => { select(); setError(""); setStep(Math.min(STEPS.length - 1, step + 1)); };
+  const next = () => { select(); setError(""); setStep(Math.min(flowSteps.length - 1, step + 1)); };
   const back = () => { tap(); setError(""); setStep((current) => Math.max(0, current - 1)); };
   const save = () => {
     const firstInvalid = STEPS.slice(0, -1).findIndex((item) => validateStep(item.id, draft));
@@ -243,25 +251,26 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
     success(); setPublished(true);
   };
 
-  const current = STEPS[step ?? 0];
+  const current = flowSteps[step ?? 0];
   const index = step ?? 0;
 
   if (published) return <PublishedScreen name={draft.name || displayName()} onDone={onDone} />;
 
-  return <div>
+  return <div className={livePreview ? "@xl:grid @xl:grid-cols-[minmax(0,0.9fr)_minmax(360px,1.1fr)] @xl:items-start @xl:gap-5" : ""}>
+    <div className="min-w-0">
     {/* Прогресс + шаги: можно вернуться на любой пройденный и дозаполнить позже */}
     <div className="mb-4 overflow-hidden rounded-[20px] bg-white stroke-lg">
-      <div className="h-1.5 bg-[var(--surface-2)]"><motion.div className="h-full bg-[var(--ink)]" animate={{ width: `${((index + 1) / STEPS.length) * 100}%` }} /></div>
+      <div className="h-1.5 bg-[var(--surface-2)]"><motion.div className="h-full bg-[var(--ink)]" animate={{ width: `${((index + 1) / flowSteps.length) * 100}%` }} /></div>
       <div className="flex items-center gap-3 p-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Шаг {index + 1} из {STEPS.length} · заполнено {percent}%</p>
+          <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Шаг {index + 1} из {flowSteps.length} · заполнено {percent}%</p>
           <h3 className="font-tight text-[19px] font-black leading-tight">{current.title}</h3>
         </div>
       </div>
       <div className="flex gap-1 border-t px-3 py-2.5" style={{ borderColor: "var(--edge-neutral)" }}>
-        {STEPS.map((item, itemIndex) => {
-          const isPreview = itemIndex === STEPS.length - 1;
+        {flowSteps.map((item, itemIndex) => {
+          const isPreview = item.id === "preview";
           const done = !isPreview && isComplete(item.id, draft);
           const active = itemIndex === index;
           // Заполненные — зелёные, недозаполненные — янтарные (сигнал), текущий — тёмная обводка.
@@ -304,7 +313,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
     <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
       <div className="flex gap-2">
         <button className="back-link disabled:opacity-0" onClick={back} disabled={index === 0}>Назад</button>
-        {index === STEPS.length - 1
+        {index === flowSteps.length - 1
           ? <Button className="flex-1" onClick={save}>Опубликовать профиль</Button>
           : <Button className="flex-1" onClick={next}>Продолжить</Button>}
       </div>
@@ -312,6 +321,13 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
         Заполню позже — черновик сохранён
       </button>
     </div>
+    </div>
+    {livePreview && (
+      <aside className="mt-5 min-w-0 @xl:sticky @xl:top-4 @xl:mt-0 @xl:max-h-[calc(100dvh-32px)] @xl:overflow-y-auto">
+        <div className="mb-2 flex items-center gap-2 px-1"><Icon name="user" width={15} weight="bold" color="var(--edge)" /><p className="t-head">Так профиль выглядит для клиента</p></div>
+        <PublicProfilePreview profile={draft} name={draft.name || displayName()} photo={draft.photos[0] ?? displayPhoto()} />
+      </aside>
+    )}
   </div>;
 }
 

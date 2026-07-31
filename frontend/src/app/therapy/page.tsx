@@ -26,7 +26,6 @@ import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/c
 import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
-import { getSubscription, startSubscription } from "@/lib/subscription";
 import { select, success, tap } from "@/lib/haptics";
 import { loadTherapists, saveTherapists, type TherapistStore } from "@/lib/therapists";
 import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
@@ -87,11 +86,9 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
   const [flowOpen, setFlowOpen] = useState(false);
   const [moodSheet, setMoodSheet] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   // «Ближайшая сессия» с главной ведёт сюда — сразу к записи.
   const [openBooking, setOpenBooking] = useState(false);
   useEffect(() => { setOpenBooking(new URLSearchParams(window.location.search).get("booking") === "1"); }, []);
-  const buySub = useMutation({ mutationFn: () => startSubscription("client"), onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; } });
 
   const qc = useQueryClient();
   const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(ME) });
@@ -160,7 +157,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
         </div>
       </main>
       <MoodSheet open={moodSheet} mood={todayEntry?.mood} emotions={todayEntry?.emotions} onClose={() => setMoodSheet(false)} onSave={onMood} />
-      {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} locked={!sub?.clientPro} onUnlock={() => buySub.mutate()} />}
+      {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} locked={false} />}
     </div>
   );
 }

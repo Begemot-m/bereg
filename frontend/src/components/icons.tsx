@@ -51,6 +51,7 @@ export type IconName =
   | "clock"
   | "check"
   | "note"
+  | "edit"
   | "sun"
   | "moon"
   | "video"
@@ -85,6 +86,7 @@ const MAP: Record<IconName, PhIcon> = {
   clock: Clock,
   check: CheckCircle,
   note: NotePencil,
+  edit: NotePencil,
   sun: Sun,
   moon: MoonStars,
   video: VideoCamera,

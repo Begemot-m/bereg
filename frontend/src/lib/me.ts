@@ -18,13 +18,13 @@ export type Me = {
  * доступно не всем. Скрытая кнопка защитой не является — сервер всё равно
  * проверяет права на каждом запросе.
  *
- * В демо админку показываем: демо и существует, чтобы показывать.
+ * Админский блок скрыт для всех, кроме владельца @mmgorba.
  */
 export function useMe() {
   return useQuery<Me>({
     queryKey: ["me"],
     queryFn: async () => {
-      if (DEMO) return { id: 1, username: "demo", firstName: "Демо", role: "psychologist", isAdmin: true };
+      if (DEMO) return { id: 1, username: "demo", firstName: "Демо", role: "psychologist", isAdmin: false };
       return apiFetch<Me>("/auth/me");
     },
     staleTime: 5 * 60_000,

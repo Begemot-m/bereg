@@ -15,7 +15,7 @@ const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
-  { id: "tools", name: "Методика PRO", tag: "безлимит + каталог", best: true, perks: ["Клиенты без лимита (бесплатно — 3, со всем функционалом)", "Каталог новых клиентов — честная выдача", "Комиссии за запись нет", "Весь функционал по клиенту доступен и бесплатно"] },
+  { id: "tools", name: "Методика PRO", tag: "безлимит + размещение", best: true, perks: ["Клиенты без лимита (бесплатно — 3, со всем функционалом)", "Размещение в каталоге специалистов — честная выдача", "Комиссии за запись нет", "Весь функционал по клиенту доступен и бесплатно"] },
 ];
 const CLIENT_PLAN: Plan = { id: "client", name: "Методика+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
@@ -30,7 +30,7 @@ const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[
   { label: "Записи, график, карточки", free: true, pro: true },
   { label: "Настроение, домашки, шаблоны", free: true, pro: true },
   { label: "Аналитика и сводка недели", free: true, pro: true },
-  { label: "Каталог новых клиентов", free: false, pro: true },
+  { label: "Размещение в каталоге специалистов", free: false, pro: true },
   { label: "Комиссия за запись", free: "нет", pro: "нет" },
 ];
 
@@ -298,7 +298,7 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
   return {
     badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>990 ₽/мес</span>,
     title: "Бесплатный тариф",
-    subtitle: "3 клиента со всем функционалом. PRO — клиенты без лимита и каталог новых клиентов.",
+    subtitle: "3 клиента со всем функционалом. PRO — клиенты без лимита и размещение в каталоге специалистов.",
     progress: null,
   };
 }

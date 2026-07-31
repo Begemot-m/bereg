@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Pause, Play, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { asset } from "@/lib/asset";
@@ -73,7 +73,7 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
   const reduce = useReducedMotion();
   useEffect(() => { const old = document.body.style.overflow; document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = old; }; }, []);
   return <motion.div className="fixed inset-0 z-[90] flex justify-center bg-[rgba(32,28,24,.38)] p-0 @md:items-center @md:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-    <motion.section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[var(--surface)] @md:h-[min(844px,94dvh)] @md:rounded-[27px]" initial={reduce ? false : { y: 28, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={reduce ? undefined : { y: 20, opacity: 0 }} transition={{ duration: .24, ease: [0.32, 0.72, 0, 1] }} style={{ border: `var(--bw-lg) solid ${c.edge}` }}>
+    <motion.section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[var(--surface)] @md:h-[min(844px,94dvh)] @md:rounded-[27px]" initial={reduce ? false : { y: 28, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={reduce ? undefined : { y: 20, opacity: 0 }} transition={{ duration: .24, ease: [0.32, 0.72, 0, 1] }} style={{ border: `var(--bw-lg) solid ${c.edge}`, "--edge": c.edge } as CSSProperties}>
       <header className="shrink-0 px-4 pb-5 pt-[max(14px,var(--top-pad))]" style={{ background: c.bg, borderBottom: `var(--bw-lg) solid ${c.edge}` }}>
         <div className="flex items-center gap-3">
           <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0">Назад</button>

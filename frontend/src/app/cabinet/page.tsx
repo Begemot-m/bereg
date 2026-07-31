@@ -58,12 +58,9 @@ export default function CabinetPage() {
         <div className="space-y-3">
           <SectionTitle>{psy ? "Практика" : "Забота о себе"}</SectionTitle>
           {psy ? (
-            <>
-              <SubscriptionBanner variant="psy" />
-              <ActionRow icon="clock" title="График и правила приёма" sub="Рабочие часы, напоминания, запрет отмены — в разделе «Сессии»" onClick={() => { tap(); router.push("/sessions"); }} />
-            </>
+            <SubscriptionBanner variant="psy" />
           ) : (
-            <SubscriptionBanner variant="client" />
+            null
           )}
         </div>
 
@@ -161,7 +158,7 @@ function DeleteAccountRow() {
 // ссылке ничего не получит: роуты админки отвечают 403.
 function AdminEntry() {
   const me = useMe();
-  if (!me.data?.isAdmin) return null;
+  if (!me.data?.isAdmin || me.data.username?.replace(/^@/, "").toLowerCase() !== "mmgorba") return null;
 
   return (
     <div>
@@ -263,6 +260,7 @@ function EmailLink() {
           onClick={() => { tap(); bind.mutate(draft); }}
           disabled={!ok || bind.isPending}
           className="btn btn-accent shrink-0 px-3.5 py-2 text-[12px]"
+          style={{ background: "var(--edge)", borderColor: "var(--edge)", color: "#fff" }}
         >
           {bind.isPending ? "Отправляем…" : "Привязать"}
         </button>

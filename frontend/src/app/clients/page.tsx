@@ -212,15 +212,15 @@ function ClientCard({ client: c }: { client: Client }) {
       <Link href={`/clients/?id=${c.id}`} onClick={tap} className="absolute inset-0 z-0" aria-label={`Карточка клиента: ${c.name}`} />
 
       <div className="pointer-events-none relative z-10">
-        <div className="flex items-center gap-3">
-          <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px] text-[20px] font-black" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone}-edge)` }}>
+        <div className="flex items-stretch gap-3.5">
+          <span className="flex h-[104px] w-[86px] shrink-0 items-center justify-center rounded-[16px] text-[30px] font-black" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone}-edge)` }}>
             {c.name.charAt(0)}
           </span>
           <div className="min-w-0 flex-1">
             <p className="t-head break-words leading-tight">{c.name}</p>
             <span
               className="mt-1 inline-flex rounded-full px-2 py-1 text-[12px] font-black"
-              style={{ background: s === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
+              style={{ background: "var(--purple-soft)", color: "var(--purple-edge)" }}
             >
               {STATUS_LABEL[s]}
             </span>
@@ -254,11 +254,11 @@ function ClientCard({ client: c }: { client: Client }) {
           <Icon name="calendar" width={13} weight="bold" color={c.nextAt ? "var(--muted)" : "var(--muted-2)"} />
           {c.nextAt ? `Ближайшая · ${relDay(c.nextAt)}` : "Записи нет"}
         </span>
-        <div className="mt-2 flex flex-wrap justify-end gap-2">
+        <div className={`mt-2 grid gap-2 ${href ? "grid-cols-2" : "grid-cols-1"}`}>
           <Link
             href={`/clients/?id=${c.id}`}
             onClick={tap}
-            className="t-cap relative z-20 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 font-black"
+            className="t-cap relative z-20 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-3.5 py-2.5 font-black"
             style={{ background: "#fff", border: "var(--bw) solid var(--purple-edge)", color: "var(--purple-edge)" }}
           >
             <Icon name="user" width={13} weight="bold" color="var(--purple-edge)" /> Открыть карточку
@@ -269,7 +269,7 @@ function ClientCard({ client: c }: { client: Client }) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={tap}
-              className="t-cap inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 font-black"
+              className="t-cap inline-flex w-full items-center justify-center gap-1.5 rounded-full px-3.5 py-2.5 font-black"
               style={{ background: `var(--${tone}-edge)`, border: `var(--bw) solid var(--${tone}-edge)`, color: "#fff" }}
             >
               <Icon name="telegram" width={13} weight="fill" color="#fff" /> Написать

@@ -156,7 +156,7 @@ function PsySell({ onStart }: { onStart: () => void }) {
     { icon: "calendar", label: "Записи и расписание", free: "всё", pro: "всё" },
     { icon: "note", label: "Задания и заметки", free: "всё", pro: "всё" },
     { icon: "chart", label: "Статистика работы", free: "всё", pro: "всё" },
-    { icon: "compass", label: "Каталог новых клиентов", free: "—", pro: "включён" },
+    { icon: "compass", label: "Размещение в каталоге специалистов", free: "—", pro: "включено" },
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">

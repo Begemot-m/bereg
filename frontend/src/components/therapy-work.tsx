@@ -29,13 +29,13 @@ export function WorkWithSpecialist({ sessionsDone, homework, onChanged }: {
 
   return (
     <section data-tour="work" className="rounded-[20px] p-4" style={{ background: "var(--green-soft)" }}>
-      <p className="t-micro">Работа со специалистом</p>
+      <h2 className="t-title text-[var(--ink)]">Работа со специалистом</h2>
       <div className="mt-2 grid grid-cols-[112px_1fr] gap-3 rounded-[16px] bg-white p-3">
         <div><p className="tnum font-tight text-[30px] font-black leading-none">{sessionsDone}</p><p className="t-cap mt-1">{plural(sessionsDone, "встреча", "встречи", "встреч")}</p></div>
         <div><p className="t-cap">Динамика встреч</p><div className="mt-2 flex h-10 items-end gap-1.5">{[.35,.55,.42,.72,.62,1].map((v, i) => <motion.span key={i} className="flex-1 rounded-t-[5px] bg-[var(--purple-edge)]" initial={{ height: 4 }} animate={{ height: `${Math.max(12, v * Math.min(40, 12 + sessionsDone * 4))}px` }} transition={{ delay: i * .04 }} />)}</div></div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between"><p className="t-head">Задания</p>{fresh > 0 && <span className="t-cap text-[var(--amber-edge)]">{fresh} новых</span>}</div>
+      <div className="mt-4 flex items-center justify-between"><h3 className="t-head text-[var(--ink)]">Задания</h3>{fresh > 0 && <span className="t-cap font-black text-[var(--purple-edge)]">{fresh} новых</span>}</div>
       <div className="mt-2 space-y-2">
         {homework.length === 0
           ? <p className="t-sub rounded-[14px] bg-white p-3">Заданий пока нет — терапевт пришлёт их после встречи.</p>
@@ -72,14 +72,18 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
       layout
       className="rounded-[14px] bg-white p-3"
     >
-      <div className="flex items-start gap-2.5">
-        {isNew && <span className="mt-0.5 shrink-0"><Alert /></span>}
-        {isDone && <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green-edge)]"><Icon name="check" width={11} weight="bold" color="#fff" /></span>}
-        <p className={`t-body min-w-0 flex-1 ${isDone ? "line-through text-[var(--muted)]" : ""}`}>{hw.text}</p>
+      <div className="flex items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--purple-edge)]">
+          <Icon name={isDone ? "check" : "note"} width={16} weight="bold" color="#fff" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">{isNew && <Alert />}<p className="t-micro text-[var(--purple-edge)]">{isDone ? "Выполнено" : isNew ? "Новое задание" : "В работе"}</p></div>
+          <p className={`mt-1 text-[15px] font-bold leading-snug ${isDone ? "line-through text-[var(--muted)]" : "text-[var(--ink)]"}`}>{hw.text}</p>
+        </div>
       </div>
-      <div className="mt-2.5 grid w-full grid-cols-2 rounded-full bg-[var(--surface-2)] p-0.5 text-[11px] font-black">
-        <button onClick={() => { select(); save.mutate("doing"); }} className="rounded-full px-3 py-2" style={!isDone ? { background: "var(--purple-edge)", color: "#fff" } : { color: "var(--muted)" }}>Выполняется</button>
-        <button onClick={() => { select(); save.mutate("done"); }} className="rounded-full px-3 py-2" style={isDone ? { background: "var(--green-edge)", color: "#fff" } : { color: "var(--muted)" }}>Выполнено</button>
+      <div className="mt-3 grid w-full grid-cols-2 rounded-full bg-[var(--surface-2)] p-0.5 text-[10px] font-black">
+        <button onClick={() => { select(); save.mutate("doing"); }} className="rounded-full px-3 py-1.5" style={!isDone ? { background: "var(--purple-edge)", color: "#fff" } : { color: "var(--muted)" }}>Выполняется</button>
+        <button onClick={() => { select(); save.mutate("done"); }} className="rounded-full px-3 py-1.5" style={isDone ? { background: "var(--green-edge)", color: "#fff" } : { color: "var(--muted)" }}>Выполнено</button>
       </div>
       <AnimatePresence>
         {celebrate && (

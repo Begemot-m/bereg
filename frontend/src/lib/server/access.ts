@@ -70,6 +70,6 @@ export async function canAddClient(userId: number): Promise<{ ok: boolean; used:
 
 /** Администратор платформы. Флаг ставится только вручную в базе. */
 export async function isAdmin(userId: number): Promise<boolean> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
-  return user?.isAdmin === true;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true, username: true } });
+  return user?.isAdmin === true && user.username?.replace(/^@/, "").toLowerCase() === "mmgorba";
 }
