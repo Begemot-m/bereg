@@ -159,7 +159,7 @@ export function ClientDetail() {
         {/* Кнопки — в тонах приложения */}
         <div className="mt-4 flex gap-2">
           <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "btn-white" : "btn-accent"}`} aria-expanded={bookOpen}>
-            <Icon name="calendar" width={15} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> {bookOpen ? "Свернуть" : nextAppt ? "Перезаписать" : "Записать на окно"}
+            <Icon name="calendar" width={15} weight="bold" color={bookOpen ? "var(--edge)" : "#fff"} /> {bookOpen ? "Свернуть" : nextAppt ? "Перезаписать" : "Записать на окно"}
           </button>
           {tgLink ? (
             <a href={tgLink} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn flex-1 py-3"><Icon name="telegram" width={15} weight="fill" color="#fff" /> Написать</a>

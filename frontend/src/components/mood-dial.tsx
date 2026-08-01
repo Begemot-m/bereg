@@ -3,10 +3,10 @@
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
-import { Arrow } from "@/components/blocks";
+import { Arrow, DailyDot } from "@/components/blocks";
 import { Icon } from "@/components/icons";
-import { MoodBlob, MoodHead, moodColor } from "@/components/mood-egg";
-import { emotionTone, suggestEmotions } from "@/lib/emotions";
+import { MoodBlob, MoodHead, moodAccent, moodColor } from "@/components/mood-egg";
+import { emotionValence, suggestEmotions } from "@/lib/emotions";
 import { primeTick, select, success, tap, tickSteps } from "@/lib/haptics";
 import { MOOD_LABEL } from "@/lib/mascots";
 import type { Mood } from "@/lib/clients";
@@ -27,7 +27,7 @@ export function MoodHomeCard({ mood, moods, onOpen, embedded = false }: { mood?:
           <MoodBlob value={value} size={70} still />
         </motion.span>
         <span className="min-w-0 flex-1">
-          <span className="t-micro block">Настроение дня</span>
+          <span className="t-micro flex items-center gap-1.5">Настроение дня{!mood && <DailyDot size={16} label="Настроение дня ещё не отмечено" />}</span>
           <span className="t-head block">Какое у вас настроение?</span>
           <MiniMoodTrend moods={recent} />
         </span>
@@ -184,7 +184,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
           </h2>
           <div className="mt-2 flex items-center justify-center gap-2" aria-live="polite">
             <span className="rounded-full bg-[var(--ink)] px-3 py-1 text-[12px] font-black capitalize text-white">{MOOD_LABEL[level]}</span>
-            <span className="text-[11px] font-black tabular-nums text-white/75">{value.toFixed(1)} / 5</span>
+            <span className="text-[11px] font-black tabular-nums text-[var(--ink)]">{value.toFixed(1)} / 5</span>
           </div>
 
           <div className="relative mt-3">
@@ -235,14 +235,16 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
             <div className="mt-2 flex flex-wrap gap-1.5">
               {suggestions.map((name) => {
                   const on = picked.includes(name);
-                  const tone = emotionTone(name);
+                  // Эмоция красится по валентности: зелёная — приятная, красная — тяжёлая.
+                  const fill = moodColor(emotionValence(name));
+                  const ink = moodAccent(emotionValence(name));
                   return (
                     <button
                       key={name}
                       onClick={() => toggle(name)}
                       aria-pressed={on}
                       className="rounded-full px-3 py-1.5 text-[11.5px] font-black transition-[background-color,color,border-color] duration-150 active:scale-95"
-                      style={{ background: on ? `var(--${tone})` : "#fff", border: `var(--bw) solid var(--${on ? `${tone}-edge` : "edge-neutral"})`, color: on ? "var(--ink)" : "var(--muted)" }}
+                      style={{ background: on ? fill : "#fff", border: `var(--bw) solid ${on ? ink : "var(--edge-neutral)"}`, color: on ? ink : "var(--muted)" }}
                     >
                       {name}
                     </button>

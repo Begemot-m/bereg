@@ -239,3 +239,6 @@ function lighten(hex: string): string {
 }
 
 export const moodColor = (value: number) => mix(Math.min(1, Math.max(0, (value - 1) / 4)));
+
+// Тот же цвет ступенью темнее — для шрифта на заливке moodColor.
+export const moodAccent = (value: number) => blend(moodColor(value), "#2c2e31", 0.52);

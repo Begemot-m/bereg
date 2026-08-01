@@ -106,11 +106,15 @@ export function tickSteps(count: number) {
 
   // Только вибрация: звуковой щелчок при прокрутке шкалы убран — в приложении
   // про состояние он навязчив, особенно если открыть его в тишине.
+  // Каждая риска — отдельный лёгкий удар. selectionChanged в Telegram при
+  // быстрой прокрутке склеивается в один отклик, поэтому берём impact.
   const haptic = tg();
-  if (haptic?.selectionChanged) {
+  if (haptic?.impactOccurred) {
+    for (let index = 0; index < total; index += 1) haptic.impactOccurred("light");
+  } else if (haptic?.selectionChanged) {
     for (let index = 0; index < total; index += 1) haptic.selectionChanged();
   } else {
-    const pattern = Array.from({ length: total * 2 - 1 }, (_, index) => index % 2 === 0 ? 3 : 5);
+    const pattern = Array.from({ length: total * 2 - 1 }, (_, index) => index % 2 === 0 ? 7 : 10);
     vibrate(pattern);
   }
 }

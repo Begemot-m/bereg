@@ -65,15 +65,16 @@ export function MonthCalendar({
           const isSel = multi ? multi.has(y) : selected === y;
           const a: Avail | undefined = avail?.[y];
 
-          // Три состояния и ничего лишнего: свободный день — только обводка,
-          // занятый — обводка и заливка, выбранный — чёрная заливка.
-          const busy = has.has(y) || a === "full";
-          const free = !busy && a === "free";
+          // Занятость идёт от расписания: день занят, только когда свободных
+          // окон в нём не осталось. Записи сами по себе день не закрывают —
+          // они отмечаются точкой, иначе календарь врёт.
+          const booked = has.has(y);
+          const busy = avail ? a === "full" : booked;
+          const free = avail ? a === "free" : false;
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
 
           let base: React.CSSProperties = { color: "var(--ink)" };
-          if (busy) base = { background: "var(--head-soft)", color: "var(--ink)", border: "var(--bw) solid var(--edge)" };
-          else if (free) base = { color: "var(--ink)", border: "var(--bw) solid var(--edge)" };
+          if (free) base = { color: "var(--ink)", border: "var(--bw) solid var(--edge)" };
 
           const style: React.CSSProperties = isSel
             ? { background: "var(--ink)", color: "#fff", border: "var(--bw) solid var(--ink)" }
@@ -84,17 +85,19 @@ export function MonthCalendar({
               key={i}
               disabled={disabled}
               onClick={() => { select(); if (multi) onToggle?.(y); else onSelectDay(isSel ? null : y); }}
-              className={`keep-ring relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-colors duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""}`}
+              className={`keep-ring relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-colors duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""} ${busy && !isSel ? "day-busy" : ""}`}
               style={style}
             >
               {d.getDate()}
+              {booked && !isSel && <span className="absolute -bottom-px h-1 w-1 rounded-full" style={{ background: "var(--edge)" }} />}
             </button>
           );
         })}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
         {avail && <span className="flex items-center gap-1.5"><span className="keep-style h-3.5 w-3.5 rounded-full" style={{ border: "var(--bw) solid var(--edge)" }} /> свободно</span>}
-        <span className="flex items-center gap-1.5"><span className="keep-style h-3.5 w-3.5 rounded-full" style={{ background: "var(--head-soft)", border: "var(--bw) solid var(--edge)" }} /> есть записи</span>
+        <span className="flex items-center gap-1.5"><span className="keep-style day-busy h-3.5 w-3.5 rounded-full" /> занято</span>
+        {appts.length > 0 && <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge)" }} /> есть записи</span>}
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
       </div>
     </div>

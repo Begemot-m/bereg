@@ -98,7 +98,10 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
   }, [bookings, therapists.active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(ME) });
-  const todayEntry = [...therapy.moods].reverse().find((e) => e.date.slice(0, 10) === new Date().toISOString().slice(0, 10));
+  // День берём по локальной зоне, как на главной: по UTC отметка «сегодня»
+  // не находилась и заливка блока не подхватывала цвет настроения.
+  const todayKey = ymdLocal(new Date());
+  const todayEntry = [...therapy.moods].reverse().find((e) => ymdLocal(new Date(e.date)) === todayKey);
   const startFlow = () => { tap(); setShowGuide(!therapy.tutorialSeen); setFlowOpen(true); };
 
   return (
@@ -190,7 +193,7 @@ function FindTherapistBlock() {
         <span className="block text-[14px] font-black">Найти терапевта</span>
         <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания. Ваша статистика уже собирается ниже.</span>
       </span>
-      <span className="btn shrink-0">Подобрать</span>
+      <span className="btn shrink-0">В каталог</span>
     </Link>
   );
 }
@@ -269,7 +272,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
           {booked ? (
             <div className="text-center">
               <p className="text-[13px] font-black">Вы записаны к {name.split(" ")[0]}</p>
-              <p className="t-cap mt-1">{new Date(booked.at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {new Date(booked.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+              <p className="t-cap mt-1 inline-flex items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" />{new Date(booked.at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {new Date(booked.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {booked.format === "online" ? "онлайн" : "очно"}</p>
               <button onClick={() => { setBooked(null); setPickSlot(false); }} className="btn mt-2.5 px-4 py-1.5 text-[11px]">Готово</button>
             </div>
           ) : manage ? (
@@ -277,7 +280,8 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
               {/* Запись уже есть — вместо выбора окна показываем управление ею */}
               <p className="t-micro mb-2 px-1">Ваши записи</p>
               <div className="space-y-1.5">
-                {mine.map((item) => <BookingRow key={item.id} b={item} onChange={invBookings} />)}
+                {/* Ближайшая запись открыта сразу: «Моя запись» — это и есть вход в перенос/отмену */}
+                {mine.map((item, index) => <BookingRow key={item.id} b={item} onChange={invBookings} defaultOpen={index === 0} />)}
               </div>
               <button onClick={() => { tap(); setPickSlot(true); }} className="btn btn-white mt-2.5 w-full py-2.5">
                 <Icon name="plus" width={14} weight="bold" color="var(--ink)" /> Записаться ещё
@@ -286,7 +290,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
           ) : (
             <>
               <p className="t-micro mb-1 px-1">Свободные окна</p>
-              <p className="t-cap mb-2 px-1">{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
+              <p className="t-cap mb-2 flex items-center gap-1.5 px-1"><Icon name="calendar" width={12} weight="bold" color="currentColor" />{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
               <SlotPicker forClient variant="calendar" calendarTone="blend" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
               {mine.length > 0 && <button onClick={() => { tap(); setPickSlot(false); }} className="back-link mt-2 w-full justify-center">Назад к моим записям</button>}
             </>

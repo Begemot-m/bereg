@@ -95,10 +95,11 @@ function PersonHome({ guest }: { guest: boolean }) {
   const todayEntry = therapy ? [...therapy.moods].reverse().find((entry) => localDay(new Date(entry.date)) === todayKey) : undefined;
 
   const pending = homework.filter((h) => h.status !== "done").length;
+  // «Сегодня» — только невыполненное: сделал задание — строка уходит из списка.
   const clientToday: TodayItem[] = [];
+  if (therapy && !todayEntry) clientToday.push({ icon: "mood", title: "Отметить настроение", sub: "Полминуты на себя", href: "/therapy" });
   if (pending > 0) clientToday.push({ icon: "note", title: `${pending} ${plural(pending, "задание", "задания", "заданий")} ждут`, sub: "От вашего терапевта", href: "/therapy" });
   if (therapy && !therapy.wheel) clientToday.push({ icon: "balance", title: "Собрать колесо баланса", sub: "5 минут на себя", href: "/therapy", tone: "purple" });
-  if (clientToday.length === 0) clientToday.push({ icon: "therapy", title: "Практика на сегодня", sub: "Короткая поддержка себе", href: "/tools" });
   // Терапевт берётся из выбранных в разделе «Терапия» (общий стор).
   const [therapist, setTherapist] = useState<string | null>(null);
   useEffect(() => {
@@ -142,11 +143,11 @@ function PersonHome({ guest }: { guest: boolean }) {
 // а) Ближайшая сессия. Нет записи, но выбран терапевт → записаться. Не выбран → подобрать.
 function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: string | null }) {
   if (!booking) {
+    // Терапевт есть — ведём в «Терапию», к записи. Нет — в каталог за специалистом.
     if (!therapist) return <FindTherapistCard />;
-    const psy = PSYS.find((p) => p.name === therapist);
     return (
-      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-        <span className="ico ico-white h-[76px] w-[76px] shrink-0"><Icon name="calendar" width={30} weight="bold" color="var(--edge)" /></span>
+      <Link href="/therapy?booking=1" onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
+        <FocusIcon icon="calendar" mid />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
           <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
@@ -166,7 +167,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
           {(() => { const b = whenBadge(booking.startsAt); return b && <span className="chip chip-strong uppercase">{b}</span>; })()}
         </span>
         <span className="t-title mt-1 block truncate">{booking.psyName}</span>
-        <span className="t-sub block truncate">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span>
+        <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span></span>
       </span>
       <Arrow />
     </Link>
@@ -189,12 +190,10 @@ function PsyAvatar({ name }: { name: string }) {
 function FindTherapistCard() {
   return (
     <Link href="/catalog" onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-      <span className="ico ico-white h-[76px] w-[76px] shrink-0">
-        <Icon name="compass" width={30} weight="bold" color="var(--edge)" />
-      </span>
+      <FocusIcon icon="compass" mid />
       <span className="min-w-0 flex-1">
-        <span className="t-head block">Подобрать терапевта</span>
-        <span className="t-sub block">У вас пока нет специалиста</span>
+        <span className="t-head block">Найти специалиста</span>
+        <span className="t-sub block">В терапии пока никого не прикреплено</span>
       </span>
       <span className="btn shrink-0">В каталог</span>
     </Link>
@@ -206,8 +205,8 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
     <div>
       {/* Фокус-блок наезжает на белый лист: как на референсе, он пересекает
           границу цветной шапки и нижней области. */}
-      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[68px]">{focus}</div>}</PageHead>
-      <div className="sheet relative z-0" style={focus ? { paddingTop: 72 } : undefined}>
+      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[68px] mt-4">{focus}</div>}</PageHead>
+      <div className="sheet relative z-0" style={focus ? { paddingTop: 88 } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index}>{child}</StaggerItem> : null)
@@ -218,8 +217,16 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
   );
 }
 
-function FocusIcon({ icon }: { icon: IconName }) {
-  return <span className="ico ico-white h-[76px] w-[76px] shrink-0"><Icon name={icon} width={30} weight="bold" color="var(--edge)" /></span>;
+// Пустое состояние фокус-блока: плитка берёт средний тон персикового фона,
+// а не белый — иконке нечего подсвечивать, когда записи нет.
+const FOCUS_MID = "color-mix(in srgb, var(--peach-edge) 30%, var(--peach))";
+
+function FocusIcon({ icon, mid = false }: { icon: IconName; mid?: boolean }) {
+  return (
+    <span className="ico h-[76px] w-[76px] shrink-0" style={mid ? { background: FOCUS_MID } : { background: "#fff" }}>
+      <Icon name={icon} width={30} weight="bold" color={mid ? "#fff" : "var(--edge)"} />
+    </span>
+  );
 }
 
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
@@ -251,7 +258,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
           {badge && <span className="chip chip-strong uppercase">{badge}</span>}
         </span>
         <span className="t-title mt-1 block truncate">{appointment.client.name}</span>
-        <span className="t-sub block truncate">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span>
+        <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
       </span>
       <Arrow />
     </Link>

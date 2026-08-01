@@ -281,6 +281,32 @@ h1, h2, h3, .font-tight {
   border-radius: var(--r-block);
 }
 
+/* Занятый день в календаре: обводка тоном раздела и тонкая диагональная
+   штриховка внутри. Заливки нет — занятость читается фактурой, а не цветом. */
+.day-busy {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--edge) 72%, transparent) 0 1px,
+    transparent 1px 4.5px
+  );
+  border: var(--bw) solid var(--edge);
+}
+
+/* Дейлик: персиковый кружок с жёлтым «!». Мигает, пока задание не пройдено. */
+.daily-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--peach);
+  border: var(--bw) solid var(--peach-edge);
+  color: #f6bf1f;
+  font-family: var(--font-head), sans-serif;
+  font-weight: 900;
+  line-height: 1;
+}
+
 /* Раздел, где рамки берут средний тон вместо акцентного (кабинет).
    Переменная нужна для инлайновых рамок (поля ввода, бейджи). */
 .stroke-mid { --stroke: var(--head); }

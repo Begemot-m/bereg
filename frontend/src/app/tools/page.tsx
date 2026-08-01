@@ -46,12 +46,12 @@ function ClientTools() {
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="chip uppercase text-white" style={{ background: "var(--edge)" }}>Скоро в Методике</span>
+                  <span className="chip uppercase" style={{ background: "var(--edge)", color: "var(--ink)" }}>Скоро в Методике</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">Больше опоры между встречами</h2>
                 <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-white/75">Тесты для самодиагностики, AI-ассистент, база знаний и новые практики уже в работе.</p>
               </div>
-              <span className="ico ico-accent h-14 w-14 shrink-0"><Icon name="compass" width={28} weight="bold" color="#fff" /></span>
+              <span className="ico ico-accent h-14 w-14 shrink-0"><Icon name="compass" width={28} weight="bold" color="var(--ink)" /></span>
             </div>
           </section>
 

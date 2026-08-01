@@ -19,8 +19,8 @@ const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric"
 
 // Запись клиента. Вид тот же, что у занятого окна в сессиях психолога:
 // строка со временем, шестерёнка разворачивает перенос и отмену.
-export function BookingRow({ b, onChange }: { b: MyBooking; onChange: () => void }) {
-  const [manage, setManage] = useState(false);
+export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking; onChange: () => void; defaultOpen?: boolean }) {
+  const [manage, setManage] = useState(defaultOpen);
   const [resch, setResch] = useState(false);
   const [lockDays] = useCancelLockDays();
   const date = new Date(b.startsAt);
@@ -39,7 +39,10 @@ export function BookingRow({ b, onChange }: { b: MyBooking; onChange: () => void
         <button onClick={toggle} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={manage}>
           <span className={`tnum text-[13px] font-extrabold ${past ? "line-through" : ""}`}>{timeF.format(date)}</span>
           <span className="min-w-0 flex-1">
-            <span className={`font-tight block truncate text-[13px] font-bold ${past ? "line-through" : ""}`}>{cap(dayF.format(date))}</span>
+            <span className={`font-tight flex min-w-0 items-center gap-1.5 text-[13px] font-bold ${past ? "line-through" : ""}`}>
+              <Icon name="calendar" width={12} weight="bold" color="var(--muted)" />
+              <span className="truncate">{cap(dayF.format(date))}</span>
+            </span>
             <span className="t-cap block">{b.format === "online" ? "онлайн" : "очно"} · {b.psyName}</span>
           </span>
         </button>
@@ -66,7 +69,7 @@ export function BookingRow({ b, onChange }: { b: MyBooking; onChange: () => void
           ) : (
             <div className="flex items-center gap-2">
               <button onClick={() => setResch(true)} className="btn btn-white px-3 py-1.5 text-[12px]">Перенести</button>
-              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold" style={{ background: "var(--salmon-soft)", color: "var(--salmon-edge)" }}>Отменить</button>
+              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold text-white" style={{ background: "var(--salmon-edge)" }}>Отменить</button>
             </div>
           )}
         </div>

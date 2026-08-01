@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { ArrowGlyph } from "@/components/blocks";
 import { useMemo, useState } from "react";
 
-import { moodColor } from "@/components/mood-egg";
+import { moodAccent, moodColor } from "@/components/mood-egg";
 import { Disclosure } from "@/components/ui";
 import { emotionValence } from "@/lib/emotions";
 import { select } from "@/lib/haptics";
@@ -84,7 +84,7 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
           <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Частые эмоции</p>
           <div className="flex flex-wrap gap-1.5">
             {top.map(([name, count]) => (
-              <span key={name} className="chip" style={{ background: `${moodColor(emotionValence(name))}`, color: "var(--ink)" }}>{name} · {count}</span>
+              <span key={name} className="chip" style={{ background: moodColor(emotionValence(name)), color: moodAccent(emotionValence(name)) }}>{name} · {count}</span>
             ))}
           </div>
         </div>

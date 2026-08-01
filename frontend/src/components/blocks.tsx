@@ -44,6 +44,26 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
 }
 
 /**
+ * Дейлик — персиковый кружок с жёлтым «!». Мигает, пока задание дня не пройдено:
+ * значит, сюда надо ткнуть. Один вид на весь проект.
+ */
+export function DailyDot({ size = 22, className, label = "Задание дня — пройдите его" }: { size?: number; className?: string; label?: string }) {
+  return (
+    <motion.span
+      role="img"
+      aria-label={label}
+      title={label}
+      className={`daily-dot ${className ?? ""}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.62) }}
+      animate={{ scale: [1, 1.16, 1], opacity: [1, 0.72, 1] }}
+      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+    >
+      !
+    </motion.span>
+  );
+}
+
+/**
  * Форма стрелки. Одна на весь проект: линия с наконечником.
  * Поворотом получаем «назад» (180°), «вниз»/«раскрыть» (90°).
  */
