@@ -13,13 +13,15 @@
   --muted-2: rgba(32, 28, 24, 0.4);
 
   /* Нейтральная обводка для белых/светлых блоков (серая) */
-  --edge-neutral: #d7d5d0;
+  --edge-neutral: #d5dbe1;
 
-  /* Альтернативный тон — серый. Разбавляет тон раздела там, где цвет
-     означал бы статус: нейтральные блоки, выключенные состояния. */
-  --alt-soft: #f1efe9;
-  --alt: #e2dfd8;
-  --alt-edge: #7c7973;
+  /* Альтернативный тон — прохладный серый. Общий для всех разделов, разбавляет
+     тон раздела там, где цвет означал бы статус: нейтральные блоки,
+     выключенные состояния. Те же три ступени, что у цвета раздела:
+     фоновый лёгкий → средний → акцентный. */
+  --alt-soft: #f2f5f8;
+  --alt: #e7ebf0;
+  --alt-edge: #62707e;
   /* Обводка белого блока — тон раздела. Серый --edge-neutral остаётся
      только полям ввода, где цветная рамка мешает читать. */
   --stroke: var(--edge);
@@ -280,6 +282,21 @@ h1, h2, h3, .font-tight {
   border-radius: var(--r-block);
 }
 
+/* Тот же нейтральный блок ступенью темнее — когда лёгкий серый теряется
+   на фоне страницы или нужно отделить вложенную группу. */
+.card-alt-mid {
+  background: var(--alt);
+  border: 0;
+  border-radius: var(--r-block);
+}
+
+/* Вариант 2 по правилам блоков: акцентная обводка без заливки, серым. */
+.card-alt-line {
+  background: transparent;
+  border: var(--bw) solid var(--alt-edge);
+  border-radius: var(--r-block);
+}
+
 /* Блок внутри блока: белый, без рамки — отделяется только заливкой. */
 .card-nested {
   background: var(--surface);
@@ -426,6 +443,9 @@ h1, h2, h3, .font-tight {
 .ico-white { background: #fff; color: var(--edge); }
 /* Обратный вариант: заливка тоном раздела, значок белый. */
 .ico-accent { background: var(--edge); color: #fff; }
+/* Нейтральная плитка: средний серый + акцентный значок, либо наоборот. */
+.ico-alt { background: var(--alt); color: var(--alt-edge); }
+.ico-alt-solid { background: var(--alt-edge); color: #fff; }
 
 /* Разделитель строк в списке. Единственная линия, которая переживает
    правило «блок внутри блока — без рамки». */
@@ -505,6 +525,7 @@ h1, h2, h3, .font-tight {
 .fill-iris   { background: var(--purple); border-color: var(--purple-edge); }
 .fill-sage   { background: var(--green);  border-color: var(--green-edge); }
 .fill-cream  { background: var(--surface); }
+.fill-alt    { background: var(--alt);    border-color: var(--alt-edge); }
 .fill-ink    { background: var(--ink); color: #fff; border-color: var(--ink); }
 
 /* Кольцо-обвод вокруг выбранной даты */
