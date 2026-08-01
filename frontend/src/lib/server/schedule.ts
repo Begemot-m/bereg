@@ -8,6 +8,8 @@ export type SlotFormat = "online" | "offline";
 export type WorkSlot = { t: string; d: number; fmt: SlotFormat };
 export type WorkHoursDTO = { hours: Record<number, WorkSlot[]>; sessionMinutes: number };
 export type SlotDTO = { start: string; taken: boolean; fmt: SlotFormat };
+/** Занятый интервал психолога: начало записи и её длительность. */
+export type Busy = { start: string; minutes: number };
 export type OverrideDTO = { removed?: boolean; fmt?: SlotFormat };
 
 const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50 };
@@ -81,18 +83,32 @@ export async function setOverride(userId: number, iso: string, patch: OverrideDT
   return getOverrides(userId);
 }
 
+/** Интервалы записей в миллисекундах — с ними сравниваются окна шаблона. */
+export function busyRanges(busy: Busy[], sessionMinutes: number): [number, number][] {
+  return busy
+    .map((b) => {
+      const from = new Date(b.start).getTime();
+      return [from, from + (b.minutes || sessionMinutes) * 60000] as [number, number];
+    })
+    .filter(([from]) => !Number.isNaN(from));
+}
+
 /** Свободные окна на дату: шаблон дня минус снятые, с пометкой занятых. */
 export function slotsFor(
   work: WorkHoursDTO,
   dateStr: string,
-  takenISO: string[],
+  busy: Busy[],
   overrides: Record<string, OverrideDTO>,
 ): SlotDTO[] {
   const day = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(day.getTime())) return [];
   const weekday = (day.getDay() + 6) % 7;
   const template = [...((work.hours ?? {})[weekday] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
-  const taken = new Set(takenISO.map((t) => new Date(t).getTime()));
+  const session = work.sessionMinutes || 50;
+  // Запись занимает окно, даже если её время не совпадает с шаблоном минута
+  // в минуту: сессия 11:30 закрывает окно 11:00, иначе календарь предлагает
+  // время, в которое психолог уже занят.
+  const ranges = busyRanges(busy, session);
   const now = Date.now();
 
   const out: SlotDTO[] = [];
@@ -104,7 +120,9 @@ export function slotsFor(
     const iso = at.toISOString();
     const ov = overrides[iso];
     if (ov?.removed) continue;
-    out.push({ start: iso, taken: taken.has(at.getTime()), fmt: ov?.fmt ?? slot.fmt ?? "online" });
+    const from = at.getTime();
+    const to = from + (slot.d || session) * 60000;
+    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt: ov?.fmt ?? slot.fmt ?? "online" });
   }
   return out;
 }
@@ -117,25 +135,31 @@ const ymd = (d: Date) => {
 /** Занятость по дням на ближайшие два месяца — для точек в календаре. */
 export function monthAvailability(
   work: WorkHoursDTO,
-  takenISO: string[],
+  busy: Busy[],
   overrides: Record<string, OverrideDTO>,
 ): Record<string, "free" | "full"> {
   const out: Record<string, "free" | "full"> = {};
+  // День с записью считается занятым, даже если рабочих часов на него не
+  // задано: сессия есть, а календарь показывал день пустым.
+  const withAppt = new Set(busy.map((b) => ymd(new Date(b.start))));
   const base = new Date();
   base.setHours(0, 0, 0, 0);
   for (let i = 0; i < 60; i++) {
     const d = new Date(base);
     d.setDate(d.getDate() + i);
     const key = ymd(d);
-    const slots = slotsFor(work, key, takenISO, overrides);
-    if (slots.length === 0) continue;
+    const slots = slotsFor(work, key, busy, overrides);
+    if (slots.length === 0) {
+      if (withAppt.has(key)) out[key] = "full";
+      continue;
+    }
     out[key] = slots.some((s) => !s.taken) ? "free" : "full";
   }
   return out;
 }
 
-/** Занятые времена психолога: всё, что не отменено. */
-export async function takenTimes(userId: number, range?: Range): Promise<string[]> {
+/** Занятые интервалы психолога: всё, что не отменено. */
+export async function takenTimes(userId: number, range?: Range): Promise<Busy[]> {
   // Занятость нужна только на горизонте календаря. Раньше читались все
   // записи за всё время — и попадали в память ради проверки двух месяцев.
   const appts = await prisma.appointment.findMany({
@@ -144,7 +168,7 @@ export async function takenTimes(userId: number, range?: Range): Promise<string[
       status: { not: "cancelled" },
       ...(range ? { startsAt: { gte: range.from, lte: range.to } } : {}),
     },
-    select: { startsAt: true },
+    select: { startsAt: true, durationMin: true },
   });
-  return appts.map((a) => a.startsAt.toISOString());
+  return appts.map((a) => ({ start: a.startsAt.toISOString(), minutes: a.durationMin }));
 }

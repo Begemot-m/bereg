@@ -8,7 +8,7 @@ import { Icon } from "@/components/icons";
 import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
-import type { ApptFormat } from "@/lib/appointments";
+import type { Appointment, ApptFormat } from "@/lib/appointments";
 
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const monShort = new Intl.DateTimeFormat("ru-RU", { month: "short" });
@@ -21,6 +21,7 @@ export function SlotPicker({
   showAvail = false,
   calendarTone = "card",
   startDay,
+  appts = [],
   onPick,
 }: {
   forClient?: boolean;
@@ -28,6 +29,8 @@ export function SlotPicker({
   variant?: "strip" | "calendar";
   showAvail?: boolean;
   calendarTone?: "card" | "blend";
+  /** Записи, которые нужно отметить в календаре как занятые дни. */
+  appts?: Appointment[];
   /** День, с которого открываемся: обычно ближайший со свободным окном. */
   startDay?: string;
   onPick: (iso: string, format: ApptFormat) => void;
@@ -64,7 +67,7 @@ export function SlotPicker({
   return (
     <div>
       {variant === "calendar" ? (
-        <MonthCalendar appts={[]} selected={active} onSelectDay={(y) => { if (y) { touched.current = true; setActive(y); } }} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} tone={calendarTone} />
+        <MonthCalendar appts={appts} selected={active} onSelectDay={(y) => { if (y) { touched.current = true; setActive(y); } }} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} tone={calendarTone} />
       ) : (
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((d) => {

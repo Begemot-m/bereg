@@ -205,8 +205,8 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
     <div>
       {/* Фокус-блок наезжает на белый лист: как на референсе, он пересекает
           границу цветной шапки и нижней области. */}
-      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[68px] mt-4">{focus}</div>}</PageHead>
-      <div className="sheet relative z-0" style={focus ? { paddingTop: 88 } : undefined}>
+      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[104px] mt-7">{focus}</div>}</PageHead>
+      <div className="sheet relative z-0" style={focus ? { paddingTop: 124 } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index}>{child}</StaggerItem> : null)

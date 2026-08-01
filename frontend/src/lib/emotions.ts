@@ -25,7 +25,17 @@ const VALENCE_OF: Record<string, number> = Object.fromEntries(
   }),
 );
 
-export const emotionValence = (name: string): number => VALENCE_OF[name] ?? 3;
+// Слова вне колеса Женевы: клиент пишет их сам, а демо-данные и подсказки
+// настроения используют бытовой словарь. Без этой таблицы всё лишнее падало
+// в валентность 3 — и чипсы «частых эмоций» красились одним цветом.
+const EXTRA_VALENCE: Record<string, number> = {
+  опустошение: 1, тревога: 1, паника: 1, злость: 1, раздражение: 1, отчаяние: 1, бессилие: 1,
+  грусть: 2, одиночество: 2, усталость: 2, скука: 2, апатия: 2, обида: 2, растерянность: 2,
+  сосредоточенность: 3, спокойствие: 4, опора: 4, надежда: 4, благодарность: 5, вдохновение: 5, лёгкость: 5,
+};
+
+export const emotionValence = (name: string): number =>
+  VALENCE_OF[name] ?? EXTRA_VALENCE[name.trim().toLowerCase()] ?? 3;
 export const ALL_EMOTIONS = EMOTION_FAMILIES.flatMap((family) => family.items);
 
 // Какие семьи предлагать под выбранной точкой шкалы: по валентности эмоции.

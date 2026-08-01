@@ -111,10 +111,10 @@ function seed(): DB {
   ];
   const appts: Appointment[] = [
     { id: 11, clientId: 1, startsAt: iso(0, 18, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
-    { id: 12, clientId: 3, startsAt: iso(1, 11, 30), durationMin: 50, status: "scheduled", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
+    { id: 12, clientId: 3, startsAt: iso(1, 11, 0), durationMin: 50, status: "scheduled", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
     { id: 13, clientId: 1, startsAt: iso(-7, 18, 0), durationMin: 60, status: "done", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
     { id: 14, clientId: 1, startsAt: iso(-14, 18, 0), durationMin: 60, status: "done", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
-    { id: 15, clientId: 3, startsAt: iso(-6, 11, 30), durationMin: 50, status: "done", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
+    { id: 15, clientId: 3, startsAt: iso(-6, 11, 0), durationMin: 50, status: "done", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
     { id: 16, clientId: 2, startsAt: iso(3, 13, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 2, name: "Дмитрий Орлов" } },
   ];
   const homework: Homework[] = [
@@ -174,8 +174,16 @@ function seed(): DB {
       { id: 13, psyName: "Ирина Верещагина", startsAt: iso(-7, 18, 0), durationMin: 60, format: "online" },
       { id: 11, psyName: "Ирина Верещагина", startsAt: iso(0, 18, 0), durationMin: 60, format: "online" },
     ],
+    // Без рабочих часов записывать клиента некуда — в демо шаблон недели
+    // задан сразу, и времена демо-сессий совпадают с окнами.
     work: {
-      hours: {},
+      hours: {
+        0: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }, { t: "18:00", d: 50, fmt: "online" }],
+        1: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }, { t: "18:00", d: 50, fmt: "online" }],
+        2: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "18:00", d: 50, fmt: "online" }],
+        3: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }, { t: "18:00", d: 50, fmt: "online" }],
+        4: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }],
+      },
       sessionMinutes: 50,
     },
     overrides: {},
@@ -199,7 +207,9 @@ function load(): DB {
       const db = JSON.parse(raw) as DB;
       // Страховка от неполных/старых данных.
       const s = seed();
-      if (!db.work?.hours) db.work = s.work;
+      // Пустой шаблон недели остался у тех, кто открывал демо до появления
+      // расписания по умолчанию: без окон запись клиента не работает.
+      if (!db.work?.hours || Object.keys(db.work.hours).length === 0) db.work = s.work;
       // миграция окон: старый формат — массив строк времени; добавляем fmt
       for (const k of Object.keys(db.work.hours)) {
         const arr = db.work.hours[Number(k)] as unknown[];
@@ -344,13 +354,28 @@ const CATALOG_WORK: WorkHours = {
   },
 };
 
+// Занятый интервал: начало записи и её длительность. Один в один с сервером
+// (lib/server/schedule.ts) — иначе демо и прод расходятся в занятости.
+type Busy = { start: string; minutes: number };
+
+// Занятость психолога (его сессии) либо самого пользователя-клиента.
+const busyOf = (db: DB, isClient: boolean): Busy[] =>
+  isClient
+    ? db.myBookings.map((b) => ({ start: b.startsAt, minutes: b.durationMin }))
+    : db.appts.filter((a) => a.status !== "cancelled").map((a) => ({ start: a.startsAt, minutes: a.durationMin }));
+
 // Вычислить свободные слоты на дату из выбранных часов минус занятые времена.
-function slotsFor(work: WorkHours, dateStr: string, takenISO: string[], overrides: Record<string, SlotOverride>): { start: string; taken: boolean; fmt: ApptFormat }[] {
+function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Record<string, SlotOverride>): { start: string; taken: boolean; fmt: ApptFormat }[] {
   const d = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(d.getTime())) return [];
   const wd = (d.getDay() + 6) % 7;
   const slots = [...((work.hours ?? {})[wd] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
-  const taken = new Set(takenISO.map((t) => new Date(t).getTime()));
+  const session = work.sessionMinutes || 50;
+  // Запись занимает окно и тогда, когда её время не совпадает с шаблоном
+  // минута в минуту.
+  const ranges = busy
+    .map((b) => { const from = new Date(b.start).getTime(); return [from, from + (b.minutes || session) * 60000] as [number, number]; })
+    .filter(([from]) => !Number.isNaN(from));
   const now = Date.now();
   const out: { start: string; taken: boolean; fmt: ApptFormat }[] = [];
   for (const s of slots) {
@@ -360,7 +385,9 @@ function slotsFor(work: WorkHours, dateStr: string, takenISO: string[], override
     const iso = t.toISOString();
     const ov = overrides[iso];
     if (ov?.removed) continue; // окно снято на эту дату
-    out.push({ start: iso, taken: taken.has(t.getTime()), fmt: ov?.fmt ?? s.fmt ?? "online" });
+    const from = t.getTime();
+    const to = from + (s.d || session) * 60000;
+    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt: ov?.fmt ?? s.fmt ?? "online" });
   }
   return out;
 }
@@ -660,10 +687,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   if (clean === "/slots" && method === "GET") {
     const date = q.get("date")!;
     const isClient = q.get("psy") != null;
-    const taken = isClient
-      ? db.myBookings.map((b) => b.startsAt)
-      : db.appts.filter((a) => a.status !== "cancelled").map((a) => a.startsAt);
-    return delay(slotsFor(isClient ? CATALOG_WORK : db.work, date, taken, db.overrides) as T);
+    const busy = busyOf(db, isClient);
+    return delay(slotsFor(isClient ? CATALOG_WORK : db.work, date, busy, db.overrides) as T);
   }
 
   // корректировки конкретных дат (убрать окно / сменить формат)
@@ -681,17 +706,21 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // доступность по дням на ближайшие ~2 месяца: free (есть окна) / full (все заняты)
   if (clean === "/month-availability" && method === "GET") {
     const isClient = q.get("psy") != null;
-    const taken = isClient
-      ? db.myBookings.map((b) => b.startsAt)
-      : db.appts.filter((a) => a.status !== "cancelled").map((a) => a.startsAt);
+    const busy = busyOf(db, isClient);
+    const p = (n: number) => String(n).padStart(2, "0");
+    const ymdOf = (d: Date) => `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    // День с записью занят, даже если рабочих часов на него не задано.
+    const withAppt = new Set(busy.map((b) => ymdOf(new Date(b.start))));
     const out: Record<string, "free" | "full"> = {};
     const base = new Date(); base.setHours(0, 0, 0, 0);
     for (let i = 0; i < 60; i++) {
       const d = new Date(base); d.setDate(d.getDate() + i);
-      const p = (n: number) => String(n).padStart(2, "0");
-      const ymd = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-      const slots = slotsFor(isClient ? CATALOG_WORK : db.work, ymd, taken, db.overrides);
-      if (slots.length === 0) continue;
+      const ymd = ymdOf(d);
+      const slots = slotsFor(isClient ? CATALOG_WORK : db.work, ymd, busy, db.overrides);
+      if (slots.length === 0) {
+        if (withAppt.has(ymd)) out[ymd] = "full";
+        continue;
+      }
       out[ymd] = slots.some((s) => !s.taken) ? "free" : "full";
     }
     return delay(out as T);

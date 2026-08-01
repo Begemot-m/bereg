@@ -65,11 +65,11 @@ export function MonthCalendar({
           const isSel = multi ? multi.has(y) : selected === y;
           const a: Avail | undefined = avail?.[y];
 
-          // Занятость идёт от расписания: день занят, только когда свободных
-          // окон в нём не осталось. Записи сами по себе день не закрывают —
-          // они отмечаются точкой, иначе календарь врёт.
+          // День с записью показывается занятым: штриховка + точка. Свободные
+          // окна на нём остаются кликабельными — занятость это метка, а не
+          // запрет.
           const booked = has.has(y);
-          const busy = avail ? a === "full" : booked;
+          const busy = booked || (avail ? a === "full" : false);
           const free = avail ? a === "free" : false;
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
 

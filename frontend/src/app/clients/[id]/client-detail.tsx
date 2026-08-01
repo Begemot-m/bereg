@@ -89,9 +89,22 @@ export function ClientDetail() {
   }, [avail]);
   useEffect(() => { if (client) setNote(client.note); }, [client]);
 
+  // Ближайшая запись нужна и кнопке записи, и шапке — считаем до ранних возвратов.
+  const nextAppt = useMemo(
+    () => appts
+      .filter((a) => a.status === "scheduled" && new Date(a.startsAt) > new Date())
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0],
+    [appts],
+  );
+  const apptDay = nextAppt ? ymdLocal(new Date(nextAppt.startsAt)) : undefined;
+
   const patch = useMutation({ mutationFn: (p: Parameters<typeof updateClient>[1]) => updateClient(id, p), onSuccess: inv });
   const book = useMutation({
-    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => createAppointment({ clientId: id, startsAt: iso, format }),
+    // «Перезаписать» переносит текущую сессию, а не заводит вторую рядом.
+    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) =>
+      nextAppt
+        ? updateAppointment(nextAppt.id, { startsAt: iso, format })
+        : createAppointment({ clientId: id, startsAt: iso, format }),
     onSuccess: (_, vars) => { success(); setBooked({ at: vars.iso, format: vars.format }); inv(); },
   });
   // Упавший запрос выглядел как вечная загрузка: isLoading уже false, а client
@@ -108,9 +121,6 @@ export function ClientDetail() {
   const st = STATUS_TONE[dstatus];
 
   const held = appts.filter((a) => a.status === "done").length;
-  const nextAppt = appts
-    .filter((a) => a.status === "scheduled" && new Date(a.startsAt) > new Date())
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   // «Написать» ведёт в личный чат Telegram, если контакт — это username.
   const tgLink = client.contact && !isPhone(client.contact)
     ? `https://t.me/${client.contact.replace(/^@/, "")}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика».")}`
@@ -133,7 +143,7 @@ export function ClientDetail() {
               {/* Статус клиента — серый: это состояние, а не акцент */}
               <span className="inline-flex rounded-full px-2 py-1 text-[11.5px] font-black" style={{ background: "var(--alt-soft)", color: "var(--alt-edge)" }}>{STATUS_LABEL[dstatus]}</span>
               {client.link === "joined" ? (
-                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>
+                <span className="inline-flex items-center gap-1 px-1 py-1 text-[11.5px] font-black" style={{ color: "var(--green-edge)" }}>
                   <Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Профиль подключён
                 </span>
               ) : (
@@ -151,7 +161,7 @@ export function ClientDetail() {
             {/* Ближайшая встреча — как в разделе «Терапия» */}
             <p className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-black" style={{ color: nextAppt ? "var(--green-edge)" : "var(--muted-2)" }}>
               <Icon name="calendar" width={12} weight="bold" color={nextAppt ? "var(--green-edge)" : "var(--muted-2)"} />
-              {nextAppt ? `${dtf.format(new Date(nextAppt.startsAt))} · ${nextAppt.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}
+              {nextAppt ? `Ближайшая запись ${dtf.format(new Date(nextAppt.startsAt))} · ${nextAppt.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}
             </p>
           </div>
         </div>
@@ -180,9 +190,9 @@ export function ClientDetail() {
                   </div>
                 ) : (
                   <>
-                    <p className="t-micro mb-2">Свободное окно из вашего расписания</p>
-                    {/* Открываемся на ближайшем дне со свободным окном, как в сессиях */}
-                    <SlotPicker variant="calendar" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
+                    <p className="t-micro mb-2">{nextAppt ? "Новое время вместо текущей записи" : "Свободное окно из вашего расписания"}</p>
+                    {/* Есть запись — открываемся на её дне, иначе на ближайшем свободном */}
+                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} onPick={(iso, format) => book.mutate({ iso, format })} />
                   </>
                 )}
               </motion.div>
