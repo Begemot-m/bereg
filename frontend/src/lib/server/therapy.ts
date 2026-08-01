@@ -25,6 +25,7 @@ export type TherapyDTO = {
   wheel: WheelDTO;
   tutorialSeen: boolean;
   reflections: SessionReflectionDTO[];
+  notesModule: { enabled: boolean; shared: boolean; psychologistEnabled: boolean };
 };
 
 // Тексты шифруем, только если ключ задан: в деве без DATA_KEY приложение
@@ -40,7 +41,8 @@ export function dayKey(d = new Date()): Date {
 }
 
 export async function getTherapy(clientId: number): Promise<TherapyDTO> {
-  const [moods, notes, profile, reflections] = await Promise.all([
+  const [client, moods, notes, profile, reflections] = await Promise.all([
+    prisma.client.findUnique({ where: { id: clientId }, select: { notesModuleEnabled: true, notesModuleShared: true, notesModulePsychologist: true } }),
     prisma.mood.findMany({ where: { clientId }, orderBy: { day: "asc" }, take: 30 }),
     prisma.goodNote.findMany({ where: { clientId }, orderBy: { day: "asc" }, take: 60 }),
     prisma.therapyProfile.findUnique({ where: { clientId } }),
@@ -80,6 +82,11 @@ export async function getTherapy(clientId: number): Promise<TherapyDTO> {
       feeling: reflection.feeling,
       updatedAt: reflection.updatedAt.toISOString(),
     })),
+    notesModule: {
+      enabled: client?.notesModuleEnabled ?? false,
+      shared: client?.notesModuleShared ?? true,
+      psychologistEnabled: client?.notesModulePsychologist ?? false,
+    },
   };
 }
 
@@ -96,10 +103,21 @@ export type TherapyPatch = {
     takeaway?: string;
     feeling?: number | null;
   };
+  notesModule?: { enabled?: boolean; shared?: boolean };
 };
 
 export async function patchTherapy(clientId: number, patch: TherapyPatch): Promise<TherapyDTO> {
   const day = dayKey();
+
+  if (patch.notesModule) {
+    await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        ...(patch.notesModule.enabled !== undefined ? { notesModuleEnabled: patch.notesModule.enabled } : {}),
+        ...(patch.notesModule.shared !== undefined ? { notesModuleShared: patch.notesModule.shared } : {}),
+      },
+    });
+  }
 
   // Настроение: одна отметка на день, повторная правит существующую.
   if (patch.mood !== undefined || patch.emotions !== undefined) {
@@ -155,18 +173,19 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
   }
 
   if (patch.reflection) {
+    const moduleState = await prisma.client.findUnique({ where: { id: clientId }, select: { notesModuleEnabled: true } });
     const appointment = await prisma.appointment.findFirst({
       where: { id: patch.reflection.appointmentId, clientId, status: { not: "cancelled" } },
       select: { id: true },
     });
-    if (appointment) {
+    if (appointment && moduleState?.notesModuleEnabled) {
       const preparation = patch.reflection.preparation === undefined ? undefined : enc(patch.reflection.preparation.trim().slice(0, 2000));
       const takeaway = patch.reflection.takeaway === undefined ? undefined : enc(patch.reflection.takeaway.trim().slice(0, 2000));
       const feeling = patch.reflection.feeling === undefined
         ? undefined
         : patch.reflection.feeling === null
           ? null
-          : Math.min(5, Math.max(1, Math.round(patch.reflection.feeling)));
+          : Math.min(10, Math.max(1, Math.round(patch.reflection.feeling)));
       await prisma.sessionReflection.upsert({
         where: { appointmentId: appointment.id },
         create: {
@@ -185,6 +204,16 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
     }
   }
 
+  return getTherapy(clientId);
+}
+
+export async function setPsychologistNotesModule(clientId: number, enabled: boolean): Promise<TherapyDTO> {
+  await prisma.client.update({
+    where: { id: clientId },
+    data: enabled
+      ? { notesModulePsychologist: true, notesModuleEnabled: true }
+      : { notesModulePsychologist: false },
+  });
   return getTherapy(clientId);
 }
 

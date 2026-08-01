@@ -155,10 +155,14 @@ model Client {
 
   /// Карточку ведёт психолог; если клиент подключил свой профиль — здесь его
   /// аккаунт. Отсюда же берётся, чьи это настроение и задания.
-  user      User?     @relation("ClientUser", fields: [userId], references: [id], onDelete: SetNull)
-  userId    Int?
-  link      String    @default("none") // none | invited | joined
-  invitedAt DateTime?
+  user                    User?     @relation("ClientUser", fields: [userId], references: [id], onDelete: SetNull)
+  userId                  Int?
+  link                    String    @default("none") // none | invited | joined
+  invitedAt               DateTime?
+  /// Модуль заметок: клиент может вести лично или делиться со специалистом.
+  notesModuleEnabled      Boolean   @default(false)
+  notesModuleShared       Boolean   @default(true)
+  notesModulePsychologist Boolean   @default(false)
 
   appointments Appointment[]
   homework     Homework[]

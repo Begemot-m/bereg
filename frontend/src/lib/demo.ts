@@ -17,6 +17,9 @@ type Client = {
   status: Status;
   link: LinkState;
   invitedAt: string | null;
+  notesModuleEnabled: boolean;
+  notesModuleShared: boolean;
+  notesModulePsychologist: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -101,10 +104,10 @@ function day(offset: number): string {
 function seed(): DB {
   const now = new Date().toISOString();
   const clients: Client[] = [
-    { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", link: "joined", invitedAt: null, createdAt: now, updatedAt: now },
-    { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, createdAt: now, updatedAt: now },
-    { id: 3, name: "Алёна Ким", contact: "@alena_kim", note: "Выгорание, ресурс.", status: "therapy", link: "joined", invitedAt: null, createdAt: now, updatedAt: now },
-    { id: 4, name: "Пётр Ланской", contact: "+7 916 200-14-08", note: "Пауза до осени по его инициативе.", status: "paused", link: "joined", invitedAt: null, createdAt: now, updatedAt: now },
+    { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", link: "joined", invitedAt: null, notesModuleEnabled: true, notesModuleShared: true, notesModulePsychologist: true, createdAt: now, updatedAt: now },
+    { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
+    { id: 3, name: "Алёна Ким", contact: "@alena_kim", note: "Выгорание, ресурс.", status: "therapy", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
+    { id: 4, name: "Пётр Ланской", contact: "+7 916 200-14-08", note: "Пауза до осени по его инициативе.", status: "paused", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
   ];
   const appts: Appointment[] = [
     { id: 11, clientId: 1, startsAt: iso(0, 18, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
@@ -151,8 +154,8 @@ function seed(): DB {
   };
   const reflections: Record<number, SessionReflection[]> = {
     1: [
-      { appointmentId: 13, startsAt: iso(-7, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Обсудить тревогу перед разговором с руководителем.", takeaway: "Не нужно заранее угадывать реакцию другого человека. Подготовлю две спокойные формулировки.", feeling: 4, updatedAt: iso(-7, 19, 10) },
-      { appointmentId: 14, startsAt: iso(-14, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Почему мне трудно отказывать, даже когда нет сил?", takeaway: "Отказ не делает меня плохим человеком. Попробую взять паузу перед ответом.", feeling: 3, updatedAt: iso(-14, 19, 10) },
+      { appointmentId: 13, startsAt: iso(-7, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Обсудить тревогу перед разговором с руководителем.", takeaway: "Не нужно заранее угадывать реакцию другого человека. Подготовлю две спокойные формулировки.", feeling: 8, updatedAt: iso(-7, 19, 10) },
+      { appointmentId: 14, startsAt: iso(-14, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Почему мне трудно отказывать, даже когда нет сил?", takeaway: "Отказ не делает меня плохим человеком. Попробую взять паузу перед ответом.", feeling: 6, updatedAt: iso(-14, 19, 10) },
     ],
   };
   return {
@@ -222,6 +225,9 @@ function load(): DB {
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
       // миграция: подключение клиента — активные считаем уже присоединившимися
       for (const c of db.clients) {
+        if (c.notesModuleEnabled === undefined) c.notesModuleEnabled = Boolean(db.reflections?.[c.id]?.length);
+        if (c.notesModuleShared === undefined) c.notesModuleShared = true;
+        if (c.notesModulePsychologist === undefined) c.notesModulePsychologist = Boolean(db.reflections?.[c.id]?.length);
         if (c.link === undefined) { c.link = c.status === "new" ? "none" : "joined"; c.invitedAt = null; }
       }
       return db;
@@ -415,6 +421,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       status: (body.status as Status) ?? "new",
       link: "none",
       invitedAt: null,
+      notesModuleEnabled: false,
+      notesModuleShared: true,
+      notesModulePsychologist: false,
       createdAt: now,
       updatedAt: now,
     };
@@ -466,9 +475,22 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   }
 
   const therapyClient = clean.match(/^\/clients\/(\d+)\/therapy$/)?.[1];
-  if (therapyClient && method === "GET") {
+  if (therapyClient) {
     const id = Number(therapyClient);
-    return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: true, reflections: db.reflections[id] ?? [] } as T);
+    const client = db.clients.find((item) => item.id === id);
+    if (!client) throw new Error("API 404");
+    if (method === "PATCH") {
+      const enabled = Boolean(body.notesModuleEnabled);
+      client.notesModulePsychologist = enabled;
+      if (enabled) {
+        client.notesModuleEnabled = true;
+      }
+      save(db);
+    }
+    if (method === "GET" || method === "PATCH") {
+      const visible = client.notesModulePsychologist && client.notesModuleShared;
+      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: true, reflections: visible ? db.reflections[id] ?? [] : [], notesModule: { enabled: client.notesModuleEnabled, shared: client.notesModuleShared, psychologistEnabled: client.notesModulePsychologist } } as T);
+    }
   }
 
   if (clean === "/my/therapy") {
@@ -500,18 +522,27 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         db.wheel[id] = { answers: clean, completedAt: new Date().toISOString() };
       }
       if (body.tutorialSeen !== undefined) db.therapyTutorialSeen = Boolean(body.tutorialSeen);
+      if (body.notesModule && typeof body.notesModule === "object") {
+        const input = body.notesModule as Record<string, unknown>;
+        const client = db.clients.find((item) => item.id === id);
+        if (client) {
+          if (input.enabled !== undefined) client.notesModuleEnabled = Boolean(input.enabled);
+          if (input.shared !== undefined) client.notesModuleShared = Boolean(input.shared);
+        }
+      }
       if (body.reflection && typeof body.reflection === "object") {
         const input = body.reflection as Record<string, unknown>;
         const appointmentId = Number(input.appointmentId);
         const booking = db.myBookings.find((item) => item.id === appointmentId);
-        if (booking) {
+        const client = db.clients.find((item) => item.id === id);
+        if (booking && client?.notesModuleEnabled) {
           const entries = db.reflections[id] ?? [];
           const found = entries.find((item) => item.appointmentId === appointmentId);
           const target: SessionReflection = found ?? { appointmentId, startsAt: booking.startsAt, status: new Date(booking.startsAt) < new Date() ? "done" : "scheduled", therapistName: booking.psyName, preparation: "", takeaway: "", feeling: null, updatedAt: new Date().toISOString() };
           if (typeof input.preparation === "string") target.preparation = input.preparation.trim().slice(0, 2000);
           if (typeof input.takeaway === "string") target.takeaway = input.takeaway.trim().slice(0, 2000);
           if (input.feeling === null) target.feeling = null;
-          else if (input.feeling !== undefined) target.feeling = Math.min(5, Math.max(1, Number(input.feeling)));
+          else if (input.feeling !== undefined) target.feeling = Math.min(10, Math.max(1, Number(input.feeling)));
           target.updatedAt = new Date().toISOString();
           if (!found) entries.push(target);
           db.reflections[id] = entries.sort((a, b) => b.startsAt.localeCompare(a.startsAt)).slice(0, 30);
@@ -520,7 +551,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       save(db);
     }
     if (method === "GET" || method === "PATCH") {
-      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen, reflections: db.reflections[id] ?? [] } as T);
+      const client = db.clients.find((item) => item.id === id);
+      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen, reflections: db.reflections[id] ?? [], notesModule: { enabled: client?.notesModuleEnabled ?? false, shared: client?.notesModuleShared ?? true, psychologistEnabled: client?.notesModulePsychologist ?? false } } as T);
     }
   }
 

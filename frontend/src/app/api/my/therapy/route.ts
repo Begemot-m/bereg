@@ -22,13 +22,14 @@ const therapyPatchSchema = z.object({
     appointmentId: z.coerce.number().int().positive(),
     preparation: z.string().max(2000).optional(),
     takeaway: z.string().max(2000).optional(),
-    feeling: z.coerce.number().int().min(1).max(5).nullable().optional(),
+    feeling: z.coerce.number().int().min(1).max(10).nullable().optional(),
   }).optional(),
+  notesModule: z.object({ enabled: z.boolean().optional(), shared: z.boolean().optional() }).optional(),
 });
 
 // Пустая терапия для того, у кого ещё нет карточки: экран должен открыться
 // и без психолога — статистика копится с первого дня.
-const EMPTY = { moods: [], notes: [], board: "", wheel: null, tutorialSeen: false, reflections: [] };
+const EMPTY = { moods: [], notes: [], board: "", wheel: null, tutorialSeen: false, reflections: [], notesModule: { enabled: false, shared: true, psychologistEnabled: false } };
 
 export async function GET(req: NextRequest) {
   try {

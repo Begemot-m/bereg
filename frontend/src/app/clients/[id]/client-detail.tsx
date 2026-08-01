@@ -37,7 +37,7 @@ import { createAppointment, listAppointments, updateAppointment } from "@/lib/ap
 import { asset } from "@/lib/asset";
 import { select, success, tap } from "@/lib/haptics";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
-import { getClientTherapy } from "@/lib/therapy";
+import { getClientTherapy, setClientNotesModule } from "@/lib/therapy";
 
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS_TONE: Record<ClientStatus, string> = { therapy: "olive", new: "purple", paused: "amber" };
@@ -73,6 +73,10 @@ export function ClientDetail() {
   const { data: homework = [] } = useQuery({ queryKey: ["homework", id], queryFn: () => listHomework(id) });
   const { data: moods = [] } = useQuery({ queryKey: ["moods", id], queryFn: () => listMoods(id) });
   const { data: therapy } = useQuery({ queryKey: ["client-therapy", id], queryFn: () => getClientTherapy(id) });
+  const notesModule = useMutation({
+    mutationFn: (enabled: boolean) => setClientNotesModule(id, enabled),
+    onSuccess: (state) => qc.setQueryData(["client-therapy", id], state),
+  });
 
   const [note, setNote] = useState("");
   const [bookOpen, setBookOpen] = useState(false);
@@ -170,7 +174,7 @@ export function ClientDetail() {
 
         <div>
           <SectionTitle>Подготовка и итоги встреч</SectionTitle>
-          <PsychologistSessionJourney meetings={appts} reflections={therapy?.reflections ?? []} />
+          {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutate(!therapy.notesModule.psychologistEnabled)} />}
         </div>
 
         {/* Настроение и динамика — выше колеса */}
@@ -373,7 +377,7 @@ function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void })
         <>
           <div className="flex items-start gap-2.5">
             <span className="mt-0.5 h-8 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${tone})` }} />
-            <p className={`flex-1 text-[12.5px] font-bold leading-snug ${done ? "opacity-55 line-through" : ""}`}>{hw.text}</p>
+            <div className={`min-w-0 flex-1 ${done ? "opacity-55" : ""}`}><p className="t-head">Домашнее задание</p><p className={`t-body mt-1 leading-snug ${done ? "line-through" : ""}`}>{hw.text}</p></div>
           </div>
           <div className="mt-2.5 flex items-center gap-2">
             {/* Статус — только для чтения: его выставляет клиент */}

@@ -77,8 +77,8 @@ function HomeworkCard({ hw, onChanged }: { hw: Homework; onChanged: () => void }
           <Icon name={isDone ? "check" : "note"} width={16} weight="bold" color="#fff" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">{isNew && <Alert />}<p className="t-micro text-[var(--purple-edge)]">{isDone ? "Выполнено" : isNew ? "Новое задание" : "В работе"}</p></div>
-          <p className={`mt-1 text-[15px] font-bold leading-snug ${isDone ? "line-through text-[var(--muted)]" : "text-[var(--ink)]"}`}>{hw.text}</p>
+          <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-1.5">{isNew && <Alert />}<p className="t-head">Домашнее задание</p></div><span className="t-micro text-[var(--purple-edge)]">{isDone ? "Выполнено" : isNew ? "Новое" : "В работе"}</span></div>
+          <p className={`t-body mt-1 leading-snug ${isDone ? "line-through text-[var(--muted)]" : "text-[var(--ink)]"}`}>{hw.text}</p>
         </div>
       </div>
       <div className="mt-3 grid w-full grid-cols-2 rounded-full bg-[var(--surface-2)] p-0.5 text-[10px] font-black">

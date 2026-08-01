@@ -81,7 +81,8 @@ export type ReflectionPatch = {
   takeaway?: string;
   feeling?: number | null;
 };
-export type TherapyState = { moods: Mood[]; notes: GoodNote[]; board: string; wheel: WheelResult | null; tutorialSeen: boolean; reflections: SessionReflection[] };
+export type NotesModuleState = { enabled: boolean; shared: boolean; psychologistEnabled: boolean };
+export type TherapyState = { moods: Mood[]; notes: GoodNote[]; board: string; wheel: WheelResult | null; tutorialSeen: boolean; reflections: SessionReflection[]; notesModule: NotesModuleState };
 
 export function domainScore(result: WheelResult | null, key: string): number {
   const arr = result?.answers[key];
@@ -107,6 +108,8 @@ export function wheelBand(pct: number): WheelBand {
 }
 
 export const getMyTherapy = () => apiFetch<TherapyState>("/my/therapy");
-export const updateMyTherapy = (patch: { mood?: number; emotions?: string[]; good?: string; board?: string; wheel?: WheelAnswers; tutorialSeen?: boolean; reflection?: ReflectionPatch }) =>
+export const updateMyTherapy = (patch: { mood?: number; emotions?: string[]; good?: string; board?: string; wheel?: WheelAnswers; tutorialSeen?: boolean; reflection?: ReflectionPatch; notesModule?: { enabled?: boolean; shared?: boolean } }) =>
   apiFetch<TherapyState>("/my/therapy", { method: "PATCH", body: JSON.stringify(patch) });
 export const getClientTherapy = (clientId: number) => apiFetch<TherapyState>(`/clients/${clientId}/therapy`);
+export const setClientNotesModule = (clientId: number, enabled: boolean) =>
+  apiFetch<TherapyState>(`/clients/${clientId}/therapy`, { method: "PATCH", body: JSON.stringify({ notesModuleEnabled: enabled }) });
