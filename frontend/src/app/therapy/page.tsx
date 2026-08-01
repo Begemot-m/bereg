@@ -18,12 +18,13 @@ import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { BookingRow } from "@/components/my-bookings";
 import { SessionCheckin } from "@/components/session-checkin";
+import { ClientSessionJourney } from "@/components/session-reflections";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, SkeletonRow } from "@/components/ui";
 import { bookSlot } from "@/lib/mybookings";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
-import { getMyTherapy, updateMyTherapy, type TherapyState, type WheelAnswers } from "@/lib/therapy";
+import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
@@ -76,12 +77,12 @@ export default function TherapyPage() {
   if (bookingsQuery.isLoading || therapyQuery.isLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
   // Интерфейс терапии показывается всегда — статистика копится независимо от терапевта.
   return <>
-    <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onBoard={(board) => save.mutate({ board })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
+    <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} reflectionSaving={save.isPending} onReflection={(reflection) => save.mutate({ reflection })} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onBoard={(board) => save.mutate({ board })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />
     {guideOpen && <TherapyGuide onClose={() => setGuideOpen(false)} />}
   </>;
 }
 
-function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; onMood: (mood: number, emotions: string[]) => void; onBoard: (text: string) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
+function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSaving, onReflection, onMood, onBoard, onGuideSeen, onWheel }: { therapists: ReturnType<typeof useMyTherapists>; next: MyBooking | null; bookings: MyBooking[]; therapy: TherapyState; reflectionSaving: boolean; onReflection: (reflection: ReflectionPatch) => void; onMood: (mood: number, emotions: string[]) => void; onBoard: (text: string) => void; onGuideSeen: () => void; onWheel: (answers: WheelAnswers) => void }) {
   const therapist = therapists.active;
   const [flowOpen, setFlowOpen] = useState(false);
   const [moodSheet, setMoodSheet] = useState(false);
@@ -143,6 +144,8 @@ function TherapyDashboard({ therapists, next, bookings, therapy, onMood, onBoard
       <main className="relative -mt-9 rounded-t-[27px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)" }}>
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
+          <ClientSessionJourney meetings={bookings} reflections={therapy.reflections} saving={reflectionSaving} onSave={onReflection} />
+
           {/* Настроение → работа со специалистом → доска → динамика → записи. */}
           <section className="overflow-hidden rounded-[20px]" style={{ background: todayEntry?.mood ? `${moodColor(todayEntry.mood)}2e` : "var(--head-soft)" }} data-tour="mood-stats">
             <MoodHomeCard embedded mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />

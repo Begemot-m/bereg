@@ -8,12 +8,23 @@ import { prisma } from "@/lib/server/prisma";
 export type MoodDTO = { date: string; mood: number; emotions?: string[] };
 export type NoteDTO = { date: string; text: string };
 export type WheelDTO = { answers: Record<string, number[]>; completedAt: string } | null;
+export type SessionReflectionDTO = {
+  appointmentId: number;
+  startsAt: string;
+  status: string;
+  therapistName: string;
+  preparation: string;
+  takeaway: string;
+  feeling: number | null;
+  updatedAt: string;
+};
 export type TherapyDTO = {
   moods: MoodDTO[];
   notes: NoteDTO[];
   board: string;
   wheel: WheelDTO;
   tutorialSeen: boolean;
+  reflections: SessionReflectionDTO[];
 };
 
 // Тексты шифруем, только если ключ задан: в деве без DATA_KEY приложение
@@ -29,10 +40,24 @@ export function dayKey(d = new Date()): Date {
 }
 
 export async function getTherapy(clientId: number): Promise<TherapyDTO> {
-  const [moods, notes, profile] = await Promise.all([
+  const [moods, notes, profile, reflections] = await Promise.all([
     prisma.mood.findMany({ where: { clientId }, orderBy: { day: "asc" }, take: 30 }),
     prisma.goodNote.findMany({ where: { clientId }, orderBy: { day: "asc" }, take: 60 }),
     prisma.therapyProfile.findUnique({ where: { clientId } }),
+    prisma.sessionReflection.findMany({
+      where: { clientId },
+      orderBy: { appointment: { startsAt: "desc" } },
+      take: 30,
+      include: {
+        appointment: {
+          select: {
+            startsAt: true,
+            status: true,
+            psychologist: { select: { firstName: true, psyProfile: { select: { name: true } } } },
+          },
+        },
+      },
+    }),
   ]);
 
   return {
@@ -45,6 +70,16 @@ export async function getTherapy(clientId: number): Promise<TherapyDTO> {
     board: profile ? dec(profile.board) : "",
     wheel: (profile?.wheel as WheelDTO) ?? null,
     tutorialSeen: profile?.tutorialSeen ?? false,
+    reflections: reflections.map((reflection) => ({
+      appointmentId: reflection.appointmentId,
+      startsAt: reflection.appointment.startsAt.toISOString(),
+      status: reflection.appointment.status,
+      therapistName: reflection.appointment.psychologist.psyProfile?.name ?? reflection.appointment.psychologist.firstName ?? "Специалист",
+      preparation: dec(reflection.preparation),
+      takeaway: dec(reflection.takeaway),
+      feeling: reflection.feeling,
+      updatedAt: reflection.updatedAt.toISOString(),
+    })),
   };
 }
 
@@ -55,6 +90,12 @@ export type TherapyPatch = {
   board?: string;
   wheel?: Record<string, number[]>;
   tutorialSeen?: boolean;
+  reflection?: {
+    appointmentId: number;
+    preparation?: string;
+    takeaway?: string;
+    feeling?: number | null;
+  };
 };
 
 export async function patchTherapy(clientId: number, patch: TherapyPatch): Promise<TherapyDTO> {
@@ -111,6 +152,37 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
         ...(profilePatch.tutorialSeen !== undefined ? { tutorialSeen: profilePatch.tutorialSeen } : {}),
       },
     });
+  }
+
+  if (patch.reflection) {
+    const appointment = await prisma.appointment.findFirst({
+      where: { id: patch.reflection.appointmentId, clientId, status: { not: "cancelled" } },
+      select: { id: true },
+    });
+    if (appointment) {
+      const preparation = patch.reflection.preparation === undefined ? undefined : enc(patch.reflection.preparation.trim().slice(0, 2000));
+      const takeaway = patch.reflection.takeaway === undefined ? undefined : enc(patch.reflection.takeaway.trim().slice(0, 2000));
+      const feeling = patch.reflection.feeling === undefined
+        ? undefined
+        : patch.reflection.feeling === null
+          ? null
+          : Math.min(5, Math.max(1, Math.round(patch.reflection.feeling)));
+      await prisma.sessionReflection.upsert({
+        where: { appointmentId: appointment.id },
+        create: {
+          clientId,
+          appointmentId: appointment.id,
+          preparation: preparation ?? "",
+          takeaway: takeaway ?? "",
+          feeling: feeling ?? null,
+        },
+        update: {
+          ...(preparation !== undefined ? { preparation } : {}),
+          ...(takeaway !== undefined ? { takeaway } : {}),
+          ...(feeling !== undefined ? { feeling } : {}),
+        },
+      });
+    }
   }
 
   return getTherapy(clientId);

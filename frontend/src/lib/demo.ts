@@ -35,6 +35,7 @@ type Appointment = {
 
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number; emotions?: string[] }; // 1..5 + отмеченные состояния
+type SessionReflection = { appointmentId: number; startsAt: string; status: string; therapistName: string; preparation: string; takeaway: string; feeling: number | null; updatedAt: string };
 type WheelResult = { answers: Record<string, number[]>; completedAt: string };
 type Support = { id: number; kind: string; text: string; createdAt: string };
 type NotifRole = "psychologist" | "client";
@@ -61,6 +62,7 @@ type DB = {
   board: Record<number, string>;
   wheel: Record<number, WheelResult | null>;
   therapyTutorialSeen: boolean;
+  reflections: Record<number, SessionReflection[]>;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
   work: WorkHours;
   overrides: Record<string, SlotOverride>;
@@ -147,6 +149,12 @@ function seed(): DB {
       leisure: [4, 4, 5], environment: [6, 7, 6],
     }, completedAt: day(-4) },
   };
+  const reflections: Record<number, SessionReflection[]> = {
+    1: [
+      { appointmentId: 13, startsAt: iso(-7, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Обсудить тревогу перед разговором с руководителем.", takeaway: "Не нужно заранее угадывать реакцию другого человека. Подготовлю две спокойные формулировки.", feeling: 4, updatedAt: iso(-7, 19, 10) },
+      { appointmentId: 14, startsAt: iso(-14, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Почему мне трудно отказывать, даже когда нет сил?", takeaway: "Отказ не делает меня плохим человеком. Попробую взять паузу перед ответом.", feeling: 3, updatedAt: iso(-14, 19, 10) },
+    ],
+  };
   return {
     seq: 100,
     clients,
@@ -157,7 +165,12 @@ function seed(): DB {
     board: { 1: "" },
     wheel,
     therapyTutorialSeen: false,
-    myBookings: [],
+    reflections,
+    myBookings: [
+      { id: 14, psyName: "Ирина Верещагина", startsAt: iso(-14, 18, 0), durationMin: 60, format: "online" },
+      { id: 13, psyName: "Ирина Верещагина", startsAt: iso(-7, 18, 0), durationMin: 60, format: "online" },
+      { id: 11, psyName: "Ирина Верещагина", startsAt: iso(0, 18, 0), durationMin: 60, format: "online" },
+    ],
     work: {
       hours: {},
       sessionMinutes: 50,
@@ -202,6 +215,7 @@ function load(): DB {
       if (db.sub.clientPro === undefined) db.sub.clientPro = false;
       if (!db.notifications) db.notifications = s.notifications;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
+      if (!db.reflections) db.reflections = s.reflections;
       if (!db.overrides) db.overrides = {};
       if (db.accountEmail === undefined) db.accountEmail = null;
       if (!db.reminderSettings) db.reminderSettings = s.reminderSettings;
@@ -439,6 +453,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       db.clients = db.clients.filter((x) => x.id !== id);
       db.appts = db.appts.filter((a) => a.clientId !== id);
       db.homework = db.homework.filter((h) => h.clientId !== id);
+      delete db.reflections[id];
       save(db);
       return delay(undefined as T);
     }
@@ -453,7 +468,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   const therapyClient = clean.match(/^\/clients\/(\d+)\/therapy$/)?.[1];
   if (therapyClient && method === "GET") {
     const id = Number(therapyClient);
-    return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: true } as T);
+    return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: true, reflections: db.reflections[id] ?? [] } as T);
   }
 
   if (clean === "/my/therapy") {
@@ -485,10 +500,27 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         db.wheel[id] = { answers: clean, completedAt: new Date().toISOString() };
       }
       if (body.tutorialSeen !== undefined) db.therapyTutorialSeen = Boolean(body.tutorialSeen);
+      if (body.reflection && typeof body.reflection === "object") {
+        const input = body.reflection as Record<string, unknown>;
+        const appointmentId = Number(input.appointmentId);
+        const booking = db.myBookings.find((item) => item.id === appointmentId);
+        if (booking) {
+          const entries = db.reflections[id] ?? [];
+          const found = entries.find((item) => item.appointmentId === appointmentId);
+          const target: SessionReflection = found ?? { appointmentId, startsAt: booking.startsAt, status: new Date(booking.startsAt) < new Date() ? "done" : "scheduled", therapistName: booking.psyName, preparation: "", takeaway: "", feeling: null, updatedAt: new Date().toISOString() };
+          if (typeof input.preparation === "string") target.preparation = input.preparation.trim().slice(0, 2000);
+          if (typeof input.takeaway === "string") target.takeaway = input.takeaway.trim().slice(0, 2000);
+          if (input.feeling === null) target.feeling = null;
+          else if (input.feeling !== undefined) target.feeling = Math.min(5, Math.max(1, Number(input.feeling)));
+          target.updatedAt = new Date().toISOString();
+          if (!found) entries.push(target);
+          db.reflections[id] = entries.sort((a, b) => b.startsAt.localeCompare(a.startsAt)).slice(0, 30);
+        }
+      }
       save(db);
     }
     if (method === "GET" || method === "PATCH") {
-      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen } as T);
+      return delay({ moods: db.moods[id] ?? [], notes: db.goodNotes[id] ?? [], board: db.board[id] ?? "", wheel: db.wheel[id] ?? null, tutorialSeen: db.therapyTutorialSeen, reflections: db.reflections[id] ?? [] } as T);
     }
   }
 

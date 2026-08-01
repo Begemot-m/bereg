@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { MoodStats } from "@/components/mood-stats";
+import { PsychologistSessionJourney } from "@/components/session-reflections";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, Input, Spinner, Textarea } from "@/components/ui";
@@ -167,8 +168,10 @@ export function ClientDetail() {
           </div>
         </div>
 
-        {/* Динамика встреч — упрощённо: только число проведённых */}
-        <SessionsCounter done={client.sessionsDone} hours={client.hoursDone} />
+        <div>
+          <SectionTitle>Подготовка и итоги встреч</SectionTitle>
+          <PsychologistSessionJourney meetings={appts} reflections={therapy?.reflections ?? []} />
+        </div>
 
         {/* Настроение и динамика — выше колеса */}
         {moods.length > 0 && (
@@ -278,22 +281,6 @@ function ClientConnect({ client, onChanged }: { client: Client; onChanged: () =>
         )}
       </div>
     </div>
-  );
-}
-
-// Упрощённая динамика: крупное число проведённых сессий (в стиле рефов).
-function SessionsCounter({ done, hours }: { done: number; hours: number }) {
-  return (
-    <section className="card flex items-center gap-4 p-4">
-      <div className="ico h-[76px] w-[76px] shrink-0 flex-col">
-        <span className="font-tight tabular-nums text-[32px] font-black leading-none">{done}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Динамика встреч</p>
-        <p className="text-[17px] font-black leading-tight">{done > 0 ? `${done} проведённых сессий` : "Сессий ещё не было"}</p>
-        {hours > 0 && <p className="mt-0.5 text-[12px] font-semibold text-[var(--muted)]">{hours} ч вместе за всё время</p>}
-      </div>
-    </section>
   );
 }
 

@@ -165,6 +165,7 @@ model Client {
   moods        Mood[]
   goodNotes    GoodNote[]
   therapy      TherapyProfile?
+  reflections  SessionReflection[]
 
   @@index([psychologistId])
   @@index([userId])
@@ -281,9 +282,27 @@ model Appointment {
   reminderSent       Boolean            @default(false)
   createdAt          DateTime           @default(now())
   telegramDeliveries TelegramDelivery[]
+  reflection         SessionReflection?
 
   @@index([psychologistId, startsAt])
   @@index([clientId])
+}
+
+/// Короткая подготовка и итог клиента, привязанные к конкретной встрече.
+/// Тексты шифруются тем же ключом, что и остальные данные терапии.
+model SessionReflection {
+  id            Int         @id @default(autoincrement())
+  client        Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId      Int
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId Int         @unique
+  preparation   String      @default("") @db.Text
+  takeaway      String      @default("") @db.Text
+  feeling       Int?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([clientId, updatedAt])
 }
 
 /// Очередь сообщений Telegram. Одна встреча может породить несколько
