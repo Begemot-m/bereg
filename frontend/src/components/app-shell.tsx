@@ -44,7 +44,7 @@ const isActive = (pathname: string, href: string) => (href === "/" ? pathname ==
 
 function accentFor(pathname: string) {
   if (pathname.startsWith("/therapy/notes") || pathname.startsWith("/clients/notes")) return "tiffany";
-  if (pathname.startsWith("/sessions")) return "olive";
+  if (pathname.startsWith("/sessions")) return "green";
   if (pathname.startsWith("/therapy")) return "purple";
   if (pathname.startsWith("/clients")) return "purple";
   if (pathname.startsWith("/tools")) return "peach";
@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
   // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;
-  const centerTone = role === "psychologist" ? "olive" : "purple";
+  const centerTone = role === "psychologist" ? "green" : "purple";
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

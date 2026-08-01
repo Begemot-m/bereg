@@ -31,9 +31,11 @@
   --coral: #f0a794;
   --coral-soft: #f7cec2;
   --coral-edge: #cd7a60;
-  --green: #a7c79e;
-  --green-soft: #d3e2cb;
-  --green-edge: #6f9a67;
+  /* Единственный зелёный проекта. Оливы больше нет — --olive-* оставлены
+     псевдонимами, чтобы не переписывать сотню мест разметки. */
+  --green-soft: #d4e0cc;
+  --green: #aec89d;
+  --green-edge: #5b8042;
   --purple: #c9b8e4;
   --purple-soft: #e7ddf3;
   --purple-edge: #9077bd;
@@ -42,10 +44,10 @@
   --salmon-edge: #d1725b;
   --pink: #f1b3aa;
   --sky: #a7cfdf;
-  /* Олива — для сессий */
-  --olive: #b7c079;
-  --olive-soft: #dde3b9;
-  --olive-edge: #97a558;
+  /* Устаревшие имена зелёного. Раньше это была отдельная олива. */
+  --olive: var(--green);
+  --olive-soft: var(--green-soft);
+  --olive-edge: var(--green-edge);
   /* Тиффани — для каталога и профилей специалистов */
   --tiffany: #9edbcd;
   --tiffany-soft: #d8f1eb;
@@ -71,7 +73,7 @@
   --mood-2: #eeb079;
   --mood-3: #f0d284;
   --mood-4: #c3cf8e;
-  --mood-5: #8ec295;
+  --mood-5: #a3c28e;
 
   /* Толщина обводки и радиусы. --bw — мини-кнопки/пилюли внутри блоков (тонкие),
      --bw-lg — крупные блоки и окна (капля потолще). */
@@ -109,7 +111,6 @@
 [data-accent="purple"] { --head: var(--purple); --head-soft: var(--purple-soft); --accent: var(--purple); --edge: var(--purple-edge); --page: color-mix(in srgb, var(--purple) 46%, #fbf8ef); }
 [data-accent="coral"]  { --head: var(--coral);  --head-soft: var(--coral-soft);  --accent: var(--coral);  --edge: var(--coral-edge);  --page: color-mix(in srgb, var(--coral) 44%, #fbf7ee); }
 [data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); --edge: var(--salmon-edge); --page: color-mix(in srgb, var(--salmon) 44%, #fbf7ee); }
-[data-accent="olive"]  { --head: var(--olive);  --head-soft: var(--olive-soft);  --accent: var(--olive);  --edge: var(--olive-edge);  --page: color-mix(in srgb, var(--olive) 42%, #fbf8ef); }
 [data-accent="tiffany"] { --head: var(--tiffany); --head-soft: var(--tiffany-soft); --accent: var(--tiffany); --edge: var(--tiffany-edge); --page: color-mix(in srgb, var(--tiffany) 42%, #f8fcfa); }
 [data-accent="peach"]  { --head: var(--peach);  --head-soft: var(--peach-soft);  --accent: var(--peach);  --edge: var(--peach-edge);  --page: color-mix(in srgb, var(--peach) 46%, #fbf7ee); }
 :root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --edge: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
@@ -132,8 +133,8 @@
   --tint: var(--head-soft);
   --iris: var(--purple);
   --sage: var(--green);
-  --good: #5a9d6b;
-  --good-tint: #d7e7d3;
+  --good: var(--green-edge);
+  --good-tint: var(--green-soft);
   --warn: #d98324;
   --danger: #c14b3a;
 }

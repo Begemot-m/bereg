@@ -312,7 +312,7 @@ function TourBanner({ role }: { role: Role }) {
 }
 
 // Каждый раздел живёт в своём тоне — плитка на главной берёт его же.
-const ROUTE_TONE: Record<string, string> = { "/sessions": "olive", "/clients": "purple", "/tools": "peach", "/cabinet": "amber", "/therapy": "purple", "/catalog": "tiffany" };
+const ROUTE_TONE: Record<string, string> = { "/sessions": "green", "/clients": "purple", "/tools": "peach", "/cabinet": "amber", "/therapy": "purple", "/catalog": "tiffany" };
 
 // Разделы — листающаяся вбок карусель.
 function HomeRoutesCarousel({ items }: { items: { title: string; detail: string; icon: IconName; href: string }[] }) {

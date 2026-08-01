@@ -35,7 +35,7 @@ import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { getClientTherapy, setClientNotesModule } from "@/lib/therapy";
 
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const STATUS_TONE: Record<ClientStatus, string> = { therapy: "olive", new: "purple", paused: "amber" };
+const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
 
 // Ссылка-приглашение клиента подключить свой профиль.
 function inviteLink(id: number): string {

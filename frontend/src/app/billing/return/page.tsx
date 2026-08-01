@@ -26,7 +26,7 @@ export default function BillingReturn() {
         <Card>
           {active ? (
             <div className="space-y-4">
-              <p className="text-sm font-semibold text-[#0a3d28]">Подписка Pro активирована. Спасибо!</p>
+              <p className="text-sm font-semibold text-[var(--green-edge)]">Подписка Pro активирована. Спасибо!</p>
               <Link href="/cabinet"><Button arrow>В кабинет</Button></Link>
             </div>
           ) : (

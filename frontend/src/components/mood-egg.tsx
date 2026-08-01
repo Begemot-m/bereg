@@ -219,7 +219,7 @@ function smooth(x: number): number {
   return c * c * (3 - 2 * c);
 }
 
-const STOPS = ["#e08a76", "#eeb079", "#f0d284", "#c3cf8e", "#8ec295"];
+const STOPS = ["#e08a76", "#eeb079", "#f0d284", "#c3cf8e", "#a3c28e"];
 
 function mix(t: number): string {
   const pos = t * (STOPS.length - 1);

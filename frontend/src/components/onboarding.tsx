@@ -39,7 +39,7 @@ const INTRO: Intro[] = [
   },
   {
     key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний",
-    bg: "var(--olive-soft)", soft: "#f3f5df", tone: "var(--olive-edge)",
+    bg: "var(--green-soft)", soft: "#eaf0e4", tone: "var(--green-edge)",
     points: ["Подберём лучшие практики между сессиями", "С отслеживанием настроения", "Дыхание, дневники, колесо баланса"],
     mock: <ToolsMock />,
   },
@@ -204,7 +204,7 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
   const roles: { role: Role; title: string; text: string; icon: IconName; tone: string }[] = [
     { role: "psychologist", title: "Я психолог", text: "Клиенты, записи и практика", icon: "users", tone: "purple" },
     { role: "client", title: "Я ищу специалиста", text: "Подбор и сопровождение", icon: "heart", tone: "tiffany" },
-    { role: "guest", title: "Я занимаюсь сам", text: "Практики и наблюдения", icon: "compass", tone: "olive" },
+    { role: "guest", title: "Я занимаюсь сам", text: "Практики и наблюдения", icon: "compass", tone: "green" },
   ];
   return (
     <div className="flex flex-1 flex-col">

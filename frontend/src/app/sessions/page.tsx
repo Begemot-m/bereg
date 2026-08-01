@@ -69,7 +69,7 @@ function dateHeader(ymd: string): string {
 function relTone(ymd: string): { label: string; tone: string } | null {
   const rel = relLabel(ymd);
   if (rel === "Сегодня") return { label: rel, tone: "peach" };
-  if (rel === "Завтра") return { label: rel, tone: "olive" };
+  if (rel === "Завтра") return { label: rel, tone: "green" };
   if (rel === "Вчера") return { label: rel, tone: "coral" };
   return null;
 }

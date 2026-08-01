@@ -53,7 +53,7 @@ export const WHEEL: WheelDomain[] = [
     "Я умею отдыхать и восстанавливаться",
     "В моей жизни достаточно радости и игры",
   ] },
-  { key: "environment", label: "Среда и порядок", short: "Среда", icon: "compass", color: "var(--mood-5)", edge: "#5a9d6b", questions: [
+  { key: "environment", label: "Среда и порядок", short: "Среда", icon: "compass", color: "var(--mood-5)", edge: "var(--green-edge)", questions: [
     "Пространство вокруг удобно и приятно",
     "Мой день организован так, как мне подходит",
     "Меня окружает то, что даёт ресурс",
