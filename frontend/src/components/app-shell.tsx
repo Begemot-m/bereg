@@ -43,7 +43,7 @@ const NAV: Record<Role, NavItem[]> = {
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
 function accentFor(pathname: string) {
-  if (pathname.startsWith("/therapy/notes") || pathname.startsWith("/clients/notes") || pathname.startsWith("/therapy/homework") || pathname.startsWith("/clients/homework")) return "tiffany";
+  if (pathname.startsWith("/therapy/notes") || pathname.startsWith("/clients/notes")) return "tiffany";
   if (pathname.startsWith("/sessions")) return "olive";
   if (pathname.startsWith("/therapy")) return "purple";
   if (pathname.startsWith("/clients")) return "purple";

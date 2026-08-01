@@ -166,7 +166,7 @@ export function ClientDetail() {
 
         <div>
           <SectionTitle>Модули терапии</SectionTitle>
-          {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutate(!therapy.notesModule.psychologistEnabled)} href={`/clients/notes?id=${id}`} />}
+          {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutateAsync(!therapy.notesModule.psychologistEnabled)} href={`/clients/notes?id=${id}`} />}
         </div>
 
         {/* Настроение и динамика — выше колеса */}

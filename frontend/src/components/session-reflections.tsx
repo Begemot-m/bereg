@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Arrow, ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
@@ -90,9 +91,10 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
   reflections: SessionReflection[];
   module: NotesModuleState;
   saving?: boolean;
-  onToggle: () => void;
+  onToggle: () => void | Promise<unknown>;
   href: string;
 }) {
+  const router = useRouter();
   if (!module.psychologistEnabled) {
     return (
       <div data-accent="tiffany" className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}>
@@ -105,7 +107,7 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
           <ModuleBenefit text="Впечатления и оценка после сессии" />
           <ModuleBenefit text="История и график динамики встреч" />
         </div>
-        <button disabled={saving} onClick={onToggle} className="btn btn-accent mt-3 w-full py-2">Подключить</button>
+        <button disabled={saving} onClick={async () => { await onToggle(); router.push(href); }} className="btn btn-accent mt-3 w-full py-2">Подключить</button>
       </div>
     );
   }
@@ -127,6 +129,7 @@ export function PsychologistNotesDetail({ meetings, reflections, module, saving,
   saving?: boolean;
   onToggle: () => void;
 }) {
+  if (!module.psychologistEnabled) return <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}><div className="flex items-start gap-3"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Модуль «Заметки» отключён</p><p className="t-cap mt-1">Подключите его, чтобы снова видеть переданные записи клиента.</p></div></div><button disabled={saving} onClick={onToggle} className="btn btn-accent mt-3 w-full py-2">Подключить</button></div>;
   return (
     <section data-accent="tiffany" className="space-y-3">
       <div className="card flex items-center gap-3 p-4"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">Модуль подключён у вас и клиента</p></div><button disabled={saving} onClick={onToggle} className="btn btn-white shrink-0 px-3 py-1.5 text-[11px]">Отключить</button></div>
