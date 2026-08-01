@@ -97,10 +97,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
     setOpenBooking(params.get("booking") === "1" || Boolean(target));
   }, [bookings, therapists.active]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const qc = useQueryClient();
   const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(ME) });
-  const invHomework = () => qc.invalidateQueries({ queryKey: ["my-homework"] });
-  const completedSessions = bookings.filter((b) => new Date(b.startsAt) < new Date()).length;
   const todayEntry = [...therapy.moods].reverse().find((e) => e.date.slice(0, 10) === new Date().toISOString().slice(0, 10));
   const startFlow = () => { tap(); setShowGuide(!therapy.tutorialSeen); setFlowOpen(true); };
 
@@ -152,13 +149,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
             <MoodStatsBlock moods={therapy.moods} />
           </section>
 
-          {therapist && (
-            <WorkWithSpecialist
-              sessionsDone={completedSessions}
-              homework={homework}
-              onChanged={invHomework}
-            />
-          )}
+          <WorkWithSpecialist homework={homework} />
 
           <TherapistBoard value={therapy.board} onSave={onBoard} />
 

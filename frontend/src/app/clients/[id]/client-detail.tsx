@@ -6,9 +6,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { SectionTitle, ArrowGlyph } from "@/components/blocks";
+import { SectionTitle } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { MoodStats } from "@/components/mood-stats";
+import { PsychologistHomeworkPreview } from "@/components/psychologist-homework";
 import { PsychologistSessionJourney } from "@/components/session-reflections";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
@@ -17,20 +18,14 @@ import {
   derivedStatus,
   formatContact,
   getClient,
-  HW_LABEL,
   inviteClient,
   isPhone,
   listHomework,
   listMoods,
-  sendHomework,
   STATUS_LABEL,
   updateClient,
-  updateHomework,
-  deleteHomework,
   type Client,
   type ClientStatus,
-  type Homework,
-  type HwStatus,
   type Mood,
 } from "@/lib/clients";
 import { createAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
@@ -164,17 +159,14 @@ export function ClientDetail() {
       </header>
 
       <main className="-mt-8 space-y-6 rounded-t-[27px] bg-white px-4 pb-10 pt-6 @md:px-9">
-        {/* Задания — первыми: с ними работают каждую неделю */}
         <div>
           <SectionTitle>Домашние задания</SectionTitle>
-          <div className="card-soft p-3">
-            <HomeworkBlock clientId={id} items={homework} onChanged={inv} />
-          </div>
+          <PsychologistHomeworkPreview items={homework} href={`/clients/homework?id=${id}`} />
         </div>
 
         <div>
           <SectionTitle>Модули терапии</SectionTitle>
-          {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutate(!therapy.notesModule.psychologistEnabled)} />}
+          {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutate(!therapy.notesModule.psychologistEnabled)} href={`/clients/notes?id=${id}`} />}
         </div>
 
         {/* Настроение и динамика — выше колеса */}
@@ -313,83 +305,6 @@ function MeetingRow({ appt, onReschedule }: { appt: { id: number; startsAt: stri
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function HomeworkBlock({ clientId, items, onChanged }: { clientId: number; items: Homework[]; onChanged: () => void }) {
-  const [text, setText] = useState("");
-  const send = useMutation({
-    mutationFn: () => sendHomework(clientId, text.trim()),
-    onSuccess: () => { success(); setText(""); onChanged(); },
-  });
-
-  const done = items.filter((h) => h.status === "done").length;
-  return (
-    <div className="space-y-2.5">
-      {/* Отправка нового задания */}
-      <div className="rounded-[14px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-        <div className="mb-2 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[9px]" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}><Icon name="note" width={16} weight="bold" /></span>
-          <div><p className="text-[13px] font-black leading-none">Новое задание</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">Клиент увидит его в своей терапии</p></div>
-        </div>
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="Например: дневник тревоги — 3 записи за неделю" />
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-[var(--muted-2)]">Скоро — шаблоны техник</span>
-          <button disabled={send.isPending || !text.trim()} onClick={() => send.mutate()} className="btn btn-accent px-4 py-2">Отправить <ArrowGlyph /></button>
-        </div>
-      </div>
-      {/* История и процесс выполнения */}
-      {items.length > 0 && <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">История · {done}/{items.length} выполнено</p>}
-      {items.map((h) => (
-        <HomeworkRow key={h.id} hw={h} onChanged={onChanged} />
-      ))}
-    </div>
-  );
-}
-
-const HW_TONE: Record<HwStatus, string> = { assigned: "amber", doing: "purple", done: "green" };
-
-// Статус задания меняет клиент сам (в своей терапии). Психолог правит текст или удаляет.
-function HomeworkRow({ hw, onChanged }: { hw: Homework; onChanged: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [text, setText] = useState(hw.text);
-  const done = hw.status === "done";
-  const tone = HW_TONE[hw.status];
-
-  const save = useMutation({
-    mutationFn: (patch: Partial<Pick<Homework, "text">>) => updateHomework(hw.id, patch),
-    onSuccess: () => { setEditing(false); onChanged(); },
-  });
-  const del = useMutation({ mutationFn: () => deleteHomework(hw.id), onSuccess: () => { tap(); onChanged(); } });
-
-  return (
-    <div className="rounded-[14px] bg-white p-3" style={{ border: `var(--bw) solid var(--${tone}-edge)` }}>
-      {editing ? (
-        <div className="space-y-2">
-          <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} autoFocus />
-          <div className="flex gap-2">
-            <button onClick={() => save.mutate({ text: text.trim() })} disabled={!text.trim()} className="btn btn-accent px-4 py-2 text-[12px]">Сохранить</button>
-            <button onClick={() => { setEditing(false); setText(hw.text); }} className="btn btn-white px-4 py-2 text-[12px]">Отмена</button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 h-8 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${tone})` }} />
-            <div className={`min-w-0 flex-1 ${done ? "opacity-55" : ""}`}><p className="t-head">Домашнее задание</p><p className={`t-body mt-1 leading-snug ${done ? "line-through" : ""}`}>{hw.text}</p></div>
-          </div>
-          <div className="mt-2.5 flex items-center gap-2">
-            {/* Статус — только для чтения: его выставляет клиент */}
-            <span className="rounded-full px-2.5 py-1 text-[10.5px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)` }}>{HW_LABEL[hw.status]}</span>
-            <span className="text-[10px] font-semibold text-[var(--muted-2)]">{dtf.format(new Date(hw.sentAt))}</span>
-            <div className="ml-auto flex gap-1">
-              <button onClick={() => { tap(); setEditing(true); }} className="btn btn-accent px-2.5 py-1 text-[11px]">Поправить</button>
-              <button onClick={() => { if (confirm("Удалить задание?")) del.mutate(); }} className="btn px-2.5 py-1 text-[11px]" style={{ background: "var(--danger)", borderColor: "var(--danger)" }}>Удалить</button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

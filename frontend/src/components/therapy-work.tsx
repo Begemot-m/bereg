@@ -1,52 +1,35 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/icons";
+import { Arrow } from "@/components/blocks";
 import { updateHomework, type Homework, type HwStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 
-function plural(n: number, one: string, few: string, many: string): string {
-  const a = n % 10, b = n % 100;
-  if (a === 1 && b !== 11) return one;
-  if (a >= 2 && a <= 4 && (b < 10 || b >= 20)) return few;
-  return many;
-}
-
-// Один блок вместо трёх: сколько прошло встреч, что с заданиями и сами задания.
-export function WorkWithSpecialist({ sessionsDone, homework, onChanged }: {
-  sessionsDone: number;
+export function WorkWithSpecialist({ homework }: {
   homework: Homework[];
-  onChanged: () => void;
 }) {
-  const done = homework.filter((h) => h.status === "done").length;
-  const fresh = homework.filter((h) => h.status === "assigned").length;
-  const active = homework.filter((h) => h.status !== "done");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const visible = active.length ? active : homework.slice(-1);
+  const active = homework.find((item) => item.status !== "done");
 
   return (
-    <section data-tour="work" className="rounded-[20px] p-4" style={{ background: "var(--green-soft)" }}>
-      <h2 className="t-title text-[var(--ink)]">Работа со специалистом</h2>
-      <div className="mt-2 grid grid-cols-[112px_1fr] gap-3 rounded-[16px] bg-white p-3">
-        <div><p className="tnum font-tight text-[30px] font-black leading-none">{sessionsDone}</p><p className="t-cap mt-1">{plural(sessionsDone, "встреча", "встречи", "встреч")}</p></div>
-        <div><p className="t-cap">Динамика встреч</p><div className="mt-2 flex h-10 items-end gap-1.5">{[.35,.55,.42,.72,.62,1].map((v, i) => <motion.span key={i} className="flex-1 rounded-t-[5px] bg-[var(--purple-edge)]" initial={{ height: 4 }} animate={{ height: `${Math.max(12, v * Math.min(40, 12 + sessionsDone * 4))}px` }} transition={{ delay: i * .04 }} />)}</div></div>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between"><h3 className="t-head text-[var(--ink)]">Задания</h3>{fresh > 0 && <span className="t-cap font-black text-[var(--purple-edge)]">{fresh} новых</span>}</div>
-      <div className="mt-2 space-y-2">
-        {homework.length === 0
-          ? <p className="t-sub rounded-[14px] bg-white p-3">Заданий пока нет — терапевт пришлёт их после встречи.</p>
-          : visible.map((hw) => <HomeworkCard key={hw.id} hw={hw} onChanged={onChanged} />)}
-      </div>
-
-      {homework.length > visible.length && <button onClick={() => { tap(); setHistoryOpen((v) => !v); }} className="mt-2 inline-flex min-h-9 items-center text-[12px] font-black text-[var(--purple-edge)]">{historyOpen ? "Скрыть историю заданий" : `История заданий · ${done}`}</button>}
-      <AnimatePresence initial={false}>{historyOpen && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-2 space-y-2 overflow-hidden">{homework.filter((hw) => !visible.some((item) => item.id === hw.id)).map((hw) => <HomeworkCard key={hw.id} hw={hw} onChanged={onChanged} />)}</motion.div>}</AnimatePresence>
-
+    <section data-tour="work" className="card-soft p-3">
+      <Link href="/therapy/homework" onClick={tap} className="card-plain flex items-center gap-3 p-3">
+        <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="book" width={20} weight="bold" /></span>
+        <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="t-head">Задания</p>{active && <span className="chip chip-strong">Активное</span>}</div><p className="t-cap mt-1 line-clamp-2">{active?.text ?? "Открыть страницу заданий"}</p></div>
+        <Arrow />
+      </Link>
     </section>
   );
+}
+
+export function ClientHomeworkDetail({ homework, onChanged }: { homework: Homework[]; onChanged: () => void }) {
+  const active = homework.filter((item) => item.status !== "done");
+  const done = homework.filter((item) => item.status === "done");
+  return <div className="space-y-4"><section><div className="mb-3 flex items-center justify-between"><h2 className="t-head">Активные задания</h2>{active.length > 0 && <span className="chip chip-strong">{active.length}</span>}</div><div className="space-y-2">{active.length ? active.map((item) => <HomeworkCard key={item.id} hw={item} onChanged={onChanged} />) : <div className="card-soft p-4"><p className="t-head">Активных заданий нет</p><p className="t-cap mt-1">Новые задания от психолога появятся здесь.</p></div>}</div></section>{done.length > 0 && <section><h2 className="t-head mb-3">История</h2><div className="space-y-2">{done.map((item) => <HomeworkCard key={item.id} hw={item} onChanged={onChanged} />)}</div></section>}</div>;
 }
 
 function Alert() {

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
-import { ArrowGlyph } from "@/components/blocks";
+import { Arrow, ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Disclosure, Textarea } from "@/components/ui";
 import { tap } from "@/lib/haptics";
@@ -19,11 +20,34 @@ export function ClientSessionJourney({ meetings, reflections, module, saving, on
   onSave: (patch: ReflectionPatch) => void;
   onModuleChange: (patch: { enabled?: boolean; shared?: boolean }) => void;
 }) {
+  const latest = [...reflections].filter((item) => item.feeling).sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
+  if (!module.enabled) return <div data-accent="tiffany"><ClientModuleControl module={module} saving={saving} onChange={onModuleChange} /></div>;
+  return (
+    <div data-accent="tiffany" className="card-soft p-3">
+      <Link href="/therapy/notes" onClick={tap} className="card-plain flex items-center gap-3 p-3">
+        <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="note" width={20} weight="bold" /></span>
+        <div className="min-w-0 flex-1"><p className="t-head">Заметки</p><p className="t-cap mt-0.5">{reflections.length ? `${reflections.length} записей · последняя оценка ${latest?.feeling ?? "—"}/10` : "Подготовка и итоги встреч"}</p></div>
+        <Arrow />
+      </Link>
+    </div>
+  );
+}
+
+export function ClientNotesDetail({ meetings, reflections, module, saving, onSave, onModuleChange }: {
+  meetings: Meeting[];
+  reflections: SessionReflection[];
+  module: NotesModuleState;
+  saving?: boolean;
+  onSave: (patch: ReflectionPatch) => void;
+  onModuleChange: (patch: { enabled?: boolean; shared?: boolean }) => void;
+}) {
   const current = useMemo(() => {
     const active = meetings.filter((meeting) => meeting.status !== "cancelled");
+    const past = active.filter((meeting) => new Date(meeting.startsAt).getTime() < Date.now()).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+    const awaitingCheckin = past.find((meeting) => !reflections.find((item) => item.appointmentId === meeting.id)?.feeling);
     const next = active.filter((meeting) => new Date(meeting.startsAt).getTime() >= Date.now()).sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
-    return next ?? [...active].sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0] ?? null;
-  }, [meetings]);
+    return awaitingCheckin ?? next ?? past[0] ?? null;
+  }, [meetings, reflections]);
   const reflection = current ? reflections.find((item) => item.appointmentId === current.id) : undefined;
   const [preparation, setPreparation] = useState("");
   const [takeaway, setTakeaway] = useState("");
@@ -43,11 +67,12 @@ export function ClientSessionJourney({ meetings, reflections, module, saving, on
   };
 
   return (
-    <section className="space-y-3">
+    <section data-accent="tiffany" className="space-y-3">
       <ClientModuleControl module={module} saving={saving} onChange={onModuleChange} />
 
       {module.enabled && (
         <>
+          <NotesSummary meetings={meetings} reflections={reflections} />
           {current ? (
             <SessionNoteEditor current={current} upcoming={upcoming} saved={Boolean(reflection)} preparation={preparation} takeaway={takeaway} rating={rating} saving={saving} onPreparation={setPreparation} onTakeaway={setTakeaway} onRating={setRating} onSave={save} />
           ) : <div className="card p-4 text-center"><p className="t-head">Встреч пока нет</p><p className="t-cap mt-1">После записи здесь появятся заметки к сессии.</p></div>}
@@ -60,16 +85,17 @@ export function ClientSessionJourney({ meetings, reflections, module, saving, on
   );
 }
 
-export function PsychologistSessionJourney({ meetings, reflections, module, saving, onToggle }: {
+export function PsychologistSessionJourney({ meetings, reflections, module, saving, onToggle, href }: {
   meetings: Meeting[];
   reflections: SessionReflection[];
   module: NotesModuleState;
   saving?: boolean;
   onToggle: () => void;
+  href: string;
 }) {
   if (!module.psychologistEnabled) {
     return (
-      <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}>
+      <div data-accent="tiffany" className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}>
         <div className="flex items-start gap-3">
           <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
           <div className="min-w-0 flex-1"><p className="t-title">Подключить модуль «Заметки»</p><p className="t-cap mt-1">Помогает сохранять контекст между встречами.</p></div>
@@ -84,18 +110,41 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
     );
   }
   return (
-    <div className="space-y-3">
-      <div className="card flex items-center gap-3 p-4"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">Модуль подключён у вас и клиента</p></div><button disabled={saving} onClick={onToggle} className="btn btn-white shrink-0 px-3 py-1.5 text-[11px]">Отключить</button></div>
-      {!module.shared && <div className="card-soft p-4"><p className="t-head">Клиент ведёт заметки лично</p><p className="t-cap mt-1">Когда клиент включит передачу, записи появятся здесь автоматически.</p></div>}
-      {module.shared && (
-        <>
-          {!module.enabled && <div className="card-soft p-4"><p className="t-head">Модуль приостановлен клиентом</p><p className="t-cap mt-1">Сохранённая история остаётся доступной.</p></div>}
-          <MeetingDynamics meetings={meetings} reflections={reflections} />
-          <ReflectionHistory reflections={reflections} empty="Клиент пока не сохранил заметок к встречам." />
-        </>
-      )}
+    <div data-accent="tiffany" className="card-soft p-3">
+      <Link href={href} onClick={tap} className="card-plain flex items-center gap-3 p-3">
+        <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="note" width={20} weight="bold" /></span>
+        <div className="min-w-0 flex-1"><p className="t-head">Заметки</p><p className="t-cap mt-0.5">{module.shared ? `${reflections.length} записей · история встреч` : "Клиент пока ведёт записи лично"}</p></div>
+        <Arrow />
+      </Link>
     </div>
   );
+}
+
+export function PsychologistNotesDetail({ meetings, reflections, module, saving, onToggle }: {
+  meetings: Meeting[];
+  reflections: SessionReflection[];
+  module: NotesModuleState;
+  saving?: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <section data-accent="tiffany" className="space-y-3">
+      <div className="card flex items-center gap-3 p-4"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">Модуль подключён у вас и клиента</p></div><button disabled={saving} onClick={onToggle} className="btn btn-white shrink-0 px-3 py-1.5 text-[11px]">Отключить</button></div>
+      {!module.shared && <div className="card-soft p-4"><p className="t-head">Клиент ведёт заметки лично</p><p className="t-cap mt-1">Когда клиент включит передачу, записи появятся здесь автоматически.</p></div>}
+      {module.shared && <>{!module.enabled && <div className="card-soft p-4"><p className="t-head">Модуль приостановлен клиентом</p><p className="t-cap mt-1">Сохранённая история остаётся доступной.</p></div>}<NotesSummary meetings={meetings} reflections={reflections} /><MeetingDynamics meetings={meetings} reflections={reflections} /><ReflectionHistory reflections={reflections} empty="Клиент пока не сохранил заметок к встречам." /></>}
+    </section>
+  );
+}
+
+function NotesSummary({ meetings, reflections }: { meetings: Meeting[]; reflections: SessionReflection[] }) {
+  const held = meetings.filter((meeting) => meeting.status === "done" || new Date(meeting.startsAt).getTime() < Date.now()).length;
+  const scores = reflections.flatMap((item) => item.feeling ? [item.feeling] : []);
+  const average = scores.length ? (scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1) : "—";
+  return <div className="card-soft grid grid-cols-3 gap-2 p-3"><SummaryStat value={held} label="встреч" /><SummaryStat value={reflections.length} label="заметок" /><SummaryStat value={average} label="средняя оценка" /></div>;
+}
+
+function SummaryStat({ value, label }: { value: string | number; label: string }) {
+  return <div className="card-nested p-2 text-center"><p className="tnum text-[20px] font-black">{value}</p><p className="t-micro mt-1">{label}</p></div>;
 }
 
 function ClientModuleControl({ module, saving, onChange }: { module: NotesModuleState; saving?: boolean; onChange: (patch: { enabled?: boolean; shared?: boolean }) => void }) {
@@ -159,7 +208,7 @@ function SessionNoteEditor({ current, upcoming, saved, preparation, takeaway, ra
 function Rating({ value, onChange }: { value: number | null; onChange: (value: number) => void }) {
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between"><p className="t-cap font-bold">Оценка встречи</p><span className="chip chip-strong">{value ? `${value}/10` : "—"}</span></div>
+      <div className="mb-1.5 flex items-center justify-between"><p className="t-cap font-bold">Самочувствие после сессии</p><span className="chip chip-strong">{value ? `${value}/10` : "—"}</span></div>
       <div className="grid grid-cols-10 gap-1">
         {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => <button key={score} type="button" onClick={() => { tap(); onChange(score); }} className={`flex h-8 items-center justify-center rounded-[9px] text-[11px] font-black ${value === score ? "bg-[var(--edge)] text-white" : "bg-[var(--head-soft)] text-[var(--ink)]"}`} aria-pressed={value === score}>{score}</button>)}
       </div>
