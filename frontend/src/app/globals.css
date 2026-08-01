@@ -282,8 +282,8 @@ h1, h2, h3, .font-tight {
 }
 
 /* Раздел, где рамки берут средний тон вместо акцентного (кабинет). */
-.stroke-mid :where(.card, .chunk, .panel, .card-alt-line, .tf) { border-color: var(--head); }
-.stroke-mid :where(.line-top) { border-top-color: var(--head); }
+.stroke-mid .card, .stroke-mid .chunk, .stroke-mid .panel, .stroke-mid .card-alt-line, .stroke-mid .tf { border-color: var(--head); }
+.stroke-mid .line-top { border-top-color: var(--head); }
 
 /* Нейтральный блок: та же лёгкая заливка, но серым. Когда цвет раздела
    на этом месте читался бы как статус. */
