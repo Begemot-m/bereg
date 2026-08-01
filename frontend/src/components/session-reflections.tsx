@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
-import { Textarea } from "@/components/ui";
+import { Disclosure, Textarea } from "@/components/ui";
 import { tap } from "@/lib/haptics";
 import type { NotesModuleState, ReflectionPatch, SessionReflection } from "@/lib/therapy";
 
@@ -43,42 +44,15 @@ export function ClientSessionJourney({ meetings, reflections, module, saving, on
 
   return (
     <section className="space-y-3">
-      <ModuleHead
-        enabled={module.enabled}
-        subtitle={module.psychologistEnabled ? "Подключён вашим психологом" : "Можно вести самостоятельно"}
-        onToggle={() => onModuleChange({ enabled: !module.enabled })}
-      />
+      <ClientModuleControl module={module} saving={saving} onChange={onModuleChange} />
 
       {module.enabled && (
         <>
-          <div className="card-soft p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div><p className="t-head">Доступ к заметкам</p><p className="t-cap mt-0.5">{module.shared && module.psychologistEnabled ? "Психолог видит ваши записи" : "Записи остаются только у вас"}</p></div>
-              <CompactSwitch checked={module.shared} onChange={() => onModuleChange({ shared: !module.shared })} label="Показывать психологу" />
-            </div>
-          </div>
-
-          <MeetingDynamics meetings={meetings} reflections={reflections} />
-
           {current ? (
-            <div className="card p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div><p className="t-micro">{upcoming ? "БЛИЖАЙШАЯ ВСТРЕЧА" : "ПОСЛЕДНЯЯ ВСТРЕЧА"}</p><p className="t-head mt-0.5 capitalize">{sessionDate.format(new Date(current.startsAt))}</p></div>
-                <span className="chip chip-strong">{upcoming ? "До встречи" : "После встречи"}</span>
-              </div>
-              <div className="mt-3 space-y-3">
-                <label className="block"><span className="t-cap mb-1.5 block font-bold">Что хочется обсудить</span><Textarea value={preparation} onChange={(event) => setPreparation(event.target.value)} rows={3} placeholder="Запишите важные темы или вопросы…" /></label>
-                {!upcoming && (
-                  <>
-                    <label className="block"><span className="t-cap mb-1.5 block font-bold">Впечатления после сессии</span><Textarea value={takeaway} onChange={(event) => setTakeaway(event.target.value)} rows={3} placeholder="Что было важным, что хочется сохранить…" /></label>
-                    <Rating value={rating} onChange={setRating} />
-                  </>
-                )}
-                <button onClick={save} disabled={saving || (!preparation.trim() && !takeaway.trim() && !rating)} className="btn btn-accent w-full py-2">{saving ? "Сохраняем…" : "Сохранить заметку"}</button>
-              </div>
-            </div>
+            <SessionNoteEditor current={current} upcoming={upcoming} saved={Boolean(reflection)} preparation={preparation} takeaway={takeaway} rating={rating} saving={saving} onPreparation={setPreparation} onTakeaway={setTakeaway} onRating={setRating} onSave={save} />
           ) : <div className="card p-4 text-center"><p className="t-head">Встреч пока нет</p><p className="t-cap mt-1">После записи здесь появятся заметки к сессии.</p></div>}
 
+          <MeetingDynamics meetings={meetings} reflections={reflections} />
           <ReflectionHistory reflections={reflections} />
         </>
       )}
@@ -93,11 +67,27 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
   saving?: boolean;
   onToggle: () => void;
 }) {
+  if (!module.psychologistEnabled) {
+    return (
+      <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}>
+        <div className="flex items-start gap-3">
+          <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
+          <div className="min-w-0 flex-1"><p className="t-title">Подключить модуль «Заметки»</p><p className="t-cap mt-1">Помогает сохранять контекст между встречами.</p></div>
+        </div>
+        <div className="card-nested mt-3 space-y-2 p-3">
+          <ModuleBenefit text="Темы, которые клиент хочет обсудить" />
+          <ModuleBenefit text="Впечатления и оценка после сессии" />
+          <ModuleBenefit text="История и график динамики встреч" />
+        </div>
+        <button disabled={saving} onClick={onToggle} className="btn btn-accent mt-3 w-full py-2">Подключить</button>
+      </div>
+    );
+  }
   return (
     <div className="space-y-3">
-      <ModuleHead enabled={module.psychologistEnabled} disabled={saving} subtitle={module.psychologistEnabled ? "Модуль ведётся у вас и клиента" : "Подключите, чтобы работать с заметками вместе"} onToggle={onToggle} />
-      {module.psychologistEnabled && !module.shared && <div className="card-soft p-4"><p className="t-head">Клиент ведёт заметки лично</p><p className="t-cap mt-1">Когда клиент включит передачу, записи появятся здесь автоматически.</p></div>}
-      {module.psychologistEnabled && module.shared && (
+      <div className="card flex items-center gap-3 p-4"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">Модуль подключён у вас и клиента</p></div><button disabled={saving} onClick={onToggle} className="btn btn-white shrink-0 px-3 py-1.5 text-[11px]">Отключить</button></div>
+      {!module.shared && <div className="card-soft p-4"><p className="t-head">Клиент ведёт заметки лично</p><p className="t-cap mt-1">Когда клиент включит передачу, записи появятся здесь автоматически.</p></div>}
+      {module.shared && (
         <>
           {!module.enabled && <div className="card-soft p-4"><p className="t-head">Модуль приостановлен клиентом</p><p className="t-cap mt-1">Сохранённая история остаётся доступной.</p></div>}
           <MeetingDynamics meetings={meetings} reflections={reflections} />
@@ -108,18 +98,62 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
   );
 }
 
-function ModuleHead({ enabled, subtitle, disabled, onToggle }: { enabled: boolean; subtitle: string; disabled?: boolean; onToggle: () => void }) {
+function ClientModuleControl({ module, saving, onChange }: { module: NotesModuleState; saving?: boolean; onChange: (patch: { enabled?: boolean; shared?: boolean }) => void }) {
   return (
-    <div className="card flex items-center gap-3 p-4">
-      <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
-      <div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">{subtitle}</p></div>
-      <CompactSwitch checked={enabled} disabled={disabled} onChange={onToggle} label={enabled ? "Отключить модуль" : "Подключить модуль"} />
+    <div className="card p-4">
+      <div className="flex items-center gap-3">
+        <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
+        <div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">{module.enabled ? "Темы и впечатления от встреч" : "Модуль сейчас отключён"}</p></div>
+        <button disabled={saving} onClick={() => onChange({ enabled: !module.enabled })} className={module.enabled ? "btn btn-white shrink-0 px-3 py-1.5 text-[11px]" : "btn btn-accent shrink-0 px-3 py-1.5 text-[11px]"}>{module.enabled ? "Отключить" : "Включить"}</button>
+      </div>
+      {module.enabled && (
+        <div className="card-nested mt-3 p-1">
+          <div className="grid grid-cols-2 gap-1">
+            <button disabled={saving} onClick={() => onChange({ shared: false })} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${!module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Только мне</button>
+            <button disabled={saving} onClick={() => onChange({ shared: true })} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Психологу</button>
+          </div>
+          <p className="t-cap px-2 pb-1 pt-2 text-center">{module.shared ? module.psychologistEnabled ? "Записи видит ваш психолог" : "Передача начнётся после подключения психолога" : "Записи остаются только у вас"}</p>
+        </div>
+      )}
     </div>
   );
 }
 
-function CompactSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
-  return <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={() => { tap(); onChange(); }} className="relative h-7 w-12 shrink-0 rounded-full disabled:opacity-50" style={{ background: checked ? "var(--edge)" : "var(--surface-2)", border: "var(--bw) solid var(--edge)" }}><span className="absolute top-[2px] h-[19px] w-[19px] rounded-full bg-white transition-transform" style={{ left: 2, transform: `translateX(${checked ? 20 : 0}px)`, border: "1px solid var(--edge)" }} /></button>;
+function ModuleBenefit({ text }: { text: string }) {
+  return <div className="flex items-center gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" /><span className="t-body">{text}</span></div>;
+}
+
+function SessionNoteEditor({ current, upcoming, saved, preparation, takeaway, rating, saving, onPreparation, onTakeaway, onRating, onSave }: {
+  current: Meeting;
+  upcoming: boolean;
+  saved: boolean;
+  preparation: string;
+  takeaway: string;
+  rating: number | null;
+  saving?: boolean;
+  onPreparation: (value: string) => void;
+  onTakeaway: (value: string) => void;
+  onRating: (value: number) => void;
+  onSave: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card p-3">
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-1 text-left" aria-expanded={open}>
+        <span className="ico h-9 w-9 shrink-0"><Icon name="note" width={17} weight="bold" /></span>
+        <div className="min-w-0 flex-1"><p className="t-head">{upcoming ? "К ближайшей встрече" : "Итог последней встречи"}</p><p className="t-cap mt-0.5 capitalize">{sessionDate.format(new Date(current.startsAt))}</p></div>
+        {saved && <span className="chip chip-strong">Сохранено</span>}
+        <span className="arrow transition-transform" style={{ transform: open ? "rotate(90deg)" : undefined }}><ArrowGlyph /></span>
+      </button>
+      <Disclosure open={open} autoScroll={false}>
+        <div className="line-top mt-3 space-y-3 pt-3">
+          <label className="block"><span className="t-cap mb-1.5 block font-bold">Что хочется обсудить</span><Textarea value={preparation} onChange={(event) => onPreparation(event.target.value)} rows={3} placeholder="Запишите важные темы или вопросы…" /></label>
+          {!upcoming && <><label className="block"><span className="t-cap mb-1.5 block font-bold">Впечатления после сессии</span><Textarea value={takeaway} onChange={(event) => onTakeaway(event.target.value)} rows={3} placeholder="Что было важным, что хочется сохранить…" /></label><Rating value={rating} onChange={onRating} /></>}
+          <button onClick={onSave} disabled={saving || (!preparation.trim() && !takeaway.trim() && !rating)} className="btn btn-accent w-full py-2">{saving ? "Сохраняем…" : "Сохранить заметку"}</button>
+        </div>
+      </Disclosure>
+    </div>
+  );
 }
 
 function Rating({ value, onChange }: { value: number | null; onChange: (value: number) => void }) {
@@ -134,13 +168,21 @@ function Rating({ value, onChange }: { value: number | null; onChange: (value: n
 }
 
 function MeetingDynamics({ meetings, reflections }: { meetings: Meeting[]; reflections: SessionReflection[] }) {
+  const [open, setOpen] = useState(false);
   const points = [...reflections].filter((item) => item.feeling).sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(-8);
   const completed = meetings.filter((meeting) => meeting.status === "done" || new Date(meeting.startsAt).getTime() < Date.now()).length;
   const latest = points.at(-1)?.feeling ?? null;
   return (
-    <div className="card p-4">
-      <div className="flex items-start justify-between gap-3"><div><p className="t-head">Динамика встреч</p><p className="t-cap mt-0.5">{completed} встреч · {points.length} оценок</p></div>{latest && <span className="chip chip-strong">Сейчас {latest}/10</span>}</div>
-      {points.length >= 2 ? <TrendChart points={points} /> : <div className="card-nested mt-3 p-3 text-center"><p className="t-cap">График появится после двух оценённых встреч.</p></div>}
+    <div className="card p-3">
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-1 text-left" aria-expanded={open}>
+        <span className="ico h-9 w-9 shrink-0"><Icon name="chart" width={17} weight="bold" /></span>
+        <div className="min-w-0 flex-1"><p className="t-head">Динамика встреч</p><p className="t-cap mt-0.5">{completed} встреч · {points.length} оценок</p></div>
+        {latest && <span className="chip chip-strong">{latest}/10</span>}
+        <span className="arrow transition-transform" style={{ transform: open ? "rotate(90deg)" : undefined }}><ArrowGlyph /></span>
+      </button>
+      <Disclosure open={open} autoScroll={false}>
+        {points.length >= 2 ? <TrendChart points={points} /> : <div className="card-nested mt-3 p-3 text-center"><p className="t-cap">График появится после двух оценённых встреч.</p></div>}
+      </Disclosure>
     </div>
   );
 }
@@ -160,17 +202,26 @@ function TrendChart({ points }: { points: SessionReflection[] }) {
 }
 
 function ReflectionHistory({ reflections, empty = "Сохранённые заметки появятся здесь." }: { reflections: SessionReflection[]; empty?: string }) {
+  const [open, setOpen] = useState(false);
   const history = [...reflections].filter((item) => item.preparation || item.takeaway || item.feeling).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
   return (
-    <div className="card p-4">
-      <div className="mb-3 flex items-center justify-between gap-3"><p className="t-head">История заметок</p><span className="chip">{history.length}</span></div>
-      {history.length === 0 ? <p className="t-cap">{empty}</p> : <div className="space-y-3">{history.map((item, index) => (
-        <article key={item.appointmentId} className={index ? "line-top pt-3" : ""}>
-          <div className="flex items-center justify-between gap-3"><p className="t-sub font-bold capitalize">{sessionDate.format(new Date(item.startsAt))} · {item.therapistName.split(" ")[0]}</p>{item.feeling && <span className="chip chip-strong">{item.feeling}/10</span>}</div>
-          {item.preparation && <div className="mt-2"><p className="t-micro">ХОТЕЛОСЬ ОБСУДИТЬ</p><p className="t-body mt-0.5 whitespace-pre-wrap">{item.preparation}</p></div>}
-          {item.takeaway && <div className="mt-2 rounded-[var(--r-sm)] bg-[var(--head-soft)] p-3"><p className="t-micro">ВПЕЧАТЛЕНИЯ ПОСЛЕ</p><p className="t-body mt-0.5 whitespace-pre-wrap">{item.takeaway}</p></div>}
-        </article>
-      ))}</div>}
+    <div className="card p-3">
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-1 text-left" aria-expanded={open}>
+        <span className="ico h-9 w-9 shrink-0"><Icon name="note" width={17} weight="bold" /></span>
+        <div className="min-w-0 flex-1"><p className="t-head">История заметок</p><p className="t-cap mt-0.5">Сохранено: {history.length}</p></div>
+        <span className="arrow transition-transform" style={{ transform: open ? "rotate(90deg)" : undefined }}><ArrowGlyph /></span>
+      </button>
+      <Disclosure open={open} autoScroll={false}>
+        <div className="line-top mt-3 pt-3">
+          {history.length === 0 ? <p className="t-cap">{empty}</p> : <div className="space-y-3">{history.map((item, index) => (
+            <article key={item.appointmentId} className={index ? "line-top pt-3" : ""}>
+              <div className="flex items-center justify-between gap-3"><p className="t-sub font-bold capitalize">{sessionDate.format(new Date(item.startsAt))} · {item.therapistName.split(" ")[0]}</p>{item.feeling && <span className="chip chip-strong">{item.feeling}/10</span>}</div>
+              {item.preparation && <div className="mt-2"><p className="t-micro">ХОТЕЛОСЬ ОБСУДИТЬ</p><p className="t-body mt-0.5 whitespace-pre-wrap">{item.preparation}</p></div>}
+              {item.takeaway && <div className="mt-2 rounded-[var(--r-sm)] bg-[var(--head-soft)] p-3"><p className="t-micro">ВПЕЧАТЛЕНИЯ ПОСЛЕ</p><p className="t-body mt-0.5 whitespace-pre-wrap">{item.takeaway}</p></div>}
+            </article>
+          ))}</div>}
+        </div>
+      </Disclosure>
     </div>
   );
 }

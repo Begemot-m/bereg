@@ -103,10 +103,43 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Обучение запускается вручную — из баннера на главной или из кабинета.
   const [tourActive, setTourActive] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardButtonTop, setKeyboardButtonTop] = useState(0);
   useEffect(() => {
     const start = () => setTourActive(true);
     window.addEventListener("bereg:tour-start", start);
     return () => window.removeEventListener("bereg:tour-start", start);
+  }, []);
+
+  useEffect(() => {
+    let blurTimer = 0;
+    const isTextField = (element: Element | null) => {
+      if (element instanceof HTMLTextAreaElement) return true;
+      if (element instanceof HTMLElement && element.isContentEditable) return true;
+      if (!(element instanceof HTMLInputElement)) return false;
+      return !["button", "checkbox", "color", "file", "hidden", "radio", "range", "reset", "submit"].includes(element.type);
+    };
+    const update = () => {
+      const open = isTextField(document.activeElement);
+      const viewport = window.visualViewport;
+      setKeyboardOpen(open);
+      setKeyboardButtonTop(Math.max(12, (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) - 42));
+      document.documentElement.toggleAttribute("data-keyboard-open", open);
+    };
+    const onFocusIn = () => { window.clearTimeout(blurTimer); update(); };
+    const onFocusOut = () => { window.clearTimeout(blurTimer); blurTimer = window.setTimeout(update, 80); };
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update);
+    return () => {
+      window.clearTimeout(blurTimer);
+      document.documentElement.removeAttribute("data-keyboard-open");
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
+    };
   }, []);
 
   // Пока идёт вход, приложение не показываем: иначе экраны успевают отправить
@@ -167,7 +200,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Мобайл: нижние табы — плашка с обводкой; вокруг неё прозрачно (без заливки-полосы) */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-4 pb-[calc(var(--safe-bottom)+12px)] @md:hidden">
+        {!keyboardOpen && <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-4 pb-[calc(var(--safe-bottom)+12px)] @md:hidden">
           <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[27px] bg-white/90 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.12)", boxShadow: "0 12px 30px -16px rgba(32,28,24,.4)" }}>
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
@@ -191,7 +224,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-        </div>
+        </div>}
+        {keyboardOpen && (
+          <button
+            type="button"
+            onPointerDown={(event) => { event.preventDefault(); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }}
+            className="btn btn-accent fixed right-3 z-50 px-3 py-1.5 text-[11px] @md:hidden"
+            style={{ top: keyboardButtonTop }}
+            aria-label="Свернуть клавиатуру"
+          >Готово</button>
+        )}
       </div>
     </div>
   );

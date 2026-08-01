@@ -173,7 +173,7 @@ export function ClientDetail() {
         </div>
 
         <div>
-          <SectionTitle>Подготовка и итоги встреч</SectionTitle>
+          <SectionTitle>Модули терапии</SectionTitle>
           {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutate(!therapy.notesModule.psychologistEnabled)} />}
         </div>
 

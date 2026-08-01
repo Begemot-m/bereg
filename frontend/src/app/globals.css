@@ -156,6 +156,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+input,
+textarea,
+[contenteditable="true"] {
+  caret-color: #000 !important;
+}
+
 button,
 a {
   min-width: 0;
