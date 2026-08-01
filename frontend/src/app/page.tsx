@@ -143,8 +143,8 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     if (!therapist) return <FindTherapistCard />;
     const psy = PSYS.find((p) => p.name === therapist);
     return (
-      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-alt flex items-center gap-3 p-4 transition-transform active:scale-[0.99]">
-        <span className="ico h-12 w-12"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
+      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-peach flex items-center gap-3 p-5 transition-transform active:scale-[0.99]">
+        <span className="ico ico-white h-12 w-12"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
           <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
@@ -155,7 +155,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy?booking=1" onClick={tap} className="card-alt group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+    <Link href="/therapy?booking=1" onClick={tap} className="card-peach group flex items-center gap-3 p-5 text-left transition-transform duration-200 active:scale-[0.99]">
       <span className="ico h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>{booking.psyName.charAt(0)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
@@ -174,8 +174,8 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
 // Компактный блок подбора терапевта.
 function FindTherapistCard() {
   return (
-    <Link href="/catalog" onClick={tap} className="card-alt flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
-      <span className="ico h-11 w-11 shrink-0">
+    <Link href="/catalog" onClick={tap} className="card-peach flex items-center gap-3 p-5 transition-transform active:scale-[0.99]">
+      <span className="ico ico-white h-11 w-11 shrink-0">
         <Icon name="compass" width={22} weight="bold" color="var(--edge)" />
       </span>
       <span className="min-w-0 flex-1">
@@ -203,13 +203,13 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
 }
 
 function FocusIcon({ icon }: { icon: IconName }) {
-  return <span className="ico h-14 w-14"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
+  return <span className="ico ico-white h-14 w-14"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
 }
 
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
   if (!appointment) {
     return (
-      <Link href="/sessions" onClick={tap} className="card-alt group flex items-center gap-3 p-4 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
+      <Link href="/sessions" onClick={tap} className="card-peach group flex items-center gap-3 p-5 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
         <FocusIcon icon="calendar" />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Ближайший шаг</span>
@@ -223,7 +223,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href="/sessions" onClick={tap} className="card-alt group relative flex items-center gap-3 overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+    <Link href="/sessions" onClick={tap} className="card-peach group relative flex items-center gap-3 overflow-hidden p-5 text-left transition-transform duration-200 active:scale-[0.99]">
       <span className="ico relative h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>
         {appointment.client.name.charAt(0)}
         {/* пульсирующая точка «скоро» */}

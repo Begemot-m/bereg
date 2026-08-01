@@ -42,7 +42,7 @@ export default function CabinetPage() {
   const psy = role === "psychologist";
 
   return (
-    <div>
+    <div className="stroke-mid">
       <PageHead title="Личный кабинет">
         <ProfileEditor
           key={role}
@@ -244,7 +244,7 @@ function EmailLink() {
         </div>
         <p className="t-body mt-3">{notice || "Перейдите по ссылке из письма, чтобы подтвердить адрес."}</p>
         <div className="mt-3 flex gap-2">
-          {account.data?.canConfirm && <button onClick={() => { tap(); verify.mutate(); }} disabled={verify.isPending} className="btn flex-1" style={{ background: "var(--head)", borderColor: "var(--head)", color: "var(--ink)" }}>Подтвердить</button>}
+          {account.data?.canConfirm && <button onClick={() => { tap(); verify.mutate(); }} disabled={verify.isPending} className="btn flex-1" style={{ background: "var(--head)", borderColor: "var(--head)", color: "#fff" }}>Подтвердить</button>}
           <button onClick={() => { tap(); setDraft(email); setEditing(true); }} className="btn btn-white flex-1">Изменить</button>
         </div>
       </Card>
@@ -268,7 +268,7 @@ function EmailLink() {
           onClick={() => { tap(); bind.mutate(draft); }}
           disabled={!ok || bind.isPending}
           className="btn shrink-0 px-3.5 py-2 text-[12px]"
-          style={{ background: "var(--head)", borderColor: "var(--head)", color: "var(--ink)" }}
+          style={{ background: "var(--head)", borderColor: "var(--head)", color: "#fff" }}
         >
           {bind.isPending ? "Отправляем…" : "Привязать"}
         </button>

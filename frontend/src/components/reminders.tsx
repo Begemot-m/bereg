@@ -22,7 +22,7 @@ export function RemindersModule() {
       <div className="flex items-start gap-3">
         <span className="ico ico-mid h-10 w-10 shrink-0"><Icon name="bell" width={19} weight="fill" color="#fff" /></span>
         <div className="min-w-0 flex-1"><p className="t-head">За 24 часа</p><p className="t-cap mt-0.5">Обязательное напоминание перед встречей, которое получит клиент</p></div>
-        <span className="chip chip-strong">Всегда</span>
+        <span className="chip" style={{ color: "var(--edge)" }}>Всегда</span>
       </div>
       <div className="line-top flex items-center gap-3 pt-3">
         <div className="min-w-0 flex-1"><p className="t-head">За 2 часа</p><p className="t-cap mt-0.5">Дополнительное напоминание для клиентов перед встречей</p></div>

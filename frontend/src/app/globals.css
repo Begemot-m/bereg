@@ -274,6 +274,17 @@ h1, h2, h3, .font-tight {
   border-radius: var(--r-block);
 }
 
+/* Фокус-блок на главной: персиковая заливка между цветной шапкой и белым листом. */
+.card-peach {
+  background: var(--peach);
+  border: 0;
+  border-radius: var(--r-block);
+}
+
+/* Раздел, где рамки берут средний тон вместо акцентного (кабинет). */
+.stroke-mid :where(.card, .chunk, .panel, .card-alt-line, .tf) { border-color: var(--head); }
+.stroke-mid :where(.line-top) { border-top-color: var(--head); }
+
 /* Нейтральный блок: та же лёгкая заливка, но серым. Когда цвет раздела
    на этом месте читался бы как статус. */
 .card-alt {

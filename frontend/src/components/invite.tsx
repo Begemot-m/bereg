@@ -134,7 +134,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
           {/* Реферальная ссылка */}
           <div>
             {variant === "client" && <p className="t-micro mb-2">Ссылка на Telegram-бота</p>}
-            <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2" style={{ border: "1px solid var(--edge)" }}>
+            <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2" style={{ border: "1px solid var(--head)" }}>
               <span className="t-cap min-w-0 flex-1 truncate">{link.replace(/^https?:\/\//, "")}</span>
               <button onClick={copy} className="btn btn-accent shrink-0 px-2.5 py-1 text-[11px]">{copied ? "Скопировано" : "Копировать"}</button>
             </div>
