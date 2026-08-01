@@ -143,7 +143,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     if (!therapist) return <FindTherapistCard />;
     const psy = PSYS.find((p) => p.name === therapist);
     return (
-      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-peach flex items-center gap-3 p-5 transition-transform active:scale-[0.99]">
+      <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
         <span className="ico ico-white h-12 w-12"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
@@ -155,7 +155,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy?booking=1" onClick={tap} className="card-peach group flex items-center gap-3 p-5 text-left transition-transform duration-200 active:scale-[0.99]">
+    <Link href="/therapy?booking=1" onClick={tap} className="card-peach group flex items-center gap-3.5 p-6 text-left transition-transform duration-200 active:scale-[0.99]">
       <span className="ico h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>{booking.psyName.charAt(0)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
@@ -174,7 +174,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
 // Компактный блок подбора терапевта.
 function FindTherapistCard() {
   return (
-    <Link href="/catalog" onClick={tap} className="card-peach flex items-center gap-3 p-5 transition-transform active:scale-[0.99]">
+    <Link href="/catalog" onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
       <span className="ico ico-white h-11 w-11 shrink-0">
         <Icon name="compass" width={22} weight="bold" color="var(--edge)" />
       </span>
@@ -190,8 +190,10 @@ function FindTherapistCard() {
 function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title: string; subtitle: string; subIcon?: IconName; icon?: IconName; focus?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus}</PageHead>
-      <div className="sheet">
+      {/* Фокус-блок наезжает на белый лист: как на референсе, он пересекает
+          границу цветной шапки и нижней области. */}
+      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[68px]">{focus}</div>}</PageHead>
+      <div className="sheet relative z-0" style={focus ? { paddingTop: 72 } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index}>{child}</StaggerItem> : null)
@@ -209,7 +211,7 @@ function FocusIcon({ icon }: { icon: IconName }) {
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
   if (!appointment) {
     return (
-      <Link href="/sessions" onClick={tap} className="card-peach group flex items-center gap-3 p-5 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
+      <Link href="/sessions" onClick={tap} className="card-peach group flex items-center gap-3.5 p-6 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
         <FocusIcon icon="calendar" />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Ближайший шаг</span>
