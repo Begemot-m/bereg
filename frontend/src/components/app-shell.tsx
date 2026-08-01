@@ -129,8 +129,22 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
     const onFocusIn = () => { window.clearTimeout(blurTimer); update(); };
     const onFocusOut = () => { window.clearTimeout(blurTimer); blurTimer = window.setTimeout(update, 80); };
+    // Как в системных приложениях iOS: клавиатура уходит по тапу вне поля
+    // и по протяжке страницы, а не только по кнопке «Готово».
+    const dismiss = () => { const active = document.activeElement; if (isTextField(active)) (active as HTMLElement).blur(); };
+    const insideField = (target: EventTarget | null) => target instanceof Element && Boolean(target.closest("input, textarea, [contenteditable=true], label, [role=switch]"));
+    const onPointerDown = (event: PointerEvent) => { if (!insideField(event.target)) dismiss(); };
+    let startY = 0;
+    const onTouchStart = (event: TouchEvent) => { startY = event.touches[0]?.clientY ?? 0; };
+    const onTouchMove = (event: TouchEvent) => {
+      if (insideField(event.target)) return;
+      if (Math.abs((event.touches[0]?.clientY ?? 0) - startY) > 24) dismiss();
+    };
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
     window.visualViewport?.addEventListener("resize", update);
     window.visualViewport?.addEventListener("scroll", update);
     return () => {
@@ -138,6 +152,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       document.documentElement.removeAttribute("data-keyboard-open");
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
       window.visualViewport?.removeEventListener("resize", update);
       window.visualViewport?.removeEventListener("scroll", update);
     };

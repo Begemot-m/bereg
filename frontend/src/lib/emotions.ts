@@ -15,6 +15,17 @@ const TONE_OF: Record<string, string> = Object.fromEntries(
 );
 
 export const emotionTone = (name: string): string => TONE_OF[name] ?? "amber";
+
+// Валентность по шкале настроения 1–5: нужна там, где эмоции красятся
+// градиентом «зелёный → красный», а не тоном семейства.
+const VALENCE_OF: Record<string, number> = Object.fromEntries(
+  EMOTION_FAMILIES.flatMap((family) => {
+    const level = family.key === "positive-high" ? 5 : family.key === "positive-low" ? 4 : family.key === "negative-low" ? 2 : 1;
+    return family.items.map((item) => [item, level]);
+  }),
+);
+
+export const emotionValence = (name: string): number => VALENCE_OF[name] ?? 3;
 export const ALL_EMOTIONS = EMOTION_FAMILIES.flatMap((family) => family.items);
 
 // Какие семьи предлагать под выбранной точкой шкалы: по валентности эмоции.

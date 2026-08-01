@@ -218,9 +218,9 @@ function EmailLink() {
 
   if (email && account.data?.verified && !editing) {
     return (
-      <Card>
+      <Card style={{ borderColor: "var(--head)" }}>
         <div className="flex items-center gap-3">
-          <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="check" width={20} weight="bold" color="#fff" /></span>
+          <span className="ico ico-mid h-11 w-11 shrink-0"><Icon name="check" width={20} weight="bold" color="#fff" /></span>
           <div className="min-w-0 flex-1">
             <p className="t-head">Подтверждено</p>
             <p className="t-cap truncate">{email}</p>
@@ -234,7 +234,7 @@ function EmailLink() {
 
   if (email && !editing) {
     return (
-      <Card>
+      <Card style={{ borderColor: "var(--head)" }}>
         <div className="flex items-center gap-3">
           <span className="ico h-11 w-11 shrink-0"><Icon name="telegram" width={20} weight="bold" color="var(--edge)" /></span>
           <div className="min-w-0 flex-1">
@@ -244,7 +244,7 @@ function EmailLink() {
         </div>
         <p className="t-body mt-3">{notice || "Перейдите по ссылке из письма, чтобы подтвердить адрес."}</p>
         <div className="mt-3 flex gap-2">
-          {account.data?.canConfirm && <button onClick={() => { tap(); verify.mutate(); }} disabled={verify.isPending} className="btn btn-accent flex-1">Подтвердить</button>}
+          {account.data?.canConfirm && <button onClick={() => { tap(); verify.mutate(); }} disabled={verify.isPending} className="btn flex-1" style={{ background: "var(--head)", borderColor: "var(--head)", color: "var(--ink)" }}>Подтвердить</button>}
           <button onClick={() => { tap(); setDraft(email); setEditing(true); }} className="btn btn-white flex-1">Изменить</button>
         </div>
       </Card>
@@ -252,7 +252,7 @@ function EmailLink() {
   }
 
   return (
-    <Card>
+    <Card style={{ borderColor: "var(--head)" }}>
       <p className="t-cap">Привяжите почту, чтобы входить не только через Telegram.</p>
       <div className="mt-2.5 flex gap-2">
         <Input
@@ -267,8 +267,8 @@ function EmailLink() {
         <button
           onClick={() => { tap(); bind.mutate(draft); }}
           disabled={!ok || bind.isPending}
-          className="btn btn-accent shrink-0 px-3.5 py-2 text-[12px]"
-          style={{ background: "var(--edge)", borderColor: "var(--edge)", color: "#fff" }}
+          className="btn shrink-0 px-3.5 py-2 text-[12px]"
+          style={{ background: "var(--head)", borderColor: "var(--head)", color: "var(--ink)" }}
         >
           {bind.isPending ? "Отправляем…" : "Привязать"}
         </button>

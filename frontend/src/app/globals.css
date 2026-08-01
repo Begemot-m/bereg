@@ -443,6 +443,8 @@ h1, h2, h3, .font-tight {
 .ico-white { background: #fff; color: var(--edge); }
 /* Обратный вариант: заливка тоном раздела, значок белый. */
 .ico-accent { background: var(--edge); color: #fff; }
+/* Средний тон раздела + белый значок — мягче, чем ico-accent. */
+.ico-mid { background: var(--head); color: #fff; }
 /* Нейтральная плитка: средний серый + акцентный значок, либо наоборот. */
 .ico-alt { background: var(--alt); color: var(--alt-edge); }
 .ico-alt-solid { background: var(--alt-edge); color: #fff; }

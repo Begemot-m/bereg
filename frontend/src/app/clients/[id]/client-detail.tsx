@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { SectionTitle } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { MoodStats } from "@/components/mood-stats";
 import { PsychologistHomeworkPreview } from "@/components/psychologist-homework";
@@ -76,6 +75,8 @@ export function ClientDetail() {
   const [note, setNote] = useState("");
   const [bookOpen, setBookOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [booked, setBooked] = useState<{ at: string; format: "online" | "offline" } | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   // Календарь записи открывается на ближайшем дне со свободным окном.
   // Считается это на сервере за 60 дней вперёд — самый дорогой запрос карточки,
   // а нужен он только после нажатия «Записать на окно». SlotPicker внутри
@@ -89,7 +90,10 @@ export function ClientDetail() {
   useEffect(() => { if (client) setNote(client.note); }, [client]);
 
   const patch = useMutation({ mutationFn: (p: Parameters<typeof updateClient>[1]) => updateClient(id, p), onSuccess: inv });
-  const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => createAppointment({ clientId: id, startsAt: iso, format }), onSuccess: () => { success(); setBookOpen(false); inv(); } });
+  const book = useMutation({
+    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => createAppointment({ clientId: id, startsAt: iso, format }),
+    onSuccess: (_, vars) => { success(); setBooked({ at: vars.iso, format: vars.format }); inv(); },
+  });
   // Упавший запрос выглядел как вечная загрузка: isLoading уже false, а client
   // так и не появился — условие ниже оставалось истинным навсегда.
   if (isError) return (
@@ -104,50 +108,83 @@ export function ClientDetail() {
   const st = STATUS_TONE[dstatus];
 
   const held = appts.filter((a) => a.status === "done").length;
+  const nextAppt = appts
+    .filter((a) => a.status === "scheduled" && new Date(a.startsAt) > new Date())
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+  // «Написать» ведёт в личный чат Telegram, если контакт — это username.
+  const tgLink = client.contact && !isPhone(client.contact)
+    ? `https://t.me/${client.contact.replace(/^@/, "")}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика».")}`
+    : null;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
       {/* Шапка клиента: цвет = фон раздела, ниже скруглённая линия */}
       <header className="bg-[var(--page)] px-4 pb-14 pt-4 @md:px-9">
         <Link href="/clients" className="back-link mb-3">Все клиенты</Link>
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-start gap-3.5">
           {/* Крупная рамка фото */}
-          <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[18px] text-[26px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }}>{client.name.charAt(0)}</div>
+          <div className="flex h-[92px] w-[92px] shrink-0 items-center justify-center rounded-[22px] text-[34px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }}>{client.name.charAt(0)}</div>
           <div className="min-w-0 flex-1">
             <h1 className="font-tight break-words text-[clamp(19px,5.6vw,22px)] font-black leading-tight">{client.name}</h1>
             {client.contact
               ? <span className="t-cap mt-1 block">{formatContact(client.contact)}</span>
               : <span className="mt-1 block text-[12px] font-semibold text-[var(--muted-2)]">Контакт не указан</span>}
-            <span
-              className="mt-1.5 inline-flex rounded-full px-2 py-1 text-[12px] font-black"
-              style={{ background: dstatus === "therapy" ? "var(--olive-soft)" : "var(--surface-2)", color: "var(--ink)" }}
-            >
-              {STATUS_LABEL[dstatus]}
-            </span>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {/* Статус клиента — серый: это состояние, а не акцент */}
+              <span className="inline-flex rounded-full px-2 py-1 text-[11.5px] font-black" style={{ background: "var(--alt-soft)", color: "var(--alt-edge)" }}>{STATUS_LABEL[dstatus]}</span>
+              {client.link === "joined" ? (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>
+                  <Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Профиль подключён
+                </span>
+              ) : (
+                <button
+                  onClick={() => { tap(); setConnectOpen((v) => !v); setBookOpen(false); }}
+                  aria-expanded={connectOpen}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-black"
+                  style={{ background: "var(--alt-soft)", color: "var(--alt-edge)" }}
+                >
+                  <Icon name={client.link === "invited" ? "clock" : "spark"} width={11} weight="bold" color="var(--alt-edge)" />
+                  {client.link === "invited" ? "Приглашение отправлено" : "Профиль не подключён"}
+                </button>
+              )}
+            </div>
+            {/* Ближайшая встреча — как в разделе «Терапия» */}
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-black" style={{ color: nextAppt ? "var(--green-edge)" : "var(--muted-2)" }}>
+              <Icon name="calendar" width={12} weight="bold" color={nextAppt ? "var(--green-edge)" : "var(--muted-2)"} />
+              {nextAppt ? `${dtf.format(new Date(nextAppt.startsAt))} · ${nextAppt.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}
+            </p>
           </div>
         </div>
-        <div className="mt-2"><ConnectionChip link={client.link} /></div>
 
         {/* Кнопки — в тонах приложения */}
         <div className="mt-4 flex gap-2">
-          <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "btn-white" : "btn-accent"}`}><Icon name="calendar" width={15} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> Записать на окно</button>
-          <button
-            onClick={() => { tap(); setConnectOpen((v) => !v); setBookOpen(false); }}
-            className={`btn flex-1 py-3 ${connectOpen ? "btn-white" : "btn-accent"}`}
-            aria-expanded={connectOpen}
-          >
-            <Icon name={client.link === "joined" ? "check" : "spark"} width={15} weight="bold" color={connectOpen ? "var(--ink)" : "#fff"} />
-            {client.link === "joined" ? "Подключён" : client.link === "invited" ? "Приглашение" : "Пригласить"}
+          <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "btn-white" : "btn-accent"}`} aria-expanded={bookOpen}>
+            <Icon name="calendar" width={15} weight="bold" color={bookOpen ? "var(--ink)" : "#fff"} /> {bookOpen ? "Свернуть" : nextAppt ? "Перезаписать" : "Записать на окно"}
           </button>
+          {tgLink ? (
+            <a href={tgLink} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn flex-1 py-3"><Icon name="telegram" width={15} weight="fill" color="#fff" /> Написать</a>
+          ) : (
+            <button onClick={() => { tap(); setConnectOpen((v) => !v); setBookOpen(false); }} className="btn flex-1 py-3"><Icon name="telegram" width={15} weight="fill" color="#fff" /> Написать</button>
+          )}
         </div>
         {/* Динамичный разворот выбора окна */}
         <AnimatePresence initial={false}>
           {bookOpen && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} className="overflow-hidden">
               <motion.div initial={{ y: -8, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={{ delay: 0.05 }} className="card-plain mt-2.5 p-3">
-                <p className="t-micro mb-2">Свободное окно из вашего расписания</p>
-                {/* Открываемся на ближайшем дне со свободным окном, как в сессиях */}
-                <SlotPicker variant="calendar" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
+                {booked ? (
+                  <div className="text-center">
+                    <p className="text-[13px] font-black">{client.name} записан</p>
+                    <p className="t-cap mt-1 capitalize">{dtf.format(new Date(booked.at))} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+                    <button onClick={() => { tap(); setBooked(null); setBookOpen(false); }} className="btn mt-2.5 px-4 py-1.5 text-[11px]">Готово</button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="t-micro mb-2">Свободное окно из вашего расписания</p>
+                    {/* Открываемся на ближайшем дне со свободным окном, как в сессиях */}
+                    <SlotPicker variant="calendar" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
+                  </>
+                )}
               </motion.div>
             </motion.div>
           )}
@@ -158,68 +195,45 @@ export function ClientDetail() {
         </Disclosure>
       </header>
 
-      <main className="-mt-8 space-y-6 rounded-t-[27px] bg-white px-4 pb-10 pt-6 @md:px-9">
-        <div>
-          <SectionTitle>Домашние задания</SectionTitle>
-          <PsychologistHomeworkPreview items={homework} href={`/clients/homework?id=${id}`} />
-        </div>
+      <main className="-mt-8 space-y-4 rounded-t-[27px] bg-white px-4 pb-10 pt-6 @md:px-9">
+        <PsychologistHomeworkPreview items={homework} href={`/clients/homework?id=${id}`} />
 
-        <div>
-          <SectionTitle>Модули терапии</SectionTitle>
-          {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutateAsync(!therapy.notesModule.psychologistEnabled)} href={`/clients/notes?id=${id}`} />}
-        </div>
+        {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutateAsync(!therapy.notesModule.psychologistEnabled)} href={`/clients/notes?id=${id}`} />}
 
         {/* Настроение и динамика — выше колеса */}
-        {moods.length > 0 && (
-          <div>
-            <SectionTitle>Настроение клиента</SectionTitle>
-            <MoodStats moods={moods} title="Настроение клиента" />
-          </div>
-        )}
+        {moods.length > 0 && <MoodStats moods={moods} title="Настроение клиента" />}
 
-        <div>
-          <SectionTitle>Колесо баланса</SectionTitle>
-          <WellbeingCard wheel={therapy?.wheel ?? null} subtitle="самооценка клиента · последние две недели" />
-        </div>
+        <WellbeingCard wheel={therapy?.wheel ?? null} subtitle="самооценка клиента · последние две недели" />
 
         {/* История встреч — факт. Запланированную по тапу переносим на другое окно */}
         <div>
-          <SectionTitle action={<span className="text-[11px] font-black text-[var(--muted)]">проведено: {held}</span>}>История встреч</SectionTitle>
-          {appts.length === 0 ? (
-            <p className="text-[13px] text-[var(--muted-2)]">Встреч пока не было. Запишите клиента в свободное окно.</p>
-          ) : (
-            <div className="space-y-2">
-              {[...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt)).map((a) => (
-                <MeetingRow key={a.id} appt={a} onReschedule={(iso, format) => updateAppointment(a.id, { startsAt: iso, format }).then(() => { success(); inv(); })} />
-              ))}
+          <button onClick={() => { tap(); setHistoryOpen((v) => !v); }} className="flex w-full items-center justify-between rounded-[16px] px-3.5 py-3 text-[13px] font-black" style={{ background: "var(--alt-soft)", color: "var(--ink)" }} aria-expanded={historyOpen}>
+            <span className="inline-flex items-center gap-2"><Icon name="calendar" width={15} weight="bold" /> История встреч</span>
+            <span className="inline-flex items-center gap-2 text-[11px] font-black text-[var(--muted)]">проведено: {held} <span>{historyOpen ? "↑" : "→"}</span></span>
+          </button>
+          <Disclosure open={historyOpen}>
+            <div className="mt-2">
+              {appts.length === 0 ? (
+                <p className="text-[13px] text-[var(--muted-2)]">Встреч пока не было. Запишите клиента в свободное окно.</p>
+              ) : (
+                <div className="space-y-2">
+                  {[...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt)).map((a) => (
+                    <MeetingRow key={a.id} appt={a} onReschedule={(iso, format) => updateAppointment(a.id, { startsAt: iso, format }).then(() => { success(); inv(); })} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </Disclosure>
         </div>
 
         {/* Заметки */}
         <div>
-          <SectionTitle action={<button onClick={() => { tap(); patch.mutate({ note }); }} className="btn btn-accent px-3 py-1 text-[11px]">{patch.isSuccess ? "Сохранено" : "Сохранить"}</button>}>Заметки</SectionTitle>
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={5} placeholder="Приватные заметки о работе…" />
+          <button onClick={() => { tap(); patch.mutate({ note }); }} className="btn btn-accent mt-2 w-full py-2.5">{patch.isSuccess ? "Сохранено" : "Сохранить"}</button>
         </div>
 
       </main>
     </div>
-  );
-}
-
-// Чип состояния подключения клиента к своему профилю.
-function ConnectionChip({ link }: { link: Client["link"] }) {
-  const map = {
-    joined: { tone: "green", icon: "check" as const, label: "Профиль подключён" },
-    invited: { tone: "amber", icon: "clock" as const, label: "Приглашение отправлено" },
-    none: { tone: "neutral", icon: "spark" as const, label: "Не подключён" },
-  }[link];
-  const isNeutral = map.tone === "neutral";
-  return (
-    /* Без заливки: состояние подключения — подпись, а не акцент */
-    <span className="inline-flex items-center gap-1 text-[10px] font-black" style={{ color: isNeutral ? "var(--muted)" : `var(--${map.tone}-edge)` }}>
-      <Icon name={map.icon} width={11} weight="bold" color={isNeutral ? "var(--muted)" : `var(--${map.tone}-edge)`} /> {map.label}
-    </span>
   );
 }
 

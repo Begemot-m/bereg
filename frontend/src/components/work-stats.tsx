@@ -92,7 +92,7 @@ export function WorkStats({ items, title = "Статистика работы" }
             <span className="text-[10px] font-black tabular-nums" style={{ color: b.value ? "var(--ink)" : "var(--muted-2)" }}>{b.value}</span>
             <motion.span
               className="w-full rounded-t-[8px]"
-              style={{ background: b.today ? "var(--edge)" : "var(--head-soft)" }}
+              style={{ background: "var(--head-soft)" }}
               initial={{ height: 4 }}
               animate={{ height: 8 + (b.value / max) * 84 }}
               transition={{ type: "spring", stiffness: 200, damping: 20, delay: i * 0.05 }}

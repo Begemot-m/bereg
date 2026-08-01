@@ -5,7 +5,8 @@ import { ArrowGlyph } from "@/components/blocks";
 import { useMemo, useState } from "react";
 
 import { moodColor } from "@/components/mood-egg";
-import { emotionTone } from "@/lib/emotions";
+import { Disclosure } from "@/components/ui";
+import { emotionValence } from "@/lib/emotions";
 import { select } from "@/lib/haptics";
 import { MOOD_LABEL } from "@/lib/mascots";
 import type { Mood } from "@/lib/clients";
@@ -23,6 +24,7 @@ const dayKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() +
 export function MoodStats({ moods, title = "Настроение", compact }: { moods: Mood[]; title?: string; compact?: boolean }) {
   const [range, setRange] = useState<7 | 30>(compact ? 7 : 30);
   const [month, setMonth] = useState(() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; });
+  const [calendar, setCalendar] = useState(false);
 
   const byDay = useMemo(() => {
     const map = new Map<string, Mood>();
@@ -56,8 +58,8 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
   }, [moods]);
 
   return (
-    <div className="space-y-2.5">
-      <div className="rounded-[18px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+    <div className="overflow-hidden rounded-[18px] bg-white" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+      <div className="p-3.5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{title}</p>
@@ -77,25 +79,33 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
         <MoodLine series={series} />
       </div>
 
-      <div className="rounded-[18px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
-        <div className="mb-2.5 flex items-center justify-between">
-          <button onClick={() => { select(); setMonth(shiftMonth(month, -1)); }} className="arrow" aria-label="Предыдущий месяц"><ArrowGlyph style={{ transform: "rotate(180deg)" }} /></button>
-          <p className="t-cap">{monthLabel(month)}</p>
-          <button onClick={() => { select(); setMonth(shiftMonth(month, 1)); }} className="arrow" aria-label="Следующий месяц"><ArrowGlyph /></button>
-        </div>
-        <MoodCalendar month={month} byDay={byDay} />
-      </div>
-
       {top.length > 0 && (
-        <div className="rounded-[18px] bg-white p-3.5" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
+        <div className="line-top p-3.5">
           <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Частые эмоции</p>
           <div className="flex flex-wrap gap-1.5">
             {top.map(([name, count]) => (
-              <span key={name} className="chip" style={{ background: `var(--${emotionTone(name)}-soft)` }}>{name} · {count}</span>
+              <span key={name} className="chip" style={{ background: `${moodColor(emotionValence(name))}`, color: "var(--ink)" }}>{name} · {count}</span>
             ))}
           </div>
         </div>
       )}
+
+      <div className="line-top p-3.5">
+        <button onClick={() => { select(); setCalendar(!calendar); }} className="flex w-full items-center justify-between rounded-full bg-[var(--surface-2)] px-3 py-2 text-[11px] font-black" aria-expanded={calendar}>
+          <span>{calendar ? "Свернуть календарь" : "Статистика в календаре"}</span>
+          <span>{calendar ? "↑" : "→"}</span>
+        </button>
+        <Disclosure open={calendar}>
+          <div className="mt-2.5">
+            <div className="mb-2.5 flex items-center justify-between">
+              <button onClick={() => { select(); setMonth(shiftMonth(month, -1)); }} className="arrow" aria-label="Предыдущий месяц"><ArrowGlyph style={{ transform: "rotate(180deg)" }} /></button>
+              <p className="t-cap">{monthLabel(month)}</p>
+              <button onClick={() => { select(); setMonth(shiftMonth(month, 1)); }} className="arrow" aria-label="Следующий месяц"><ArrowGlyph /></button>
+            </div>
+            <MoodCalendar month={month} byDay={byDay} />
+          </div>
+        </Disclosure>
+      </div>
     </div>
   );
 }

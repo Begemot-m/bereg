@@ -141,15 +141,15 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
       <main className="relative -mt-9 rounded-t-[27px] px-4 pb-8 pt-5 @md:px-9" style={{ background: "var(--surface)" }}>
         <SessionCheckin bookings={bookings} />
         <div className="space-y-3">
-          <ClientSessionJourney meetings={bookings} reflections={therapy.reflections} module={therapy.notesModule} saving={reflectionSaving} onSave={onReflection} onModuleChange={onNotesModule} />
-
-          {/* Настроение → работа со специалистом → доска → динамика → записи. */}
+          {/* Настроение дня → задания → заметки → доска → колесо. */}
           <section className="overflow-hidden rounded-[20px]" style={{ background: todayEntry?.mood ? `${moodColor(todayEntry.mood)}2e` : "var(--head-soft)" }} data-tour="mood-stats">
             <MoodHomeCard embedded mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />
             <MoodStatsBlock moods={therapy.moods} />
           </section>
 
           <WorkWithSpecialist homework={homework} />
+
+          <ClientSessionJourney meetings={bookings} reflections={therapy.reflections} module={therapy.notesModule} saving={reflectionSaving} onSave={onReflection} onModuleChange={onNotesModule} />
 
           <TherapistBoard value={therapy.board} onSave={onBoard} />
 
