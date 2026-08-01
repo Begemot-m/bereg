@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -20,6 +21,7 @@ import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { Disclosure } from "@/components/ui";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
+import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { loadTherapists } from "@/lib/therapists";
 import { startTour, tourSeen } from "@/components/room-tour";
@@ -144,7 +146,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     const psy = PSYS.find((p) => p.name === therapist);
     return (
       <Link href={psy ? `/catalog?psy=${psy.id}` : "/catalog"} onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-        <span className="ico ico-white h-12 w-12"><Icon name="calendar" width={22} weight="bold" color="var(--edge)" /></span>
+        <span className="ico ico-white h-[76px] w-[76px] shrink-0"><Icon name="calendar" width={30} weight="bold" color="var(--edge)" /></span>
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
           <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
@@ -156,7 +158,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   const date = new Date(booking.startsAt);
   return (
     <Link href="/therapy?booking=1" onClick={tap} className="card-peach group flex items-center gap-3.5 p-6 text-left transition-transform duration-200 active:scale-[0.99]">
-      <span className="ico h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>{booking.psyName.charAt(0)}</span>
+      <PsyAvatar name={booking.psyName} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
@@ -171,12 +173,24 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   );
 }
 
+// Фото терапевта в блоке ближайшей сессии — крупное, из карточки каталога.
+function PsyAvatar({ name }: { name: string }) {
+  const psy = PSYS.find((item) => item.name === name);
+  const portrait = psy ? asset(psy.portrait) : null;
+  if (!portrait) return <span className="ico ico-white h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--edge)" }}>{name.charAt(0)}</span>;
+  return (
+    <span className="relative block h-[76px] w-[76px] shrink-0 overflow-hidden rounded-[18px] bg-white">
+      <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="76px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
+    </span>
+  );
+}
+
 // Компактный блок подбора терапевта.
 function FindTherapistCard() {
   return (
     <Link href="/catalog" onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-      <span className="ico ico-white h-11 w-11 shrink-0">
-        <Icon name="compass" width={22} weight="bold" color="var(--edge)" />
+      <span className="ico ico-white h-[76px] w-[76px] shrink-0">
+        <Icon name="compass" width={30} weight="bold" color="var(--edge)" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="t-head block">Подобрать терапевта</span>
@@ -205,7 +219,7 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
 }
 
 function FocusIcon({ icon }: { icon: IconName }) {
-  return <span className="ico ico-white h-14 w-14"><Icon name={icon} width={24} weight="bold" color="var(--edge)" /></span>;
+  return <span className="ico ico-white h-[76px] w-[76px] shrink-0"><Icon name={icon} width={30} weight="bold" color="var(--edge)" /></span>;
 }
 
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
@@ -225,8 +239,8 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href="/sessions" onClick={tap} className="card-peach group relative flex items-center gap-3 overflow-hidden p-5 text-left transition-transform duration-200 active:scale-[0.99]">
-      <span className="ico relative h-14 w-14 text-[21px] font-black" style={{ color: "var(--edge)" }}>
+    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-peach group relative flex items-center gap-3.5 overflow-hidden p-6 text-left transition-transform duration-200 active:scale-[0.99]">
+      <span className="ico ico-white relative h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--edge)" }}>
         {appointment.client.name.charAt(0)}
         {/* пульсирующая точка «скоро» */}
         <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--edge)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
