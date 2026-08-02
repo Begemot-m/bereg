@@ -94,7 +94,7 @@ function ClientsList() {
       setFirst(""); setLast(""); setOpen(false);
       qc.invalidateQueries({ queryKey: ["clients"] });
       if (inviteAfter) {
-        const text = `${name}, приглашаю вас в «Методика» — там мы будем видеть настроение между встречами и задания к сессии.`;
+        const text = `${name}, приглашаю вас в «Хронику» — там мы будем видеть настроение между встречами и задания к сессии.`;
         window.open(`https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent(text)}`, "_blank", "noopener");
       }
       router.push(`/clients/?id=${c.id}`);

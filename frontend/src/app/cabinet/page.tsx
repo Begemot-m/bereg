@@ -119,7 +119,7 @@ export default function CabinetPage() {
           <Card className="flex items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}><Icon name="therapy" width={22} weight="bold" /></span>
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-black">Методика</p>
+              <p className="text-[14px] font-black">Хроника</p>
               <p className="text-[11.5px] font-semibold text-[var(--muted)]">Платформа центра «Амур и Психея».</p>
               <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Сборка от {buildLabel()}</p>
             </div>

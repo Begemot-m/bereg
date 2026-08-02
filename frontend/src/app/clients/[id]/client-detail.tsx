@@ -123,7 +123,7 @@ export function ClientDetail() {
   const held = appts.filter((a) => a.status === "done").length;
   // «Написать» ведёт в личный чат Telegram, если контакт — это username.
   const tgLink = client.contact && !isPhone(client.contact)
-    ? `https://t.me/${client.contact.replace(/^@/, "")}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика».")}`
+    ? `https://t.me/${client.contact.replace(/^@/, "")}?text=${encodeURIComponent("Здравствуйте! Пишу из «Хроники».")}`
     : null;
 
   return (
@@ -254,7 +254,7 @@ function ClientConnect({ client, onChanged }: { client: Client; onChanged: () =>
   const [contact, setContact] = useState(client.contact ?? "");
   const [copied, setCopied] = useState(false);
   const link = inviteLink(client.id);
-  const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Веду вас в «Методика» — подключите свой профиль, чтобы видеть записи, задания и практики:")}`;
+  const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Веду вас в «Хронику» — подключите свой профиль, чтобы видеть записи, задания и практики:")}`;
 
   const invite = useMutation({ mutationFn: () => inviteClient(client.id, contact.trim()), onSuccess: () => { success(); onChanged(); } });
   const saveContact = useMutation({ mutationFn: () => updateClient(client.id, { contact: contact.trim() }), onSuccess: () => { tap(); onChanged(); } });

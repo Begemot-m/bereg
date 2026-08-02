@@ -23,7 +23,7 @@ export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: {
   ];
   return (
     <div>
-      <p className="t-micro" style={{ color: "var(--edge)" }}>Методика PRO</p>
+      <p className="t-micro" style={{ color: "var(--edge)" }}>Хроника PRO</p>
       <h2 className="t-title mt-1">Больше клиентов —<br /><span className="text-[var(--purple-edge)]">без лимитов</span></h2>
 
       <div className="card-soft mt-3 flex items-start gap-3 p-3.5" style={{ background: "var(--purple-soft)" }}>
@@ -72,7 +72,7 @@ export function ProPaywall({ open, onClose, reason, cta = "Подключить 
           <button className="absolute inset-0 bg-[rgba(32,28,24,.5)]" onClick={onClose} aria-label="Закрыть" />
           <motion.section role="dialog" aria-modal="true" initial={{ y: 28, opacity: 0.7 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 30 }} className="relative flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-[28px] bg-[var(--surface)] @md:rounded-[28px]">
             <div className="flex items-center justify-between px-4 pb-2 pt-4">
-              <span className="chip chip-strong">Методика PRO</span>
+              <span className="chip chip-strong">Хроника PRO</span>
               <button onClick={onClose} className="ico h-8 w-8 keep-style" style={{ background: "var(--surface-2)" }} aria-label="Закрыть"><span className="text-[15px] font-black">×</span></button>
             </div>
             <div className="overflow-y-auto px-4 pb-2">

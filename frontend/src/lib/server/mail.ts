@@ -45,7 +45,7 @@ export async function sendMail({ to, subject, text }: Letter): Promise<void> {
   }
 
   await t.sendMail({
-    from: process.env.SMTP_FROM ?? `Методика <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `Хроника <${process.env.SMTP_USER}>`,
     to,
     subject,
     text,
@@ -57,7 +57,7 @@ export function otpLetter(code: string): { subject: string; text: string } {
   return {
     subject: `Код входа: ${code}`,
     text: [
-      `Ваш код для входа в «Методику»: ${code}`,
+      `Ваш код для входа в «Хронику»: ${code}`,
       "",
       "Код действует 10 минут и подходит только для одного входа.",
       "Если вы его не запрашивали — просто удалите это письмо, в аккаунт никто не вошёл.",
@@ -67,9 +67,9 @@ export function otpLetter(code: string): { subject: string; text: string } {
 
 export function emailConfirmationLetter(link: string): { subject: string; text: string } {
   return {
-    subject: "Подтвердите почту в «Методике»",
+    subject: "Подтвердите почту в «Хронике»",
     text: [
-      "Подтвердите адрес почты, чтобы входить в «Методику» с планшета или компьютера:",
+      "Подтвердите адрес почты, чтобы входить в «Хронику» с планшета или компьютера:",
       "",
       link,
       "",

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Политика обработки персональных данных — Методика" };
+export const metadata: Metadata = { title: "Политика обработки персональных данных — Хроника" };
 
 const VERSION = process.env.POLICY_VERSION ?? "2026-07-01";
 
@@ -20,7 +20,7 @@ export default function PolicyPage() {
       </header>
 
       <Section title="Кто обрабатывает данные">
-        Оператор — самозанятый Горбачёв М. М., сервис «Методика» (murpsy.ru).
+        Оператор — самозанятый Горбачёв М. М., сервис «Хроника» (murpsy.ru).
         Связаться: через раздел «Отдел заботы» в приложении.
       </Section>
 

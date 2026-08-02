@@ -36,8 +36,8 @@ bot.command("start", async (ctx) => {
     });
   }
   await ctx.reply(
-    "Методика подключена. Здесь будут приходить изменения по записям и ваши напоминания о встречах.",
-    { reply_markup: new InlineKeyboard().webApp("Открыть Методику", appLink("/")) },
+    "Хроника подключена. Здесь будут приходить изменения по записям и ваши напоминания о встречах.",
+    { reply_markup: new InlineKeyboard().webApp("Открыть Хронику", appLink("/")) },
   );
 });
 

@@ -15,9 +15,9 @@ const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
-  { id: "tools", name: "Методика PRO", tag: "безлимит + размещение", best: true, perks: ["Клиенты без лимита (бесплатно — 3, со всем функционалом)", "Размещение в каталоге специалистов — честная выдача", "Комиссии за запись нет", "Весь функционал по клиенту доступен и бесплатно"] },
+  { id: "tools", name: "Хроника PRO", tag: "безлимит + размещение", best: true, perks: ["Клиенты без лимита (бесплатно — 3, со всем функционалом)", "Размещение в каталоге специалистов — честная выдача", "Комиссии за запись нет", "Весь функционал по клиенту доступен и бесплатно"] },
 ];
-const CLIENT_PLAN: Plan = { id: "client", name: "Методика+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
+const CLIENT_PLAN: Plan = { id: "client", name: "Хроника+", tag: "для себя", best: true, perks: ["Колесо баланса и шкала WHO-5", "Дневник эмоций и мыслей", "Дыхательные практики и медитации", "Прогресс виден вам и терапевту"] };
 
 const BFrame = ({ children }: { children: ReactNode }) => (
   <div className="flex min-h-[136px] flex-col justify-center gap-2 rounded-[14px] p-3" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>{children}</div>
@@ -140,7 +140,7 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
   const [demo, setDemo] = useState(false);
   const psy = variant === "psy";
   const rows = psy ? COMPARE : COMPARE_CLIENT;
-  const title = psy ? "Методика PRO" : "Методика+";
+  const title = psy ? "Хроника PRO" : "Хроника+";
   const price = psy ? PLAN_PRICE.tools : PLAN_PRICE.client;
   const pitch = psy
     ? "Статистика, сводка недели и шаблоны — то, что экономит время на каждой сессии."
@@ -192,7 +192,7 @@ export function SubscriptionBanner({ variant = "psy" }: { variant?: "psy" | "cli
       </div>
       {demo && (
         <HelpDeck
-          title={psy ? "Возможности Методика PRO" : "Возможности Методика+"}
+          title={psy ? "Возможности Хроника PRO" : "Возможности Хроника+"}
           pages={psy ? PRO_BENEFITS : CLIENT_BENEFITS}
           onClose={() => setDemo(false)}
           doneLabel="Понятно"
@@ -228,7 +228,7 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
         {pending ? (
           <p className="py-2 text-center text-[13px] font-bold text-[var(--muted)]">Ждём подтверждение платежа…</p>
         ) : clientActive ? (
-          <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Методика+ активен — все инструменты открыты.</p>
+          <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Хроника+ активен — все инструменты открыты.</p>
         ) : (
           <>
             {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} />)}
@@ -268,7 +268,7 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
         {pending ? (
           <p className="py-2 text-center text-[13px] font-bold text-[var(--muted)]">Ждём подтверждение платежа…</p>
         ) : clientActive ? (
-          <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Методика+ активен — все инструменты открыты.</p>
+          <p className="py-2 text-center text-[13px] font-bold text-[var(--good)]">Хроника+ активен — все инструменты открыты.</p>
         ) : (
           <>
             {variant === "psy" && !activeTools && <div className="space-y-1.5"><p className="px-1 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Что входит</p><FreeVsPro /></div>}
@@ -278,7 +278,7 @@ export function SubscriptionBlock({ variant = "psy", compact = false }: { varian
         )}
       </div>
 
-      {benefits && <HelpDeck title={variant === "client" ? "Возможности Методика+" : "Возможности Методика PRO"} pages={variant === "client" ? CLIENT_BENEFITS : PRO_BENEFITS} onClose={() => setBenefits(false)} doneLabel="Выбрать тариф" onDone={() => setBenefits(false)} />}
+      {benefits && <HelpDeck title={variant === "client" ? "Возможности Хроника+" : "Возможности Хроника PRO"} pages={variant === "client" ? CLIENT_BENEFITS : PRO_BENEFITS} onClose={() => setBenefits(false)} doneLabel="Выбрать тариф" onDone={() => setBenefits(false)} />}
     </section>
   );
 }
@@ -294,7 +294,7 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     };
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
-  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Методика PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
+  if (sub.status === "active" && sub.tools) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Хроника PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
   return {
     badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>990 ₽/мес</span>,
     title: "Бесплатный тариф",
@@ -304,7 +304,7 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
 }
 
 function clientHero(sub: Subscription): { badge: ReactNode; title: string; subtitle: string; progress: ReactNode } {
-  if (sub.clientPro) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активен</span>, title: "Методика+ подключён", subtitle: "Все инструменты для себя открыты. Спасибо, что заботитесь о себе!", progress: null };
+  if (sub.clientPro) return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активен</span>, title: "Хроника+ подключён", subtitle: "Все инструменты для себя открыты. Спасибо, что заботитесь о себе!", progress: null };
   return {
     badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>390 ₽/мес</span>,
     title: "Инструменты для себя",

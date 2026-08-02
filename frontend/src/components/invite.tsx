@@ -17,8 +17,8 @@ const PERKS: Record<Variant, { need: number; reward: string }[]> = {
     { need: 5, reward: "Значок «Амбассадор» в профиле" },
   ],
   client: [
-    { need: 1, reward: "Неделя «Методика+» в подарок" },
-    { need: 3, reward: "Месяц «Методика+» бесплатно" },
+    { need: 1, reward: "Неделя «Хроника+» в подарок" },
+    { need: 3, reward: "Месяц «Хроника+» бесплатно" },
     { need: 5, reward: "Персональный набор практик" },
   ],
 };
@@ -26,13 +26,13 @@ const PERKS: Record<Variant, { need: number; reward: string }[]> = {
 const COPY: Record<Variant, { title: string; sub: string; share: string }> = {
   psy: {
     title: "Приглашайте — получайте плюшки",
-    sub: "Зовите клиентов и коллег в «Методика». За каждого приглашённого — приятные бонусы.",
-    share: "Веду практику в «Методика» — удобные инструменты и забота о клиентах между сессиями. Присоединяйтесь:",
+    sub: "Зовите клиентов и коллег в «Хронику». За каждого приглашённого — приятные бонусы.",
+    share: "Веду практику в «Хронике» — удобные инструменты и забота о клиентах между сессиями. Присоединяйтесь:",
   },
   client: {
     title: "Подарите другу заботу о себе",
     sub: "",
-    share: "Забочусь о себе в «Методика»: настроение, практики, колесо баланса. Попробуй и ты:",
+    share: "Забочусь о себе в «Хронике»: настроение, практики, колесо баланса. Попробуй и ты:",
   },
 };
 
@@ -72,7 +72,7 @@ export function InviteBanner({ variant }: { variant: Variant }) {
           <motion.span className="ico ico-white h-14 w-14 shrink-0" animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="users" width={26} weight="fill" color="var(--olive-edge)" /></motion.span>
           <div className="min-w-0 flex-1">
             <p className="t-micro">Приведите {psy ? "коллегу" : "друга"}</p>
-            <p className="t-title mt-0.5">{psy ? "Позовите коллег в «Методику»" : "Подарите другу заботу о себе"}</p>
+            <p className="t-title mt-0.5">{psy ? "Позовите коллег в «Хронику»" : "Подарите другу заботу о себе"}</p>
             {psy && <p className="t-sub mt-1">Коллеге — месяц PRO, вам — бонус</p>}
           </div>
         </div>

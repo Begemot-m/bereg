@@ -189,7 +189,7 @@ function seed(): DB {
     overrides: {},
     support: [],
     notifications: [
-      { id: 90, forRole: "psychologist", kind: "system", text: "Добро пожаловать в «Методика». Здесь появляются отмены и переносы сессий.", createdAt: iso(-1, 9, 0), read: false },
+      { id: 90, forRole: "psychologist", kind: "system", text: "Добро пожаловать в «Хронику». Здесь появляются отмены и переносы сессий.", createdAt: iso(-1, 9, 0), read: false },
       { id: 91, forRole: "client", kind: "system", text: "Добро пожаловать. Здесь будут напоминания и изменения по вашим сессиям.", createdAt: iso(-1, 9, 0), read: false },
     ],
     accountEmail: null,
@@ -266,7 +266,7 @@ export function exportLocalData(): string {
       try { dump[k] = JSON.parse(raw); } catch { dump[k] = raw; }
     }
   }
-  return JSON.stringify({ app: "Методика", exportedAt: new Date().toISOString(), data: dump }, null, 2);
+  return JSON.stringify({ app: "Хроника", exportedAt: new Date().toISOString(), data: dump }, null, 2);
 }
 
 // Сброс демо-данных к исходному состоянию (клиенты, записи, настроение и т.д.).

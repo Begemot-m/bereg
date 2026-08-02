@@ -262,7 +262,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
           <Icon name="calendar" width={14} weight="bold" color="#fff" /> {bookOpen ? "Свернуть" : mine.length ? "Моя запись" : "Записаться"}
         </button>
         {psy?.tg && (
-          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Методика» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn px-4 py-2.5">
+          <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Хроники» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn px-4 py-2.5">
             <Icon name="telegram" width={15} weight="fill" color="#fff" /> Написать
           </a>
         )}
