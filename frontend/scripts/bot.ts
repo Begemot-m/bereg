@@ -7,7 +7,7 @@ import { Bot, InlineKeyboard } from "grammy";
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) throw new Error("TELEGRAM_BOT_TOKEN not set");
 
-const APP_URL = process.env.APP_URL ?? "https://metodica-psy.ru";
+const APP_URL = process.env.APP_URL ?? "https://chronika.space";
 const TIME_ZONE = process.env.APP_TIME_ZONE ?? "Europe/Moscow";
 const TICK_MS = 30_000;
 

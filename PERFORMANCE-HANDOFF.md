@@ -144,8 +144,8 @@
 - Последние продакшен-коммиты:
   - `50320c4` — убран BOM из первой Prisma-миграции;
   - `f65278d` — исправлен первый Docker-деплой.
-- Production: `https://metodica-psy.ru`.
-- Health: `https://metodica-psy.ru/api/health`.
+- Production: `https://chronika.space`.
+- Health: `https://chronika.space/api/health`.
 - Текущий Docker-образ: `ghcr.io/begemot-m/bereg:sha-50320c4`.
 - VPS Beget: `213.139.208.92`, приватный IP `10.16.0.2`, Ubuntu 24.04,
   Docker, 2 vCPU / 4 ГБ.
@@ -317,7 +317,7 @@ endpoint для всего приложения.
 - статический demo export не должен сломаться;
 - production build;
 - повторные измерения тех же маршрутов;
-- после деплоя `https://metodica-psy.ru/api/health`.
+- после деплоя `https://chronika.space/api/health`.
 
 ## Рекомендуемый порядок реализации
 

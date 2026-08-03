@@ -4,15 +4,17 @@
 здесь только порядок действий.
 
 > **Актуальное состояние на 30 июля 2026 (важнее старого плана ниже):**
-> - production запущен на `https://metodica-psy.ru`;
-> - DNS `metodica-psy.ru` и `test.metodica-psy.ru` направлен на
->   `213.139.208.92`;
+> - production запущен на `https://chronika.space` (с 3 августа 2026; прежний
+>   домен `metodica-psy.ru` отключён по решению пользователя, редиректа нет);
+> - DNS `chronika.space` и `test.chronika.space` направлен на
+>   `213.139.208.92`; `test.` пока ничем не обслуживается — он зарезервирован
+>   под staging из шага 2;
 > - VPS Beget: Ubuntu 24.04 + Docker, 2 vCPU / 4 ГБ;
 > - PostgreSQL Beget работает отдельно от VPS по приватной сети
 >   `10.16.0.1:5432`, база `default_db`;
 > - приложение работает на образе
 >   `ghcr.io/begemot-m/bereg:sha-50320c4`;
-> - `https://metodica-psy.ru/api/health` отвечает `ok`, база отвечает `ok`;
+> - `https://chronika.space/api/health` отвечает `ok`, база отвечает `ok`;
 > - S3 пропущен по решению пользователя. `backup.sh` переведён на шифрованный
 >   дамп на диск сервера, поэтому `deploy.sh` работает целиком. Копия рядом с
 >   продом спасает от неудачной миграции, но не от потери сервера — за это
@@ -190,9 +192,9 @@
 Отмечай по мере прохождения.
 
 ### Шаг 1. Домен и бот
-- [x] Домен `metodica-psy.ru`
+- [x] Домен `chronika.space` (старый `metodica-psy.ru` отключён)
 - [x] Бот `@murpsybot`
-- [x] Направить A-записи на IP сервера: `metodica-psy.ru` и `test.metodica-psy.ru`
+- [x] Направить A-записи на IP сервера: `chronika.space` и `test.chronika.space`
 - [ ] Перевыпустить токен бота (`/revoke` у @BotFather), положить только в `.env`
 
 ### Шаг 2. Сервер и база
@@ -206,7 +208,7 @@
 - [x] Заполнить `.env` по `deploy/.env.example` (секреты — из шага 1–2)
 - [x] Передать домен в Caddy через `.env`
 - [x] Запустить `ghcr.io/begemot-m/bereg:sha-50320c4`
-- [x] Проверить: `https://metodica-psy.ru/api/health` отвечает
+- [x] Проверить: `https://chronika.space/api/health` отвечает
 
 ### Шаг 4. Автовыкатка
 - [ ] Добавить в GitHub секреты: `SSH_HOST`, `SSH_USER`, `SSH_KEY`
