@@ -164,7 +164,7 @@ function PsySessions() {
       <PageHead
         title="Сессии"
         icon="calendar"
-        sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : "Что впереди") : "Неделя целиком"}
+        sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : "Управление расписанием и встречами") : "Неделя целиком"}
         right={
           <button onClick={() => { tap(); setHelp(true); }} className="btn h-9 shrink-0 px-3.5 text-[11.5px]">
             <Icon name="question" width={14} weight="bold" color="#fff" /> Как это работает?
@@ -434,6 +434,8 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription, enabled: open });
   const atCap = !isPro(sub) && clients.length >= FREE_CLIENT_LIMIT;
   const [client, setClient] = useState<{ id: number; name: string } | null>(null);
+  // «+ новый клиент» из шапки открывает ту же форму, что и пункт внутри списка.
+  const [addingClient, setAddingClient] = useState(false);
   const book = useMutation({
     mutationFn: ({ iso, format }: { iso: string; format: ApptFormat }) => createAppointment({ clientId: client!.id, startsAt: iso, format }),
     onSuccess: () => { success(); setClient(null); onClose(); for (const k of ["appointments", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); },
@@ -446,7 +448,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
 
   useEffect(() => {
-    if (!open) { setClient(null); return; }
+    if (!open) { setClient(null); setAddingClient(false); return; }
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
@@ -462,12 +464,13 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
               <p className="text-[13px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
               <div className="flex items-center gap-3">
                 {client && <button onClick={() => setClient(null)} className="text-[11px] font-black text-[var(--muted)]">← другой</button>}
+                {!client && !atCap && <button onClick={() => { tap(); setAddingClient(true); }} className="inline-flex items-center gap-1 text-[11px] font-black text-[var(--olive-edge)]"><Icon name="plus" width={12} weight="bold" color="var(--olive-edge)" /> новый клиент</button>}
                 <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full stroke" aria-label="Закрыть">×</button>
               </div>
             </div>
             <div className="overflow-y-auto p-4">
               {!client ? (
-                <ClientPicker clients={sorted} compact={false} onCreateClient={atCap ? undefined : (name, contact) => create.mutate({ name, contact })} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+                <ClientPicker key={addingClient ? "add" : "pick"} startAdding={addingClient} clients={sorted} compact={false} onCreateClient={atCap ? undefined : (name, contact) => create.mutate({ name, contact })} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
               ) : (
                 <div>
                   <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">

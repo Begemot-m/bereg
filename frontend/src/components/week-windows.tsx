@@ -397,9 +397,11 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       <div className="flex items-center gap-1.5">
         <p className="t-micro mr-auto">Кого записать?</p>
         <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
-        <button onClick={() => closeWin.mutate()} className="btn shrink-0 px-2.5 py-1 text-[11px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Удалить окно</button>
       </div>
       <ClientChips onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
+      {/* Удаление — текстом внизу: разрушающее действие не должно спорить по
+          весу с основным сценарием «кого записать». */}
+      <button onClick={() => closeWin.mutate()} className="pt-0.5 text-[12px] font-black" style={{ color: "var(--danger)" }}>Удалить окно</button>
     </div>
   );
 }

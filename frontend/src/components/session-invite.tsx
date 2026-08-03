@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
-import { asset } from "@/lib/asset";
+import { PROD_URL } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { success, tap } from "@/lib/haptics";
 import { useProfile } from "@/lib/profile";
@@ -17,8 +17,7 @@ const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-dig
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function appUrl(): string {
-  if (typeof window === "undefined") return "https://begemot-m.github.io/bereg/";
-  return window.location.origin + asset("/");
+  return PROD_URL;
 }
 
 /** Ссылка-приглашение на запись: открывает анкету специалиста сразу с окнами. */
@@ -37,12 +36,8 @@ export function SessionInviteButton() {
         className="card-soft mb-4 flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]"
       >
         <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="telegram" width={21} weight="fill" color="var(--edge)" /></span>
-        <span className="min-w-0 flex-1">
-          <span className="t-micro block">Свободные окна</span>
-          <span className="t-head mt-0.5 block leading-tight">Позвать клиента на сессию</span>
-          <span className="t-cap mt-0.5 block">Пришлём ссылку — он выберет время сам</span>
-        </span>
-        <span className="btn shrink-0 px-3 py-2 text-[12px]">Позвать <ArrowGlyph /></span>
+        <span className="t-head min-w-0 flex-1 leading-tight">Направить приглашение на сессию</span>
+        <span className="btn shrink-0 px-3 py-2 text-[12px]">Отправить <ArrowGlyph /></span>
       </button>
       <AnimatePresence>{open && <SessionInviteSheet onClose={() => setOpen(false)} />}</AnimatePresence>
     </>
@@ -75,7 +70,7 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
   // Текст, который человек прочитает в мессенджере. Без давления и канцелярита.
   const message = [
     name ? `Здравствуйте! Это ${name.split(" ")[0]}.` : "Здравствуйте!",
-    dayLabel && times ? `Есть свободные окна: ${dayLabel} — ${times}.` : "У меня открылись свободные окна для записи.",
+    dayLabel && times ? `Ближайшие свободные окна: ${dayLabel} — ${times}.` : "У меня открылись свободные окна для записи.",
     "Выбрать удобное время и записаться можно здесь:",
   ].join(" ");
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`;

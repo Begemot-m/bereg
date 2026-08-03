@@ -16,8 +16,9 @@ import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, ty
 import { select, success, tap } from "@/lib/haptics";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
+import { PROD_URL } from "@/lib/brand";
 
-const APP_URL = "https://begemot-m.github.io/bereg/";
+const APP_URL = PROD_URL;
 
 // Анонс модулей закрывается насовсем: показывать его на каждом заходе — шум.
 const MODULES_TEASER_KEY = "bereg_modules_teaser_hidden";

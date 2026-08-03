@@ -47,7 +47,9 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
             >
               {d.getDate()}
             </span>
-            <span className="flex h-1.5 items-center justify-center">{marked?.has(key) && <span className="h-1.5 w-1.5 rounded-full" style={{ background: active ? "var(--ink)" : "var(--edge)" }} />}</span>
+            {/* Точка и обводка — в цвет кружка выделенного дня: раньше на
+                активном дне точка чернела и спорила с ним. */}
+            <span className="flex h-1.5 items-center justify-center">{marked?.has(key) && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge)" }} />}</span>
           </button>
         );
       })}

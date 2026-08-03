@@ -185,9 +185,9 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
 
 // Выбор клиента с быстрым поиском; недавние в терапии — сверху.
 // onCreateClient — если задан, показываем «+ Новый клиент» рядом с поиском.
-export function ClientPicker({ clients, onPick, compact = true, onCreateClient }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean; onCreateClient?: (name: string, contact: string) => void }) {
+export function ClientPicker({ clients, onPick, compact = true, onCreateClient, startAdding = false }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean; onCreateClient?: (name: string, contact: string) => void; startAdding?: boolean }) {
   const [q, setQ] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
   const [newName, setNewName] = useState("");
   const [newContact, setNewContact] = useState("");
   const query = q.trim().toLowerCase();

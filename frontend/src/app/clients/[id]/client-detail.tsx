@@ -28,7 +28,7 @@ import {
   type Mood,
 } from "@/lib/clients";
 import { createAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
-import { asset } from "@/lib/asset";
+import { PROD_URL } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { getClientTherapy, setClientNotesModule } from "@/lib/therapy";
@@ -38,8 +38,7 @@ const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purp
 
 // Ссылка-приглашение клиента подключить свой профиль.
 function inviteLink(id: number): string {
-  const base = typeof window === "undefined" ? "https://begemot-m.github.io/bereg/" : window.location.origin + asset("/");
-  return `${base}?invite=${id}`;
+  return `${PROD_URL}?invite=${id}`;
 }
 
 export function ClientDetail() {
@@ -338,8 +337,14 @@ function MeetingRow({ appt, onReschedule }: { appt: Meeting; onReschedule: (iso:
       <button onClick={() => planned && (tap(), setOpen(!open))} className="flex w-full items-center gap-3 p-3 text-left" disabled={!planned}>
         <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: `var(--${t})` }} />
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-black capitalize">{dtf.format(new Date(appt.startsAt))}</p>
-          <p className="text-[11px] font-semibold text-[var(--muted)]">{appt.durationMin} мин · {appt.status === "scheduled" ? "запланирована" : appt.status === "done" ? "проведена" : "отменена"} · {appt.format === "online" ? "онлайн" : "очно"}</p>
+          <p className="flex items-center gap-1.5 text-[13px] font-black capitalize">
+            <Icon name="calendar" width={13} weight="bold" color="var(--muted)" />
+            {dtf.format(new Date(appt.startsAt))}
+          </p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--muted)]">
+            <Icon name="clock" width={12} weight="bold" color="var(--muted)" />
+            {appt.durationMin} мин · {appt.status === "scheduled" ? "запланирована" : appt.status === "done" ? "проведена" : "отменена"} · {appt.format === "online" ? "онлайн" : "очно"}
+          </p>
         </div>
         {planned && <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: "var(--olive-edge)", border: "var(--bw) solid var(--olive-edge)", color: "#fff" }}>{open ? "Свернуть" : "Перенести"}</span>}
       </button>
