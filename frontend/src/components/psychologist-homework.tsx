@@ -11,7 +11,9 @@ import { deleteHomework, HW_LABEL, sendHomework, updateHomework, type Homework, 
 import { success, tap } from "@/lib/haptics";
 
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const HW_TONE: Record<HwStatus, string> = { assigned: "amber", doing: "purple", done: "green" };
+// Раздел заданий целиком в лавандовом тоне: статус различается словом на
+// плашке, а не цветом — иначе список пестрит тремя цветами разом.
+const HW_TONE: Record<HwStatus, string> = { assigned: "purple", doing: "purple", done: "purple" };
 
 export function PsychologistHomeworkPreview({ items, href }: { items: Homework[]; href: string }) {
   const active = items.find((item) => item.status !== "done");

@@ -250,7 +250,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
       <span className="ico ico-white relative h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--edge)" }}>
         {appointment.client.name.charAt(0)}
         {/* пульсирующая точка «скоро» */}
-        <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--edge)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
+        <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
       </span>
       <span className="relative min-w-0 flex-1">
         <span className="flex items-center gap-2">
@@ -258,7 +258,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
           {badge && <span className="chip chip-strong uppercase">{badge}</span>}
         </span>
         <span className="t-title mt-1 block truncate">{appointment.client.name}</span>
-        <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
+        <span className="t-sub flex min-w-0 items-center gap-1.5" style={{ color: "var(--ink)" }}><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
       </span>
       <Arrow />
     </Link>
@@ -315,13 +315,13 @@ function TourBanner({ role }: { role: Role }) {
     ? "Пошагово покажем, как вести клиентов, записи и практику"
     : "Короткий гид по разделам — за минуту";
   return (
-    <button onClick={() => { tap(); startTour(); }} className="card-soft relative w-full overflow-hidden p-4 text-left transition-transform active:scale-[0.99]">
+    <button onClick={() => { tap(); startTour(); }} className="relative w-full overflow-hidden p-4 text-left transition-transform active:scale-[0.99]">
       <div className="relative flex items-center gap-3.5">
         <motion.span
           animate={{ scale: [1, 1.12, 1] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none text-white"
-          style={{ background: "var(--edge)" }}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none"
+          style={{ background: "var(--purple)", color: "var(--amber)" }}
         >!</motion.span>
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Обучение</span>

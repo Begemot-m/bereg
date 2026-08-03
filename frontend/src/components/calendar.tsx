@@ -65,11 +65,11 @@ export function MonthCalendar({
           const isSel = multi ? multi.has(y) : selected === y;
           const a: Avail | undefined = avail?.[y];
 
-          // День с записью показывается занятым: штриховка + точка. Свободные
-          // окна на нём остаются кликабельными — занятость это метка, а не
-          // запрет.
+          // Две разные метки: точка — есть запись, штриховка — день занят
+          // целиком и записи в нём нет. Пересекаться они не должны, иначе
+          // непонятно, о чём именно говорит штриховка.
           const booked = has.has(y);
-          const busy = booked || (avail ? a === "full" : false);
+          const busy = !booked && (avail ? a === "full" : false);
           const free = avail ? a === "free" : false;
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
 
@@ -95,10 +95,8 @@ export function MonthCalendar({
         })}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
-        {avail && <span className="flex items-center gap-1.5"><span className="keep-style h-3.5 w-3.5 rounded-full" style={{ border: "var(--bw) solid var(--edge)" }} /> свободно</span>}
-        <span className="flex items-center gap-1.5"><span className="keep-style day-busy h-3.5 w-3.5 rounded-full" /> занято</span>
         {appts.length > 0 && <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge)" }} /> есть записи</span>}
-        <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-full" style={{ background: "var(--ink)" }} /> выбран</span>
+        <span className="flex items-center gap-1.5"><span className="keep-style day-busy h-3.5 w-3.5 rounded-full" /> день занят целиком</span>
       </div>
     </div>
   );

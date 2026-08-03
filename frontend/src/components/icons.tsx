@@ -31,6 +31,8 @@ import {
   PaperPlaneTilt,
   LockSimple,
   MapPinLine,
+  X,
+  Chalkboard,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -68,7 +70,9 @@ export type IconName =
   | "question"
   | "telegram"
   | "lock"
-  | "route";
+  | "route"
+  | "close"
+  | "chalkboard";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -106,6 +110,8 @@ const MAP: Record<IconName, PhIcon> = {
   telegram: PaperPlaneTilt,
   lock: LockSimple,
   route: MapPinLine,
+  close: X,
+  chalkboard: Chalkboard,
 };
 
 export function Icon({

@@ -159,8 +159,8 @@ export function ClientDetail() {
               )}
             </div>
             {/* Ближайшая встреча — как в разделе «Терапия» */}
-            <p className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-black" style={{ color: nextAppt ? "var(--green-edge)" : "var(--muted-2)" }}>
-              <Icon name="calendar" width={12} weight="bold" color={nextAppt ? "var(--green-edge)" : "var(--muted-2)"} />
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-black" style={{ color: nextAppt ? "var(--ink)" : "var(--muted-2)" }}>
+              <Icon name="calendar" width={12} weight="bold" color={nextAppt ? "var(--ink)" : "var(--muted-2)"} />
               {nextAppt ? `Ближайшая запись ${dtf.format(new Date(nextAppt.startsAt))} · ${nextAppt.format === "online" ? "онлайн" : "очно"}` : "встреча пока не назначена"}
             </p>
           </div>
@@ -226,11 +226,7 @@ export function ClientDetail() {
               {appts.length === 0 ? (
                 <p className="text-[13px] text-[var(--muted-2)]">Встреч пока не было. Запишите клиента в свободное окно.</p>
               ) : (
-                <div className="space-y-2">
-                  {[...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt)).map((a) => (
-                    <MeetingRow key={a.id} appt={a} onReschedule={(iso, format) => updateAppointment(a.id, { startsAt: iso, format }).then(() => { success(); inv(); })} />
-                  ))}
-                </div>
+                <MeetingHistory appts={appts} onReschedule={(id, iso, format) => updateAppointment(id, { startsAt: iso, format }).then(() => { success(); inv(); })} />
               )}
             </div>
           </Disclosure>
@@ -304,8 +300,36 @@ function ClientConnect({ client, onChanged }: { client: Client; onChanged: () =>
   );
 }
 
+// История встреч постранично: за год работы их набираются десятки, единым
+// полотном список перестаёт читаться.
+const HISTORY_PAGE = 5;
+
+type Meeting = { id: number; startsAt: string; durationMin: number; status: string; format: "online" | "offline" };
+
+function MeetingHistory({ appts, onReschedule }: { appts: Meeting[]; onReschedule: (id: number, iso: string, format: "online" | "offline") => void }) {
+  const [page, setPage] = useState(0);
+  const sorted = [...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+  const pages = Math.max(1, Math.ceil(sorted.length / HISTORY_PAGE));
+  const current = Math.min(page, pages - 1);
+  const slice = sorted.slice(current * HISTORY_PAGE, current * HISTORY_PAGE + HISTORY_PAGE);
+  return (
+    <div className="space-y-2">
+      {slice.map((a) => (
+        <MeetingRow key={a.id} appt={a} onReschedule={(iso, format) => onReschedule(a.id, iso, format)} />
+      ))}
+      {pages > 1 && (
+        <div className="flex items-center justify-between pt-1">
+          <button onClick={() => { tap(); setPage(current - 1); }} disabled={current === 0} className="rounded-full px-3 py-1.5 text-[12px] font-black disabled:opacity-35" style={{ background: "var(--alt-soft)", color: "var(--ink)" }}>Назад</button>
+          <span className="text-[11px] font-black text-[var(--muted)]">{current + 1} / {pages}</span>
+          <button onClick={() => { tap(); setPage(current + 1); }} disabled={current >= pages - 1} className="rounded-full px-3 py-1.5 text-[12px] font-black disabled:opacity-35" style={{ background: "var(--alt-soft)", color: "var(--ink)" }}>Дальше</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Встреча в истории: факт. Запланированную по тапу разворачиваем в перенос.
-function MeetingRow({ appt, onReschedule }: { appt: { id: number; startsAt: string; durationMin: number; status: string; format: "online" | "offline" }; onReschedule: (iso: string, format: "online" | "offline") => void }) {
+function MeetingRow({ appt, onReschedule }: { appt: Meeting; onReschedule: (iso: string, format: "online" | "offline") => void }) {
   const [open, setOpen] = useState(false);
   const t = appt.status === "done" ? "green" : appt.status === "scheduled" ? "purple" : "salmon";
   const planned = appt.status === "scheduled";
@@ -317,7 +341,7 @@ function MeetingRow({ appt, onReschedule }: { appt: { id: number; startsAt: stri
           <p className="text-[13px] font-black capitalize">{dtf.format(new Date(appt.startsAt))}</p>
           <p className="text-[11px] font-semibold text-[var(--muted)]">{appt.durationMin} мин · {appt.status === "scheduled" ? "запланирована" : appt.status === "done" ? "проведена" : "отменена"} · {appt.format === "online" ? "онлайн" : "очно"}</p>
         </div>
-        {planned && <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)", color: "var(--olive-edge)" }}>{open ? "Свернуть" : "Перенести"}</span>}
+        {planned && <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: "var(--olive-edge)", border: "var(--bw) solid var(--olive-edge)", color: "#fff" }}>{open ? "Свернуть" : "Перенести"}</span>}
       </button>
       <AnimatePresence initial={false}>
         {open && planned && (

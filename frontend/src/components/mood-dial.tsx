@@ -244,7 +244,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
                       onClick={() => toggle(name)}
                       aria-pressed={on}
                       className="rounded-full px-3 py-1.5 text-[11.5px] font-black transition-[background-color,color,border-color] duration-150 active:scale-95"
-                      style={{ background: on ? fill : "#fff", border: `var(--bw) solid ${on ? ink : "var(--edge-neutral)"}`, color: on ? ink : "var(--muted)" }}
+                      style={{ background: on ? fill : "#fff", border: `var(--bw) solid ${on ? ink : "var(--edge-neutral)"}`, color: on ? "#fff" : "var(--muted)" }}
                     >
                       {name}
                     </button>

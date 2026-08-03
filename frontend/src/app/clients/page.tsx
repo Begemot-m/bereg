@@ -19,6 +19,9 @@ import { ProPaywall } from "@/components/pro-sell";
 
 const APP_URL = "https://begemot-m.github.io/bereg/";
 
+// Анонс модулей закрывается насовсем: показывать его на каждом заходе — шум.
+const MODULES_TEASER_KEY = "bereg_modules_teaser_hidden";
+
 const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
   { key: "all", label: "Все" },
   { key: "therapy", label: "В терапии" },
@@ -110,7 +113,7 @@ function ClientsList() {
 
   return (
     <div>
-      <PageHead title="Клиенты" sub={`${clients.length} всего`} icon="users" />
+      <PageHead title="Клиенты" sub={`Всего: ${clients.length}`} icon="users" />
 
       <div className="sheet">
       <Reveal delay={0.04}>
@@ -285,17 +288,22 @@ function ClientCard({ client: c }: { client: Client }) {
 // обещать нечего, пока модулей нет. Задача блока — застолбить направление.
 function ModulesTeaser() {
   const kinds = ["КПТ", "Схема-терапия", "Детская", "Семейная", "Травма"];
+  const [hidden, setHidden] = useState(() => typeof window !== "undefined" && localStorage.getItem(MODULES_TEASER_KEY) === "1");
+  if (hidden) return null;
+  const close = () => { tap(); localStorage.setItem(MODULES_TEASER_KEY, "1"); setHidden(true); };
   return (
     <section className="relative mb-4 overflow-hidden rounded-[20px] p-4" style={{ background: "var(--head)" }}>
-      <motion.span
-        aria-hidden
-        className="absolute -right-8 -top-10 h-28 w-28 rounded-full"
-        style={{ background: "rgba(255,255,255,.28)" }}
-        animate={{ y: [0, 9, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      />
+      <button onClick={close} aria-label="Скрыть анонс модулей" className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90" style={{ background: "rgba(255,255,255,.3)" }}>
+        <Icon name="close" width={14} weight="bold" color="#fff" />
+      </button>
       <div className="relative flex items-start gap-3">
-        <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="tools" width={21} weight="bold" color="var(--edge)" /></span>
+        <motion.span
+          className="ico ico-white h-11 w-11 shrink-0"
+          animate={{ rotate: [0, -12, 12, 0], scale: [1, 1.08, 1] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.2 }}
+        >
+          <Icon name="tools" width={21} weight="bold" color="var(--edge)" />
+        </motion.span>
         <div className="min-w-0 flex-1">
           <span className="chip chip-strong uppercase">Скоро</span>
           <h2 className="font-tight mt-1.5 text-[18px] font-black leading-tight">Модули для усиленной работы с клиентом</h2>
