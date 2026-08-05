@@ -19,7 +19,7 @@ import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch } from "@/lib/api";
-import { DEMO_OWNER, setDemoUsername, useMe } from "@/lib/me";
+import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
@@ -121,6 +121,9 @@ export default function CabinetPage() {
           <CareModule />
         </div>
 
+        {/* Роль психолога — только для тех, кто выбрал клиента в онбординге */}
+        <PsyRoleRequest />
+
         {/* О приложении */}
         <div>
           <SectionTitle>О приложении</SectionTitle>
@@ -170,41 +173,14 @@ function DeleteAccountRow() {
   );
 }
 
-// Вход в админку. Обычный пользователь этого блока не видит и по прямой
-// ссылке ничего не получит: роуты админки отвечают 403.
+// Вход в админку. Виден только владельцу платформы: обычный пользователь
+// блока не видит и по прямой ссылке ничего не получит — роуты админки
+// отвечают 403. В демо владелец входит ссылкой `?admin=1`.
 function AdminEntry() {
   const me = useMe();
-  const qc = useQueryClient();
-  const [name, setName] = useState("");
   const owner = me.data?.isAdmin && me.data.username?.replace(/^@/, "").toLowerCase() === DEMO_OWNER;
 
-  // В демо сервера нет, и права проверять некому: пускаем по тому же признаку,
-  // что и в проде, — по нику владельца. Поле видно всем, но чужой ник ничего
-  // не открывает, так что прототип остаётся прототипом.
-  if (!owner) {
-    if (!DEMO) return null;
-    return (
-      <div>
-        <SectionTitle>Платформа</SectionTitle>
-        <Card>
-          <p className="t-cap">Демо-вход: чей кабинет открыть</p>
-          <div className="mt-2 flex gap-2">
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="ник"
-            />
-            <button
-              onClick={() => { tap(); setDemoUsername(name); qc.invalidateQueries({ queryKey: ["me"] }); }}
-              className="btn btn-accent shrink-0 px-4"
-            >
-              Войти
-            </button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  if (!owner) return null;
 
   return (
     <div>
@@ -323,44 +299,65 @@ function EmailLink() {
   );
 }
 
-// Правило одно: есть заявка — есть тумблер, есть подтверждение — есть клиенты.
-// Тумблер видят те, у кого учётная запись психолога, кто выбрал эту роль в
-// онбординге и кто подал заявку из клиентского кабинета. Остальным показываем
-// саму заявку — внутренним экраном: внешняя ссылка в Telegram рвёт сеанс, и
-// человек оттуда уже не возвращается.
-function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
+// Роль выбирают в онбординге. Кто выбрал клиента, тумблера не видит вовсе —
+// психологом становятся через заявку внизу кабинета, а не одним щелчком.
+function useCanSwitchRole() {
   const me = useMe();
   const verification = useVerification();
   const [intent, setIntent] = useState<Role | null>(null);
-  const [sheet, setSheet] = useState(false);
   useEffect(() => setIntent(getRoleIntent()), []);
 
   const status = verification.data?.status ?? "none";
   const isPsy = me.data?.role === "psychologist";
-  const canSwitch = isPsy || intent === "psychologist" || status !== "none";
+  return {
+    ready: !me.isLoading,
+    loaded: Boolean(me.data),
+    canSwitch: isPsy || intent === "psychologist" || status !== "none",
+    status,
+    rejectReason: verification.data?.rejectReason ?? null,
+  };
+}
+
+function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
+  const { ready, loaded, canSwitch, status, rejectReason } = useCanSwitchRole();
+  const [sheet, setSheet] = useState(false);
 
   useEffect(() => {
-    if (me.data && !canSwitch && role === "psychologist") onSwitch("client");
-  }, [me.data, canSwitch, role]);
+    if (loaded && !canSwitch && role === "psychologist") onSwitch("client");
+  }, [loaded, canSwitch, role]);
 
-  if (me.isLoading) return null;
+  if (!ready || !canSwitch) return null;
 
   return (
     <>
-      {canSwitch ? (
-        <>
-          <RoleSwitch role={role} onSwitch={onSwitch} />
-          {role === "psychologist" && <VerificationBanner status={status} reason={verification.data?.rejectReason ?? null} onOpen={() => setSheet(true)} />}
-        </>
-      ) : (
-        <button onClick={() => { tap(); setSheet(true); }} className="flex w-full items-center gap-2.5 rounded-[17px] p-3 text-left stroke" style={{ background: "rgba(255,255,255,.5)" }}>
-          <span className="ico h-9 w-9 shrink-0"><Icon name="therapy" width={17} weight="bold" color="var(--edge)" /></span>
-          <span className="t-sub min-w-0 flex-1 font-bold leading-tight">Запросить доступ к кабинету психолога</span>
-          <Arrow />
-        </button>
-      )}
+      <RoleSwitch role={role} onSwitch={onSwitch} />
+      {role === "psychologist" && <VerificationBanner status={status} reason={rejectReason} onOpen={() => setSheet(true)} />}
       <VerificationSheet open={sheet} onClose={() => setSheet(false)} />
     </>
+  );
+}
+
+// Заявка на роль психолога — в самом низу кабинета. Внутренним экраном:
+// внешняя ссылка в Telegram рвёт сеанс, и человек оттуда уже не возвращается.
+function PsyRoleRequest() {
+  const { ready, canSwitch } = useCanSwitchRole();
+  const [sheet, setSheet] = useState(false);
+
+  if (!ready || canSwitch) return null;
+
+  return (
+    <div>
+      <SectionTitle>Работаете психологом?</SectionTitle>
+      <button onClick={() => { tap(); setSheet(true); }} className="card flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]">
+        <span className="ico ico-mid h-11 w-11 shrink-0"><Icon name="therapy" width={20} weight="bold" color="#fff" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="t-head block leading-tight">Получить роль психолога</span>
+          <span className="t-cap mt-0.5 block">Заявка на проверку диплома и доступ к кабинету специалиста</span>
+        </span>
+        <Arrow />
+      </button>
+      <VerificationSheet open={sheet} onClose={() => setSheet(false)} />
+    </div>
   );
 }
 
