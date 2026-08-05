@@ -1,46 +1,28 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Input, SkeletonRow } from "@/components/ui";
-import { apiFetch } from "@/lib/api";
+import {
+  useAdminStats, useAdminUsers, useUserAction,
+  useReviewVerification, useVerificationQueue,
+  type PsyApplication,
+} from "@/lib/admin";
 import { tap } from "@/lib/haptics";
-
-type Stats = {
-  users: { total: number; newWeek: number; psychologists: number; blocked: number; activeWeek: number };
-  subscriptions: { paid: number; granted: number; pending: number };
-  usage: { clients: number; appointments: number; appointmentsMonth: number };
-  support: { open: number };
-};
-
-type Row = {
-  id: number; name: string; username: string | null; email: string | null;
-  role: string; isAdmin: boolean; blocked: boolean; deleted: boolean;
-  createdAt: string; pro: boolean; proUntil: string | null; proGranted: boolean;
-  clients: number; appointments: number;
-};
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "2-digit" });
 
 export default function AdminPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
-  const qc = useQueryClient();
 
-  const stats = useQuery({ queryKey: ["admin-stats"], queryFn: () => apiFetch<Stats>("/admin/stats") });
-  const users = useQuery({
-    queryKey: ["admin-users", q, page],
-    queryFn: () => apiFetch<{ items: Row[]; total: number; pages: number }>(`/admin/users?q=${encodeURIComponent(q)}&page=${page}`),
-  });
-
-  const act = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: unknown }) =>
-      apiFetch(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-users"] }); qc.invalidateQueries({ queryKey: ["admin-stats"] }); },
-  });
+  const stats = useAdminStats();
+  const users = useAdminUsers(q, page);
+  const act = useUserAction();
+  const verification = useVerificationQueue();
+  const review = useReviewVerification();
 
   // 403 приходит всем, кто не админ: страницу просто не показываем.
   if (users.isError || stats.isError) {
@@ -52,6 +34,51 @@ export default function AdminPage() {
       <PageHead title="Админка" sub="Платформа целиком" icon="gear" />
 
       <div className="sheet space-y-6">
+        {/* Верификация — первое, что должен видеть владелец: пока анкета висит,
+            психолог не в каталоге и не может брать клиентов. */}
+        <section>
+          <p className="t-micro mb-2">
+            Анкеты на проверке
+            {(verification.data?.queue.length ?? 0) > 0 && (
+              <span className="chip chip-strong ml-1.5">{verification.data?.queue.length}</span>
+            )}
+          </p>
+
+          {verification.isLoading && <SkeletonRow />}
+          {verification.data?.queue.length === 0 && (
+            <p className="t-cap">Разобрано. Новые заявки появятся здесь.</p>
+          )}
+
+          <div className="space-y-2">
+            {verification.data?.queue.map((a) => (
+              <Application
+                key={a.userId}
+                a={a}
+                busy={review.isPending}
+                onApprove={() => { tap(); review.mutate({ userId: a.userId }); }}
+                onReject={() => {
+                  const reason = prompt(`Что переделать ${a.name}? Причина уйдёт ему в уведомление.`)?.trim();
+                  if (reason && reason.length >= 5) review.mutate({ userId: a.userId, reason });
+                }}
+              />
+            ))}
+          </div>
+
+          {(verification.data?.recent.length ?? 0) > 0 && (
+            <details className="mt-2">
+              <summary className="t-cap cursor-pointer">Недавно рассмотренные</summary>
+              <div className="mt-2 space-y-1">
+                {verification.data?.recent.map((a) => (
+                  <p key={a.userId} className="t-cap">
+                    {a.name} — {a.status === "approved" ? "подтверждён" : `отказ: ${a.rejectReason ?? "без причины"}`}
+                    {a.reviewedAt && ` · ${dateF.format(new Date(a.reviewedAt))}`}
+                  </p>
+                ))}
+              </div>
+            </details>
+          )}
+        </section>
+
         {/* Сводка */}
         {stats.isLoading ? <SkeletonRow /> : stats.data && (
           <section>
@@ -60,6 +87,13 @@ export default function AdminPage() {
               <Tile value={stats.data.users.total} label="всего" />
               <Tile value={stats.data.users.activeWeek} label="активны за неделю" />
               <Tile value={stats.data.users.newWeek} label="новых за неделю" />
+            </div>
+
+            <p className="t-micro mb-2 mt-4">Каталог</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Tile value={stats.data.users.psychologists} label="психологов" />
+              <Tile value={stats.data.verification.approved} label="подтверждено" />
+              <Tile value={stats.data.verification.review} label="на проверке" />
             </div>
 
             <p className="t-micro mb-2 mt-4">Подписки</p>
@@ -153,6 +187,43 @@ export default function AdminPage() {
           <Icon name="lock" width={12} weight="bold" className="mr-1 inline" />
           Права администратора выдаются только в базе. Каждое действие здесь пишется в аудит.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function Application({ a, busy, onApprove, onReject }: {
+  a: PsyApplication;
+  busy: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  return (
+    <div className="card p-3">
+      <p className="t-head truncate">{a.name}</p>
+      <p className="t-cap mt-0.5 truncate">
+        {a.username ? `@${a.username}` : "без ника"} · {a.email ?? "без почты"}
+        {a.submittedAt && ` · подал ${dateF.format(new Date(a.submittedAt))}`}
+      </p>
+      <p className="t-cap mt-0.5">
+        {a.method || "метод не указан"} · опыт {a.experienceYears} лет · {a.sessionPrice} ₽
+        {a.city && ` · ${a.city}`}
+      </p>
+      {a.education && <p className="t-body mt-1.5">{a.education}</p>}
+      {a.about && <p className="t-cap mt-1">{a.about}</p>}
+      {a.publicLink && (
+        <a href={a.publicLink} target="_blank" rel="noreferrer" className="t-cap mt-1 block underline">
+          {a.publicLink}
+        </a>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <button disabled={busy} onClick={onApprove} className="btn btn-accent px-3 py-1.5 text-[11px] disabled:opacity-40">
+          Одобрить
+        </button>
+        <button disabled={busy} onClick={() => { tap(); onReject(); }} className="btn btn-white px-3 py-1.5 text-[11px] disabled:opacity-40">
+          На доработку
+        </button>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       users, newWeek, psychologists, blocked,
       subsActive, subsGranted, subsPending,
       clients, appts, apptsMonth,
-      support,
+      support, review, approved,
     ] = await Promise.all([
       prisma.user.count({ where: { deletedAt: null } }),
       prisma.user.count({ where: { deletedAt: null, createdAt: { gte: weekAgo } } }),
@@ -36,6 +36,8 @@ export async function GET(req: NextRequest) {
       prisma.appointment.count({ where: { status: { not: "cancelled" } } }),
       prisma.appointment.count({ where: { status: { not: "cancelled" }, startsAt: { gte: monthAgo } } }),
       prisma.supportRequest.count({ where: { handledAt: null } }),
+      prisma.psyProfile.count({ where: { status: "review" } }),
+      prisma.psyProfile.count({ where: { status: "approved" } }),
     ]);
 
     // Активные — те, кто за неделю хоть что-то делал. Считаем по живым
@@ -51,6 +53,7 @@ export async function GET(req: NextRequest) {
       subscriptions: { paid: subsActive, granted: subsGranted, pending: subsPending },
       usage: { clients, appointments: appts, appointmentsMonth: apptsMonth },
       support: { open: support },
+      verification: { review, approved },
     });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
