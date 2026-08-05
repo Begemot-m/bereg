@@ -119,7 +119,8 @@ type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
 function look(s: Slot): Look {
   // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
-  if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", label: s.appt.client.name, labelColor: "var(--ink)" };
+  // Занятое окно тоже в рамке — плитки дня выглядят одной сеткой.
+  if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", ring: "var(--edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
   // Свободное окно отмечено тонкой рамкой: сюда можно записать клиента.
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
 }
@@ -378,15 +379,25 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
     return (
       <div className="space-y-2.5">
         {/* Имя сверху, действия — строкой под ним */}
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
-          <span className="min-w-0 break-words text-[13px] font-black leading-tight">{slot.appt.client.name}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-[17px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
+          <span className="min-w-0 break-words text-[16px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
-        <div className="flex gap-1.5">
-          <button onClick={() => setResch(true)} className="btn btn-accent px-3 py-1 text-[11px]">Перенести</button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button onClick={() => setResch(true)} className="btn btn-accent px-3 py-0.5 text-[11px]" style={THIN_BTN}>Перенести</button>
+          {/* Написать — прямо в личный чат Telegram, если контакт это username. */}
+          {tgLink ? (
+            <a href={tgLink} target="_blank" rel="noreferrer" className="btn px-3 py-0.5 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
+              <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
+            </a>
+          ) : (
+            <Link href={`/clients/${slot.appt.client.id}`} className="btn px-3 py-0.5 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
+              <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
+            </Link>
+          )}
           {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-          {!slot.past && <button onClick={() => cancel.mutate()} className="btn px-3 py-1 text-[11px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Освободить</button>}
+          {!slot.past && <button onClick={() => cancel.mutate()} className="btn px-3 py-0.5 text-[11px]" style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Освободить</button>}
         </div>
       </div>
     );

@@ -96,7 +96,7 @@ export function MonthCalendar({
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
         {appts.length > 0 && <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge)" }} /> есть записи</span>}
-        <span className="flex items-center gap-1.5"><span className="keep-style day-busy h-3.5 w-3.5 rounded-full" /> день занят целиком</span>
+        <span className="flex items-center gap-1.5"><span className="keep-style day-busy h-3.5 w-3.5 rounded-full" /> день с записями</span>
       </div>
     </div>
   );

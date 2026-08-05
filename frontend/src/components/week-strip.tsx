@@ -40,16 +40,16 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
             className="keep-ring flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-full py-1.5"
             style={{
               scrollSnapAlign: "center",
-              // Капсула выбранного дня повторяет его кружок: та же заливка и
-              // та же обводка, иначе в шапке спорят два разных выделения.
-              background: active ? "var(--head)" : "transparent",
-              border: active ? "var(--bw) solid var(--edge)" : isToday ? "var(--bw) dashed color-mix(in srgb, var(--edge) 55%, transparent)" : "var(--bw) solid transparent",
+              // Выбранный день без заливки капсулы: остаётся только кружок с
+              // цифрой, а обводка повторяет его цвет.
+              background: "transparent",
+              border: active ? "var(--bw) solid var(--head)" : isToday ? "var(--bw) dashed color-mix(in srgb, var(--edge) 55%, transparent)" : "var(--bw) solid transparent",
             }}
           >
             <span className="text-[10px] font-bold uppercase" style={{ color: "rgba(32,28,24,.55)" }}>{WEEKDAYS[wd]}</span>
             <span
               className="flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-extrabold"
-              style={active ? { background: "transparent", color: "var(--ink)" } : isToday ? { background: "color-mix(in srgb, var(--head) 45%, transparent)", color: "var(--ink)" } : { color: "var(--ink)" }}
+              style={active ? { background: "var(--head)", color: "var(--ink)" } : isToday ? { background: "color-mix(in srgb, var(--head) 45%, transparent)", color: "var(--ink)" } : { color: "var(--ink)" }}
             >
               {d.getDate()}
             </span>
