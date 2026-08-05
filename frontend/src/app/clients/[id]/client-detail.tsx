@@ -27,6 +27,7 @@ import {
   type ClientStatus,
   type Mood,
 } from "@/lib/clients";
+import { plural } from "@/lib/daily";
 import { createAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
 import { PROD_URL } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
@@ -76,6 +77,7 @@ export function ClientDetail() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [booked, setBooked] = useState<{ at: string; format: "online" | "offline" } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [stateOpen, setStateOpen] = useState(false);
   // Календарь записи открывается на ближайшем дне со свободным окном.
   // Считается это на сервере за 60 дней вперёд — самый дорогой запрос карточки,
   // а нужен он только после нажатия «Записать на окно». SlotPicker внутри
