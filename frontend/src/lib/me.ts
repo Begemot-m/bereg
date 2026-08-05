@@ -13,17 +13,39 @@ export type Me = {
   isAdmin: boolean;
 };
 
-// Демо открыто всем подряд, поэтому админку там прячем за признаком: один раз
-// зайти с ?admin=1, дальше браузер помнит. Случайный посетитель прототипа
-// админку не увидит, а владелец может её показать и пощупать без сервера.
+// Демо открыто всем подряд, поэтому админку там прячем за тем же признаком,
+// что и в проде, — ником владельца. Ник вводится в кабинете и живёт в
+// localStorage. Случайный посетитель прототипа админку не увидит, а владельцу
+// не надо помнить служебный адрес со ?admin=1.
+export const DEMO_OWNER = "mmgorba";
+
+const DEMO_USER_KEY = "bereg_demo_username";
+/** Прежний способ входа. Читаем один раз и переводим на ник. */
 const DEMO_ADMIN_KEY = "bereg_demo_admin";
 
-function demoAdmin(): boolean {
-  if (typeof window === "undefined") return false;
+const clean = (name: string) => name.trim().replace(/^@/, "").toLowerCase();
+
+/** Кем представляется демо. Пустое значение возвращает обычного гостя. */
+export function setDemoUsername(name: string) {
+  const value = clean(name);
+  if (value && value !== "demo") localStorage.setItem(DEMO_USER_KEY, value);
+  else localStorage.removeItem(DEMO_USER_KEY);
+}
+
+function demoUsername(): string {
+  if (typeof window === "undefined") return "demo";
+
+  if (localStorage.getItem(DEMO_ADMIN_KEY) === "1") {
+    localStorage.setItem(DEMO_USER_KEY, DEMO_OWNER);
+    localStorage.removeItem(DEMO_ADMIN_KEY);
+  }
+
+  // Старые ссылки со ?admin=1 продолжают работать.
   const q = new URLSearchParams(window.location.search).get("admin");
-  if (q === "1") localStorage.setItem(DEMO_ADMIN_KEY, "1");
-  if (q === "0") localStorage.removeItem(DEMO_ADMIN_KEY);
-  return localStorage.getItem(DEMO_ADMIN_KEY) === "1";
+  if (q === "1") localStorage.setItem(DEMO_USER_KEY, DEMO_OWNER);
+  if (q === "0") localStorage.removeItem(DEMO_USER_KEY);
+
+  return localStorage.getItem(DEMO_USER_KEY) ?? "demo";
 }
 
 /**
@@ -38,13 +60,13 @@ export function useMe() {
     queryKey: ["me"],
     queryFn: async () => {
       if (DEMO) {
-        const admin = demoAdmin();
+        const username = demoUsername();
         return {
           id: 1,
-          username: admin ? "mmgorba" : "demo",
+          username,
           firstName: "Демо",
           role: "psychologist",
-          isAdmin: admin,
+          isAdmin: username === DEMO_OWNER,
         };
       }
       return apiFetch<Me>("/auth/me");

@@ -41,11 +41,15 @@ const weekdayF = new Intl.DateTimeFormat("ru-RU", { weekday: "long" });
 const SCHEDULE_SETUP_KEY = "bereg:schedule-setup-seen:v1";
 
 export default function SessionsPage() {
-  const [role] = useRole();
+  const [role, , roleReady] = useRole();
   const router = useRouter();
-  // Раздел «Мои сессии» у клиента убран — запись живёт в Терапии.
-  useEffect(() => { if (role !== "psychologist") router.replace("/therapy"); }, [role, router]);
-  if (role !== "psychologist") return null;
+  // Раздел «Мои сессии» у клиента убран — запись живёт в Терапии. Ждём, пока
+  // роль прочитается: до этого она числится клиентской у всех подряд, и
+  // психолога вышвыривало из собственных сессий.
+  useEffect(() => {
+    if (roleReady && role !== "psychologist") router.replace("/therapy");
+  }, [roleReady, role, router]);
+  if (!roleReady || role !== "psychologist") return null;
   return <PsySessions />;
 }
 

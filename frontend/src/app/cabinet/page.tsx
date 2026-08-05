@@ -19,7 +19,7 @@ import { SubscriptionBanner } from "@/components/subscription-block";
 import { Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch } from "@/lib/api";
-import { useMe } from "@/lib/me";
+import { DEMO_OWNER, setDemoUsername, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
@@ -174,7 +174,37 @@ function DeleteAccountRow() {
 // ссылке ничего не получит: роуты админки отвечают 403.
 function AdminEntry() {
   const me = useMe();
-  if (!me.data?.isAdmin || me.data.username?.replace(/^@/, "").toLowerCase() !== "mmgorba") return null;
+  const qc = useQueryClient();
+  const [name, setName] = useState("");
+  const owner = me.data?.isAdmin && me.data.username?.replace(/^@/, "").toLowerCase() === DEMO_OWNER;
+
+  // В демо сервера нет, и права проверять некому: пускаем по тому же признаку,
+  // что и в проде, — по нику владельца. Поле видно всем, но чужой ник ничего
+  // не открывает, так что прототип остаётся прототипом.
+  if (!owner) {
+    if (!DEMO) return null;
+    return (
+      <div>
+        <SectionTitle>Платформа</SectionTitle>
+        <Card>
+          <p className="t-cap">Демо-вход: чей кабинет открыть</p>
+          <div className="mt-2 flex gap-2">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="ник"
+            />
+            <button
+              onClick={() => { tap(); setDemoUsername(name); qc.invalidateQueries({ queryKey: ["me"] }); }}
+              className="btn btn-accent shrink-0 px-4"
+            >
+              Войти
+            </button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>

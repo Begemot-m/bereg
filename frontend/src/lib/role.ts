@@ -40,15 +40,25 @@ export function getRoleIntent(): Role | null {
   return (localStorage.getItem(INTENT_KEY) as Role) || null;
 }
 
-export function useRole(): [Role, (r: Role) => void] {
+/**
+ * Третьим элементом — прочитана ли роль из localStorage.
+ *
+ * На первом рендере роли ещё нет: страница собирается на сборке, а хранилище
+ * доступно только в браузере, — и до эффекта любой читает дефолтного клиента.
+ * Для разметки это мигание, но для редиректов ложь: психолог, открывший
+ * «Сессии», успевал уехать в «Терапию» раньше, чем роль подтягивалась.
+ */
+export function useRole(): [Role, (r: Role) => void, boolean] {
   const [role, setLocal] = useState<Role>("client");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     setLocal(getRole());
+    setReady(true);
     const onChange = () => setLocal(getRole());
     window.addEventListener(EVENT, onChange);
     return () => window.removeEventListener(EVENT, onChange);
   }, []);
 
-  return [role, setRole];
+  return [role, setRole, ready];
 }
