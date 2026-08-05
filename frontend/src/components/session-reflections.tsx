@@ -95,19 +95,25 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
   href: string;
 }) {
   const router = useRouter();
+  const [dismissed, setDismissed] = useState(false);
+  const dismissKey = `notes-offer-dismissed:${href}`;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") setDismissed(window.localStorage.getItem(dismissKey) === "1");
+  }, [dismissKey]);
+
   if (!module.psychologistEnabled) {
+    if (dismissed) return null;
     return (
-      <div data-accent="tiffany" className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}>
-        <div className="flex items-start gap-3">
-          <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
-          <div className="min-w-0 flex-1"><p className="t-title">Подключить модуль «Заметки о встречах»</p><p className="t-cap mt-1">Клиент записывает, с чем идёт на встречу и что унёс с собой, — вы видите это между сессиями и не начинаете каждый раз с нуля. Модуль выключен, пока вы его не включите.</p></div>
+      <div data-accent="tiffany" className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-3" style={{ border: "2.5px dashed var(--edge)" }}>
+        <div className="flex items-start gap-2.5">
+          <span className="ico ico-accent h-8 w-8 shrink-0"><Icon name="note" width={16} weight="bold" /></span>
+          <div className="min-w-0 flex-1"><p className="t-head">Заметки о встречах</p><p className="t-cap mt-0.5">Клиент записывает, с чем идёт на встречу и что унёс с собой. Вы видите это между сессиями.</p></div>
         </div>
-        <div className="card-nested mt-3 space-y-2 p-3">
-          <ModuleBenefit text="Темы, которые клиент хочет обсудить" />
-          <ModuleBenefit text="Впечатления и оценка после сессии" />
-          <ModuleBenefit text="История и график динамики встреч" />
+        <div className="mt-2.5 grid grid-cols-2 gap-2">
+          <button disabled={saving} onClick={async () => { tap(); await onToggle(); router.push(href); }} className="btn btn-accent py-1.5 text-[12px]">Подключить</button>
+          <button onClick={() => { tap(); window.localStorage.setItem(dismissKey, "1"); setDismissed(true); }} className="btn btn-white py-1.5 text-[12px]">Пока не интересует</button>
         </div>
-        <button disabled={saving} onClick={async () => { await onToggle(); router.push(href); }} className="btn btn-accent mt-3 w-full py-2">Подключить</button>
       </div>
     );
   }
@@ -132,9 +138,9 @@ export function PsychologistNotesDetail({ meetings, reflections, module, saving,
   if (!module.psychologistEnabled) return <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}><div className="flex items-start gap-3"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Модуль «Заметки о встречах» отключён</p><p className="t-cap mt-1">Подключите его, чтобы снова видеть переданные записи клиента.</p></div></div><button disabled={saving} onClick={onToggle} className="btn btn-accent mt-3 w-full py-2">Подключить</button></div>;
   return (
     <section data-accent="tiffany" className="space-y-3">
-      <div className="card flex items-center gap-3 p-4"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Заметки о встречах</p><p className="t-cap mt-0.5">Модуль подключён у вас и клиента</p></div><button disabled={saving} onClick={onToggle} className="btn btn-white shrink-0 px-3 py-1.5 text-[11px]">Отключить</button></div>
       {!module.shared && <div className="card-soft p-4"><p className="t-head">Клиент ведёт заметки лично</p><p className="t-cap mt-1">Когда клиент включит передачу, записи появятся здесь автоматически.</p></div>}
-      {module.shared && <>{!module.enabled && <div className="card-soft p-4"><p className="t-head">Модуль приостановлен клиентом</p><p className="t-cap mt-1">Сохранённая история остаётся доступной.</p></div>}<NotesSummary meetings={meetings} reflections={reflections} /><MeetingDynamics meetings={meetings} reflections={reflections} /><ReflectionHistory reflections={reflections} empty="Клиент пока не сохранил заметок к встречам." /></>}
+      {module.shared && <>{!module.enabled && <div className="card-soft p-4"><p className="t-head">Модуль приостановлен клиентом</p><p className="t-cap mt-1">Сохранённая история остаётся доступной.</p></div>}<UpcomingTopic reflections={reflections} /><NotesSummary meetings={meetings} reflections={reflections} /><MeetingDynamics meetings={meetings} reflections={reflections} /><ReflectionHistory reflections={reflections} empty="Клиент пока не сохранил заметок к встречам." /></>}
+      <button disabled={saving} onClick={() => { tap(); onToggle(); }} className="t-cap w-full py-1 text-center underline decoration-[var(--edge-neutral)] underline-offset-4">Отключить модуль</button>
     </section>
   );
 }
@@ -229,22 +235,30 @@ function Rating({ value, onChange }: { value: number | null; onChange: (value: n
   );
 }
 
+function UpcomingTopic({ reflections }: { reflections: SessionReflection[] }) {
+  const latest = [...reflections].filter((item) => item.preparation?.trim()).sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
+  if (!latest) return null;
+  return (
+    <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-3.5" style={{ border: "2.5px solid var(--edge)" }}>
+      <div className="flex items-center gap-2"><Icon name="note" width={14} weight="bold" color="var(--edge)" /><p className="t-micro">ХОЧЕТ ОБСУДИТЬ</p></div>
+      <p className="t-body mt-1.5 whitespace-pre-wrap">{latest.preparation}</p>
+      <p className="t-cap mt-2 capitalize">{sessionDate.format(new Date(latest.startsAt))}</p>
+    </div>
+  );
+}
+
 function MeetingDynamics({ meetings, reflections }: { meetings: Meeting[]; reflections: SessionReflection[] }) {
-  const [open, setOpen] = useState(false);
   const points = [...reflections].filter((item) => item.feeling).sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(-8);
   const completed = meetings.filter((meeting) => meeting.status === "done" || new Date(meeting.startsAt).getTime() < Date.now()).length;
   const latest = points.at(-1)?.feeling ?? null;
   return (
     <div className="card p-3">
-      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-1 text-left" aria-expanded={open}>
+      <div className="flex w-full items-center gap-3 p-1">
         <span className="ico h-9 w-9 shrink-0"><Icon name="chart" width={17} weight="bold" /></span>
         <div className="min-w-0 flex-1"><p className="t-head">Динамика встреч</p><p className="t-cap mt-0.5">{completed} встреч · {points.length} оценок</p></div>
         {latest && <span className="chip chip-strong">{latest}/10</span>}
-        <span className="arrow transition-transform" style={{ transform: open ? "rotate(90deg)" : undefined }}><ArrowGlyph /></span>
-      </button>
-      <Disclosure open={open} autoScroll={false}>
-        {points.length >= 2 ? <TrendChart points={points} /> : <div className="card-nested mt-3 p-3 text-center"><p className="t-cap">График появится после двух оценённых встреч.</p></div>}
-      </Disclosure>
+      </div>
+      {points.length >= 2 ? <TrendChart points={points} /> : <div className="card-nested mt-3 p-3 text-center"><p className="t-cap">График появится после двух оценённых встреч.</p></div>}
     </div>
   );
 }
