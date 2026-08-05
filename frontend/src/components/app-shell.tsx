@@ -118,8 +118,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           enter(id);
           return;
         }
-        if (payload || tries++ >= 20) { setFastEntry(false); return; }
-        window.setTimeout(poll, 150);
+        // Пока это не решится, на экране пусто (см. проверку fastEntry === null
+        // ниже). Шаг в 150 мс держал заставку до трёх секунд у всех, кто зашёл
+        // обычным способом; 40 мс укладываются в те же попытки за ~1 секунду.
+        if (payload || tries++ >= 24) { setFastEntry(false); return; }
+        window.setTimeout(poll, 40);
       };
       poll();
     }
@@ -254,7 +257,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Мобайл: нижние табы — плашка с обводкой; вокруг неё прозрачно (без заливки-полосы) */}
         {!keyboardOpen && <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-4 pb-[calc(var(--safe-bottom)+12px)] @md:hidden">
-          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[27px] bg-white/90 px-3 py-2 backdrop-blur-md" style={{ border: "var(--bw) solid rgba(32,28,24,.12)", boxShadow: "0 12px 30px -16px rgba(32,28,24,.4)" }}>
+          {/* Без backdrop-blur: панель висит над прокруткой, и размытие
+              заставляло вебвью перерисовывать область под ней на каждом кадре. */}
+          <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[27px] bg-white px-3 py-2" style={{ border: "var(--bw) solid rgba(32,28,24,.12)", boxShadow: "0 12px 30px -16px rgba(32,28,24,.4)" }}>
             {tabs.map((it) => {
               const active = isActive(pathname, it.href);
               // Центральная вкладка — приподнятая акцентная кнопка.

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import type { CSSProperties } from "react";
 
 import { Icon } from "@/components/icons";
 import { Arrow, ArrowGlyph } from "@/components/blocks";
@@ -16,9 +17,9 @@ export function CareModule() {
   return (
     <div className="relative overflow-hidden rounded-[20px] p-5" style={{ background: "var(--purple)" }}>
       {/* Плавающий декор — как на постерах в рефах */}
-      <motion.span aria-hidden className="absolute -right-8 -top-10 h-28 w-28 rounded-full" style={{ background: "rgba(255,255,255,.28)" }} animate={{ y: [0, 10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
-      <motion.span aria-hidden className="absolute -bottom-6 right-12 h-14 w-14 rounded-full" style={{ background: "rgba(255,255,255,.2)" }} animate={{ y: [0, -8, 0] }} transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }} />
-      <motion.span aria-hidden className="absolute bottom-8 left-6 h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,255,255,.55)" }} animate={{ scale: [1, 1.5, 1], opacity: [0.55, 0.9, 0.55] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
+      <span aria-hidden className="float-y absolute -right-8 -top-10 h-28 w-28 rounded-full" style={{ background: "rgba(255,255,255,.28)", "--float-shift": "10px" } as CSSProperties} />
+      <span aria-hidden className="float-y absolute -bottom-6 right-12 h-14 w-14 rounded-full" style={{ background: "rgba(255,255,255,.2)", "--float-shift": "-8px", "--float-time": "4.4s" } as CSSProperties} />
+      <span aria-hidden className="soft-pulse absolute bottom-8 left-6 h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,255,255,.55)" }} />
 
       <div className="relative">
         <div className="flex items-center gap-2.5">

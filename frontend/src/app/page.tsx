@@ -147,7 +147,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     if (!therapist) return <FindTherapistCard />;
     return (
       <Link href="/therapy?booking=1" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-        <FocusIcon icon="calendar" mid />
+        <FocusIcon icon="calendar" lav />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
           <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
@@ -212,7 +212,7 @@ function PsyAvatar({ name }: { name: string }) {
 function FindTherapistCard() {
   return (
     <Link href="/catalog" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-      <FocusIcon icon="compass" mid />
+      <FocusIcon icon="compass" lav />
       <span className="min-w-0 flex-1">
         <span className="t-head block">Найти специалиста</span>
         <span className="t-sub block">В терапии пока никого не прикреплено</span>
@@ -243,7 +243,14 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
 // а не белый — иконке нечего подсвечивать, когда записи нет.
 const FOCUS_MID = "color-mix(in srgb, var(--peach-edge) 30%, var(--peach))";
 
-function FocusIcon({ icon, mid = false }: { icon: IconName; mid?: boolean }) {
+function FocusIcon({ icon, mid = false, lav = false }: { icon: IconName; mid?: boolean; lav?: boolean }) {
+  if (lav) {
+    return (
+      <span className="ico h-[64px] w-[64px] shrink-0" style={{ background: "var(--purple)", borderColor: "var(--purple-edge)" }}>
+        <Icon name={icon} width={30} weight="bold" color="var(--purple-edge)" />
+      </span>
+    );
+  }
   return (
     <span className="ico h-[64px] w-[64px] shrink-0" style={mid ? { background: FOCUS_MID } : { background: "#fff" }}>
       <Icon name={icon} width={30} weight="bold" color={mid ? "#fff" : "var(--edge)"} />

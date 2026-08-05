@@ -23,21 +23,23 @@ export function Reveal({
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.55, ease: EASE, delay }}
+      transition={{ duration: 0.3, ease: EASE, delay }}
     >
       {children}
     </motion.div>
   );
 }
 
+// Каскад держал последнюю карточку экрана невидимой почти секунду — раздел
+// казался медленным, хотя данные были уже на руках.
 const container: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.035, delayChildren: 0 } },
 };
 
 const item: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: EASE } },
 };
 
 export function Stagger({ children, className }: { children: ReactNode; className?: string }) {

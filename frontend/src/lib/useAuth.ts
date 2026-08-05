@@ -30,10 +30,12 @@ export function useAuth() {
     // уже после гидрации. Если спросить среду сразу, мини-приложение выглядит
     // как обычный браузер — и вход не случается вовсе. Ждём так же, как это
     // делает TelegramInit: короткими попытками, а не одной проверкой.
+    // Шаг короткий: скрипт появляется в первые сотни миллисекунд, а редкими
+    // опросами по 150 мс мы держали белый экран до трёх секунд на ровном месте.
     const waitForTelegram = async () => {
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 24; i++) {
         if (isTelegramMiniApp()) return true;
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        await new Promise((resolve) => setTimeout(resolve, 40));
       }
       return isTelegramMiniApp();
     };

@@ -342,8 +342,17 @@ h1, h2, h3, .font-tight {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.06); }
 }
+/* Декоративные плавающие пятна. Раньше это были motion-элементы: каждый такой
+   кружок держал JS-анимацию живой и будил рантайм на каждом кадре, даже когда
+   блок за экраном. CSS-анимация трансформа уходит в композитор и почти ничего
+   не стоит. */
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(var(--float-shift, 9px)); } }
+@keyframes soft-pulse { 0%, 100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.4); opacity: .9; } }
+.float-y { animation: float-y var(--float-time, 6s) ease-in-out infinite; }
+.soft-pulse { animation: soft-pulse 3s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .silk-wave, .silk-glow, .head-icon { animation: none; }
+  .silk-wave, .silk-glow, .head-icon, .float-y, .soft-pulse { animation: none; }
 }
 
 /* Ближайшая сессия на главной: лёгкая лавандовая заливка, текст чернильный. */
