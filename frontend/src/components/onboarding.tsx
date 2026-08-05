@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
@@ -17,6 +17,7 @@ type Intro = {
   kicker: string;
   title: string;
   points: string[];
+  icon: IconName;    // живёт в белом кружке в шапке
   bg: string;        // яркая заливка экрана-постера
   soft: string;      // мягкий тон для подложки под «арт»
   tone: string;      // акцент рамки скрина / кромок
@@ -26,42 +27,47 @@ type Intro = {
 
 const INTRO: Intro[] = [
   {
-    key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой",
+    key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой", icon: "home",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Найти своего специалиста", "Отслеживать динамику настроения и сессий", "Самостоятельная помощь на каждый день"],
     mock: <OverviewMock />,
   },
   {
-    key: "catalog", kicker: "каталог", title: "Умный подбор специалистов",
+    key: "catalog", kicker: "каталог", title: "Умный подбор специалистов", icon: "compass",
     bg: "var(--tiffany-soft)", soft: "#effaf7", tone: "var(--tiffany-edge)",
     points: ["Персональный подбор вместо рейтинга", "Честные отзывы после встреч", "Удобный поиск по запросу"],
     mock: <CatalogMock />,
   },
   {
-    key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний",
+    key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний", icon: "tools",
     bg: "var(--green-soft)", soft: "#eaf0e4", tone: "var(--green-edge)",
-    points: ["Подберём лучшие практики между сессиями", "С отслеживанием настроения", "Дыхание, дневники, колесо баланса"],
+    points: ["Эффективные практики для самостоятельной работы", "Интерактивные инструменты внутри приложения", "Тесты и анализ собственного состояния"],
     mock: <ToolsMock />,
   },
   {
-    key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами",
+    key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами", icon: "users",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Формирование свободных окон для записи", "CRM-система для ведения клиентов", "Напоминания о встречах"],
     mock: <ScheduleMock />,
   },
 ];
 
+// Шаги: 0 — приветствие, 1..4 — интро, 5 — выбор роли.
+const WELCOME = 0;
+const ROLE_STEP = INTRO.length + 1;
+
 export function Onboarding() {
-  const [step, setStep] = useState(0); // 0..3 — интро, 4 — выбор роли
+  const [step, setStep] = useState(WELCOME);
   const [psySell, setPsySell] = useState(false); // после выбора «психолог» — продажа PRO
   const tg = tgUser();
   const swipeX = useRef<number | null>(null);
-  const isRole = step === INTRO.length && !psySell;
-  const cur = INTRO[step];
+  const isWelcome = step === WELCOME && !psySell;
+  const isRole = step === ROLE_STEP && !psySell;
+  const cur = INTRO[step - 1];
 
   const finish = () => { success(); completeOnboarding(); };
-  const next = () => { select(); setStep((s) => Math.min(INTRO.length, s + 1)); };
-  const back = () => { tap(); setStep((s) => Math.max(0, s - 1)); };
+  const next = () => { select(); setStep((s) => Math.min(ROLE_STEP, s + 1)); };
+  const back = () => { tap(); setStep((s) => Math.max(WELCOME, s - 1)); };
   const endSwipe = (x: number) => {
     const start = swipeX.current;
     swipeX.current = null;
@@ -71,47 +77,55 @@ export function Onboarding() {
     if (delta < 0) next(); else back();
   };
 
+  const bg = psySell ? "#ffffff" : isWelcome ? "var(--purple-soft)" : isRole ? "var(--tiffany-soft)" : cur.bg;
+  const tone = isWelcome ? "var(--purple-edge)" : isRole ? "var(--tiffany-edge)" : cur?.tone ?? "var(--purple-edge)";
+  const headIcon: IconName = isWelcome ? "spark" : isRole ? "therapy" : cur.icon;
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" data-accent="purple" style={{ background: psySell ? "#ffffff" : isRole ? "var(--tiffany-soft)" : cur.bg, transition: "background-color .5s ease" }}>
+    <div className="fixed inset-0 z-50 overflow-y-auto" data-accent="purple" style={{ background: bg, transition: "background-color .5s ease" }}>
+      {isWelcome && <SilkWaves />}
+
       {/* Декоративные заливки-круги для «постерного» объёма */}
-      {!isRole && !psySell && cur && (
+      {!isWelcome && !isRole && !psySell && cur && (
         <>
           <span aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full opacity-40" style={{ background: "#fff" }} />
           <span aria-hidden className="pointer-events-none absolute -left-20 top-1/3 h-52 w-52 rounded-full opacity-20" style={{ background: cur.tone }} />
         </>
       )}
 
-      {!isRole && !psySell && (
+      {!isWelcome && !isRole && !psySell && (
         <>
-          <button type="button" onClick={back} disabled={step === 0} className="absolute bottom-16 left-0 top-[calc(var(--top-pad)+48px)] z-20 w-[15%] disabled:pointer-events-none" aria-label="Предыдущий экран" />
+          <button type="button" onClick={back} className="absolute bottom-16 left-0 top-[calc(var(--top-pad)+48px)] z-20 w-[15%]" aria-label="Предыдущий экран" />
           <button type="button" onClick={next} className="absolute bottom-16 right-0 top-[calc(var(--top-pad)+48px)] z-20 w-[15%]" aria-label="Следующий экран" />
         </>
       )}
 
       <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col px-4 pb-[calc(var(--safe-bottom)+18px)] pt-[var(--top-pad)] min-[360px]:px-5 min-[390px]:px-6 md:pt-8">
-        {/* Верх: логотип + прогресс + пропустить */}
+        {/* Верх: живая иконка на белом + прогресс + пропустить */}
         <div className="flex items-center gap-3">
-          <span className="flex h-7 items-center rounded-[8px] bg-[var(--ink)] px-2 text-[12px] font-black text-[var(--bg)]">{APP_NAME}</span>
+          <HeadIcon name={headIcon} tone={tone} />
           <div className="flex flex-1 gap-1.5">
-            {INTRO.map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />)}
+            {Array.from({ length: ROLE_STEP + 1 }).map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />)}
           </div>
           <button onClick={finish} className="shrink-0 text-[11px] font-black" style={{ color: "rgba(32,28,24,.6)" }}>Пропустить</button>
         </div>
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={psySell ? "psySell" : isRole ? "role" : cur.key}
+            key={psySell ? "psySell" : isWelcome ? "welcome" : isRole ? "role" : cur.key}
             initial={{ opacity: 0, x: 26 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -26 }}
             transition={{ duration: 0.28, ease: EASE }}
             className="relative flex min-h-0 flex-1 flex-col touch-pan-y"
-            onPointerDown={(event) => { if (!isRole && !psySell) swipeX.current = event.clientX; }}
+            onPointerDown={(event) => { if (!isWelcome && !isRole && !psySell) swipeX.current = event.clientX; }}
             onPointerUp={(event) => endSwipe(event.clientX)}
             onPointerCancel={() => { swipeX.current = null; }}
           >
             {psySell ? (
               <PsySell onStart={finish} />
+            ) : isWelcome ? (
+              <Welcome onNext={next} />
             ) : isRole ? (
               <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); if (r === "psychologist") setPsySell(true); else finish(); }} />
             ) : (
@@ -138,14 +152,102 @@ export function Onboarding() {
         </AnimatePresence>
 
         {/* Текстовая навигация остаётся доступной помимо свайпа и тап-зон. */}
-        {!isRole && !psySell && (
-          <div className="relative z-30 flex items-center justify-between">
-            <button onClick={back} disabled={step === 0} className="back-link disabled:opacity-0" aria-label="Назад">Назад</button>
-            <button onClick={next} className="back-link" style={{ color: cur.tone }} aria-label="Далее">Далее</button>
+        {!isWelcome && !isRole && !psySell && (
+          <div className="relative z-30 flex items-center gap-2.5">
+            <button onClick={back} className="btn btn-outline flex-1 py-3" aria-label="Назад">Назад</button>
+            <button onClick={next} className="btn btn-accent flex-[1.4] py-3" aria-label="Далее">Далее</button>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+// Приветствие: текст проявляется по очереди — заголовок, подзаголовок, кнопка.
+function Welcome({ onNext }: { onNext: () => void }) {
+  const rise = (delay: number) => ({
+    initial: { opacity: 0, y: 18, filter: "blur(6px)" },
+    animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+    transition: { delay, duration: 0.7, ease: EASE },
+  });
+  return (
+    <div className="flex flex-1 flex-col justify-center py-10">
+      <motion.p {...rise(0.15)} className="text-[11px] font-black uppercase tracking-[.18em]" style={{ color: "var(--purple-edge)" }}>
+        Платформа психологической поддержки
+      </motion.p>
+      <motion.h1 {...rise(0.4)} className="font-tight mt-3 text-[clamp(30px,10vw,40px)] font-black leading-[1.02] text-[var(--ink)]">
+        Добро пожаловать<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME}</span>
+      </motion.h1>
+      <motion.p {...rise(0.95)} className="mt-4 max-w-[300px] text-[15px] font-bold leading-snug" style={{ color: "rgba(32,28,24,.7)" }}>
+        Платформа психологической поддержки: специалисты, сессии и практики в одном месте.
+      </motion.p>
+      <motion.div {...rise(1.5)} className="mt-8">
+        <button onClick={onNext} className="btn btn-accent w-full py-3.5 text-[14px]">Начать знакомство</button>
+      </motion.div>
+    </div>
+  );
+}
+
+// Фон приветствия: шёлковые волны, плывущие с разной скоростью.
+// Не круги — мягкие полосы, которые перетекают друг в друга.
+function SilkWaves() {
+  const reduce = useReducedMotion();
+  const layers = [
+    { d: "M0 210 C 120 170 240 250 360 205 C 480 160 600 240 720 200 L 720 420 L 0 420 Z", fill: "var(--purple-edge)", opacity: 0.16, duration: 26, y: 0 },
+    { d: "M0 250 C 130 300 250 200 360 250 C 470 300 600 210 720 255 L 720 420 L 0 420 Z", fill: "var(--tiffany-edge)", opacity: 0.14, duration: 34, y: 14 },
+    { d: "M0 300 C 140 260 230 340 360 300 C 490 260 590 340 720 300 L 720 420 L 0 420 Z", fill: "var(--purple-edge)", opacity: 0.22, duration: 44, y: 28 },
+  ];
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <svg className="absolute inset-x-0 bottom-0 h-[72%] w-full" viewBox="0 0 360 420" preserveAspectRatio="none">
+        {layers.map((layer, i) => (
+          <motion.g
+            key={i}
+            animate={reduce ? undefined : { x: [0, -360], y: [layer.y, layer.y - 10, layer.y] }}
+            transition={{
+              x: { duration: layer.duration, repeat: Infinity, ease: "linear" },
+              y: { duration: layer.duration / 3, repeat: Infinity, ease: "easeInOut" },
+            }}
+          >
+            <path d={layer.d} fill={layer.fill} opacity={layer.opacity} />
+            <path d={layer.d} fill={layer.fill} opacity={layer.opacity} transform="translate(360 0)" />
+          </motion.g>
+        ))}
+      </svg>
+      <motion.span
+        className="absolute left-1/2 top-[-18%] h-[62vh] w-[130vw] -translate-x-1/2 blur-[70px]"
+        style={{ background: "radial-gradient(closest-side, rgba(160,138,214,.5), transparent)" }}
+        animate={reduce ? undefined : { scale: [1, 1.12, 1], opacity: [0.55, 0.8, 0.55] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
+
+// Иконка раздела в белом кружке — вместо прежней плашки с названием.
+// Меняется вместе с экраном и мягко «дышит».
+function HeadIcon({ name, tone }: { name: IconName; tone: string }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.span
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
+      style={{ boxShadow: "0 6px 16px -8px rgba(32,28,24,.5)" }}
+      animate={reduce ? undefined : { scale: [1, 1.06, 1] }}
+      transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+    >
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={name}
+          initial={{ opacity: 0, scale: 0.5, rotate: -25 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          exit={{ opacity: 0, scale: 0.5, rotate: 25 }}
+          transition={{ duration: 0.32, ease: EASE }}
+          className="flex items-center justify-center"
+        >
+          <Icon name={name} width={19} weight="bold" color={tone} />
+        </motion.span>
+      </AnimatePresence>
+    </motion.span>
   );
 }
 
@@ -161,11 +263,15 @@ function PsySell({ onStart }: { onStart: () => void }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto pb-4 pt-4">
-        <span className="ico ico-accent h-12 w-12"><Icon name="users" width={23} weight="bold" color="#fff" /></span>
-        <p className="t-micro mt-3" style={{ color: "var(--purple-edge)" }}>Для психологов</p>
-        <h1 className="font-tight mt-1 text-[clamp(25px,7vw,30px)] font-black leading-[1.02] text-[var(--ink)]">
-          Больше клиентов<br /><span style={{ color: "var(--purple-edge)" }}>без лимитов</span>
-        </h1>
+        <div className="flex items-center gap-3">
+          <span className="ico ico-accent h-12 w-12 shrink-0"><Icon name="users" width={23} weight="bold" color="#fff" /></span>
+          <div className="min-w-0">
+            <p className="t-micro" style={{ color: "var(--purple-edge)" }}>Для психологов</p>
+            <h1 className="font-tight mt-1 text-[clamp(22px,6vw,26px)] font-black leading-[1.04] text-[var(--ink)]">
+              Больше клиентов <span style={{ color: "var(--purple-edge)" }}>без лимитов</span>
+            </h1>
+          </div>
+        </div>
 
         <div className="mt-4 rounded-[20px] p-4" style={{ background: "var(--purple-soft)" }}>
           <div className="flex items-start gap-3">
@@ -194,42 +300,64 @@ function PsySell({ onStart }: { onStart: () => void }) {
         </div>
       </div>
       <div className="pt-2">
-        <button onClick={() => { tap(); onStart(); }} className="btn btn-accent w-full py-3.5 text-[14px]"><Icon name="plus" width={17} weight="bold" color="#fff" /> Начать бесплатно</button>
+        <button onClick={() => { tap(); onStart(); }} className="btn btn-accent w-full py-3.5 text-[14px]"><Icon name="spark" width={17} weight="fill" color="#fff" /> Начать бесплатно</button>
       </div>
     </div>
   );
 }
 
+const ROLE_OPTIONS: { role: Role; title: string; text: string; icon: IconName }[] = [
+  { role: "psychologist", title: "Я психолог", text: "Клиенты, записи, расписание и статистика практики", icon: "users" },
+  { role: "client", title: "Я пользователь", text: "Подбор специалиста, сессии и практики для себя", icon: "heart" },
+];
+
 function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
-  const roles: { role: Role; title: string; text: string; icon: IconName; tone: string }[] = [
-    { role: "psychologist", title: "Я психолог", text: "Клиенты, записи и практика", icon: "users", tone: "purple" },
-    { role: "client", title: "Я ищу специалиста", text: "Подбор и сопровождение", icon: "heart", tone: "tiffany" },
-    { role: "guest", title: "Я занимаюсь сам", text: "Практики и наблюдения", icon: "compass", tone: "green" },
-  ];
+  const [index, setIndex] = useState(1); // по умолчанию — пользователь
+  const active = ROLE_OPTIONS[index];
   return (
     <div className="flex flex-1 flex-col">
-      <div className="mt-5">
-        <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--purple-edge)]"><Icon name="therapy" width={24} weight="fill" color="#fff" /></span>
-        <h1 className="font-tight mt-4 text-[27px] font-black leading-[1.08] text-[var(--ink)]">{firstName ? `${firstName}, с чего` : "С чего"}<br />начнём?</h1>
-        <p className="mt-2 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
+      <div className="mt-5 flex items-center gap-3">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[var(--purple-edge)]"><Icon name="therapy" width={24} weight="fill" color="#fff" /></span>
+        <h1 className="font-tight text-[25px] font-black leading-[1.06] text-[var(--ink)]">{firstName ? `${firstName}, с чего начнём?` : "С чего начнём?"}</h1>
+      </div>
+      <p className="mt-3 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
+
+      {/* Свитч: лавандовая плашка едет к выбранной половине */}
+      <div className="relative mt-6 grid grid-cols-2 rounded-full bg-white p-1" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+        <motion.span
+          aria-hidden
+          className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-[var(--purple-edge)]"
+          animate={{ left: index === 0 ? 4 : "50%" }}
+          transition={{ type: "spring", stiffness: 340, damping: 32 }}
+        />
+        {ROLE_OPTIONS.map((item, k) => (
+          <button
+            key={item.role}
+            onClick={() => { select(); setIndex(k); }}
+            className="relative z-[1] flex items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-black transition-colors duration-200"
+            style={{ color: index === k ? "#fff" : "var(--purple-edge)" }}
+          >
+            <Icon name={item.icon} width={16} weight="bold" color={index === k ? "#fff" : "var(--purple-edge)"} />
+            {item.title}
+          </button>
+        ))}
       </div>
 
-      <div className="mt-5">
-        {roles.map((item, k) => (
-          <motion.button
-            key={item.role}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 + k * 0.07, duration: 0.4, ease: EASE }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onPick(item.role)}
-            className={`flex w-full items-center gap-3 py-4 text-left ${k ? "line-top" : ""}`}
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style={{ background: `var(--${item.tone}-edge)` }}><Icon name={item.icon} width={21} weight="bold" color="#fff" /></span>
-            <span className="min-w-0 flex-1"><span className="t-head block text-[var(--ink)]">{item.title}</span><span className="t-sub mt-0.5 block">{item.text}</span></span>
-            <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: `var(--${item.tone}-soft)`, border: `2px solid var(--${item.tone}-edge)` }} />
-          </motion.button>
-        ))}
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={active.role}
+          initial={{ opacity: 0, x: index === 0 ? -14 : 14 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: index === 0 ? 14 : -14 }}
+          transition={{ duration: 0.24, ease: EASE }}
+          className="mt-4 text-[13.5px] font-bold leading-snug text-[var(--ink)]"
+        >
+          {active.text}
+        </motion.p>
+      </AnimatePresence>
+
+      <div className="mt-auto pt-6">
+        <button onClick={() => onPick(active.role)} className="btn btn-accent w-full py-3.5 text-[14px]">Продолжить</button>
       </div>
     </div>
   );
