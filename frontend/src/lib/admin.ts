@@ -48,6 +48,10 @@ export type Series = {
   paymentsSince: string | null;
 };
 
+export type FunnelRow = { key: string; label: string; n: number; ofFirst: number; ofPrev: number };
+
+export type Funnels = { psychologist: FunnelRow[]; client: FunnelRow[] };
+
 export type SupportRow = {
   id: number; topic: string; text: string; contact: string | null;
   createdAt: string; handledAt: string | null;
@@ -383,6 +387,48 @@ export function useSeries(days: number) {
     queryFn: async () => {
       if (DEMO) return demoSeries(days);
       return apiFetch<Series>(`/admin/series?days=${days}`);
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+function demoFunnels(): Funnels {
+  const rows = (steps: [string, string, number][]): FunnelRow[] => {
+    const first = steps[0][2];
+    return steps.map(([key, label, n], i) => {
+      const prev = i === 0 ? first : steps[i - 1][2];
+      return {
+        key, label, n,
+        ofFirst: first > 0 ? Math.round((n / first) * 100) : 0,
+        ofPrev: prev > 0 ? Math.round((n / prev) * 100) : 0,
+      };
+    });
+  };
+
+  return {
+    psychologist: rows([
+      ["registered", "Регистрации", 64],
+      ["profile", "Завели анкету", 31],
+      ["submitted", "Подали на проверку", 22],
+      ["approved", "Одобрены — в каталоге", 17],
+      ["booked", "Первая запись", 9],
+    ]),
+    client: rows([
+      ["registered", "Аккаунты клиентов", 48],
+      ["booked", "Записались", 26],
+      ["attended", "Сессия состоялась", 19],
+      ["returned", "Пришли второй раз", 11],
+    ]),
+  };
+}
+
+export function useFunnels() {
+  return useQuery<Funnels>({
+    queryKey: ["admin-funnel"],
+    queryFn: async () => {
+      if (DEMO) return demoFunnels();
+      return apiFetch<Funnels>("/admin/funnel");
     },
     staleTime: 60_000,
     retry: false,

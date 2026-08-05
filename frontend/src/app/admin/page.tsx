@@ -8,8 +8,8 @@ import { Input, SkeletonRow } from "@/components/ui";
 import {
   useAdminStats, useAdminUsers, useUserAction,
   useReviewVerification, useVerificationQueue,
-  useAuditLog, useSeries, useSupportAction, useSupportInbox,
-  type PsyApplication, type Series, type SupportRow,
+  useAuditLog, useFunnels, useSeries, useSupportAction, useSupportInbox,
+  type FunnelRow, type PsyApplication, type Series, type SupportRow,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
 
@@ -37,6 +37,7 @@ export default function AdminPage() {
   const supportAct = useSupportAction();
   const auditLog = useAuditLog(auditFilter, auditPage, auditOpen);
   const series = useSeries(days);
+  const funnels = useFunnels();
 
   // 403 приходит всем, кто не админ: страницу просто не показываем.
   if (users.isError || stats.isError) {
@@ -222,6 +223,30 @@ export default function AdminPage() {
                 rows={series.data.rows}
                 pick={(r) => r.payments}
                 color="var(--ink)"
+              />
+            </div>
+          )}
+        </section>
+
+        {/* Воронки: ряды показывают объём, воронка — где он теряется.
+            Шага «зашёл в каталог» тут нет: просмотры страниц не пишутся. */}
+        <section>
+          <p className="t-micro mb-2">Воронки, за всё время</p>
+
+          {funnels.isLoading && <SkeletonRow />}
+          {funnels.data && (
+            <div className="space-y-3">
+              <Funnel
+                title="Психолог"
+                note="Считаем тех, кто пришёл сам: приглашённые психологом клиенты в базу не входят"
+                rows={funnels.data.psychologist}
+                color="var(--iris)"
+              />
+              <Funnel
+                title="Клиент"
+                note="Каталог и карточка не измеряются — просмотры нигде не сохраняются"
+                rows={funnels.data.client}
+                color="var(--sage)"
               />
             </div>
           )}
@@ -414,6 +439,43 @@ function paymentsNote(s: Series) {
   const revenue = `${moneyF.format(Math.round(s.totals.revenue / 100))} ₽`;
   if (since > new Date(s.from)) return `${revenue} · история платежей ведётся с ${dateF.format(since)}`;
   return revenue;
+}
+
+function Funnel({ title, note, rows, color }: {
+  title: string;
+  note: string;
+  rows: FunnelRow[];
+  color: string;
+}) {
+  return (
+    <div className="card-soft p-2.5">
+      <p className="t-cap">{title}</p>
+
+      <div className="mt-2 space-y-1.5">
+        {rows.map((r, i) => (
+          <div key={r.key}>
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="t-cap truncate">{r.label}</p>
+              <p className="shrink-0 tabular-nums text-[11px] opacity-70">
+                {/* Доля от предыдущего шага важнее общей: она и показывает,
+                    на каком именно шаге теряем. */}
+                {r.n}
+                {i > 0 && ` · ${r.ofPrev}% от шага · ${r.ofFirst}% от начала`}
+              </p>
+            </div>
+            <div className="mt-1 h-1.5 rounded-full" style={{ background: "var(--hairline)" }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${Math.min(100, r.ofFirst)}%`, background: color, opacity: 0.85 }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="t-cap mt-2 opacity-70">{note}</p>
+    </div>
+  );
 }
 
 function Spark({ label, total, note, rows, pick, color }: {
