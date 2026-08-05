@@ -17,11 +17,15 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
+          {/* Пружина на иконке заставляла дрожать соседний заголовок: каждый
+              её кадр перерисовывал общую строку. Мягкий tween и собственный
+              слой держат текст неподвижным. */}
           {icon && (
             <motion.span
-              initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 420, damping: 20 }}
+              initial={{ scale: 0.86, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+              style={{ willChange: "transform", backfaceVisibility: "hidden" }}
               className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] bg-white"
             >
               <Icon name={icon} width={36} weight="bold" color="var(--edge)" />

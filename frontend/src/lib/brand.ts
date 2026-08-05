@@ -8,3 +8,12 @@ export const TAGLINE = "Психологическая поддержка на �
 // Боевой адрес. Ссылки-приглашения уходят живым людям, поэтому строятся от
 // него, а не от текущего origin: из демо на Pages иначе уедет демо-ссылка.
 export const PROD_URL = "https://chronika.space/";
+
+// Мини-приложение живёт в боте, поэтому приглашения ведут не на сайт, а в
+// Telegram: startapp открывает приложение сразу и передаёт метку страницы.
+export const BOT_NAME = "murpsybot";
+
+/** Ссылка, открывающая мини-приложение на нужном экране. */
+export function botDeepLink(payload: string): string {
+  return `https://t.me/${BOT_NAME}?startapp=${payload}`;
+}

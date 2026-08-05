@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/icons";
-import { asset } from "@/lib/asset";
+import { botDeepLink } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
 
@@ -42,11 +42,6 @@ function refCode(): string {
   if (!c) { c = Math.random().toString(36).slice(2, 8).toUpperCase(); localStorage.setItem("bereg_ref", c); }
   return c;
 }
-function appUrl(): string {
-  if (typeof window === "undefined") return "https://begemot-m.github.io/bereg/";
-  return window.location.origin + asset("/");
-}
-
 export function InviteButton({ variant, className = "", label = "Пригласить" }: { variant: Variant; className?: string; label?: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -92,7 +87,9 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
   const [copied, setCopied] = useState(false);
   useEffect(() => { setCode(refCode()); setInvited(Number(localStorage.getItem("bereg_invited") || 0)); }, []);
 
-  const link = variant === "client" ? `https://t.me/murpsybot?start=${code}` : `${appUrl()}?ref=${code}`;
+  // Обе ссылки ведут в бота: мини-приложение должно открыться внутри Telegram,
+  // а не в браузере. Реферальный код уезжает в start_param.
+  const link = botDeepLink(`ref_${code}`);
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(c.share)}`;
   const bump = () => { const n = invited + 1; setInvited(n); localStorage.setItem("bereg_invited", String(n)); };
   const copy = async () => { try { await navigator.clipboard.writeText(link); success(); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ } };

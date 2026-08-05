@@ -165,10 +165,11 @@ export function Onboarding() {
 
 // Приветствие: текст проявляется по очереди — заголовок, подзаголовок, кнопка.
 function Welcome({ onNext }: { onNext: () => void }) {
+  // Без анимации filter: блюр на каждом кадре роняет вебвью Telegram.
   const rise = (delay: number) => ({
-    initial: { opacity: 0, y: 18, filter: "blur(6px)" },
-    animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-    transition: { delay, duration: 0.7, ease: EASE },
+    initial: { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay, duration: 0.6, ease: EASE },
   });
   return (
     <div className="flex flex-1 flex-col justify-center py-10">
@@ -189,37 +190,31 @@ function Welcome({ onNext }: { onNext: () => void }) {
 }
 
 // Фон приветствия: шёлковые волны, плывущие с разной скоростью.
-// Не круги — мягкие полосы, которые перетекают друг в друга.
+// Анимация — на CSS и только по transform: motion пересчитывал бы её на
+// каждом кадре в JS, а вебвью Telegram этого не прощает.
+const WAVES = [
+  { d: "M0 210 C 120 170 240 250 360 205 C 480 160 600 240 720 200 L 720 420 L 0 420 Z", fill: "var(--purple-edge)", opacity: 0.16, duration: 26, top: 0 },
+  { d: "M0 250 C 130 300 250 200 360 250 C 470 300 600 210 720 255 L 720 420 L 0 420 Z", fill: "var(--tiffany-edge)", opacity: 0.14, duration: 34, top: 14 },
+  { d: "M0 300 C 140 260 230 340 360 300 C 490 260 590 340 720 300 L 720 420 L 0 420 Z", fill: "var(--purple-edge)", opacity: 0.22, duration: 44, top: 28 },
+];
+
 function SilkWaves() {
   const reduce = useReducedMotion();
-  const layers = [
-    { d: "M0 210 C 120 170 240 250 360 205 C 480 160 600 240 720 200 L 720 420 L 0 420 Z", fill: "var(--purple-edge)", opacity: 0.16, duration: 26, y: 0 },
-    { d: "M0 250 C 130 300 250 200 360 250 C 470 300 600 210 720 255 L 720 420 L 0 420 Z", fill: "var(--tiffany-edge)", opacity: 0.14, duration: 34, y: 14 },
-    { d: "M0 300 C 140 260 230 340 360 300 C 490 260 590 340 720 300 L 720 420 L 0 420 Z", fill: "var(--purple-edge)", opacity: 0.22, duration: 44, y: 28 },
-  ];
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <span className="silk-glow absolute left-1/2 top-[-14%] h-[52vh] w-[120vw] -translate-x-1/2" />
       <svg className="absolute inset-x-0 bottom-0 h-[72%] w-full" viewBox="0 0 360 420" preserveAspectRatio="none">
-        {layers.map((layer, i) => (
-          <motion.g
+        {WAVES.map((wave, i) => (
+          <g
             key={i}
-            animate={reduce ? undefined : { x: [0, -360], y: [layer.y, layer.y - 10, layer.y] }}
-            transition={{
-              x: { duration: layer.duration, repeat: Infinity, ease: "linear" },
-              y: { duration: layer.duration / 3, repeat: Infinity, ease: "easeInOut" },
-            }}
+            className="silk-wave"
+            style={{ animationDuration: reduce ? "0s" : `${wave.duration}s`, ["--y" as string]: `${wave.top}px` }}
           >
-            <path d={layer.d} fill={layer.fill} opacity={layer.opacity} />
-            <path d={layer.d} fill={layer.fill} opacity={layer.opacity} transform="translate(360 0)" />
-          </motion.g>
+            <path d={wave.d} fill={wave.fill} opacity={wave.opacity} />
+            <path d={wave.d} fill={wave.fill} opacity={wave.opacity} transform="translate(360 0)" />
+          </g>
         ))}
       </svg>
-      <motion.span
-        className="absolute left-1/2 top-[-18%] h-[62vh] w-[130vw] -translate-x-1/2 blur-[70px]"
-        style={{ background: "radial-gradient(closest-side, rgba(160,138,214,.5), transparent)" }}
-        animate={reduce ? undefined : { scale: [1, 1.12, 1], opacity: [0.55, 0.8, 0.55] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-      />
     </div>
   );
 }
@@ -227,13 +222,10 @@ function SilkWaves() {
 // Иконка раздела в белом кружке — вместо прежней плашки с названием.
 // Меняется вместе с экраном и мягко «дышит».
 function HeadIcon({ name, tone }: { name: IconName; tone: string }) {
-  const reduce = useReducedMotion();
   return (
-    <motion.span
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
+    <span
+      className="head-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
       style={{ boxShadow: "0 6px 16px -8px rgba(32,28,24,.5)" }}
-      animate={reduce ? undefined : { scale: [1, 1.06, 1] }}
-      transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
     >
       <AnimatePresence mode="wait">
         <motion.span
@@ -247,7 +239,7 @@ function HeadIcon({ name, tone }: { name: IconName; tone: string }) {
           <Icon name={name} width={19} weight="bold" color={tone} />
         </motion.span>
       </AnimatePresence>
-    </motion.span>
+    </span>
   );
 }
 

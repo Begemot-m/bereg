@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
-import { PROD_URL } from "@/lib/brand";
+import { botDeepLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { success, tap } from "@/lib/haptics";
 import { useProfile } from "@/lib/profile";
@@ -16,13 +16,13 @@ const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric",
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-function appUrl(): string {
-  return PROD_URL;
-}
-
-/** Ссылка-приглашение на запись: открывает анкету специалиста сразу с окнами. */
+/**
+ * Ссылка-приглашение на запись. Ведёт в бота: Telegram открывает мини-приложение
+ * и отдаёт метку в start_param — по ней StartRoute сразу показывает анкету с
+ * окнами. Обычный https-адрес открылся бы в браузере, мимо приложения.
+ */
 export function bookingInviteUrl(): string {
-  return `${appUrl()}?psy=${OWN_PROFILE_ID}&book=1`;
+  return botDeepLink(`book_${OWN_PROFILE_ID}`);
 }
 
 // Кнопка живёт в «Сессиях», рядом с графиком: позвать клиента — часть работы

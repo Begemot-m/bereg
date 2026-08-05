@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app-shell";
 import { ConsentGate } from "@/components/consent-gate";
 import { DemoFrame } from "@/components/demo-frame";
 import { DragScroll } from "@/components/drag-scroll";
+import { StartRoute } from "@/components/start-route";
 import { TelegramInit } from "@/components/telegram-init";
 import { VersionCheck } from "@/components/version-check";
 import { Providers } from "./providers";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             иначе получаем hydration mismatch и падение при переходах. */}
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
         <TelegramInit />
+        <StartRoute />
         <VersionCheck />
         <DragScroll />
         <Providers>

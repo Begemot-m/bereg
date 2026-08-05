@@ -315,6 +315,37 @@ h1, h2, h3, .font-tight {
 }
 @media (prefers-reduced-motion: reduce) { .daily-dot { animation: none; } }
 
+/* Фон приветственного экрана онбординга: волны едут только по transform,
+   свечение дышит только прозрачностью — ни блюра, ни пересчёта в JS. */
+.silk-wave {
+  transform: translate3d(0, var(--y, 0), 0);
+  will-change: transform;
+  animation-name: silk-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes silk-drift {
+  from { transform: translate3d(0, var(--y, 0), 0); }
+  to   { transform: translate3d(-360px, var(--y, 0), 0); }
+}
+.silk-glow {
+  background: radial-gradient(closest-side, rgba(144, 119, 189, .42), transparent);
+  animation: silk-breathe 9s ease-in-out infinite;
+}
+@keyframes silk-breathe {
+  0%, 100% { opacity: .6; }
+  50%      { opacity: .95; }
+}
+/* Иконка раздела в шапке онбординга: тихое «дыхание» без участия JS. */
+.head-icon { animation: head-breathe 3.4s ease-in-out infinite; will-change: transform; }
+@keyframes head-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .silk-wave, .silk-glow, .head-icon { animation: none; }
+}
+
 /* Ближайшая сессия на главной: лёгкая лавандовая заливка, текст чернильный. */
 .card-lav {
   background: var(--purple-soft);

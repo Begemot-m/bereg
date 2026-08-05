@@ -158,7 +158,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy?booking=1" onClick={tap} className="card-lav group block p-6 text-left transition-transform duration-200 active:scale-[0.99]">
+    <Link href="/therapy?booking=1" onClick={tap} className="card-lav group block p-5 text-left transition-transform duration-200 active:scale-[0.99]">
       <div className="flex items-center gap-3.5">
         <PsyAvatar name={booking.psyName} />
         <span className="min-w-0 flex-1">
@@ -175,12 +175,12 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   );
 }
 
-// Управление записью — вместо стрелки: шестерёнка слева, подпись правее.
+// Управление записью — вместо стрелки: шестерёнка и подпись в акценте.
 function ManageRow() {
   return (
-    <span className="mt-4 flex items-center gap-2.5 border-t pt-3" style={{ borderColor: "rgba(32,28,24,.14)" }}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"><Icon name="gear" width={18} weight="bold" color="var(--purple-edge)" /></span>
-      <span className="text-[12.5px] font-black text-[var(--ink)]">Управление записью</span>
+    <span className="mt-2.5 flex items-center gap-1.5" style={{ color: "var(--purple-edge)" }}>
+      <Icon name="gear" width={15} weight="bold" color="currentColor" />
+      <span className="text-[12.5px] font-black">Управление записью</span>
     </span>
   );
 }
@@ -257,7 +257,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-lav group relative block overflow-hidden p-6 text-left transition-transform duration-200 active:scale-[0.99]">
+    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-lav group relative block overflow-hidden p-5 text-left transition-transform duration-200 active:scale-[0.99]">
       <div className="flex items-center gap-3.5">
         <span className="ico ico-white relative h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--purple-edge)" }}>
           {appointment.client.name.charAt(0)}
