@@ -239,6 +239,7 @@ function PsySessions() {
 
           {/* Справа — помощь */}
           <button
+            data-tour="calendar"
             onClick={() => { tap(); setCalOpen((v) => !v); closeMultiMode(); }}
             aria-expanded={calOpen}
             className="inline-flex min-h-9 w-fit items-center gap-1.5 justify-self-end text-[12px] font-black text-[var(--edge)]"

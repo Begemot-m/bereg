@@ -94,7 +94,7 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const tone = full ? "green" : "amber";
 
   return (
-    <button onClick={onContinue} className="flex w-full items-center gap-3 rounded-[16px] p-3 text-left transition-transform active:scale-[.99]" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
+    <button data-tour="profile-progress" onClick={onContinue} className="flex w-full items-center gap-3 rounded-[16px] p-3 text-left transition-transform active:scale-[.99]" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
       <motion.span
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white stroke"
         animate={full ? { scale: [1, 1.08, 1] } : { rotate: [0, -8, 8, 0] }}

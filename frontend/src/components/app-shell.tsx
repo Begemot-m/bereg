@@ -220,6 +220,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={it.href}
                   href={it.href}
                   onClick={select}
+                  data-tour={`nav-${it.href === "/" ? "home" : it.href.slice(1)}`}
                   className="flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
                   style={active ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
                 >
@@ -233,6 +234,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link
           href="/cabinet"
           onClick={select}
+          data-tour="nav-cabinet"
           className="flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
           style={cabinetActive ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
         >

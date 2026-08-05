@@ -9,7 +9,7 @@ import { select, success, tap } from "@/lib/haptics";
 import type { Role } from "@/lib/role";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const KEY = (role: Role) => `bereg:tour:${role}:v4`;
+const KEY = (role: Role) => `bereg:tour:${role}:v5`;
 
 const PAD = 8;      // воздух вокруг подсвеченного элемента
 const CARD = 210;   // примерная высота карточки — решаем, сверху её класть или снизу
@@ -46,23 +46,26 @@ type Step = {
 
 const TOURS: Record<Role, Step[]> = {
   client: [
-    { href: "/", target: '[data-tour="mood"]', icon: "mood", title: "Отмечайте, как вы сегодня", text: "Тап по карточке открывает диск настроения и эмоции. Полминуты в день — и видно настоящий фон недели, а не только «хорошо / плохо»." },
-    { href: "/", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Здесь ищут своего специалиста", text: "Подборка собирается по вашему запросу, а не по оплате размещения. Можно ответить на пару вопросов или сразу открыть весь список." },
-    { href: "/therapy", target: '[data-tour="mood-stats"]', icon: "chart", title: "Динамика — общий язык с терапевтом", text: "Здесь настроение складывается в график. Терапевт видит эту динамику и приходит на встречу, уже зная, как прошли ваши недели." },
-    { href: "/therapy", target: '[data-tour="wheel"]', icon: "balance", title: "Колесо показывает общую картину", text: "Ответьте на короткие вопросы о важных сферах жизни. Результат сохранится, и позже можно будет сравнить изменения." },
-    { href: "/therapy", target: '[data-tour="board"]', icon: "note", title: "Доска, которую видит терапевт", text: "Записывайте сюда мысли и вопросы между встречами — на сессии не придётся вспоминать, с чего вы хотели начать." },
-    { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Практики всегда под рукой", text: "Дыхание и дневник мыслей можно открыть в любой момент. Черновики сохраняются, поэтому упражнение не нужно заканчивать за один раз." },
-    { href: "/cabinet", target: '[data-tour="nav-cabinet"]', icon: "user", title: "Профиль и настройки", text: "В кабинете меняются имя, фото, роль и настройки аккаунта. Здесь же можно снова запустить экскурсию." },
+    { href: "/", target: '[data-tour="next-session"]', icon: "calendar", title: "Ближайшая встреча — всегда сверху", text: "Верхний блок главной показывает следующую сессию: дату, формат и управление записью. Пока специалист не выбран, тот же блок ведёт в каталог." },
+    { href: "/", target: '[data-tour="mood"]', icon: "mood", title: "Отмечайте, как вы сегодня", text: "Тап открывает диск настроения и эмоции. Полминуты в день — и вместо «вроде нормально» появляется честная картина недели." },
+    { href: "/", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Каталог: здесь ищут своего", text: "Подборка собирается по вашему запросу, а не по оплате размещения. В анкете видно подход, цену и свободные окна — записаться можно сразу оттуда." },
+    { href: "/therapy", target: '[data-tour="therapist"]', icon: "therapy", title: "«Терапия» — всё о вашей работе", text: "Наверху — ваш специалист: ближайшая встреча, история и запись на новое окно. Специалистов может быть несколько, они переключаются здесь же." },
+    { href: "/therapy", target: '[data-tour="mood-stats"]', icon: "chart", title: "Ежедневные отметки складываются в график", text: "Динамика видна и вам, и терапевту: он приходит на встречу, уже зная, как прошли ваши недели, — не нужно пересказывать месяц по памяти." },
+    { href: "/therapy", target: '[data-tour="work"]', icon: "note", title: "Задания между встречами", text: "То, о чём договорились на сессии. Отмечайте выполненное — специалист видит прогресс и не тратит начало встречи на опрос." },
+    { href: "/therapy", target: '[data-tour="board"]', icon: "note", title: "Доска, которую видит терапевт", text: "Записывайте мысли и вопросы, пока они свежие. На сессии не придётся вспоминать, с чего вы хотели начать." },
+    { href: "/therapy", target: '[data-tour="wheel"]', icon: "balance", title: "Колесо баланса — общая картина", text: "Короткие вопросы о важных сферах жизни. Результат сохраняется, и через пару месяцев видно, что реально сдвинулось." },
+    { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Практики всегда под рукой", text: "Дыхание и дневник мыслей открываются в любой момент. Черновики сохраняются — упражнение не обязательно заканчивать за один раз." },
+    { href: "/cabinet", target: '[data-tour="nav-cabinet"]', icon: "user", title: "Кабинет: профиль и напоминания", text: "Имя, фото, роль, напоминания о сессиях и настройки приватности. Отсюда же экскурсию можно запустить заново." },
   ],
   psychologist: [
-    { href: "/", target: '[data-tour="nav-sessions"]', icon: "calendar", title: "Сессии — ваш рабочий центр", text: "Здесь собраны график, свободные окна и записи клиентов. Начнём с настройки расписания." },
-    { href: "/sessions", target: '[data-tour="schedule"]', icon: "clock", title: "Сначала — рабочие часы", text: "«График» задаёт дни, окна и длительность встречи. Отсюда же напоминания и запрет отмены. Клиенты видят только свободные окна." },
-    { href: "/sessions", target: '[data-tour="views"]', icon: "calendar", title: "Неделя — рабочий экран", text: "«Ближайшие» показывают только записи, «Неделя» — все окна. Тап по свободному окну записывает клиента в два движения." },
-    { href: "/sessions", target: '[data-tour="quick-add"]', icon: "plus", title: "Запись на любую дату", text: "Плюс открывает быструю запись: выбрать клиента (или завести нового) и свободное окно, не листая неделю." },
-    { href: "/clients", target: '[data-tour="add-client"]', icon: "heart", title: "Добавьте первого клиента", text: "Достаточно имени и контакта. Приглашение свяжет карточку с аккаунтом клиента и включит синхронизацию." },
-    { href: "/clients", target: '[data-tour="client-card"]', icon: "users", title: "Карточка клиента", text: "Видно объём работы, задания и настроение между встречами. Тап открывает историю встреч, домашки и колесо баланса." },
-    { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Практики для работы", text: "Покажите клиенту подходящее упражнение или пройдите его сами, чтобы понимать каждый шаг." },
-    { href: "/cabinet", target: '[data-tour="nav-cabinet"]', icon: "user", title: "Профиль специалиста", text: "Заполните методы, запросы, формат и условия. Эти данные формируют карточку в каталоге и фильтры поиска." },
+    { href: "/sessions", target: '[data-tour="schedule"]', icon: "clock", title: "Начните с рабочих часов", text: "«График» задаёт дни, часы и длительность встречи, а заодно напоминания и запрет отмены. Клиент видит только те окна, которые вы открыли." },
+    { href: "/sessions", target: '[data-tour="views"]', icon: "calendar", title: "Неделя — ваш рабочий экран", text: "«Ближайшие» — только записи, «Неделя» — все окна разом. Тап по свободному окну записывает клиента в два движения." },
+    { href: "/sessions", target: '[data-tour="calendar"]', icon: "calendar", title: "Календарь на месяц", text: "Занятые дни, выходные и отпуск видно сразу. Отсюда же переход на нужную дату — не листая неделю за неделей." },
+    { href: "/sessions", target: '[data-tour="quick-add"]', icon: "plus", title: "Записать вручную", text: "Плюс открывает быструю запись: выбрать клиента (или завести нового) и свободное окно на любую дату." },
+    { href: "/cabinet", target: '[data-tour="profile-progress"]', icon: "user", title: "Анкета — ваше лицо в каталоге", text: "Полоса заполненности ведёт в редактор: методы, запросы, образование, формат и цена. Пока анкета не подтверждена, брать клиентов нельзя и в каталоге вас не видно." },
+    { href: "/clients", target: '[data-tour="add-client"]', icon: "heart", title: "Заведите клиента", text: "Хватит имени и контакта. Приглашение свяжет карточку с его аккаунтом — настроение, задания и записи начнут приходить сами." },
+    { href: "/clients", target: '[data-tour="client-card"]', icon: "users", title: "Карточка — вся история работы", text: "Внутри: встречи, домашние задания, заметки после сессий, настроение между встречами и колесо баланса. Открывайте перед встречей вместо попыток вспомнить." },
+    { href: "/tools", target: '[data-tour="nav-tools"]', icon: "tools", title: "Материалы для сессий", text: "Практики и упражнения, которые можно выдать клиенту как домашнее задание или пройти самому, чтобы понимать каждый шаг." },
   ],
   guest: [
     { href: "/catalog", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Каталог специалистов", text: "Посмотрите анкеты без обязательств: фото, подход, с чем работает и с чем — нет." },
@@ -72,6 +75,16 @@ const TOURS: Record<Role, Step[]> = {
     { href: "/", target: '[data-tour="nav-catalog"]', icon: "compass", title: "Можно начинать", text: "Откройте каталог, настройте фильтры и посмотрите несколько анкет. Выбор ни к чему не обязывает." },
   ],
 };
+
+// Один и тот же якорь живёт и в сайдбаре, и в нижних табах: берём тот,
+// который сейчас на экране, иначе прожектор уедет в скрытую разметку.
+function findTarget(selector: string): Element | null {
+  for (const el of Array.from(document.querySelectorAll(selector))) {
+    const box = el.getBoundingClientRect();
+    if (box.width > 0 && box.height > 0) return el;
+  }
+  return null;
+}
 
 /**
  * Экскурсия при первом заходе в роли: переводит в нужный раздел, подсвечивает
@@ -87,7 +100,7 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
 
   const measure = useCallback(() => {
     if (!step?.target) { setRect(null); return; }
-    const el = document.querySelector(step.target);
+    const el = findTarget(step.target);
     setRect(el ? el.getBoundingClientRect() : null);
   }, [step]);
 
@@ -105,7 +118,7 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
     let tries = 0;
     let timer = 0;
     const hunt = () => {
-      const el = document.querySelector(step.target!);
+      const el = findTarget(step.target!);
       if (el) {
         el.scrollIntoView({ block: "center", behavior: "smooth" });
         timer = window.setTimeout(measure, 420);

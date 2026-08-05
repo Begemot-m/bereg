@@ -136,7 +136,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
                 <Link href="/catalog" onClick={tap} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[var(--purple-edge)]" style={{ border: "var(--bw) solid var(--purple-edge)" }} aria-label="Добавить терапевта"><Icon name="plus" width={14} weight="bold" color="currentColor" /></Link>
               </div>
             )}
-            {therapist && <TherapistCard name={therapist} next={next} bookings={bookings} defaultOpen={openBooking} onRemove={() => therapists.remove(therapist)} />}
+            {therapist && <div data-tour="therapist"><TherapistCard name={therapist} next={next} bookings={bookings} defaultOpen={openBooking} onRemove={() => therapists.remove(therapist)} /></div>}
           </>
         )}
       </header>

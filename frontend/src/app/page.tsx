@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { Arrow, PageHead, SectionTitle } from "@/components/blocks";
+import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
@@ -115,7 +115,7 @@ function PersonHome({ guest }: { guest: boolean }) {
       subtitle={guest ? "Начните с подходящего специалиста" : cap(dateF.format(now))}
       subIcon={guest ? undefined : "calendar"}
       icon="home"
-      focus={guest ? undefined : <NextSession booking={next} therapist={therapist} />}
+      focus={guest ? undefined : <div data-tour="next-session"><NextSession booking={next} therapist={therapist} /></div>}
     >
       <TourBanner role={guest ? "guest" : "client"} />
 
@@ -147,7 +147,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     if (!therapist) return <FindTherapistCard />;
     return (
       <Link href="/therapy?booking=1" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-        <FocusIcon icon="calendar" lav />
+        <FocusIcon icon="calendar" />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
           <span className="t-head mt-0.5 block leading-tight">Нет ближайших записей</span>
@@ -212,7 +212,7 @@ function PsyAvatar({ name }: { name: string }) {
 function FindTherapistCard() {
   return (
     <Link href="/catalog" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
-      <FocusIcon icon="compass" lav />
+      <FocusIcon icon="compass" />
       <span className="min-w-0 flex-1">
         <span className="t-head block">Найти специалиста</span>
         <span className="t-sub block">В терапии пока никого не прикреплено</span>
@@ -228,7 +228,7 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
       {/* Фокус-блок наезжает на белый лист: как на референсе, он пересекает
           границу цветной шапки и нижней области. */}
       <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[132px] mt-6">{focus}</div>}</PageHead>
-      <div className="sheet relative z-0" style={focus ? { paddingTop: 136 } : undefined}>
+      <div className="sheet relative z-0" style={focus ? { paddingTop: 120 } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index} className="empty:hidden">{child}</StaggerItem> : null)
@@ -239,21 +239,12 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
   );
 }
 
-// Пустое состояние фокус-блока: плитка берёт средний тон персикового фона,
-// а не белый — иконке нечего подсвечивать, когда записи нет.
-const FOCUS_MID = "color-mix(in srgb, var(--peach-edge) 30%, var(--peach))";
-
-function FocusIcon({ icon, mid = false, lav = false }: { icon: IconName; mid?: boolean; lav?: boolean }) {
-  if (lav) {
-    return (
-      <span className="ico h-[64px] w-[64px] shrink-0" style={{ background: "var(--purple)", borderColor: "var(--purple-edge)" }}>
-        <Icon name={icon} width={30} weight="bold" color="var(--purple-edge)" />
-      </span>
-    );
-  }
+// Фокус-блок всегда лавандовый — во всех трёх состояниях (нет сессии,
+// подобрать терапевта, ближайшая сессия) это один и тот же блок.
+function FocusIcon({ icon }: { icon: IconName }) {
   return (
-    <span className="ico h-[64px] w-[64px] shrink-0" style={mid ? { background: FOCUS_MID } : { background: "#fff" }}>
-      <Icon name={icon} width={30} weight="bold" color={mid ? "#fff" : "var(--edge)"} />
+    <span className="ico h-[64px] w-[64px] shrink-0" style={{ background: "var(--purple)", borderColor: "var(--purple-edge)" }}>
+      <Icon name={icon} width={30} weight="bold" color="var(--purple-edge)" />
     </span>
   );
 }
@@ -261,14 +252,13 @@ function FocusIcon({ icon, mid = false, lav = false }: { icon: IconName; mid?: b
 function SessionFocus({ appointment }: { appointment?: Appointment }) {
   if (!appointment) {
     return (
-      <Link href="/sessions" onClick={tap} className="card-peach group flex items-center gap-3.5 p-6 text-left transition-transform duration-200 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--edge)]">
+      <Link href="/sessions" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 text-left transition-transform duration-200 active:scale-[0.99]">
         <FocusIcon icon="calendar" />
         <span className="min-w-0 flex-1">
-          <span className="t-micro block">Ближайший шаг</span>
-          <span className="t-head mt-0.5 block">Открыть окна для записи</span>
-          <span className="t-sub block">Предстоящих сессий пока нет</span>
+          <span className="t-micro block">Расписание</span>
+          <span className="t-head mt-0.5 block leading-tight">Предстоящих сессий пока нет</span>
         </span>
-        <Arrow />
+        <span className="btn shrink-0">График</span>
       </Link>
     );
   }
@@ -338,9 +328,8 @@ function TourBanner({ role }: { role: Role }) {
   }, [role]);
   if (!show) return null;
   const title = role === "psychologist" ? "Освойте кабинет психолога" : "Познакомьтесь с приложением";
-  const sub = role === "psychologist"
-    ? "Пошагово покажем, как вести клиентов, записи и практику"
-    : "Короткий гид по разделам — за минуту";
+  // У клиента подписи нет: заголовка и подсказки внизу достаточно.
+  const sub = role === "psychologist" ? "Расписание, анкета и работа с клиентом — по шагам" : null;
   return (
     <button onClick={() => { tap(); startTour(); }} className="relative w-full overflow-hidden p-4 text-left transition-transform active:scale-[0.99]">
       <div className="relative flex items-center gap-3.5">
@@ -352,7 +341,7 @@ function TourBanner({ role }: { role: Role }) {
         >!</motion.span>
         <span className="min-w-0 flex-1">
           <span className="t-head block">{title}</span>
-          <span className="t-sub mt-0.5 block">{sub}</span>
+          {sub && <span className="t-sub mt-0.5 block">{sub}</span>}
           <span className="t-cap mt-1.5 block" style={{ color: "var(--purple-edge)" }}>Нажмите, чтобы пошагово ознакомиться с функционалом</span>
         </span>
       </div>
