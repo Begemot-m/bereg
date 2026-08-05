@@ -12,6 +12,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
+import { VerificationBanner, VerificationSheet } from "@/components/psy-verification";
 import { RemindersModule } from "@/components/reminders";
 import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
@@ -22,10 +23,10 @@ import { useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
+import { useVerification } from "@/lib/psy-verification";
 import { getRoleIntent, ROLE_LABEL, useRole, type Role } from "@/lib/role";
 
 const ROLES: Role[] = ["psychologist", "client"];
-const PSY_APPLY_LINK = "https://t.me/+79117230099";
 
 // Когда собрана эта версия. Если после деплоя тут старая дата — вебвью
 // показывает страницу из кеша, а не новую сборку.
@@ -292,30 +293,44 @@ function EmailLink() {
   );
 }
 
-// Переключатель ролей видят те, у кого учётная запись психолога, и те, кто в
-// онбординге выбрал психолога, — им платформа ещё пригодится в обеих ролях.
-// Тот, кто вошёл клиентом и психологом не зарегистрирован, вместо тумблера
-// получает заявку.
+// Правило одно: есть заявка — есть тумблер, есть подтверждение — есть клиенты.
+// Тумблер видят те, у кого учётная запись психолога, кто выбрал эту роль в
+// онбординге и кто подал заявку из клиентского кабинета. Остальным показываем
+// саму заявку — внутренним экраном: внешняя ссылка в Telegram рвёт сеанс, и
+// человек оттуда уже не возвращается.
 function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
   const me = useMe();
+  const verification = useVerification();
   const [intent, setIntent] = useState<Role | null>(null);
+  const [sheet, setSheet] = useState(false);
   useEffect(() => setIntent(getRoleIntent()), []);
+
+  const status = verification.data?.status ?? "none";
   const isPsy = me.data?.role === "psychologist";
-  const canSwitch = isPsy || intent === "psychologist";
+  const canSwitch = isPsy || intent === "psychologist" || status !== "none";
 
   useEffect(() => {
     if (me.data && !canSwitch && role === "psychologist") onSwitch("client");
   }, [me.data, canSwitch, role]);
 
   if (me.isLoading) return null;
-  if (canSwitch) return <RoleSwitch role={role} onSwitch={onSwitch} />;
 
   return (
-    <a href={PSY_APPLY_LINK} target="_blank" rel="noopener noreferrer" onClick={() => tap()} className="flex items-center gap-2.5 rounded-[17px] p-3 stroke" style={{ background: "rgba(255,255,255,.5)" }}>
-      <span className="ico h-9 w-9 shrink-0"><Icon name="therapy" width={17} weight="bold" color="var(--edge)" /></span>
-      <span className="t-sub min-w-0 flex-1 font-bold leading-tight">Подать заявку на регистрацию в качестве психолога</span>
-      <Arrow />
-    </a>
+    <>
+      {canSwitch ? (
+        <>
+          <RoleSwitch role={role} onSwitch={onSwitch} />
+          {role === "psychologist" && <VerificationBanner status={status} reason={verification.data?.rejectReason ?? null} onOpen={() => setSheet(true)} />}
+        </>
+      ) : (
+        <button onClick={() => { tap(); setSheet(true); }} className="flex w-full items-center gap-2.5 rounded-[17px] p-3 text-left stroke" style={{ background: "rgba(255,255,255,.5)" }}>
+          <span className="ico h-9 w-9 shrink-0"><Icon name="therapy" width={17} weight="bold" color="var(--edge)" /></span>
+          <span className="t-sub min-w-0 flex-1 font-bold leading-tight">Запросить доступ к кабинету психолога</span>
+          <Arrow />
+        </button>
+      )}
+      <VerificationSheet open={sheet} onClose={() => setSheet(false)} />
+    </>
   );
 }
 

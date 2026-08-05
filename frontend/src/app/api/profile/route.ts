@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 type Row = {
   name: string; primaryMethod: string; experienceYears: number; sessionPrice: number;
   sessionMinutes: number; format: string; city: string; status: string; data: unknown;
+  rejectReason?: string | null; submittedAt?: Date | null;
 };
 
 const toDTO = (row: Row) => ({
@@ -23,6 +24,8 @@ const toDTO = (row: Row) => ({
   sessionMinutes: row.sessionMinutes,
   format: row.format,
   status: row.status,
+  rejectReason: row.rejectReason ?? null,
+  submittedAt: row.submittedAt ?? null,
 });
 
 const FILTERABLE = new Set([
@@ -71,7 +74,9 @@ export async function PUT(req: NextRequest) {
 
     const row = await prisma.psyProfile.upsert({
       where: { userId: user.id },
-      create: { userId: user.id, ...fields, status: "review" },
+      // Сохранить анкету — не то же самое, что подать заявку: на модерацию
+      // отправляет только /profile/verification.
+      create: { userId: user.id, ...fields, status: "draft" },
       update: fields,
     });
     return NextResponse.json(toDTO(row));

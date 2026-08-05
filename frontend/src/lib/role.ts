@@ -13,9 +13,12 @@ export const ROLE_LABEL: Record<Role, string> = {
 const KEY = "psy_demo_role";
 const EVENT = "opora-role-change";
 
+// Роль по умолчанию — клиент. Кабинет психолога открывается только тем, кто
+// выбрал эту роль в онбординге или подал заявку: дефолт «психолог» означал,
+// что любой новый человек сразу попадал в чужой по смыслу кабинет.
 export function getRole(): Role {
-  if (typeof window === "undefined") return "psychologist";
-  return (localStorage.getItem(KEY) as Role) || "psychologist";
+  if (typeof window === "undefined") return "client";
+  return (localStorage.getItem(KEY) as Role) || "client";
 }
 
 export function setRole(role: Role) {
@@ -38,7 +41,7 @@ export function getRoleIntent(): Role | null {
 }
 
 export function useRole(): [Role, (r: Role) => void] {
-  const [role, setLocal] = useState<Role>("psychologist");
+  const [role, setLocal] = useState<Role>("client");
 
   useEffect(() => {
     setLocal(getRole());

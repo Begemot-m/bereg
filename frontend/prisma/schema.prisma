@@ -13,7 +13,7 @@ model User {
   telegramId BigInt    @unique
   username   String?
   firstName  String?
-  role       String    @default("psychologist") // psychologist | client
+  role       String    @default("client") // psychologist | client
   /// Администратор платформы. Ставится вручную в базе: через интерфейс выдать
   /// нельзя, иначе первый же баг в правах раздаёт админку.
   isAdmin    Boolean   @default(false)
@@ -189,8 +189,13 @@ model PsyProfile {
   sessionMinutes  Int      @default(50)
   format          String   @default("online") // online | offline | both
   city            String   @default("")
-  /// review — на модерации, approved — опубликована в каталоге
-  status          String   @default("review")
+  /// draft — анкета заполняется, review — на модерации, approved — опубликована
+  /// в каталоге, rejected — отказ с причиной в rejectReason.
+  status          String   @default("draft")
+  /// Почему отказали. Без причины человек не понимает, что переснять, и уходит.
+  rejectReason    String?
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
   data            Json     @default("{}")
   updatedAt       DateTime @updatedAt
 
