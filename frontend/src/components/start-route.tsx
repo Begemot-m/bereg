@@ -1,8 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
 // Telegram отдаёт метку из ссылки t.me/<bot>?startapp=<payload> в start_param.
 // По ней приложение открывается сразу на нужном экране, а не на главной.
 type InitData = { start_param?: string };
@@ -36,21 +33,7 @@ export function hasBookingDeepLink(): boolean {
   return Boolean(payload && target(payload));
 }
 
-export function StartRoute() {
-  const router = useRouter();
-  useEffect(() => {
-    let tries = 0;
-    const run = () => {
-      const payload = startParam();
-      // Скрипт Telegram подключается после гидрации — ждём его недолго.
-      if (!payload) {
-        if (tries++ < 20) window.setTimeout(run, 150);
-        return;
-      }
-      const href = target(payload);
-      if (href) router.replace(href);
-    };
-    run();
-  }, [router]);
-  return null;
-}
+// Сам разбор ссылки живёт в AppShell: там он выполняется один раз за сеанс.
+// Второй такой же эффект в layout перезапускался на каждой перерисовке дерева,
+// крутил трёхсекундный поллинг и уводил человека в каталог с открытым окном
+// записи прямо из того раздела, куда он только что зашёл.

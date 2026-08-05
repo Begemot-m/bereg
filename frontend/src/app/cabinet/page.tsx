@@ -308,7 +308,11 @@ function useCanSwitchRole() {
   useEffect(() => setIntent(getRoleIntent()), []);
 
   const status = verification.data?.status ?? "none";
-  const isPsy = me.data?.role === "psychologist";
+  // В демо сервера нет, и `me.role` там всегда «психолог» — заглушка, чтобы
+  // прототип показывал кабинет специалиста. Верить ей нельзя: иначе тумблер
+  // видит и тот, кто выбрал в онбординге клиента. В демо решает только выбор
+  // роли и заявка.
+  const isPsy = !DEMO && me.data?.role === "psychologist";
   return {
     ready: !me.isLoading,
     loaded: Boolean(me.data),
