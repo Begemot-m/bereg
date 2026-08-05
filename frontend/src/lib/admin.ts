@@ -35,6 +35,20 @@ export type Stats = {
   verification: { review: number; approved: number };
 };
 
+export type SupportRow = {
+  id: number; topic: string; text: string; contact: string | null;
+  createdAt: string; handledAt: string | null;
+  userId: number | null; name: string; username: string | null; email: string | null;
+};
+
+export type SupportInbox = { open: SupportRow[]; handled: SupportRow[] };
+
+export type AuditRow = {
+  id: string; action: string; entity: string | null; entityId: string | null;
+  ip: string | null; meta: unknown; createdAt: string;
+  actorId: number | null; actor: string;
+};
+
 export type UserRow = {
   id: number; name: string; username: string | null; email: string | null;
   role: string; isAdmin: boolean; blocked: boolean; deleted: boolean;
@@ -122,6 +136,76 @@ function demoRead(): PsyApplication[] {
   return JSON.parse(raw) as PsyApplication[];
 }
 
+const SUPPORT_KEY = "bereg_demo_support";
+const ROLES_KEY = "bereg_demo_roles";
+
+const SUPPORT_SEED: SupportRow[] = [
+  {
+    id: 1, topic: "billing", userId: 101, name: "Анна Ковалёва", username: "anna_kov",
+    email: "anna@example.com", contact: null,
+    text: "Оплатила PRO, деньги списались, а в кабинете всё ещё бесплатный тариф. Чек приложила в чат бота.",
+    createdAt: "2026-08-03T07:40:00.000Z", handledAt: null,
+  },
+  {
+    id: 2, topic: "bug", userId: null, name: "гость", username: null, email: null,
+    contact: "t.me/marina_s",
+    text: "Не могу войти по почте: письмо с кодом не приходит уже второй день.",
+    createdAt: "2026-08-04T19:15:00.000Z", handledAt: null,
+  },
+  {
+    id: 3, topic: "data", userId: 203, name: "Марина", username: "marina_s",
+    email: null, contact: null,
+    text: "Прошу удалить мои данные из карточки клиента у психолога.",
+    createdAt: "2026-07-30T10:05:00.000Z", handledAt: "2026-07-30T12:20:00.000Z",
+  },
+];
+
+const AUDIT_SEED: AuditRow[] = [
+  {
+    id: "a1", action: "admin.psy.approve", entity: "PsyProfile", entityId: "101",
+    ip: "213.139.208.92", meta: {}, createdAt: "2026-08-04T09:12:00.000Z",
+    actorId: 1, actor: "Матвей",
+  },
+  {
+    id: "a2", action: "admin.grant_pro", entity: "Subscription", entityId: "101",
+    ip: "213.139.208.92", meta: { days: 30, note: "выдано из админки" },
+    createdAt: "2026-08-04T09:10:00.000Z", actorId: 1, actor: "Матвей",
+  },
+  {
+    id: "a3", action: "consent.grant", entity: "Consent", entityId: "203",
+    ip: null, meta: { kind: "data" }, createdAt: "2026-08-03T18:02:00.000Z",
+    actorId: 203, actor: "Марина",
+  },
+  {
+    id: "a4", action: "admin.block", entity: "User", entityId: "404",
+    ip: "213.139.208.92", meta: {}, createdAt: "2026-08-01T14:30:00.000Z",
+    actorId: 1, actor: "Матвей",
+  },
+  {
+    id: "a5", action: "login", entity: "Session", entityId: "102",
+    ip: null, meta: {}, createdAt: "2026-08-01T08:00:00.000Z",
+    actorId: 102, actor: "Игорь Демьянов",
+  },
+];
+
+function demoStore<T>(key: string, seed: T): T {
+  if (typeof window === "undefined") return seed;
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    localStorage.setItem(key, JSON.stringify(seed));
+    return seed;
+  }
+  return JSON.parse(raw) as T;
+}
+
+function demoSupport(): SupportRow[] {
+  return demoStore(SUPPORT_KEY, SUPPORT_SEED);
+}
+
+function demoRoles(): Record<string, string> {
+  return demoStore<Record<string, string>>(ROLES_KEY, {});
+}
+
 export function useAdminStats() {
   return useQuery<Stats>({
     queryKey: ["admin-stats"],
@@ -132,7 +216,7 @@ export function useAdminStats() {
           users: { total: 128, newWeek: 11, psychologists: 34, blocked: 1, activeWeek: 47 },
           subscriptions: { paid: 12, granted: 3, pending: 2 },
           usage: { clients: 214, appointments: 963, appointmentsMonth: 187 },
-          support: { open: 2 },
+          support: { open: demoSupport().filter((r) => !r.handledAt).length },
           verification: { review: queue, approved: 28 },
         };
       }
@@ -149,12 +233,15 @@ export function useAdminUsers(q: string, page: number) {
     queryFn: async () => {
       if (DEMO) {
         const needle = q.trim().toLowerCase();
-        const items = DEMO_USERS.filter((u) =>
-          !needle ||
-          u.name.toLowerCase().includes(needle) ||
-          (u.username ?? "").toLowerCase().includes(needle) ||
-          (u.email ?? "").toLowerCase().includes(needle),
-        );
+        const roles = demoRoles();
+        const items = DEMO_USERS
+          .map((u) => (roles[u.id] ? { ...u, role: roles[u.id] } : u))
+          .filter((u) =>
+            !needle ||
+            u.name.toLowerCase().includes(needle) ||
+            (u.username ?? "").toLowerCase().includes(needle) ||
+            (u.email ?? "").toLowerCase().includes(needle),
+          );
         return { items, total: items.length, pages: 1 };
       }
       return apiFetch(`/admin/users?q=${encodeURIComponent(q)}&page=${page}`);
@@ -163,11 +250,23 @@ export function useAdminUsers(q: string, page: number) {
   });
 }
 
+export type AdminUserAction = {
+  grantPro?: { days: number; note?: string };
+  revokePro?: boolean;
+  blocked?: boolean;
+  role?: "client" | "psychologist";
+};
+
 export function useUserAction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, body }: { id: number; body: unknown }) => {
-      if (DEMO) return;
+    mutationFn: async ({ id, body }: { id: number; body: AdminUserAction }) => {
+      if (DEMO) {
+        if (body.role) {
+          localStorage.setItem(ROLES_KEY, JSON.stringify({ ...demoRoles(), [id]: body.role }));
+        }
+        return;
+      }
       await apiFetch(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });
     },
     onSuccess: () => {
@@ -220,5 +319,59 @@ export function useReviewVerification() {
       qc.invalidateQueries({ queryKey: ["admin-verification"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
+  });
+}
+
+export function useSupportInbox() {
+  return useQuery<SupportInbox>({
+    queryKey: ["admin-support"],
+    queryFn: async () => {
+      if (DEMO) {
+        const all = demoSupport();
+        return {
+          open: all.filter((r) => !r.handledAt),
+          handled: all.filter((r) => r.handledAt).slice(0, 10),
+        };
+      }
+      return apiFetch<SupportInbox>("/admin/support");
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
+export function useSupportAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reply, reopen }: { id: number; reply?: string; reopen?: boolean }) => {
+      if (DEMO) {
+        const next = demoSupport().map((r) =>
+          r.id === id ? { ...r, handledAt: reopen ? null : new Date().toISOString() } : r,
+        );
+        localStorage.setItem(SUPPORT_KEY, JSON.stringify(next));
+        return;
+      }
+      const body = reopen ? { action: "reopen" } : { action: "handle", ...(reply ? { reply } : {}) };
+      await apiFetch(`/admin/support/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-support"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+  });
+}
+
+export function useAuditLog(action: string, page: number, enabled: boolean) {
+  return useQuery<{ items: AuditRow[]; total: number; pages: number }>({
+    queryKey: ["admin-audit", action, page],
+    enabled,
+    queryFn: async () => {
+      if (DEMO) {
+        const items = AUDIT_SEED.filter((r) => !action || r.action.startsWith(action));
+        return { items, total: items.length, pages: 1 };
+      }
+      return apiFetch(`/admin/audit?action=${encodeURIComponent(action)}&page=${page}`);
+    },
+    retry: false,
   });
 }

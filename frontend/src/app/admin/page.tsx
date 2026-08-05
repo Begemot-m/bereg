@@ -8,21 +8,33 @@ import { Input, SkeletonRow } from "@/components/ui";
 import {
   useAdminStats, useAdminUsers, useUserAction,
   useReviewVerification, useVerificationQueue,
-  type PsyApplication,
+  useAuditLog, useSupportAction, useSupportInbox,
+  type PsyApplication, type SupportRow,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "2-digit" });
+const timeF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+const TOPICS: Record<string, string> = {
+  bug: "не работает", billing: "оплата", data: "данные", other: "другое",
+};
 
 export default function AdminPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [auditFilter, setAuditFilter] = useState("");
+  const [auditPage, setAuditPage] = useState(0);
 
   const stats = useAdminStats();
   const users = useAdminUsers(q, page);
   const act = useUserAction();
   const verification = useVerificationQueue();
   const review = useReviewVerification();
+  const support = useSupportInbox();
+  const supportAct = useSupportAction();
+  const auditLog = useAuditLog(auditFilter, auditPage, auditOpen);
 
   // 403 приходит всем, кто не админ: страницу просто не показываем.
   if (users.isError || stats.isError) {
@@ -73,6 +85,60 @@ export default function AdminPage() {
                     {a.name} — {a.status === "approved" ? "подтверждён" : `отказ: ${a.rejectReason ?? "без причины"}`}
                     {a.reviewedAt && ` · ${dateF.format(new Date(a.reviewedAt))}`}
                   </p>
+                ))}
+              </div>
+            </details>
+          )}
+        </section>
+
+        {/* Поддержка — второе по срочности: человек уже написал и ждёт. */}
+        <section>
+          <p className="t-micro mb-2">
+            Обращения
+            {(support.data?.open.length ?? 0) > 0 && (
+              <span className="chip chip-strong ml-1.5">{support.data?.open.length}</span>
+            )}
+          </p>
+
+          {support.isLoading && <SkeletonRow />}
+          {support.data?.open.length === 0 && <p className="t-cap">Разобрано. Новые обращения появятся здесь.</p>}
+
+          <div className="space-y-2">
+            {support.data?.open.map((r) => (
+              <SupportCard
+                key={r.id}
+                r={r}
+                busy={supportAct.isPending}
+                onHandle={() => { tap(); supportAct.mutate({ id: r.id }); }}
+                onReply={() => {
+                  const reply = prompt(
+                    r.userId
+                      ? `Ответ уйдёт ${r.name} уведомлением. Что написать?`
+                      : `У гостя нет аккаунта — ответ придётся отправить на ${r.contact ?? "указанный контакт"} руками. Обращение просто закроется.`,
+                  )?.trim();
+                  if (reply) supportAct.mutate({ id: r.id, reply });
+                }}
+              />
+            ))}
+          </div>
+
+          {(support.data?.handled.length ?? 0) > 0 && (
+            <details className="mt-2">
+              <summary className="t-cap cursor-pointer">Недавно разобранные</summary>
+              <div className="mt-2 space-y-1.5">
+                {support.data?.handled.map((r) => (
+                  <div key={r.id} className="flex items-start gap-2">
+                    <p className="t-cap min-w-0 flex-1">
+                      {r.name} · {TOPICS[r.topic] ?? r.topic} — {r.text.slice(0, 90)}
+                      {r.text.length > 90 && "…"}
+                    </p>
+                    <button
+                      onClick={() => { tap(); supportAct.mutate({ id: r.id, reopen: true }); }}
+                      className="t-cap shrink-0 underline"
+                    >
+                      вернуть
+                    </button>
+                  </div>
                 ))}
               </div>
             </details>
@@ -135,7 +201,7 @@ export default function AdminPage() {
                       {u.username ? `@${u.username}` : "без ника"} · {u.email ?? "без почты"} · с {dateF.format(new Date(u.createdAt))}
                     </p>
                     <p className="t-cap mt-0.5">
-                      {u.clients} клиентов · {u.appointments} сессий
+                      {u.role === "psychologist" ? "психолог" : "клиент"} · {u.clients} клиентов · {u.appointments} сессий
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
@@ -163,6 +229,18 @@ export default function AdminPage() {
                     </button>
                   )}
                   <button
+                    onClick={() => {
+                      const next = u.role === "psychologist" ? "client" : "psychologist";
+                      const warn = next === "client"
+                        ? `Сделать ${u.name} клиентом? Анкета уйдёт из каталога, клиенты и записи останутся.`
+                        : `Сделать ${u.name} психологом? В каталог он попадёт только после проверки анкеты.`;
+                      if (confirm(warn)) act.mutate({ id: u.id, body: { role: next } });
+                    }}
+                    className="btn btn-white px-3 py-1.5 text-[11px]"
+                  >
+                    {u.role === "psychologist" ? "в клиенты" : "в психологи"}
+                  </button>
+                  <button
                     onClick={() => { if (confirm(u.blocked ? `Разблокировать ${u.name}?` : `Заблокировать ${u.name}? Он выйдет из всех сессий.`)) act.mutate({ id: u.id, body: { blocked: !u.blocked } }); }}
                     className="btn ml-auto px-3 py-1.5 text-[11px]"
                     style={u.blocked ? undefined : { background: "var(--danger)", borderColor: "var(--danger)" }}
@@ -181,6 +259,54 @@ export default function AdminPage() {
               <button disabled={page + 1 >= (users.data?.pages ?? 1)} onClick={() => setPage((p) => p + 1)} className="btn btn-white px-3 py-1.5 text-[12px] disabled:opacity-40">Дальше</button>
             </div>
           )}
+        </section>
+
+        {/* Журнал. Грузим только когда открыли: на каждый заход он не нужен,
+            а записей там больше, чем всего остального вместе взятого. */}
+        <section>
+          <details onToggle={(e) => setAuditOpen((e.currentTarget as HTMLDetailsElement).open)}>
+            <summary className="t-micro cursor-pointer">Журнал действий</summary>
+
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {[["", "всё"], ["admin.", "админка"], ["login", "входы"], ["consent", "согласия"]].map(([value, label]) => (
+                <button
+                  key={label}
+                  onClick={() => { tap(); setAuditFilter(value); setAuditPage(0); }}
+                  className={auditFilter === value ? "chip chip-strong" : "chip"}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-2 space-y-1.5">
+              {auditLog.isLoading && <SkeletonRow />}
+              {auditLog.data?.items.length === 0 && <p className="t-cap">Пусто.</p>}
+              {auditLog.data?.items.map((r) => (
+                <div key={r.id} className="card-soft p-2.5">
+                  <p className="t-cap">
+                    <span className="font-semibold">{r.action}</span>
+                    {r.entity && ` · ${r.entity}${r.entityId ? ` #${r.entityId}` : ""}`}
+                  </p>
+                  <p className="t-cap mt-0.5">
+                    {r.actor} · {timeF.format(new Date(r.createdAt))}
+                    {r.ip && ` · ${r.ip}`}
+                  </p>
+                  {r.meta != null && Object.keys(r.meta as object).length > 0 && (
+                    <p className="t-cap mt-0.5 break-all opacity-70">{JSON.stringify(r.meta)}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {(auditLog.data?.pages ?? 0) > 1 && (
+              <div className="mt-3 flex items-center justify-between">
+                <button disabled={auditPage === 0} onClick={() => setAuditPage((p) => p - 1)} className="btn btn-white px-3 py-1.5 text-[12px] disabled:opacity-40">Назад</button>
+                <span className="t-cap">{auditPage + 1} из {auditLog.data?.pages}</span>
+                <button disabled={auditPage + 1 >= (auditLog.data?.pages ?? 1)} onClick={() => setAuditPage((p) => p + 1)} className="btn btn-white px-3 py-1.5 text-[12px] disabled:opacity-40">Дальше</button>
+              </div>
+            )}
+          </details>
         </section>
 
         <p className="t-cap">
@@ -223,6 +349,36 @@ function Application({ a, busy, onApprove, onReject }: {
         </button>
         <button disabled={busy} onClick={() => { tap(); onReject(); }} className="btn btn-white px-3 py-1.5 text-[11px] disabled:opacity-40">
           На доработку
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SupportCard({ r, busy, onHandle, onReply }: {
+  r: SupportRow;
+  busy: boolean;
+  onHandle: () => void;
+  onReply: () => void;
+}) {
+  return (
+    <div className="card p-3">
+      <div className="flex items-start gap-2">
+        <p className="t-head min-w-0 flex-1 truncate">{r.name}</p>
+        <span className="chip shrink-0">{TOPICS[r.topic] ?? r.topic}</span>
+      </div>
+      <p className="t-cap mt-0.5 truncate">
+        {r.username ? `@${r.username}` : r.contact ?? "без контакта"}
+        {r.email && ` · ${r.email}`} · {timeF.format(new Date(r.createdAt))}
+      </p>
+      <p className="t-body mt-1.5 whitespace-pre-line">{r.text}</p>
+
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <button disabled={busy} onClick={() => { tap(); onReply(); }} className="btn btn-accent px-3 py-1.5 text-[11px] disabled:opacity-40">
+          Ответить и закрыть
+        </button>
+        <button disabled={busy} onClick={onHandle} className="btn btn-white px-3 py-1.5 text-[11px] disabled:opacity-40">
+          Просто закрыть
         </button>
       </div>
     </div>

@@ -15,6 +15,7 @@ const patchSchema = z.object({
   grantPro: z.object({ days: z.coerce.number().int().min(1).max(365), note: z.string().max(200).optional() }).optional(),
   revokePro: z.boolean().optional(),
   blocked: z.boolean().optional(),
+  role: z.enum(["client", "psychologist"]).optional(),
 });
 
 /**
@@ -76,6 +77,37 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       });
       await prisma.auditLog.create({
         data: { userId: admin.id, action: "admin.revoke_pro", entity: "Subscription", entityId: String(userId), ip },
+      });
+    }
+
+    if (body.role && body.role !== target.role) {
+      await prisma.user.update({ where: { id: userId }, data: { role: body.role } });
+
+      // Каталог смотрит на анкету, а не на роль: оставить одобренную анкету
+      // у бывшего психолога — значит держать в каталоге человека, который
+      // больше не принимает. Снимаем с публикации, текст анкеты остаётся.
+      const unpublished = body.role === "client"
+        ? (await prisma.psyProfile.updateMany({
+            where: { userId, status: "approved" },
+            data: { status: "draft", reviewedAt: null },
+          })).count > 0
+        : false;
+
+      await prisma.notification.create({
+        data: {
+          userId,
+          kind: "system",
+          text: body.role === "psychologist"
+            ? "Ваша роль изменена на «психолог». Чтобы попасть в каталог, отправьте анкету на проверку."
+            : "Ваша роль изменена на «клиент». Анкета снята с публикации в каталоге.",
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: admin.id, action: "admin.role.change", entity: "User", entityId: String(userId), ip,
+          meta: { from: target.role, to: body.role, unpublished },
+        },
       });
     }
 
