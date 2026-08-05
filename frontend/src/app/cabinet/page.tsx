@@ -22,7 +22,7 @@ import { useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
-import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
+import { getRoleIntent, ROLE_LABEL, useRole, type Role } from "@/lib/role";
 
 const ROLES: Role[] = ["psychologist", "client"];
 const PSY_APPLY_LINK = "https://t.me/+79117230099";
@@ -292,18 +292,23 @@ function EmailLink() {
   );
 }
 
-// Переключатель ролей доступен только тем, у кого аккаунт психолога. Остальным —
-// заявка на регистрацию в качестве психолога.
+// Переключатель ролей видят те, у кого учётная запись психолога, и те, кто в
+// онбординге выбрал психолога, — им платформа ещё пригодится в обеих ролях.
+// Тот, кто вошёл клиентом и психологом не зарегистрирован, вместо тумблера
+// получает заявку.
 function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
   const me = useMe();
+  const [intent, setIntent] = useState<Role | null>(null);
+  useEffect(() => setIntent(getRoleIntent()), []);
   const isPsy = me.data?.role === "psychologist";
+  const canSwitch = isPsy || intent === "psychologist";
 
   useEffect(() => {
-    if (me.data && !isPsy && role === "psychologist") onSwitch("client");
-  }, [me.data, isPsy, role]);
+    if (me.data && !canSwitch && role === "psychologist") onSwitch("client");
+  }, [me.data, canSwitch, role]);
 
   if (me.isLoading) return null;
-  if (isPsy) return <RoleSwitch role={role} onSwitch={onSwitch} />;
+  if (canSwitch) return <RoleSwitch role={role} onSwitch={onSwitch} />;
 
   return (
     <a href={PSY_APPLY_LINK} target="_blank" rel="noopener noreferrer" onClick={() => tap()} className="flex items-center gap-2.5 rounded-[17px] p-3 stroke" style={{ background: "rgba(255,255,255,.5)" }}>

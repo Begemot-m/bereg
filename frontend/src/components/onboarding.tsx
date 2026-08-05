@@ -7,7 +7,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { APP_NAME } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { completeOnboarding, tgUser } from "@/lib/profile";
-import { setRole, type Role } from "@/lib/role";
+import { setRole, setRoleIntent, type Role } from "@/lib/role";
 import { FREE_CLIENT_LIMIT } from "@/lib/subscription";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -127,7 +127,7 @@ export function Onboarding() {
             ) : isWelcome ? (
               <Welcome onNext={next} />
             ) : isRole ? (
-              <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); if (r === "psychologist") setPsySell(true); else finish(); }} />
+              <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); setRoleIntent(r); if (r === "psychologist") setPsySell(true); else finish(); }} />
             ) : (
               <div className="flex flex-1 flex-col">
                 <span className="mt-[clamp(12px,3vh,24px)] inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>

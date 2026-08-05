@@ -15,8 +15,8 @@ import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 // Интерактивные клиентские практики.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
-  { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.png", bg: "#d9edf3", edge: "#5f95ab" },
-  { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики и вести историю", time: "2–7 мин", image: "/practices/automatic-thoughts.png", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
+  { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.webp", bg: "#d9edf3", edge: "#5f95ab" },
+  { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики и вести историю", time: "2–7 мин", image: "/practices/automatic-thoughts.webp", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
 ];
 
 type PracticeHistory = { tech: TechKey; completedAt: string; before?: number; after?: number }[];
@@ -66,7 +66,7 @@ function ClientTools() {
               return <Reveal key={t.tech} delay={0.03 + i * 0.04}>
                 <button onClick={() => { tap(); setTech(t.tech); }} className="group flex min-h-[226px] w-full flex-col overflow-hidden rounded-[19px] text-left transition-transform duration-200 active:scale-[.98]" style={{ background: t.bg, border: `2px solid ${t.edge}` }}>
                   <div className="relative flex h-[118px] items-center justify-center overflow-hidden">
-                    <img src={asset(t.image)} alt="" className="h-[118px] w-[118px] object-contain transition-transform duration-300 group-hover:scale-[1.04]" />
+                    <img src={asset(t.image)} alt="" loading="lazy" decoding="async" className="h-[118px] w-[118px] object-contain transition-transform duration-300 group-hover:scale-[1.04]" />
                     <span className="chip absolute right-2 top-2 bg-white">{t.time}</span>
                   </div>
                   <div className="flex flex-1 flex-col bg-white p-3">

@@ -42,3 +42,10 @@ backups/
 # Скрипт деплоя оставляет их после sed -i.bak и при откате.
 deploy/.env.bak
 deploy/.previous-image
+
+# Картинки переведены в webp (8.7 МБ -> 1.4 МБ). Исходные png остаются
+# локально, но в сборку не едут: на мобильной сети они и были тем, что
+# «долго грузилось».
+frontend/public/mascots/*.png
+frontend/public/mood/*.png
+frontend/public/practices/*.png

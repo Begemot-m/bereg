@@ -16,7 +16,7 @@ export const ANIMALS: Animal[] = [
   { key: "chicken", name: "Цыплёнок" }, { key: "owl", name: "Совёнок" }, { key: "butterfly", name: "Бабочка" }, { key: "bee", name: "Пчёлка" },
 ];
 export const animalName = (key: string) => ANIMALS.find((a) => a.key === key)?.name ?? "Котик";
-export const mascotSrc = (animal: string, mood: number) => asset(`/mascots/${animal}-${MOOD_KEY[mood]}.png`);
+export const mascotSrc = (animal: string, mood: number) => asset(`/mascots/${animal}-${MOOD_KEY[mood]}.webp`);
 
 const KEY = "bereg_mood_animal";
 const EVENT = "bereg-animal-change";

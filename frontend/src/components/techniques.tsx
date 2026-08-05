@@ -25,8 +25,8 @@ export type TechKey = "breathing" | "thought";
 type HistoryItem = { id: string; tech: TechKey; completedAt: string; before?: number; after?: number; score?: number; protocol?: string; duration?: number };
 
 export const TECH_META: Record<TechKey, { title: string; short: string; tone: Tone; icon: IconName; based: string; image: string }> = {
-  breathing: { title: "Спокойное дыхание", short: "Дыхание", tone: "sky", icon: "pulse", based: "медленный ритм дыхания", image: "/practices/breathing-practice.png" },
-  thought: { title: "Дневник мыслей", short: "Дневник", tone: "purple", icon: "note", based: "когнитивная модель КПТ", image: "/practices/automatic-thoughts.png" },
+  breathing: { title: "Спокойное дыхание", short: "Дыхание", tone: "sky", icon: "pulse", based: "медленный ритм дыхания", image: "/practices/breathing-practice.webp" },
+  thought: { title: "Дневник мыслей", short: "Дневник", tone: "purple", icon: "note", based: "когнитивная модель КПТ", image: "/practices/automatic-thoughts.webp" },
 };
 
 function loadHistory(): HistoryItem[] {

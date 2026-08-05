@@ -116,9 +116,9 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
   );
 }
 
-const MOOD_BODY_MASK = asset("/mood/character-body-mask.png");
-const MOOD_EYES = asset("/mood/character-eyes.png");
-const MOOD_MOUTHS = [1, 2, 3, 4, 5].map((level) => asset(`/mood/character-mouth-v3-${level}.png`));
+const MOOD_BODY_MASK = asset("/mood/character-body-mask.webp");
+const MOOD_EYES = asset("/mood/character-eyes.webp");
+const MOOD_MOUTHS = [1, 2, 3, 4, 5].map((level) => asset(`/mood/character-mouth-v3-${level}.webp`));
 const MOOD_MOUTH_WIDTH = [26, 17, 16, 23, 24];
 
 export function MoodHead({ value }: { value: number }) {
