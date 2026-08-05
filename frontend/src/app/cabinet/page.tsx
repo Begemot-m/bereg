@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -16,15 +16,15 @@ import { VerificationBanner, VerificationSheet } from "@/components/psy-verifica
 import { RemindersModule } from "@/components/reminders";
 import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
-import { Card, Input } from "@/components/ui";
+import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch } from "@/lib/api";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
-import { select, tap } from "@/lib/haptics";
+import { select, success, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
-import { getRoleIntent, ROLE_LABEL, useRole, type Role } from "@/lib/role";
+import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
@@ -304,8 +304,7 @@ function EmailLink() {
 function useCanSwitchRole() {
   const me = useMe();
   const verification = useVerification();
-  const [intent, setIntent] = useState<Role | null>(null);
-  useEffect(() => setIntent(getRoleIntent()), []);
+  const intent = useRoleIntent();
 
   const status = verification.data?.status ?? "none";
   // В демо сервера нет, и `me.role` там всегда «психолог» — заглушка, чтобы
@@ -341,27 +340,66 @@ function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => vo
   );
 }
 
-// Заявка на роль психолога — в самом низу кабинета. Внутренним экраном:
-// внешняя ссылка в Telegram рвёт сеанс, и человек оттуда уже не возвращается.
+// Переход в психологи — в самом низу кабинета. Анкеты тут больше нет: роль
+// даётся сразу, а данные о себе человек заполняет уже в профиле специалиста.
 function PsyRoleRequest() {
   const { ready, canSwitch } = useCanSwitchRole();
-  const [sheet, setSheet] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   if (!ready || canSwitch) return null;
+
+  const become = () => {
+    success();
+    setRoleIntent("psychologist");
+    setRole("psychologist");
+    setConfirming(false);
+  };
 
   return (
     <div>
       <SectionTitle>Работаете психологом?</SectionTitle>
-      <button onClick={() => { tap(); setSheet(true); }} className="card flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]">
+      <button onClick={() => { tap(); setConfirming(true); }} className="card flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]">
         <span className="ico ico-mid h-11 w-11 shrink-0"><Icon name="therapy" width={20} weight="bold" color="#fff" /></span>
         <span className="min-w-0 flex-1">
           <span className="t-head block leading-tight">Получить роль психолога</span>
-          <span className="t-cap mt-0.5 block">Заявка на проверку диплома и доступ к кабинету специалиста</span>
+          <span className="t-cap mt-0.5 block">Кабинет специалиста: расписание, клиенты, каталог</span>
         </span>
         <Arrow />
       </button>
-      <VerificationSheet open={sheet} onClose={() => setSheet(false)} />
+      <RoleSwitchConfirm open={confirming} onClose={() => setConfirming(false)} onConfirm={become} />
     </div>
+  );
+}
+
+// Подтверждение смены роли. Всплывает снизу, как остальные шторки кабинета.
+function RoleSwitchConfirm({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3" onClick={onClose}>
+          <motion.div
+            initial={{ y: 42 }}
+            animate={{ y: 0 }}
+            exit={{ y: 42, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 34 }}
+            onClick={(event) => event.stopPropagation()}
+            className="chunk w-full max-w-md overflow-hidden bg-white p-5"
+          >
+            <div className="flex items-start gap-3">
+              <span className="ico ico-mid h-11 w-11 shrink-0"><Icon name="therapy" width={20} weight="bold" color="#fff" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="font-tight text-[18px] font-black leading-tight">Сменить роль на психолога?</p>
+                <p className="t-body mt-1.5">Кабинет переключится на профессиональный. После смены нужно будет заполнить профиль специалиста — без него вас не покажут в каталоге и нельзя приглашать клиентов.</p>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => { tap(); onClose(); }} className="btn btn-white flex-1">Отмена</button>
+              <Button className="flex-1" onClick={onConfirm}>Сменить</Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

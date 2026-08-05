@@ -33,11 +33,27 @@ const INTENT_KEY = "psy_role_intent";
 
 export function setRoleIntent(role: Role) {
   localStorage.setItem(INTENT_KEY, role);
+  window.dispatchEvent(new CustomEvent(EVENT));
 }
 
 export function getRoleIntent(): Role | null {
   if (typeof window === "undefined") return null;
   return (localStorage.getItem(INTENT_KEY) as Role) || null;
+}
+
+// Намерение читается так же, как роль: на сервере его нет, а меняться оно
+// может прямо в открытом кабинете — когда клиент переключается в психологи.
+export function useRoleIntent(): Role | null {
+  const [intent, setIntent] = useState<Role | null>(null);
+
+  useEffect(() => {
+    const read = () => setIntent(getRoleIntent());
+    read();
+    window.addEventListener(EVENT, read);
+    return () => window.removeEventListener(EVENT, read);
+  }, []);
+
+  return intent;
 }
 
 /**
