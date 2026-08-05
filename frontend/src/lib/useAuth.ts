@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { hasLiveSession, loginWithInitData } from "@/lib/api";
+import { hasLiveSession, loginWithInitData, LoginError, type LoginFailure } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
 import { getInitData, getTelegramWebApp, isTelegramMiniApp } from "@/lib/telegram";
 
@@ -12,6 +12,7 @@ export type AuthState = "loading" | "authed" | "anon";
 export function useAuth() {
   const [env, setEnv] = useState<Env>("desktop");
   const [state, setState] = useState<AuthState>("loading");
+  const [reason, setReason] = useState<LoginFailure>("rejected");
 
   useEffect(() => {
     // Демо: сразу авторизованы, показываем как в Telegram-приложении.
@@ -52,10 +53,13 @@ export function useAuth() {
           try {
             await loginWithInitData(initData);
             if (!cancelled) setState("authed");
-          } catch {
-            // Подпись не сошлась или initData просрочен: сервер отвечает 401.
-            // Показываем это словами, а не бесконечной загрузкой.
-            if (!cancelled) setState("anon");
+          } catch (error) {
+            // Сервер не поднят или отказал — говорим словами, а не бесконечной
+            // загрузкой, и не путаем недоступность с просроченной подписью.
+            if (!cancelled) {
+              setReason(error instanceof LoginError ? error.kind : "offline");
+              setState("anon");
+            }
           }
           return;
         }
@@ -72,5 +76,5 @@ export function useAuth() {
     };
   }, []);
 
-  return { env, state };
+  return { env, state, reason };
 }

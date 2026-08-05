@@ -3,16 +3,18 @@ import type { ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 
-export function TherapyDetailShell({ backHref, backLabel, title, subtitle, icon, children }: {
+export function TherapyDetailShell({ backHref, backLabel, title, subtitle, icon, accent = "tiffany", children }: {
   backHref: string;
   backLabel: string;
   title: string;
   subtitle: string;
   icon: IconName;
+  /** Тон экрана: заметки — тиффани, задания — лавандовый, как весь раздел. */
+  accent?: "tiffany" | "purple";
   children: ReactNode;
 }) {
   return (
-    <div data-accent="tiffany" className="-mx-4 -mt-6 min-h-full @md:-mx-9" style={{ background: "var(--page)" }}>
+    <div data-accent={accent} className="-mx-4 -mt-6 min-h-full @md:-mx-9" style={{ background: "var(--page)" }}>
       <header className="px-4 pb-14 pt-4 @md:px-9">
         <Link href={backHref} className="back-link mb-4">{backLabel}</Link>
         <div className="flex items-center gap-3">

@@ -51,11 +51,29 @@ export async function hasLiveSession(): Promise<boolean> {
   return (await fetch(`${API_URL}/auth/me`)).ok;
 }
 
+// Почему вход не состоялся: сервер не ответил вовсе или отказал.
+// Пользователю это разные истории, поэтому различаем их здесь.
+export type LoginFailure = "offline" | "rejected";
+
+export class LoginError extends Error {
+  constructor(readonly kind: LoginFailure, message: string) {
+    super(message);
+    this.name = "LoginError";
+  }
+}
+
 export async function loginWithInitData(initData: string): Promise<void> {
-  const res = await fetch(`${API_URL}/auth/telegram`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ init_data: initData }),
-  });
-  if (!res.ok) throw new Error(`Auth failed: ${await res.text()}`);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/auth/telegram`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ init_data: initData }),
+    });
+  } catch (error) {
+    throw new LoginError("offline", `Сервер недоступен: ${String(error)}`);
+  }
+  if (res.ok) return;
+  // 5xx — приложение на той стороне не поднялось; 4xx — данные не приняты.
+  throw new LoginError(res.status >= 500 ? "offline" : "rejected", `Auth failed: ${await res.text()}`);
 }

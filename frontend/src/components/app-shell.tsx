@@ -65,7 +65,7 @@ function Wordmark({ small }: { small?: boolean }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { env, state: authState } = useAuth();
+  const { env, state: authState, reason: authReason } = useAuth();
   const [role, setRole] = useRole();
   const pathname = usePathname();
   const router = useRouter();
@@ -163,7 +163,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Пока идёт вход, приложение не показываем: иначе экраны успевают отправить
   // запросы без токена, получить 401 и остаться в бесконечной загрузке.
   if (authState === "loading" || onboarded === null || fastEntry === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
-  if (authState === "anon") return <AuthGate env={env} />;
+  if (authState === "anon") return <AuthGate env={env} reason={authReason} />;
   if (!onboarded && !fastEntry) return <Onboarding />;
 
   return (

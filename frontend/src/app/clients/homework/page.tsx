@@ -19,5 +19,5 @@ function PsychologistHomeworkScreen() {
   const client = useQuery({ queryKey: ["client", id], queryFn: () => getClient(id), enabled: id > 0 });
   const homework = useQuery({ queryKey: ["homework", id], queryFn: () => listHomework(id), enabled: id > 0 });
   if (client.isLoading || homework.isLoading || !client.data) return <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>;
-  return <TherapyDetailShell backHref={`/clients/?id=${id}`} backLabel="Назад к клиенту" title="Задания" subtitle={client.data.name} icon="book"><PsychologistHomeworkDetail clientId={id} items={homework.data ?? []} onChanged={() => void qc.invalidateQueries({ queryKey: ["homework", id] })} /></TherapyDetailShell>;
+  return <TherapyDetailShell backHref={`/clients/?id=${id}`} backLabel="Назад к клиенту" title="Задания" subtitle={client.data.name} icon="book" accent="purple"><PsychologistHomeworkDetail clientId={id} items={homework.data ?? []} onChanged={() => void qc.invalidateQueries({ queryKey: ["homework", id] })} /></TherapyDetailShell>;
 }

@@ -158,8 +158,8 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy?booking=1" onClick={tap} className="card-lav group block p-5 text-left transition-transform duration-200 active:scale-[0.99]">
-      <div className="flex items-center gap-3.5">
+    <Link href="/therapy?booking=1" onClick={tap} className="card-lav group block p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <div className="flex items-center gap-3">
         <PsyAvatar name={booking.psyName} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
@@ -189,10 +189,10 @@ function ManageRow() {
 function PsyAvatar({ name }: { name: string }) {
   const psy = PSYS.find((item) => item.name === name);
   const portrait = psy ? asset(psy.portrait) : null;
-  if (!portrait) return <span className="ico ico-white h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--edge)" }}>{name.charAt(0)}</span>;
+  if (!portrait) return <span className="ico ico-white h-[64px] w-[64px] shrink-0 text-[28px] font-black" style={{ color: "var(--edge)" }}>{name.charAt(0)}</span>;
   return (
-    <span className="relative block h-[76px] w-[76px] shrink-0 overflow-hidden rounded-[18px] bg-white">
-      <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="76px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
+    <span className="relative block h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[18px] bg-white">
+      <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="64px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
     </span>
   );
 }
@@ -216,8 +216,8 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
     <div>
       {/* Фокус-блок наезжает на белый лист: как на референсе, он пересекает
           границу цветной шапки и нижней области. */}
-      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[150px] mt-7">{focus}</div>}</PageHead>
-      <div className="sheet relative z-0" style={focus ? { paddingTop: 158 } : undefined}>
+      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[132px] mt-6">{focus}</div>}</PageHead>
+      <div className="sheet relative z-0" style={focus ? { paddingTop: 136 } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index}>{child}</StaggerItem> : null)
@@ -234,7 +234,7 @@ const FOCUS_MID = "color-mix(in srgb, var(--peach-edge) 30%, var(--peach))";
 
 function FocusIcon({ icon, mid = false }: { icon: IconName; mid?: boolean }) {
   return (
-    <span className="ico h-[76px] w-[76px] shrink-0" style={mid ? { background: FOCUS_MID } : { background: "#fff" }}>
+    <span className="ico h-[64px] w-[64px] shrink-0" style={mid ? { background: FOCUS_MID } : { background: "#fff" }}>
       <Icon name={icon} width={30} weight="bold" color={mid ? "#fff" : "var(--edge)"} />
     </span>
   );
@@ -257,9 +257,9 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-lav group relative block overflow-hidden p-5 text-left transition-transform duration-200 active:scale-[0.99]">
-      <div className="flex items-center gap-3.5">
-        <span className="ico ico-white relative h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--purple-edge)" }}>
+    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-lav group relative block overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+      <div className="flex items-center gap-3">
+        <span className="ico ico-white relative h-[64px] w-[64px] shrink-0 text-[26px] font-black" style={{ color: "var(--purple-edge)" }}>
           {appointment.client.name.charAt(0)}
           {/* пульсирующая точка «скоро» */}
           <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
