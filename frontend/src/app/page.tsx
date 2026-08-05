@@ -159,26 +159,37 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   const date = new Date(booking.startsAt);
   return (
     <Link href="/therapy?booking=1" onClick={tap} className="card-lav group block p-4 text-left transition-transform duration-200 active:scale-[0.99]">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3.5">
         <PsyAvatar name={booking.psyName} />
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
-            {(() => { const b = whenBadge(booking.startsAt); return b && <span className="chip chip-strong uppercase">{b}</span>; })()}
-          </span>
-          <span className="t-title mt-1 block truncate text-[var(--ink)]">{booking.psyName}</span>
-          <span className="t-sub flex min-w-0 items-center gap-1.5" style={{ color: "var(--ink)" }}><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate font-black">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span></span>
+          <span className="t-micro block">Ближайшая сессия</span>
+          <span className="t-title mt-0.5 block truncate text-[var(--ink)]">{booking.psyName}</span>
+          <SessionWhen startsAt={booking.startsAt} date={date} format={formatLabel(booking.format)} />
+          <ManageRow />
         </span>
       </div>
-      <ManageRow />
     </Link>
+  );
+}
+
+// Дата — белой плашкой, статус («завтра», «сегодня») — средней лавандой.
+function SessionWhen({ startsAt, date, format }: { startsAt: string; date: Date; format: string }) {
+  const badge = whenBadge(startsAt);
+  return (
+    <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      <span className="tnum flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[12.5px] font-black text-[var(--ink)]">
+        <Icon name="calendar" width={12} weight="bold" color="var(--purple-edge)" />
+        {cap(dateTimeF.format(date))} · {format}
+      </span>
+      {badge && <span className="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.04em]" style={{ background: "var(--purple)", color: "var(--purple-edge)" }}>{badge}</span>}
+    </span>
   );
 }
 
 // Управление записью — вместо стрелки: шестерёнка и подпись в акценте.
 function ManageRow() {
   return (
-    <span className="mt-2.5 flex items-center gap-1.5" style={{ color: "var(--purple-edge)" }}>
+    <span className="mt-2 flex items-center gap-1.5" style={{ color: "var(--purple-edge)" }}>
       <Icon name="gear" width={15} weight="bold" color="currentColor" />
       <span className="text-[12.5px] font-black">Управление записью</span>
     </span>
@@ -189,10 +200,10 @@ function ManageRow() {
 function PsyAvatar({ name }: { name: string }) {
   const psy = PSYS.find((item) => item.name === name);
   const portrait = psy ? asset(psy.portrait) : null;
-  if (!portrait) return <span className="ico ico-white h-[64px] w-[64px] shrink-0 text-[28px] font-black" style={{ color: "var(--edge)" }}>{name.charAt(0)}</span>;
+  if (!portrait) return <span className="ico ico-white h-[80px] w-[80px] shrink-0 text-[32px] font-black" style={{ color: "var(--edge)" }}>{name.charAt(0)}</span>;
   return (
-    <span className="relative block h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[18px] bg-white">
-      <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="64px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
+    <span className="relative block h-[80px] w-[80px] shrink-0 overflow-hidden rounded-[22px] bg-white">
+      <Image src={portrait} alt={`Портрет: ${name}`} fill sizes="80px" className="object-cover" unoptimized={/^(data:|blob:)/i.test(portrait)} />
     </span>
   );
 }
@@ -220,7 +231,7 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
       <div className="sheet relative z-0" style={focus ? { paddingTop: 136 } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
-            ? children.map((child, index) => child ? <StaggerItem key={index}>{child}</StaggerItem> : null)
+            ? children.map((child, index) => child ? <StaggerItem key={index} className="empty:hidden">{child}</StaggerItem> : null)
             : <StaggerItem>{children}</StaggerItem>}
         </Stagger>
       </div>
@@ -255,25 +266,21 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
     );
   }
   const date = new Date(appointment.startsAt);
-  const badge = whenBadge(appointment.startsAt);
   return (
     <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-lav group relative block overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
-      <div className="flex items-center gap-3">
-        <span className="ico ico-white relative h-[64px] w-[64px] shrink-0 text-[26px] font-black" style={{ color: "var(--purple-edge)" }}>
+      <div className="flex items-center gap-3.5">
+        <span className="ico ico-white relative h-[80px] w-[80px] shrink-0 text-[32px] font-black" style={{ color: "var(--purple-edge)" }}>
           {appointment.client.name.charAt(0)}
           {/* пульсирующая точка «скоро» */}
           <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
         </span>
         <span className="relative min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
-            {badge && <span className="chip chip-strong uppercase">{badge}</span>}
-          </span>
-          <span className="t-title mt-1 block truncate text-[var(--ink)]">{appointment.client.name}</span>
-          <span className="t-sub flex min-w-0 items-center gap-1.5" style={{ color: "var(--ink)" }}><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate font-black">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
+          <span className="t-micro block">Ближайшая сессия</span>
+          <span className="t-title mt-0.5 block truncate text-[var(--ink)]">{appointment.client.name}</span>
+          <SessionWhen startsAt={appointment.startsAt} date={date} format={formatLabel(appointment.format)} />
+          <ManageRow />
         </span>
       </div>
-      <ManageRow />
     </Link>
   );
 }

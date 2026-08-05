@@ -209,10 +209,23 @@ export function ClientDetail() {
 
         {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutateAsync(!therapy.notesModule.psychologistEnabled)} href={`/clients/notes?id=${id}`} />}
 
-        {/* Настроение и динамика — выше колеса */}
-        {moods.length > 0 && <MoodStats moods={moods} title="Настроение клиента" />}
-
-        <WellbeingCard wheel={therapy?.wheel ?? null} subtitle="самооценка клиента · последние две недели" />
+        {/* Настроение и колесо баланса — одна миниатюра, раскрывается вниз */}
+        <div className="card-soft p-3">
+          <button onClick={() => { tap(); setStateOpen((v) => !v); }} className="card-plain flex w-full items-center gap-3 p-3 text-left" aria-expanded={stateOpen}>
+            <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="mood" width={20} weight="bold" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="t-head">Состояние клиента</p>
+              <p className="t-cap mt-1">{moods.length ? `Настроение и колесо баланса · ${moods.length} ${plural(moods.length, "отметка", "отметки", "отметок")}` : "Настроение и колесо баланса"}</p>
+            </div>
+            <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{stateOpen ? "↑" : "↓"}</span>
+          </button>
+          <Disclosure open={stateOpen}>
+            <div className="mt-2.5 space-y-3">
+              {moods.length > 0 && <MoodStats moods={moods} title="Настроение клиента" />}
+              <WellbeingCard wheel={therapy?.wheel ?? null} subtitle="самооценка клиента · последние две недели" />
+            </div>
+          </Disclosure>
+        </div>
 
         {/* История встреч — факт. Запланированную по тапу переносим на другое окно */}
         <div>

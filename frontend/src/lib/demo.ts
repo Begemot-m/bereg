@@ -104,7 +104,7 @@ function day(offset: number): string {
 function seed(): DB {
   const now = new Date().toISOString();
   const clients: Client[] = [
-    { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", link: "joined", invitedAt: null, notesModuleEnabled: true, notesModuleShared: true, notesModulePsychologist: true, createdAt: now, updatedAt: now },
+    { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
     { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
     { id: 3, name: "Алёна Ким", contact: "@alena_kim", note: "Выгорание, ресурс.", status: "therapy", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
     { id: 4, name: "Пётр Ланской", contact: "+7 916 200-14-08", note: "Пауза до осени по его инициативе.", status: "paused", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },

@@ -17,7 +17,8 @@ const HW_TONE: Record<HwStatus, string> = { assigned: "purple", doing: "purple",
 
 export function PsychologistHomeworkPreview({ items, href }: { items: Homework[]; href: string }) {
   const active = items.find((item) => item.status !== "done");
-  return <div className="card-soft p-3"><Link href={href} onClick={tap} className="card-plain flex items-center gap-3 p-3"><span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="book" width={20} weight="bold" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="t-head">Задания</p>{active && <span className="chip chip-strong">Активное</span>}</div><p className="t-cap mt-1 line-clamp-2">{active?.text ?? "Открыть страницу заданий"}</p></div><Arrow /></Link></div>;
+  const last = active ?? items[0];
+  return <div className="card-soft p-3"><Link href={href} onClick={tap} className="card-plain flex items-center gap-3 p-3"><span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="book" width={20} weight="bold" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="t-head">Задания</p>{active && <span className="chip chip-strong">Активное</span>}</div>{last ? <p className="t-cap mt-1 line-clamp-2"><span className="font-black text-[var(--ink)]">Последнее задание:</span> {last.text}</p> : <p className="t-cap mt-1">Заданий пока нет — откройте страницу, чтобы отправить первое</p>}</div><Arrow /></Link></div>;
 }
 
 export function PsychologistHomeworkDetail({ clientId, items, onChanged }: { clientId: number; items: Homework[]; onChanged: () => void }) {

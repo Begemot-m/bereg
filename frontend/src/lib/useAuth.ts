@@ -13,6 +13,8 @@ export function useAuth() {
   const [env, setEnv] = useState<Env>("desktop");
   const [state, setState] = useState<AuthState>("loading");
   const [reason, setReason] = useState<LoginFailure>("rejected");
+  // Ответ сервера дословно: без него «не удалось войти» невозможно чинить.
+  const [detail, setDetail] = useState("");
 
   useEffect(() => {
     // Демо: сразу авторизованы, показываем как в Telegram-приложении.
@@ -54,12 +56,17 @@ export function useAuth() {
             await loginWithInitData(initData);
             if (!cancelled) setState("authed");
           } catch (error) {
+            // Вход по initData не прошёл — это ещё не приговор. Человек мог
+            // заходить раньше: тогда на руках живая кука сессии, и выгонять его
+            // экраном «Не удалось войти» не за что.
+            const live = await hasLiveSession().catch(() => false);
+            if (cancelled) return;
+            if (live) { setState("authed"); return; }
             // Сервер не поднят или отказал — говорим словами, а не бесконечной
             // загрузкой, и не путаем недоступность с просроченной подписью.
-            if (!cancelled) {
-              setReason(error instanceof LoginError ? error.kind : "offline");
-              setState("anon");
-            }
+            setReason(error instanceof LoginError ? error.kind : "offline");
+            setDetail(error instanceof LoginError ? error.detail : String(error));
+            setState("anon");
           }
           return;
         }
@@ -76,5 +83,5 @@ export function useAuth() {
     };
   }, []);
 
-  return { env, state, reason };
+  return { env, state, reason, detail };
 }

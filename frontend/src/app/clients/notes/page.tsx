@@ -23,5 +23,5 @@ function PsychologistNotesScreen() {
   const therapy = useQuery({ queryKey: ["client-therapy", id], queryFn: () => getClientTherapy(id), enabled: id > 0 });
   const toggle = useMutation({ mutationFn: (enabled: boolean) => setClientNotesModule(id, enabled), onSuccess: (state) => qc.setQueryData(["client-therapy", id], state) });
   if (client.isLoading || meetings.isLoading || therapy.isLoading || !client.data || !therapy.data) return <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>;
-  return <TherapyDetailShell backHref={`/clients/?id=${id}`} backLabel="Назад к клиенту" title="Заметки" subtitle={client.data.name} icon="note"><PsychologistNotesDetail meetings={meetings.data ?? []} reflections={therapy.data.reflections} module={therapy.data.notesModule} saving={toggle.isPending} onToggle={() => toggle.mutate(!therapy.data!.notesModule.psychologistEnabled)} /></TherapyDetailShell>;
+  return <TherapyDetailShell backHref={`/clients/?id=${id}`} backLabel="Назад к клиенту" title="Заметки о встречах" subtitle={client.data.name} icon="note"><PsychologistNotesDetail meetings={meetings.data ?? []} reflections={therapy.data.reflections} module={therapy.data.notesModule} saving={toggle.isPending} onToggle={() => toggle.mutate(!therapy.data!.notesModule.psychologistEnabled)} /></TherapyDetailShell>;
 }

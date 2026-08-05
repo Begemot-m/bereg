@@ -56,24 +56,41 @@ export async function hasLiveSession(): Promise<boolean> {
 export type LoginFailure = "offline" | "rejected";
 
 export class LoginError extends Error {
-  constructor(readonly kind: LoginFailure, message: string) {
+  constructor(readonly kind: LoginFailure, message: string, readonly detail = "") {
     super(message);
     this.name = "LoginError";
   }
 }
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Вход по данным Telegram. Одна неудачная попытка — ещё не отказ: холодный
+ * старт сервера, обрыв мобильной сети и 429 от лимитера проходят сами, если
+ * подождать. Насовсем сдаёмся только когда сервер осознанно отверг подпись.
+ */
 export async function loginWithInitData(initData: string): Promise<void> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}/auth/telegram`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ init_data: initData }),
-    });
-  } catch (error) {
-    throw new LoginError("offline", `Сервер недоступен: ${String(error)}`);
+  let last: LoginError | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await wait(600 * attempt);
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}/auth/telegram`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ init_data: initData }),
+      });
+    } catch (error) {
+      last = new LoginError("offline", "Сервер недоступен", String(error));
+      continue;
+    }
+    if (res.ok) return;
+    const body = (await res.text().catch(() => "")).slice(0, 300);
+    // 5xx и 429 — временные: пробуем ещё. Остальные 4xx означают, что данные
+    // не приняли, и повтор ничего не изменит.
+    const retriable = res.status >= 500 || res.status === 429;
+    last = new LoginError(retriable ? "offline" : "rejected", `Вход отклонён (${res.status})`, `${res.status} ${body}`);
+    if (!retriable) break;
   }
-  if (res.ok) return;
-  // 5xx — приложение на той стороне не поднялось; 4xx — данные не приняты.
-  throw new LoginError(res.status >= 500 ? "offline" : "rejected", `Auth failed: ${await res.text()}`);
+  throw last ?? new LoginError("offline", "Вход не удался");
 }

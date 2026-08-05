@@ -27,7 +27,7 @@ export function ClientSessionJourney({ meetings, reflections, module, saving, on
     <div data-accent="tiffany" className="card-soft p-3">
       <Link href="/therapy/notes" onClick={tap} className="card-plain flex items-center gap-3 p-3">
         <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="note" width={20} weight="bold" /></span>
-        <div className="min-w-0 flex-1"><p className="t-head">Заметки</p><p className="t-cap mt-0.5">{reflections.length ? `${reflections.length} записей · последняя оценка ${latest?.feeling ?? "—"}/10` : "Подготовка и итоги встреч"}</p></div>
+        <div className="min-w-0 flex-1"><p className="t-head">Заметки о встречах</p><p className="t-cap mt-0.5">{reflections.length ? `${reflections.length} записей · последняя оценка ${latest?.feeling ?? "—"}/10` : "Подготовка и итоги встреч"}</p></div>
         <Arrow />
       </Link>
     </div>
@@ -100,7 +100,7 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
       <div data-accent="tiffany" className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}>
         <div className="flex items-start gap-3">
           <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
-          <div className="min-w-0 flex-1"><p className="t-title">Подключить модуль «Заметки»</p><p className="t-cap mt-1">Помогает сохранять контекст между встречами.</p></div>
+          <div className="min-w-0 flex-1"><p className="t-title">Подключить модуль «Заметки о встречах»</p><p className="t-cap mt-1">Клиент записывает, с чем идёт на встречу и что унёс с собой, — вы видите это между сессиями и не начинаете каждый раз с нуля. Модуль выключен, пока вы его не включите.</p></div>
         </div>
         <div className="card-nested mt-3 space-y-2 p-3">
           <ModuleBenefit text="Темы, которые клиент хочет обсудить" />
@@ -115,7 +115,7 @@ export function PsychologistSessionJourney({ meetings, reflections, module, savi
     <div data-accent="tiffany" className="card-soft p-3">
       <Link href={href} onClick={tap} className="card-plain flex items-center gap-3 p-3">
         <span className="ico ico-accent h-11 w-11 shrink-0"><Icon name="note" width={20} weight="bold" /></span>
-        <div className="min-w-0 flex-1"><p className="t-head">Заметки</p><p className="t-cap mt-0.5">{module.shared ? `${reflections.length} записей · история встреч` : "Клиент пока ведёт записи лично"}</p></div>
+        <div className="min-w-0 flex-1"><p className="t-head">Заметки о встречах</p><p className="t-cap mt-0.5">{module.shared ? `${reflections.length} записей · история встреч` : "Клиент пока ведёт записи лично"}</p></div>
         <Arrow />
       </Link>
     </div>
@@ -129,10 +129,10 @@ export function PsychologistNotesDetail({ meetings, reflections, module, saving,
   saving?: boolean;
   onToggle: () => void;
 }) {
-  if (!module.psychologistEnabled) return <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}><div className="flex items-start gap-3"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Модуль «Заметки» отключён</p><p className="t-cap mt-1">Подключите его, чтобы снова видеть переданные записи клиента.</p></div></div><button disabled={saving} onClick={onToggle} className="btn btn-accent mt-3 w-full py-2">Подключить</button></div>;
+  if (!module.psychologistEnabled) return <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-4" style={{ border: "2.5px dashed var(--edge)" }}><div className="flex items-start gap-3"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Модуль «Заметки о встречах» отключён</p><p className="t-cap mt-1">Подключите его, чтобы снова видеть переданные записи клиента.</p></div></div><button disabled={saving} onClick={onToggle} className="btn btn-accent mt-3 w-full py-2">Подключить</button></div>;
   return (
     <section data-accent="tiffany" className="space-y-3">
-      <div className="card flex items-center gap-3 p-4"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">Модуль подключён у вас и клиента</p></div><button disabled={saving} onClick={onToggle} className="btn btn-white shrink-0 px-3 py-1.5 text-[11px]">Отключить</button></div>
+      <div className="card flex items-center gap-3 p-4"><span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span><div className="min-w-0 flex-1"><p className="t-title">Заметки о встречах</p><p className="t-cap mt-0.5">Модуль подключён у вас и клиента</p></div><button disabled={saving} onClick={onToggle} className="btn btn-white shrink-0 px-3 py-1.5 text-[11px]">Отключить</button></div>
       {!module.shared && <div className="card-soft p-4"><p className="t-head">Клиент ведёт заметки лично</p><p className="t-cap mt-1">Когда клиент включит передачу, записи появятся здесь автоматически.</p></div>}
       {module.shared && <>{!module.enabled && <div className="card-soft p-4"><p className="t-head">Модуль приостановлен клиентом</p><p className="t-cap mt-1">Сохранённая история остаётся доступной.</p></div>}<NotesSummary meetings={meetings} reflections={reflections} /><MeetingDynamics meetings={meetings} reflections={reflections} /><ReflectionHistory reflections={reflections} empty="Клиент пока не сохранил заметок к встречам." /></>}
     </section>
@@ -155,9 +155,19 @@ function ClientModuleControl({ module, saving, onChange }: { module: NotesModule
     <div className="card p-4">
       <div className="flex items-center gap-3">
         <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
-        <div className="min-w-0 flex-1"><p className="t-title">Заметки</p><p className="t-cap mt-0.5">{module.enabled ? "Темы и впечатления от встреч" : "Модуль сейчас отключён"}</p></div>
+        <div className="min-w-0 flex-1"><p className="t-title">Заметки о встречах</p><p className="t-cap mt-0.5">{module.enabled ? "Темы и впечатления от встреч" : "Модуль выключен"}</p></div>
         <button disabled={saving} onClick={() => onChange({ enabled: !module.enabled })} className={module.enabled ? "btn btn-white shrink-0 px-3 py-1.5 text-[11px]" : "btn btn-accent shrink-0 px-3 py-1.5 text-[11px]"}>{module.enabled ? "Отключить" : "Включить"}</button>
       </div>
+      {!module.enabled && (
+        <>
+          <p className="t-cap mt-3">Место, где вы перед встречей записываете, что хотите обсудить, а после — что унесли с собой и как себя чувствуете по десятибалльной шкале. Со временем видно динамику, а разговор не начинается каждый раз с нуля.</p>
+          <div className="card-nested mt-3 space-y-2 p-3">
+            <ModuleBenefit text="Заранее собрать темы к сессии" />
+            <ModuleBenefit text="Записать итог и оценку после встречи" />
+            <ModuleBenefit text="Решать самим, видит ли записи психолог" />
+          </div>
+        </>
+      )}
       {module.enabled && (
         <div className="card-nested mt-3 p-1">
           <div className="grid grid-cols-2 gap-1">

@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons";
  * бесконечный спиннер: токена не было, запросы уходили без Authorization,
  * сервер отвечал 401, а разделы так и оставались «в загрузке».
  */
-export function AuthGate({ env, reason = "rejected" }: { env: "tma" | "desktop"; reason?: "offline" | "rejected" }) {
+export function AuthGate({ env, reason = "rejected", detail = "" }: { env: "tma" | "desktop"; reason?: "offline" | "rejected"; detail?: string }) {
   const desktop = env === "desktop";
   const offline = !desktop && reason === "offline";
   return (
@@ -27,6 +27,9 @@ export function AuthGate({ env, reason = "rejected" }: { env: "tma" | "desktop";
         <button onClick={() => window.location.reload()} className="btn btn-accent mt-5 w-full py-3">
           Попробовать снова
         </button>
+        {/* Ответ сервера дословно: чтобы «не работает» можно было починить,
+            а не пересказывать. Мелко и внизу — обычному человеку не мешает. */}
+        {detail && <p className="t-cap mt-4 break-all opacity-60">{detail}</p>}
       </div>
     </div>
   );

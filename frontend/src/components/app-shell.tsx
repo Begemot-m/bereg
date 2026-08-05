@@ -9,6 +9,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { AuthGate } from "@/components/auth-gate";
 import { Icon, type IconName } from "@/components/icons";
 import { Onboarding } from "@/components/onboarding";
+import { startParam, target } from "@/components/start-route";
 // Экскурсия по разделам запускается вручную и редко, а лежала в бандле
 // каждой страницы приложения — app-shell оборачивает все экраны.
 const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.RoomTour));
@@ -65,7 +66,7 @@ function Wordmark({ small }: { small?: boolean }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { env, state: authState, reason: authReason } = useAuth();
+  const { env, state: authState, reason: authReason, detail: authDetail } = useAuth();
   const [role, setRole] = useRole();
   const pathname = usePathname();
   const router = useRouter();
@@ -80,26 +81,50 @@ export function AppShell({ children }: { children: ReactNode }) {
   const centerTone = role === "psychologist" ? "green" : "purple";
 
   useEffect(() => {
+    let stopped = false;
     const params = new URLSearchParams(window.location.search);
-    const psy = params.get("psy") || params.get("book");
     const invite = params.get("invite");
     const ref = params.get("ref");
-    const direct = Boolean(psy || invite || ref);
-    if (direct) {
+    if (invite) sessionStorage.setItem("bereg_pending_invite", invite);
+    if (ref) sessionStorage.setItem("bereg_pending_ref", ref);
+
+    const enter = (psy: string | null) => {
       setRole("client");
       setFastEntry(true);
-      if (psy && pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}`);
-      if (invite) sessionStorage.setItem("bereg_pending_invite", invite);
-      if (ref) sessionStorage.setItem("bereg_pending_ref", ref);
+      if (psy && pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}&book=1`);
+    };
+
+    const psy = params.get("psy") || params.get("book");
+    if (psy || invite || ref) {
+      enter(psy);
     } else {
-      setFastEntry(false);
+      // Метка из ссылки-приглашения приходит от скрипта Telegram, а он
+      // подключается уже после гидрации. Не дождавшись, мы отправляли нового
+      // человека в онбординг вместо экрана записи.
+      let tries = 0;
+      const poll = () => {
+        if (stopped) return;
+        const payload = startParam();
+        const href = payload ? target(payload) : null;
+        if (href) {
+          const id = new URLSearchParams(href.split("?")[1]).get("psy");
+          enter(id);
+          return;
+        }
+        if (payload || tries++ >= 20) { setFastEntry(false); return; }
+        window.setTimeout(poll, 150);
+      };
+      poll();
     }
     const finish = () => {
       setFastEntry(false);
       window.history.replaceState({}, "", window.location.pathname);
     };
     window.addEventListener("bereg-fast-entry-complete", finish);
-    return () => window.removeEventListener("bereg-fast-entry-complete", finish);
+    return () => {
+      stopped = true;
+      window.removeEventListener("bereg-fast-entry-complete", finish);
+    };
   }, [pathname, router, setRole]);
 
   // Обучение запускается вручную — из баннера на главной или из кабинета.
@@ -163,7 +188,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Пока идёт вход, приложение не показываем: иначе экраны успевают отправить
   // запросы без токена, получить 401 и остаться в бесконечной загрузке.
   if (authState === "loading" || onboarded === null || fastEntry === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
-  if (authState === "anon") return <AuthGate env={env} reason={authReason} />;
+  // Человек пришёл по ссылке-приглашению на запись — он ещё никто и звать
+  // никак. Показать ему замок вместо расписания значит потерять клиента:
+  // пускаем смотреть окна, вход попросим на самой записи.
+  if (authState === "anon" && !fastEntry) return <AuthGate env={env} reason={authReason} detail={authDetail} />;
   if (!onboarded && !fastEntry) return <Onboarding />;
 
   return (
