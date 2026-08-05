@@ -164,10 +164,10 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
-            {(() => { const b = whenBadge(booking.startsAt); return b && <span className="chip uppercase" style={{ background: "rgba(255,255,255,.22)", color: "#fff" }}>{b}</span>; })()}
+            {(() => { const b = whenBadge(booking.startsAt); return b && <span className="chip chip-strong uppercase">{b}</span>; })()}
           </span>
-          <span className="t-title mt-1 block truncate">{booking.psyName}</span>
-          <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="#fff" /><span className="truncate font-black text-white">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span></span>
+          <span className="t-title mt-1 block truncate text-[var(--ink)]">{booking.psyName}</span>
+          <span className="t-sub flex min-w-0 items-center gap-1.5" style={{ color: "var(--ink)" }}><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate font-black">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span></span>
         </span>
       </div>
       <ManageRow />
@@ -175,12 +175,12 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   );
 }
 
-// Управление записью — вместо стрелки: подпись и шестерёнка под карточкой.
+// Управление записью — вместо стрелки: шестерёнка слева, подпись правее.
 function ManageRow() {
   return (
-    <span className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: "rgba(255,255,255,.28)" }}>
-      <span className="text-[12.5px] font-black text-white">Управление записью</span>
-      <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "rgba(255,255,255,.2)" }}><Icon name="gear" width={18} weight="bold" color="#fff" /></span>
+    <span className="mt-4 flex items-center gap-2.5 border-t pt-3" style={{ borderColor: "rgba(32,28,24,.14)" }}>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"><Icon name="gear" width={18} weight="bold" color="var(--purple-edge)" /></span>
+      <span className="text-[12.5px] font-black text-[var(--ink)]">Управление записью</span>
     </span>
   );
 }
@@ -216,8 +216,8 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
     <div>
       {/* Фокус-блок наезжает на белый лист: как на референсе, он пересекает
           границу цветной шапки и нижней области. */}
-      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[104px] mt-7">{focus}</div>}</PageHead>
-      <div className="sheet relative z-0" style={focus ? { paddingTop: 124 } : undefined}>
+      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[150px] mt-7">{focus}</div>}</PageHead>
+      <div className="sheet relative z-0" style={focus ? { paddingTop: 158 } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index}>{child}</StaggerItem> : null)
@@ -267,10 +267,10 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
         <span className="relative min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
-            {badge && <span className="chip uppercase" style={{ background: "rgba(255,255,255,.22)", color: "#fff" }}>{badge}</span>}
+            {badge && <span className="chip chip-strong uppercase">{badge}</span>}
           </span>
-          <span className="t-title mt-1 block truncate">{appointment.client.name}</span>
-          <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="#fff" /><span className="truncate font-black text-white">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
+          <span className="t-title mt-1 block truncate text-[var(--ink)]">{appointment.client.name}</span>
+          <span className="t-sub flex min-w-0 items-center gap-1.5" style={{ color: "var(--ink)" }}><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate font-black">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
         </span>
       </div>
       <ManageRow />
@@ -339,9 +339,9 @@ function TourBanner({ role }: { role: Role }) {
         <span className="min-w-0 flex-1">
           <span className="t-head block">{title}</span>
           <span className="t-sub mt-0.5 block">{sub}</span>
+          <span className="t-cap mt-1.5 block" style={{ color: "var(--purple-edge)" }}>Нажмите, чтобы пошагово ознакомиться с функционалом</span>
         </span>
       </div>
-      <span className="btn btn-accent mt-3.5 flex w-full py-3 text-[14px]" style={{ background: "var(--purple-edge)", borderColor: "var(--purple-edge)" }}>Пройти обучение</span>
     </button>
   );
 }

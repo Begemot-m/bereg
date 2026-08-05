@@ -315,19 +315,13 @@ h1, h2, h3, .font-tight {
 }
 @media (prefers-reduced-motion: reduce) { .daily-dot { animation: none; } }
 
-/* Ближайшая сессия на главной: лавандовый блок, текст белый. */
+/* Ближайшая сессия на главной: лёгкая лавандовая заливка, текст чернильный. */
 .card-lav {
-  background: var(--purple-edge);
+  background: var(--purple-soft);
   border: 0;
   border-radius: var(--r-block);
-  color: #fff;
+  color: var(--ink);
 }
-.card-lav .t-micro,
-.card-lav .t-sub,
-.card-lav .t-head,
-.card-lav .t-title { color: #fff; }
-.card-lav .t-micro,
-.card-lav .t-sub { opacity: .82; }
 
 /* Раздел, где рамки берут средний тон вместо акцентного (кабинет).
    Переменная нужна для инлайновых рамок (поля ввода, бейджи). */
