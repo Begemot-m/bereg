@@ -146,7 +146,7 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
     // Терапевт есть — ведём в «Терапию», к записи. Нет — в каталог за специалистом.
     if (!therapist) return <FindTherapistCard />;
     return (
-      <Link href="/therapy?booking=1" onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
+      <Link href="/therapy?booking=1" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
         <FocusIcon icon="calendar" mid />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">{therapist}</span>
@@ -211,7 +211,7 @@ function PsyAvatar({ name }: { name: string }) {
 // Компактный блок подбора терапевта.
 function FindTherapistCard() {
   return (
-    <Link href="/catalog" onClick={tap} className="card-peach flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
+    <Link href="/catalog" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 transition-transform active:scale-[0.99]">
       <FocusIcon icon="compass" mid />
       <span className="min-w-0 flex-1">
         <span className="t-head block">Найти специалиста</span>

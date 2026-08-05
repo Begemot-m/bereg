@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { AuthGate } from "@/components/auth-gate";
 import { Icon, type IconName } from "@/components/icons";
@@ -80,8 +80,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;
   const centerTone = role === "psychologist" ? "green" : "purple";
 
+  // Разбор ссылки-приглашения — ровно один раз за сеанс. С зависимостью от
+  // pathname этот эффект перезапускался на каждом переходе между разделами и
+  // каждый раз крутил трёхсекундный поллинг startParam — отсюда и ощущение,
+  // что разделы открываются долго.
+  const navRef = useRef({ pathname, router, setRole });
+  navRef.current = { pathname, router, setRole };
   useEffect(() => {
     let stopped = false;
+    const { router, setRole } = navRef.current;
     const params = new URLSearchParams(window.location.search);
     const invite = params.get("invite");
     const ref = params.get("ref");
@@ -91,7 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const enter = (psy: string | null) => {
       setRole("client");
       setFastEntry(true);
-      if (psy && pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}&book=1`);
+      if (psy && navRef.current.pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}&book=1`);
     };
 
     const psy = params.get("psy") || params.get("book");
@@ -125,7 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       stopped = true;
       window.removeEventListener("bereg-fast-entry-complete", finish);
     };
-  }, [pathname, router, setRole]);
+  }, []);
 
   // Обучение запускается вручную — из баннера на главной или из кабинета.
   const [tourActive, setTourActive] = useState(false);

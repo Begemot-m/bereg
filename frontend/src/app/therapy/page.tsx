@@ -187,8 +187,8 @@ function MoodStatsBlock({ moods }: { moods: Mood[] }) {
 // Блок подбора терапевта в шапке терапии (когда никого ещё не прикреплено).
 function FindTherapistBlock() {
   return (
-    <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[18px] bg-[#ffffff] p-3.5 transition-transform active:scale-[0.99]" style={{ border: "2.5px dashed var(--purple-edge)" }}>
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]"><Icon name="compass" width={24} weight="bold" /></span>
+    <Link href="/catalog" onClick={tap} className="card-lav mt-4 flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white"><Icon name="compass" width={24} weight="bold" color="var(--purple-edge)" /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-black">Найти терапевта</span>
         <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания. Ваша статистика уже собирается ниже.</span>
