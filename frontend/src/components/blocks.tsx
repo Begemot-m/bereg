@@ -22,16 +22,16 @@ export function PageHead({ title, sub, subIcon, icon, right, children }: { title
               initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 420, damping: 20 }}
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-white"
+              className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] bg-white"
             >
-              <Icon name={icon} width={28} weight="bold" color="var(--edge)" />
+              <Icon name={icon} width={36} weight="bold" color="var(--edge)" />
             </motion.span>
           )}
           <div className="min-w-0">
-            <h1 className="font-tight text-[24px] font-extrabold leading-tight @md:text-3xl">{title}</h1>
+            <h1 className="font-tight text-[28px] font-extrabold leading-[1.1] @md:text-[34px]">{title}</h1>
             {sub && (
               subIcon
-                ? <span className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-black capitalize"><Icon name={subIcon} width={13} weight="bold" color="var(--ink)" /> {sub}</span>
+                ? <span className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] font-black capitalize"><Icon name={subIcon} width={14} weight="bold" color="var(--ink)" /> {sub}</span>
                 : <p className="font-tight mt-1 text-[13px] font-bold" style={{ color: "rgba(32,28,24,.6)" }}>{sub}</p>
             )}
           </div>

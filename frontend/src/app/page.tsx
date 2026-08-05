@@ -158,19 +158,30 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
   }
   const date = new Date(booking.startsAt);
   return (
-    <Link href="/therapy?booking=1" onClick={tap} className="card-peach group flex items-center gap-3.5 p-6 text-left transition-transform duration-200 active:scale-[0.99]">
-      <PsyAvatar name={booking.psyName} />
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
-          {/* Статус — тёмная заливка и белый текст, чтобы читался с одного взгляда */}
-          {(() => { const b = whenBadge(booking.startsAt); return b && <span className="chip chip-strong uppercase">{b}</span>; })()}
+    <Link href="/therapy?booking=1" onClick={tap} className="card-lav group block p-6 text-left transition-transform duration-200 active:scale-[0.99]">
+      <div className="flex items-center gap-3.5">
+        <PsyAvatar name={booking.psyName} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
+            {(() => { const b = whenBadge(booking.startsAt); return b && <span className="chip uppercase" style={{ background: "rgba(255,255,255,.22)", color: "#fff" }}>{b}</span>; })()}
+          </span>
+          <span className="t-title mt-1 block truncate">{booking.psyName}</span>
+          <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="#fff" /><span className="truncate font-black text-white">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span></span>
         </span>
-        <span className="t-title mt-1 block truncate">{booking.psyName}</span>
-        <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate">{cap(dateTimeF.format(date))} · {formatLabel(booking.format)}</span></span>
-      </span>
-      <Arrow />
+      </div>
+      <ManageRow />
     </Link>
+  );
+}
+
+// Управление записью — вместо стрелки: подпись и шестерёнка под карточкой.
+function ManageRow() {
+  return (
+    <span className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: "rgba(255,255,255,.28)" }}>
+      <span className="text-[12.5px] font-black text-white">Управление записью</span>
+      <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "rgba(255,255,255,.2)" }}><Icon name="gear" width={18} weight="bold" color="#fff" /></span>
+    </span>
   );
 }
 
@@ -246,21 +257,23 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   const date = new Date(appointment.startsAt);
   const badge = whenBadge(appointment.startsAt);
   return (
-    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-peach group relative flex items-center gap-3.5 overflow-hidden p-6 text-left transition-transform duration-200 active:scale-[0.99]">
-      <span className="ico ico-white relative h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--edge)" }}>
-        {appointment.client.name.charAt(0)}
-        {/* пульсирующая точка «скоро» */}
-        <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
-      </span>
-      <span className="relative min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
-          {badge && <span className="chip chip-strong uppercase">{badge}</span>}
+    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-lav group relative block overflow-hidden p-6 text-left transition-transform duration-200 active:scale-[0.99]">
+      <div className="flex items-center gap-3.5">
+        <span className="ico ico-white relative h-[76px] w-[76px] shrink-0 text-[28px] font-black" style={{ color: "var(--purple-edge)" }}>
+          {appointment.client.name.charAt(0)}
+          {/* пульсирующая точка «скоро» */}
+          <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
         </span>
-        <span className="t-title mt-1 block truncate">{appointment.client.name}</span>
-        <span className="t-sub flex min-w-0 items-center gap-1.5" style={{ color: "var(--ink)" }}><Icon name="calendar" width={12} weight="bold" color="currentColor" /><span className="truncate">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
-      </span>
-      <Arrow />
+        <span className="relative min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="t-micro whitespace-nowrap">Ближайшая сессия</span>
+            {badge && <span className="chip uppercase" style={{ background: "rgba(255,255,255,.22)", color: "#fff" }}>{badge}</span>}
+          </span>
+          <span className="t-title mt-1 block truncate">{appointment.client.name}</span>
+          <span className="t-sub flex min-w-0 items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="#fff" /><span className="truncate font-black text-white">{cap(dateTimeF.format(date))} · {formatLabel(appointment.format)}</span></span>
+        </span>
+      </div>
+      <ManageRow />
     </Link>
   );
 }
@@ -320,16 +333,15 @@ function TourBanner({ role }: { role: Role }) {
         <motion.span
           animate={{ scale: [1, 1.12, 1] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none"
-          style={{ background: "var(--purple)", color: "var(--amber)" }}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none text-white"
+          style={{ background: "var(--purple-edge)" }}
         >!</motion.span>
         <span className="min-w-0 flex-1">
-          <span className="t-micro block">Обучение</span>
           <span className="t-head block">{title}</span>
           <span className="t-sub mt-0.5 block">{sub}</span>
         </span>
-        <span className="btn shrink-0">Пройти</span>
       </div>
+      <span className="btn btn-accent mt-3.5 flex w-full py-3 text-[14px]" style={{ background: "var(--purple-edge)", borderColor: "var(--purple-edge)" }}>Пройти обучение</span>
     </button>
   );
 }

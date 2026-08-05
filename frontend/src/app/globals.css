@@ -293,19 +293,41 @@ h1, h2, h3, .font-tight {
   border: var(--bw) solid var(--edge);
 }
 
-/* Дейлик: персиковый кружок с жёлтым «!». Мигает, пока задание не пройдено. */
+/* Дейлик: сочный оранжевый кружок с белым «!» и пульсирующим ореолом.
+   Один знак на всё приложение: «сюда надо ткнуть, тут не сделано». */
 .daily-dot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--peach);
-  border: var(--bw) solid var(--peach-edge);
-  color: #f6bf1f;
+  background: linear-gradient(160deg, #ff8a3d, #f4451f);
+  border: 2px solid #fff;
+  color: #fff;
   font-family: var(--font-head), sans-serif;
   font-weight: 900;
   line-height: 1;
+  animation: daily-halo 1.7s ease-out infinite;
 }
+@keyframes daily-halo {
+  0%   { box-shadow: 0 0 0 0 rgba(244, 69, 31, .55); }
+  70%  { box-shadow: 0 0 0 8px rgba(244, 69, 31, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 69, 31, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .daily-dot { animation: none; } }
+
+/* Ближайшая сессия на главной: лавандовый блок, текст белый. */
+.card-lav {
+  background: var(--purple-edge);
+  border: 0;
+  border-radius: var(--r-block);
+  color: #fff;
+}
+.card-lav .t-micro,
+.card-lav .t-sub,
+.card-lav .t-head,
+.card-lav .t-title { color: #fff; }
+.card-lav .t-micro,
+.card-lav .t-sub { opacity: .82; }
 
 /* Раздел, где рамки берут средний тон вместо акцентного (кабинет).
    Переменная нужна для инлайновых рамок (поля ввода, бейджи). */
