@@ -46,18 +46,18 @@ function ClientTools() {
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="chip uppercase" style={{ background: "var(--edge)", color: "var(--ink)" }}>Скоро в Хронике</span>
+                  <span className="chip uppercase" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }}>Скоро в Хронике</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">Больше опоры между встречами</h2>
                 <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-white/75">Тесты для самодиагностики, AI-ассистент, база знаний и новые практики уже в работе.</p>
               </div>
-              <span className="ico ico-accent h-14 w-14 shrink-0"><Icon name="compass" width={28} weight="bold" color="var(--ink)" /></span>
+              <span className="ico h-14 w-14 shrink-0" style={{ background: "rgba(255,255,255,.14)" }}><Icon name="compass" width={28} weight="bold" color="#fff" /></span>
             </div>
           </section>
 
           <div className="mb-2 mt-6 flex items-end justify-between">
-            <div><p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted-2)]">Выбирайте по состоянию, не ради серии</p></div>
-            <span className="chip" style={{ background: "var(--green-soft)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
+            <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики</p>
+            <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {CLIENT_PRACTICES.map((t, i) => {
@@ -80,12 +80,12 @@ function ClientTools() {
           </div>
 
           <div className="mb-2 mt-6 flex items-end justify-between">
-            <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Ещё для себя</p>
-            <span className="chip" style={{ background: "var(--green-soft)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
+            <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Улучшить терапию</p>
+            <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--green-soft)" }}><span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--green-edge)]"><Icon name="mood" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
-            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--purple-soft)" }}><span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--purple-edge)]"><Icon name="balance" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--green-soft)" }}><span className="ico ico-mid h-9 w-9"><Icon name="mood" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--purple-soft)" }}><span className="ico ico-mid h-9 w-9"><Icon name="balance" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
           </div>
 
 

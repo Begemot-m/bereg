@@ -61,7 +61,13 @@ export default function CabinetPage() {
           {psy ? (
             <SubscriptionBanner variant="psy" />
           ) : (
-            null
+            <div className="card-soft flex items-start gap-3 p-4" style={{ background: "var(--purple-soft)" }}>
+              <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="spark" width={21} weight="bold" color="var(--purple-edge)" /></span>
+              <div className="min-w-0">
+                <p className="t-micro" style={{ color: "var(--purple-edge)" }}>Хроника PRO</p>
+                <p className="t-body mt-1">Скоро появятся расширенные инструменты для самостоятельной работы по подписке PRO.</p>
+              </div>
+            </div>
           )}
         </div>
 

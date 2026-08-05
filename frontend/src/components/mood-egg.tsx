@@ -94,9 +94,6 @@ export function MoodBlob({ value, size = 220, still }: { value: number; size?: n
       <path
         d="M22 150 C 8 118 12 78 34 66 C 30 44 52 30 68 42 C 74 22 104 20 112 42 C 130 28 158 40 152 66 C 176 74 178 116 160 138 C 168 150 150 168 100 168 C 52 168 28 168 22 150 Z"
         fill={`url(#${gradientId})`}
-        stroke="var(--ink)"
-        strokeWidth="4.5"
-        strokeLinejoin="round"
       />
       <ellipse cx="60" cy="70" rx="16" ry="20" fill="#fff" opacity=".22" transform="rotate(-18 60 70)" />
       <g>

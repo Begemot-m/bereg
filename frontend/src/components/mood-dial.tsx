@@ -23,11 +23,12 @@ export function MoodHomeCard({ mood, moods, onOpen, embedded = false }: { mood?:
       style={{ background: embedded ? "transparent" : mood ? `${tint}2e` : "var(--head-soft)" }}
     >
       <div className="relative flex items-center gap-3">
-        <motion.span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
+        <motion.span className="relative flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
           <MoodBlob value={value} size={70} still />
+          {!mood && <DailyDot size={16} className="absolute right-0 top-0 z-[1]" label="Настроение дня ещё не отмечено" />}
         </motion.span>
         <span className="min-w-0 flex-1">
-          <span className="t-micro flex items-center gap-1.5">Настроение дня{!mood && <DailyDot size={16} label="Настроение дня ещё не отмечено" />}</span>
+          <span className="t-micro block">Настроение дня</span>
           <span className="t-head block">Какое у вас настроение?</span>
           <MiniMoodTrend moods={recent} />
         </span>
@@ -75,7 +76,10 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
       style={{ background: mood ? `${moodColor(value)}33` : "var(--head-soft)" }}
     >
       <div className="flex items-center gap-3">
-        <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center"><MoodBlob value={value} size={64} still /></span>
+        <span className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center">
+          <MoodBlob value={value} size={64} still />
+          {!mood && <DailyDot size={15} className="absolute right-0 top-0 z-[1]" label="Настроение дня ещё не отмечено" />}
+        </span>
         <span className="min-w-0 flex-1">
           <span className="t-head block">Какое у вас настроение сегодня?</span>
           <span className="t-sub mt-1 block truncate">
