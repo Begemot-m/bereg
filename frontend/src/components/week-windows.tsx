@@ -9,7 +9,7 @@ import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
-import { createClient, listClients } from "@/lib/clients";
+import { createClient, isPhone, listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
 
@@ -129,6 +129,8 @@ function look(s: Slot): Look {
 // прямо отсюда — чтобы не уходить в раздел «Клиенты» посреди записи.
 const FIELD = "min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]";
 const THIN = { border: "1px solid var(--edge)" } as const;
+// Кнопки в раскрытом окне: узкая обводка, чтобы строка не росла по высоте.
+const THIN_BTN = { borderWidth: 1, minHeight: 0 } as const;
 
 function ClientChips({ onPick }: { onPick: (id: number) => void }) {
   const qc = useQueryClient();
@@ -359,6 +361,11 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const qc = useQueryClient();
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
   const [resch, setResch] = useState(false);
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: !!slot.appt });
+  const contact = clients.find((c) => c.id === slot.appt?.client.id)?.contact ?? null;
+  const tgLink = contact && !isPhone(contact)
+    ? `https://t.me/${contact.replace(/^@/, "")}?text=${encodeURIComponent("Здравствуйте! Пишу из «Хроники».")}`
+    : null;
 
   const book = useMutation({ mutationFn: ({ clientId, format }: { clientId: number; format: ApptFormat }) => createAppointment({ clientId, startsAt: slot.iso, format }), onSuccess: () => { success(); onClose(); inv(); } });
   const setFmt = useMutation({ mutationFn: async (format: ApptFormat) => { if (slot.appt) await updateAppointment(slot.appt.id, { format }); else await setOverride(slot.iso, { fmt: format }); }, onSuccess: () => { select(); inv(); } });

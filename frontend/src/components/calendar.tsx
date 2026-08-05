@@ -65,11 +65,10 @@ export function MonthCalendar({
           const isSel = multi ? multi.has(y) : selected === y;
           const a: Avail | undefined = avail?.[y];
 
-          // Две разные метки: точка — есть запись, штриховка — день занят
-          // целиком и записи в нём нет. Пересекаться они не должны, иначе
-          // непонятно, о чём именно говорит штриховка.
+          // Одна метка на всё: штриховка — «день с записями». День, занятый
+          // целиком, читается так же — свободных окон в нём всё равно нет.
           const booked = has.has(y);
-          const busy = !booked && (avail ? a === "full" : false);
+          const busy = booked || (avail ? a === "full" : false);
           const free = avail ? a === "free" : false;
           const disabled = disableUnavailable ? a !== "free" && !isSel : false;
 
@@ -89,13 +88,11 @@ export function MonthCalendar({
               style={style}
             >
               {d.getDate()}
-              {booked && !isSel && <span className="absolute -bottom-px h-1 w-1 rounded-full" style={{ background: "var(--edge)" }} />}
             </button>
           );
         })}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
-        {appts.length > 0 && <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge)" }} /> есть записи</span>}
         <span className="flex items-center gap-1.5"><span className="keep-style day-busy h-3.5 w-3.5 rounded-full" /> день с записями</span>
       </div>
     </div>
