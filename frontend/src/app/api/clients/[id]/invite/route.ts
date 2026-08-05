@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { NOT_APPROVED, psyApproved } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { ownedClient } from "@/lib/server/therapy";
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const { id } = await ctx.params;
     const client = await ownedClient(Number(id), user.id);
     if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+
+    if (!(await psyApproved(user.id))) {
+      return NextResponse.json(NOT_APPROVED, { status: 403 });
+    }
 
     const body = (await req.json().catch(() => ({}))) as { contact?: string };
     const updated = await prisma.client.update({

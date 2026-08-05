@@ -68,6 +68,21 @@ export async function canAddClient(userId: number): Promise<{ ok: boolean; used:
   return { ok: used < FREE_CLIENT_LIMIT, used, limit: FREE_CLIENT_LIMIT };
 }
 
+/**
+ * Прошёл ли психолог верификацию. До `approved` анкеты нет в каталоге и брать
+ * клиентов нельзя — кабинет при этом открыт целиком, чтобы человек видел,
+ * ради чего дозаполняет заявку.
+ */
+export async function psyApproved(userId: number): Promise<boolean> {
+  const psy = await prisma.psyProfile.findUnique({ where: { userId }, select: { status: true } });
+  return psy?.status === "approved";
+}
+
+export const NOT_APPROVED = {
+  error: "not_approved",
+  message: "Принимать клиентов можно после подтверждения анкеты. Заявка на верификацию — в кабинете.",
+} as const;
+
 /** Администратор платформы. Флаг ставится только вручную в базе. */
 export async function isAdmin(userId: number): Promise<boolean> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true, username: true } });

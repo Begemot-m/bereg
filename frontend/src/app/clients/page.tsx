@@ -14,6 +14,7 @@ import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonRow } from "@/components/ui";
 import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
+import { canTakeClients, useVerification } from "@/lib/psy-verification";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
 import { PROD_URL } from "@/lib/brand";
@@ -87,6 +88,8 @@ function ClientsList() {
   });
   const [inviteAfter, setInviteAfter] = useState(false);
   const [paywall, setPaywall] = useState(false);
+  const { data: verification } = useVerification();
+  const approved = canTakeClients(verification?.status ?? "none");
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const pro = isPro(sub);
   const atCap = !pro && clients.length >= FREE_CLIENT_LIMIT;
@@ -128,7 +131,7 @@ function ClientsList() {
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по имени" className="!pl-9" />
           </div>
           <motion.button
-            onClick={() => { tap(); if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
+            onClick={() => { tap(); if (!approved) { router.push("/cabinet/"); return; } if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
             whileTap={{ scale: 0.85 }}
             whileHover={{ scale: 1.06 }}
             animate={{ rotate: open ? 45 : 0 }}
@@ -142,6 +145,21 @@ function ClientsList() {
             <Icon name="plus" width={22} weight="bold" color="#fff" />
           </motion.button>
         </div>
+
+        {/* Пока анкета не подтверждена, клиентов брать нельзя — то же правило
+            стоит на сервере. Объясняем здесь, иначе «плюс» молча уводит в кабинет. */}
+        {!approved && (
+          <button onClick={() => { tap(); router.push("/cabinet/"); }} className="card-soft mb-4 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--page)" }}>
+            <span className="ico ico-mid h-9 w-9 shrink-0"><Icon name="lock" width={16} weight="bold" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="t-head block">
+                {verification?.status === "review" ? "Анкета на проверке" : verification?.status === "rejected" ? "Анкета вернулась с правками" : "Анкета не подтверждена"}
+              </span>
+              <span className="t-sub block">Принимать клиентов можно после подтверждения. Заявка — в кабинете.</span>
+            </span>
+            <span className="chip shrink-0">Кабинет ›</span>
+          </button>
+        )}
 
         <QuickAddClient
           open={open}

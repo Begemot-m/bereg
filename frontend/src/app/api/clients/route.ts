@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { canAddClient } from "@/lib/server/access";
+import { NOT_APPROVED, canAddClient, psyApproved } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
@@ -45,6 +45,10 @@ export async function POST(req: NextRequest) {
     const user = await requireUser(req);
     const body = await parseBody(req, newClientSchema);
     const name = body.name;
+
+    if (!(await psyApproved(user.id))) {
+      return NextResponse.json(NOT_APPROVED, { status: 403 });
+    }
 
     // Лимит бесплатного тарифа проверяется здесь, а не только в интерфейсе:
     // иначе его обходит один запрос мимо приложения.

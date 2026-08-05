@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { NOT_APPROVED, psyApproved } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
@@ -53,6 +54,10 @@ export async function POST(req: NextRequest) {
 
     if (!clientId || !body.startsAt) {
       return NextResponse.json({ error: "clientId and startsAt required" }, { status: 422 });
+    }
+
+    if (!(await psyApproved(user.id))) {
+      return NextResponse.json(NOT_APPROVED, { status: 403 });
     }
 
     // Клиент должен принадлежать этому психологу — защита от IDOR.

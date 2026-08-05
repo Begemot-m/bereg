@@ -396,6 +396,25 @@ function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Rec
 // складывались в заметные подвисания, когда экран тянет по 3-4 запроса сразу.
 const delay = <T>(v: T): Promise<T> => new Promise((r) => setTimeout(() => r(v), 40));
 
+// Тот же гейт, что на сервере (lib/server/access.ts): пока анкета не одобрена,
+// клиентов брать нельзя. Статус читаем напрямую из localStorage — импорт из
+// psy-verification.ts замкнул бы круг, там demo.ts уже импортируется.
+const APPROVED_ONLY = JSON.stringify({
+  error: "not_approved",
+  message: "Принимать клиентов можно после подтверждения анкеты. Заявка на верификацию — в кабинете.",
+});
+
+function demoApproved(): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = localStorage.getItem("psy_verification");
+  if (!raw) return false;
+  const v = JSON.parse(raw) as { status?: string; submittedAt?: string | null };
+  // Демо-модерация одобряет сама через несколько секунд после подачи; здесь
+  // повторяем то же правило, иначе гейт спорил бы с экраном «на проверке».
+  if (v.status === "approved") return true;
+  return v.status === "review" && Boolean(v.submittedAt) && Date.now() - new Date(v.submittedAt!).getTime() > 6000;
+}
+
 export async function mockFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const db = load();
   const method = (init.method ?? "GET").toUpperCase();
@@ -439,6 +458,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     return delay(list as T);
   }
   if (clean === "/clients" && method === "POST") {
+    if (!demoApproved()) throw new Error(`API 403: ${APPROVED_ONLY}`);
     const now = new Date().toISOString();
     const c: Client = {
       id: ++db.seq,
@@ -463,6 +483,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   if (inviteId && method === "POST") {
     const c = db.clients.find((x) => x.id === Number(inviteId));
     if (!c) throw new Error("API 404");
+    if (!demoApproved()) throw new Error(`API 403: ${APPROVED_ONLY}`);
     if (body.contact !== undefined) c.contact = (body.contact as string) || null;
     c.link = "invited";
     c.invitedAt = new Date().toISOString();
@@ -638,6 +659,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   if (clean === "/appointments" && method === "POST") {
     const cl = db.clients.find((x) => x.id === Number(body.clientId));
     if (!cl) throw new Error("API 404");
+    if (!demoApproved()) throw new Error(`API 403: ${APPROVED_ONLY}`);
     const a: Appointment = {
       id: ++db.seq,
       clientId: cl.id,
