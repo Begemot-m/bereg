@@ -45,6 +45,7 @@ model User {
   notifications      Notification[]
   telegramDeliveries TelegramDelivery[]
   supportRequests    SupportRequest[]
+  payments           Payment[]
 }
 
 /// Шаблон рабочих часов: по одной записи на психолога.
@@ -353,4 +354,24 @@ model Subscription {
   grantedNote       String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+}
+
+/// История платежей. Subscription хранит только текущее состояние: каждая
+/// новая оплата затирала предыдущую, и ответить «сколько денег пришло за
+/// месяц» было нечем. Здесь строка на платёж, и она больше не меняется.
+model Payment {
+  id             Int    @id @default(autoincrement())
+  psychologist   User   @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId Int
+  /// Идентификатор платежа в ЮKassa. Уникален: вебхук и автопродление могут
+  /// провести один и тот же платёж наперегонки — второй записи не появится.
+  yookassaPaymentId String   @unique
+  /// Копейки. В рублях с дробной частью суммы разъезжаются на сложении.
+  amount            Int
+  currency          String   @default("RUB")
+  kind              String   @default("initial") // initial | renewal
+  paidAt            DateTime @default(now())
+
+  @@index([paidAt])
+  @@index([psychologistId, paidAt])
 }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { recordPayment } from "@/lib/server/payments";
 import { prisma } from "@/lib/server/prisma";
 import { getPayment } from "@/lib/server/yookassa";
 
@@ -32,6 +33,16 @@ export async function POST(req: NextRequest) {
 
   const psychologistId = Number(payment.metadata.psychologistId);
   if (!psychologistId) return NextResponse.json({ ok: true });
+
+  // Пишем платёж до проверки на повтор: подписку мог продлить автопродление,
+  // и тогда выход по идемпотентности случится раньше, чем деньги попадут в
+  // историю. Сама запись идемпотентна по id платежа.
+  await recordPayment({
+    psychologistId,
+    yookassaPaymentId: paymentId,
+    amount: payment.amount,
+    kind: payment.metadata.kind === "renewal" ? "renewal" : "initial",
+  });
 
   // Идемпотентность: если уже активировали этот платёж — выходим.
   const existing = await prisma.subscription.findUnique({ where: { psychologistId } });

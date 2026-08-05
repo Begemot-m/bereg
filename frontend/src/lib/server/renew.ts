@@ -1,3 +1,4 @@
+import { recordPayment } from "@/lib/server/payments";
 import { prisma } from "@/lib/server/prisma";
 import { chargeRecurring } from "@/lib/server/yookassa";
 
@@ -40,6 +41,12 @@ export async function renewDueSubscriptions(now = new Date()): Promise<{ charged
         await prisma.subscription.updateMany({
           where: { psychologistId: sub.psychologistId, NOT: { yookassaPaymentId: payment.id } },
           data: { status: "active", yookassaPaymentId: payment.id, currentPeriodEnd: end },
+        });
+        await recordPayment({
+          psychologistId: sub.psychologistId,
+          yookassaPaymentId: payment.id,
+          amount: Math.round(priceRub * 100),
+          kind: "renewal",
         });
         charged++;
       }

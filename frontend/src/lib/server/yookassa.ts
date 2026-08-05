@@ -98,6 +98,9 @@ export type PaymentDetails = {
   paid: boolean;
   paymentMethodId: string | null;
   metadata: Record<string, string>;
+  /** Копейки: ЮKassa отдаёт «990.00» строкой, в рублях суммы разъезжаются. */
+  amount: number;
+  currency: string;
 };
 
 // Авторитетно тянем платёж из API — так проверяем подлинность вебхука
@@ -113,6 +116,7 @@ export async function getPayment(paymentId: string): Promise<PaymentDetails> {
     paid: boolean;
     payment_method?: { id?: string };
     metadata?: Record<string, string>;
+    amount?: { value?: string; currency?: string };
   };
   return {
     id: data.id,
@@ -120,5 +124,7 @@ export async function getPayment(paymentId: string): Promise<PaymentDetails> {
     paid: data.paid,
     paymentMethodId: data.payment_method?.id ?? null,
     metadata: data.metadata ?? {},
+    amount: Math.round(Number(data.amount?.value ?? 0) * 100),
+    currency: data.amount?.currency ?? "RUB",
   };
 }

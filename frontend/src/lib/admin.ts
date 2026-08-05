@@ -35,6 +35,19 @@ export type Stats = {
   verification: { review: number; approved: number };
 };
 
+export type SeriesRow = {
+  day: string; registrations: number; appointments: number; payments: number; revenue: number;
+};
+
+export type Series = {
+  days: number;
+  from: string;
+  rows: SeriesRow[];
+  totals: { registrations: number; appointments: number; payments: number; revenue: number };
+  /** Раньше этой даты платежи не сохранялись вовсе — не «продаж не было». */
+  paymentsSince: string | null;
+};
+
 export type SupportRow = {
   id: number; topic: string; text: string; contact: string | null;
   createdAt: string; handledAt: string | null;
@@ -319,6 +332,60 @@ export function useReviewVerification() {
       qc.invalidateQueries({ queryKey: ["admin-verification"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
+  });
+}
+
+// Демо-ряд должен быть похож на правду и не прыгать при каждом рендере:
+// считаем по номеру дня, выходные проседают, к концу периода рост.
+function demoSeries(days: number): Series {
+  const from = new Date();
+  from.setUTCHours(0, 0, 0, 0);
+  from.setUTCDate(from.getUTCDate() - (days - 1));
+
+  const rows: SeriesRow[] = Array.from({ length: days }, (_, i) => {
+    const d = new Date(from);
+    d.setUTCDate(d.getUTCDate() + i);
+    const weekend = d.getUTCDay() === 0 || d.getUTCDay() === 6;
+    const wave = (i * 7919) % 11;
+    const growth = 1 + i / days;
+    const registrations = Math.max(0, Math.round((1 + wave / 4) * growth) - (weekend ? 1 : 0));
+    const appointments = Math.max(0, Math.round((3 + wave) * growth) - (weekend ? 3 : 0));
+    const payments = wave % 5 === 0 && !weekend ? 1 : 0;
+    return {
+      day: d.toISOString().slice(0, 10),
+      registrations,
+      appointments,
+      payments,
+      revenue: payments * 99000,
+    };
+  });
+
+  const paidFrom = new Date(from);
+  paidFrom.setUTCDate(paidFrom.getUTCDate() + Math.floor(days / 3));
+
+  return {
+    days,
+    from: from.toISOString(),
+    rows,
+    totals: {
+      registrations: rows.reduce((s, r) => s + r.registrations, 0),
+      appointments: rows.reduce((s, r) => s + r.appointments, 0),
+      payments: rows.reduce((s, r) => s + r.payments, 0),
+      revenue: rows.reduce((s, r) => s + r.revenue, 0),
+    },
+    paymentsSince: paidFrom.toISOString(),
+  };
+}
+
+export function useSeries(days: number) {
+  return useQuery<Series>({
+    queryKey: ["admin-series", days],
+    queryFn: async () => {
+      if (DEMO) return demoSeries(days);
+      return apiFetch<Series>(`/admin/series?days=${days}`);
+    },
+    staleTime: 60_000,
+    retry: false,
   });
 }
 

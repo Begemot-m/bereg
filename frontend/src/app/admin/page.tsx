@@ -8,8 +8,8 @@ import { Input, SkeletonRow } from "@/components/ui";
 import {
   useAdminStats, useAdminUsers, useUserAction,
   useReviewVerification, useVerificationQueue,
-  useAuditLog, useSupportAction, useSupportInbox,
-  type PsyApplication, type SupportRow,
+  useAuditLog, useSeries, useSupportAction, useSupportInbox,
+  type PsyApplication, type Series, type SupportRow,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
 
@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditFilter, setAuditFilter] = useState("");
   const [auditPage, setAuditPage] = useState(0);
+  const [days, setDays] = useState(30);
 
   const stats = useAdminStats();
   const users = useAdminUsers(q, page);
@@ -35,6 +36,7 @@ export default function AdminPage() {
   const support = useSupportInbox();
   const supportAct = useSupportAction();
   const auditLog = useAuditLog(auditFilter, auditPage, auditOpen);
+  const series = useSeries(days);
 
   // 403 приходит всем, кто не админ: страницу просто не показываем.
   if (users.isError || stats.isError) {
@@ -177,6 +179,53 @@ export default function AdminPage() {
             </div>
           </section>
         )}
+
+        {/* Динамика: итог за всё время не отвечает на вопрос, растём мы или
+            встали, — а других вопросов к цифрам сейчас и нет. */}
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="t-micro">Динамика</p>
+            <div className="flex gap-1.5">
+              {[30, 90].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => { tap(); setDays(d); }}
+                  className={days === d ? "chip chip-strong" : "chip"}
+                >
+                  {d} дней
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {series.isLoading && <SkeletonRow />}
+          {series.data && (
+            <div className="space-y-3">
+              <Spark
+                label="Регистрации"
+                total={series.data.totals.registrations}
+                rows={series.data.rows}
+                pick={(r) => r.registrations}
+                color="var(--iris)"
+              />
+              <Spark
+                label="Записи"
+                total={series.data.totals.appointments}
+                rows={series.data.rows}
+                pick={(r) => r.appointments}
+                color="var(--sage)"
+              />
+              <Spark
+                label="Оплаты"
+                total={series.data.totals.payments}
+                note={paymentsNote(series.data)}
+                rows={series.data.rows}
+                pick={(r) => r.payments}
+                color="var(--ink)"
+              />
+            </div>
+          )}
+        </section>
 
         {/* Пользователи */}
         <section>
@@ -351,6 +400,57 @@ function Application({ a, busy, onApprove, onReject }: {
           На доработку
         </button>
       </div>
+    </div>
+  );
+}
+
+const moneyF = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+
+// Пустой ряд оплат раньше означал бы «продаж не было». На деле платежи до
+// появления таблицы нигде не сохранялись — про это надо сказать прямо.
+function paymentsNote(s: Series) {
+  if (!s.paymentsSince) return "история платежей ведётся с этого релиза — ряд наполнится с первой оплатой";
+  const since = new Date(s.paymentsSince);
+  const revenue = `${moneyF.format(Math.round(s.totals.revenue / 100))} ₽`;
+  if (since > new Date(s.from)) return `${revenue} · история платежей ведётся с ${dateF.format(since)}`;
+  return revenue;
+}
+
+function Spark({ label, total, note, rows, pick, color }: {
+  label: string;
+  total: number;
+  note?: string;
+  rows: Series["rows"];
+  pick: (r: Series["rows"][number]) => number;
+  color: string;
+}) {
+  const max = Math.max(1, ...rows.map(pick));
+  return (
+    <div className="card-soft p-2.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="t-cap">{label}</p>
+        <p className="font-tight tabular-nums text-[18px] font-black leading-none">{total}</p>
+      </div>
+
+      <div className="mt-2 flex h-9 items-end gap-px">
+        {rows.map((r) => {
+          const v = pick(r);
+          return (
+            <div
+              key={r.day}
+              title={`${r.day}: ${v}`}
+              className="min-h-px flex-1 rounded-[1px]"
+              style={{
+                height: `${Math.max(v > 0 ? 8 : 2, (v / max) * 100)}%`,
+                background: color,
+                opacity: v > 0 ? 0.85 : 0.15,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {note && <p className="t-cap mt-1.5 opacity-70">{note}</p>}
     </div>
   );
 }
