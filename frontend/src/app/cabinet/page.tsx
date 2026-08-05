@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Arrow, PageHead, SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
@@ -25,6 +25,7 @@ import { resetOnboarding } from "@/lib/profile";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
 
 const ROLES: Role[] = ["psychologist", "client"];
+const PSY_APPLY_LINK = "https://t.me/+79117230099";
 
 // Когда собрана эта версия. Если после деплоя тут старая дата — вебвью
 // показывает страницу из кеша, а не новую сборку.
@@ -48,7 +49,7 @@ export default function CabinetPage() {
           key={role}
           embedded
           professional={psy}
-          roleControl={<RoleSwitch role={role} onSwitch={switchRole} />}
+          roleControl={<RoleControl role={role} onSwitch={switchRole} />}
         />
       </PageHead>
 
@@ -228,12 +229,12 @@ function EmailLink() {
         <div className="flex items-center gap-3">
           <span className="ico ico-mid h-11 w-11 shrink-0"><Icon name="check" width={20} weight="bold" color="#fff" /></span>
           <div className="min-w-0 flex-1">
-            <p className="t-head">Подтверждено</p>
+            <p className="t-head">Успешно привязана почта</p>
             <p className="t-cap truncate">{email}</p>
           </div>
           <button onClick={() => { tap(); setDraft(email); setEditing(true); }} className="btn btn-white shrink-0 px-3 py-1.5 text-[12px]">Изменить</button>
         </div>
-        <p className="t-body mt-3">Теперь вы можете пользоваться десктопной версией в браузере на планшете или компьютере.</p>
+        <p className="t-body mt-3">С этой почтой вы входите в десктопную версию на других устройствах.</p>
       </Card>
     );
   }
@@ -259,7 +260,7 @@ function EmailLink() {
 
   return (
     <Card style={{ borderColor: "var(--head)" }}>
-      <p className="t-cap">Привяжите почту, чтобы входить не только через Telegram.</p>
+      <p className="t-cap">Привяжите почту, чтобы входить в десктопную версию на других устройствах.</p>
       <div className="mt-2.5 flex gap-2">
         <Input
           type="email"
@@ -288,6 +289,28 @@ function EmailLink() {
       {draft && !ok && <p className="mt-1.5 text-[11px] font-semibold" style={{ color: "var(--danger)" }}>Похоже, в адресе опечатка</p>}
       {notice && <p className="t-cap mt-2" style={{ color: "var(--danger)" }}>{notice}</p>}
     </Card>
+  );
+}
+
+// Переключатель ролей доступен только тем, у кого аккаунт психолога. Остальным —
+// заявка на регистрацию в качестве психолога.
+function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
+  const me = useMe();
+  const isPsy = me.data?.role === "psychologist";
+
+  useEffect(() => {
+    if (me.data && !isPsy && role === "psychologist") onSwitch("client");
+  }, [me.data, isPsy, role]);
+
+  if (me.isLoading) return null;
+  if (isPsy) return <RoleSwitch role={role} onSwitch={onSwitch} />;
+
+  return (
+    <a href={PSY_APPLY_LINK} target="_blank" rel="noopener noreferrer" onClick={() => tap()} className="flex items-center gap-2.5 rounded-[17px] p-3 stroke" style={{ background: "rgba(255,255,255,.5)" }}>
+      <span className="ico h-9 w-9 shrink-0"><Icon name="therapy" width={17} weight="bold" color="var(--edge)" /></span>
+      <span className="t-sub min-w-0 flex-1 font-bold leading-tight">Подать заявку на регистрацию в качестве психолога</span>
+      <Arrow />
+    </a>
   );
 }
 

@@ -22,7 +22,17 @@ export function ClientSessionJourney({ meetings, reflections, module, saving, on
   onModuleChange: (patch: { enabled?: boolean; shared?: boolean }) => void;
 }) {
   const latest = [...reflections].filter((item) => item.feeling).sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
-  if (!module.enabled) return <div data-accent="tiffany"><ClientModuleControl module={module} saving={saving} onChange={onModuleChange} /></div>;
+  if (!module.enabled) {
+    return (
+      <div data-accent="tiffany" className="card-soft p-3">
+        <Link href="/therapy/notes" onClick={tap} className="card-plain flex items-center gap-3 p-3">
+          <span className="ico h-11 w-11 shrink-0"><Icon name="note" width={20} weight="bold" color="var(--edge)" /></span>
+          <div className="min-w-0 flex-1"><p className="t-head">Заметки о встречах</p><p className="t-cap mt-0.5">Модуль выключен — можно подключить</p></div>
+          <Arrow />
+        </Link>
+      </div>
+    );
+  }
   return (
     <div data-accent="tiffany" className="card-soft p-3">
       <Link href="/therapy/notes" onClick={tap} className="card-plain flex items-center gap-3 p-3">
@@ -69,19 +79,25 @@ export function ClientNotesDetail({ meetings, reflections, module, saving, onSav
 
   return (
     <section data-accent="tiffany" className="space-y-3">
-      <ClientModuleControl module={module} saving={saving} onChange={onModuleChange} />
-
-      {module.enabled && (
+      {module.enabled ? (
         <>
-          <NotesSummary meetings={meetings} reflections={reflections} />
           {current ? (
             <SessionNoteEditor current={current} upcoming={upcoming} saved={Boolean(reflection)} preparation={preparation} takeaway={takeaway} rating={rating} saving={saving} onPreparation={setPreparation} onTakeaway={setTakeaway} onRating={setRating} onSave={save} />
           ) : <div className="card p-4 text-center"><p className="t-head">Встреч пока нет</p><p className="t-cap mt-1">После записи здесь появятся заметки к сессии.</p></div>}
 
+          <NotesSummary meetings={meetings} reflections={reflections} />
+          <SharingControl module={module} saving={saving} onChange={onModuleChange} />
           <MeetingDynamics meetings={meetings} reflections={reflections} />
           <ReflectionHistory reflections={reflections} />
         </>
+      ) : (
+        <div className="card p-4">
+          <p className="t-head">Модуль выключен</p>
+          <p className="t-cap mt-1">Здесь вы записываете, что хотите обсудить на встрече, а после — что унесли с собой и как себя чувствуете. Со временем видно динамику.</p>
+        </div>
       )}
+
+      <button disabled={saving} onClick={() => { tap(); onModuleChange({ enabled: !module.enabled }); }} className="t-cap w-full py-1 text-center underline decoration-[var(--edge-neutral)] underline-offset-4">{module.enabled ? "Отключить модуль" : "Подключить модуль"}</button>
     </section>
   );
 }
@@ -156,39 +172,16 @@ function SummaryStat({ value, label }: { value: string | number; label: string }
   return <div className="card-nested p-2 text-center"><p className="tnum text-[20px] font-black">{value}</p><p className="t-micro mt-1">{label}</p></div>;
 }
 
-function ClientModuleControl({ module, saving, onChange }: { module: NotesModuleState; saving?: boolean; onChange: (patch: { enabled?: boolean; shared?: boolean }) => void }) {
+function SharingControl({ module, saving, onChange }: { module: NotesModuleState; saving?: boolean; onChange: (patch: { enabled?: boolean; shared?: boolean }) => void }) {
   return (
-    <div className="card p-4">
-      <div className="flex items-center gap-3">
-        <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="note" width={19} weight="bold" /></span>
-        <div className="min-w-0 flex-1"><p className="t-title">Заметки о встречах</p><p className="t-cap mt-0.5">{module.enabled ? "Темы и впечатления от встреч" : "Модуль выключен"}</p></div>
-        <button disabled={saving} onClick={() => onChange({ enabled: !module.enabled })} className={module.enabled ? "btn btn-white shrink-0 px-3 py-1.5 text-[11px]" : "btn btn-accent shrink-0 px-3 py-1.5 text-[11px]"}>{module.enabled ? "Отключить" : "Включить"}</button>
+    <div className="card p-3">
+      <div className="grid grid-cols-2 gap-1 rounded-[12px] bg-[var(--head-soft)] p-1">
+        <button disabled={saving} onClick={() => { tap(); onChange({ shared: false }); }} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${!module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Только мне</button>
+        <button disabled={saving} onClick={() => { tap(); onChange({ shared: true }); }} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Психологу</button>
       </div>
-      {!module.enabled && (
-        <>
-          <p className="t-cap mt-3">Место, где вы перед встречей записываете, что хотите обсудить, а после — что унесли с собой и как себя чувствуете по десятибалльной шкале. Со временем видно динамику, а разговор не начинается каждый раз с нуля.</p>
-          <div className="card-nested mt-3 space-y-2 p-3">
-            <ModuleBenefit text="Заранее собрать темы к сессии" />
-            <ModuleBenefit text="Записать итог и оценку после встречи" />
-            <ModuleBenefit text="Решать самим, видит ли записи психолог" />
-          </div>
-        </>
-      )}
-      {module.enabled && (
-        <div className="card-nested mt-3 p-1">
-          <div className="grid grid-cols-2 gap-1">
-            <button disabled={saving} onClick={() => onChange({ shared: false })} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${!module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Только мне</button>
-            <button disabled={saving} onClick={() => onChange({ shared: true })} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Психологу</button>
-          </div>
-          <p className="t-cap px-2 pb-1 pt-2 text-center">{module.shared ? module.psychologistEnabled ? "Записи видит ваш психолог" : "Передача начнётся после подключения психолога" : "Записи остаются только у вас"}</p>
-        </div>
-      )}
+      <p className="t-cap px-2 pt-2 text-center">{module.shared ? module.psychologistEnabled ? "Записи видит ваш психолог" : "Передача начнётся после подключения психолога" : "Записи остаются только у вас"}</p>
     </div>
   );
-}
-
-function ModuleBenefit({ text }: { text: string }) {
-  return <div className="flex items-center gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" /><span className="t-body">{text}</span></div>;
 }
 
 function SessionNoteEditor({ current, upcoming, saved, preparation, takeaway, rating, saving, onPreparation, onTakeaway, onRating, onSave }: {
@@ -204,22 +197,18 @@ function SessionNoteEditor({ current, upcoming, saved, preparation, takeaway, ra
   onRating: (value: number) => void;
   onSave: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="card p-3">
-      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-1 text-left" aria-expanded={open}>
-        <span className="ico h-9 w-9 shrink-0"><Icon name="note" width={17} weight="bold" /></span>
+    <div className="rounded-[var(--r-block)] bg-[var(--head-soft)] p-3.5" style={{ border: "2.5px solid var(--edge)" }}>
+      <div className="flex items-center gap-3">
+        <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="note" width={17} weight="bold" /></span>
         <div className="min-w-0 flex-1"><p className="t-head">{upcoming ? "К ближайшей встрече" : "Итог последней встречи"}</p><p className="t-cap mt-0.5 capitalize">{sessionDate.format(new Date(current.startsAt))}</p></div>
         {saved && <span className="chip chip-strong">Сохранено</span>}
-        <span className="arrow transition-transform" style={{ transform: open ? "rotate(90deg)" : undefined }}><ArrowGlyph /></span>
-      </button>
-      <Disclosure open={open} autoScroll={false}>
-        <div className="line-top mt-3 space-y-3 pt-3">
-          <label className="block"><span className="t-cap mb-1.5 block font-bold">Что хочется обсудить</span><Textarea value={preparation} onChange={(event) => onPreparation(event.target.value)} rows={3} placeholder="Запишите важные темы или вопросы…" /></label>
-          {!upcoming && <><label className="block"><span className="t-cap mb-1.5 block font-bold">Впечатления после сессии</span><Textarea value={takeaway} onChange={(event) => onTakeaway(event.target.value)} rows={3} placeholder="Что было важным, что хочется сохранить…" /></label><Rating value={rating} onChange={onRating} /></>}
-          <button onClick={onSave} disabled={saving || (!preparation.trim() && !takeaway.trim() && !rating)} className="btn btn-accent w-full py-2">{saving ? "Сохраняем…" : "Сохранить заметку"}</button>
-        </div>
-      </Disclosure>
+      </div>
+      <div className="mt-3 space-y-3">
+        <label className="block"><span className="t-cap mb-1.5 block font-bold">Что хочется обсудить</span><Textarea value={preparation} onChange={(event) => onPreparation(event.target.value)} rows={3} placeholder="Запишите важные темы или вопросы…" /></label>
+        {!upcoming && <><label className="block"><span className="t-cap mb-1.5 block font-bold">Впечатления после сессии</span><Textarea value={takeaway} onChange={(event) => onTakeaway(event.target.value)} rows={3} placeholder="Что было важным, что хочется сохранить…" /></label><Rating value={rating} onChange={onRating} /></>}
+        <button onClick={onSave} disabled={saving || (!preparation.trim() && !takeaway.trim() && !rating)} className="btn btn-accent w-full py-2">{saving ? "Сохраняем…" : "Сохранить заметку"}</button>
+      </div>
     </div>
   );
 }
