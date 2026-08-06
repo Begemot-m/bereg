@@ -13,6 +13,8 @@ import { startParam, target } from "@/components/start-route";
 // Экскурсия по разделам запускается вручную и редко, а лежала в бандле
 // каждой страницы приложения — app-shell оборачивает все экраны.
 const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.RoomTour));
+// Лендинг видят только гости из браузера — в бандл вошедшего он не нужен.
+const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => m.WebLanding));
 import { APP_NAME } from "@/lib/brand";
 import { select } from "@/lib/haptics";
 import { useOnboarded } from "@/lib/profile";
@@ -201,7 +203,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Человек пришёл по ссылке-приглашению на запись — он ещё никто и звать
   // никак. Показать ему замок вместо расписания значит потерять клиента:
   // пускаем смотреть окна, вход попросим на самой записи.
-  if (authState === "anon" && !fastEntry) return <AuthGate env={env} reason={authReason} detail={authDetail} />;
+  // Из браузера входа пока нет, но пустой замок ничего не объясняет: показываем
+  // лендинг с кнопкой в бота. Замок остаётся для сбоев входа внутри Telegram.
+  if (authState === "anon" && !fastEntry) {
+    return env === "desktop"
+      ? <WebLanding />
+      : <AuthGate env={env} reason={authReason} detail={authDetail} />;
+  }
   if (!onboarded && !fastEntry) return <Onboarding />;
 
   return (

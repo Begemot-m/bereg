@@ -9,7 +9,7 @@ import { APP_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand"
 const BOT_URL = botDeepLink("site");
 
 // Что платформа решает. Формулировки от боли специалиста, а не от списка фич.
-const VALUE: { icon: IconName; title: string; text: string; tone: string; edge: string }[] = [
+export const VALUE: { icon: IconName; title: string; text: string; tone: string; edge: string }[] = [
   {
     icon: "users", tone: "var(--green-soft)", edge: "var(--green)",
     title: "Клиенты в одном месте",
@@ -33,7 +33,7 @@ const VALUE: { icon: IconName; title: string; text: string; tone: string; edge: 
 ];
 
 // Функции — короткими плитками: человек считывает объём за один взгляд.
-const FEATURES: { icon: IconName; title: string; text: string }[] = [
+export const FEATURES: { icon: IconName; title: string; text: string }[] = [
   { icon: "calendar", title: "Сессии и окна", text: "Рабочие часы по дням, запись клиента, переносы, онлайн и очно" },
   { icon: "users", title: "Карточки клиентов", text: "Статусы, контакты, заметки к встречам, статистика по терапии" },
   { icon: "note", title: "Домашние задания", text: "Выдать, напомнить, увидеть выполнение и ответ клиента" },
@@ -44,7 +44,7 @@ const FEATURES: { icon: IconName; title: string; text: string }[] = [
   { icon: "chart", title: "Деньги и загрузка", text: "Сколько сессий, сколько дохода, где провисает неделя" },
 ];
 
-const AUDIENCE: { icon: IconName; who: string; tone: string; edge: string; points: string[] }[] = [
+export const AUDIENCE: { icon: IconName; who: string; tone: string; edge: string; points: string[] }[] = [
   {
     icon: "therapy", who: "Психологу", tone: "var(--green-soft)", edge: "var(--green-edge)",
     points: [
