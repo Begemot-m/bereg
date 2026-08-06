@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Icon } from "@/components/icons";
@@ -14,12 +14,10 @@ const TechniqueRunner = dynamic(() => import("@/components/techniques").then((m)
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 // Интерактивные клиентские практики.
-const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string }[] = [
+const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string; soon?: boolean }[] = [
   { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.webp", bg: "#d9edf3", edge: "#5f95ab" },
-  { tech: "thought", title: "Дневник мыслей", desc: "Разобрать мысль без самокритики и вести историю", time: "2–7 мин", image: "/practices/automatic-thoughts.webp", bg: "var(--purple-soft)", edge: "var(--purple-edge)" },
+  { tech: "thought", title: "Дневник мыслей", desc: "Отслеживать негативные убеждения и переформулировать их по методу КПТ", time: "2–7 мин", image: "/practices/automatic-thoughts.webp", bg: "var(--purple-soft)", edge: "var(--purple-edge)", soon: true },
 ];
-
-type PracticeHistory = { tech: TechKey; completedAt: string; before?: number; after?: number }[];
 
 export default function ToolsPage() {
   // Инструменты у психолога и клиента одинаковые — общий набор практик.
@@ -28,13 +26,6 @@ export default function ToolsPage() {
 
 function ClientTools() {
   const [tech, setTech] = useState<TechKey | null>(null);
-  const [history, setHistory] = useState<PracticeHistory>([]);
-  const [drafts, setDrafts] = useState<TechKey[]>([]);
-
-  useEffect(() => {
-    try { setHistory(JSON.parse(localStorage.getItem("bereg-practice-history-v1") || "[]")); } catch { setHistory([]); }
-    setDrafts((["breathing", "thought"] as TechKey[]).filter((key) => Boolean(localStorage.getItem(`bereg-practice-draft-v1:${key}`))));
-  }, [tech]);
 
   return (
     <div>
@@ -60,23 +51,31 @@ function ClientTools() {
             <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            {CLIENT_PRACTICES.map((t, i) => {
-              const last = history.find((x) => x.tech === t.tech);
-              const hasDraft = drafts.includes(t.tech);
-              return <Reveal key={t.tech} delay={0.03 + i * 0.04}>
-                <button onClick={() => { tap(); setTech(t.tech); }} className="group flex min-h-[226px] w-full flex-col overflow-hidden rounded-[19px] text-left transition-transform duration-200 active:scale-[.98]" style={{ background: t.bg, border: `2px solid ${t.edge}` }}>
+            {CLIENT_PRACTICES.map((t, i) => (
+              <Reveal key={t.tech} delay={0.03 + i * 0.04}>
+                <button
+                  onClick={() => { if (t.soon) return; tap(); setTech(t.tech); }}
+                  disabled={t.soon}
+                  aria-disabled={t.soon}
+                  className="group relative flex min-h-[210px] w-full flex-col overflow-hidden rounded-[19px] text-left transition-transform duration-200 active:scale-[.98] disabled:active:scale-100"
+                  style={{ background: t.bg, border: `2px solid ${t.edge}` }}
+                >
                   <div className="relative flex h-[118px] items-center justify-center overflow-hidden">
-                    <img src={asset(t.image)} alt="" loading="lazy" decoding="async" className="h-[118px] w-[118px] object-contain transition-transform duration-300 group-hover:scale-[1.04]" />
-                    <span className="chip absolute right-2 top-2 bg-white">{t.time}</span>
+                    <img src={asset(t.image)} alt="" loading="lazy" decoding="async" className="h-[118px] w-[118px] object-contain transition-transform duration-300 group-hover:scale-[1.04]" style={t.soon ? { filter: "grayscale(.55)", opacity: .5 } : undefined} />
+                    {/* Длительность — часики на самой картинке, без цветных статусов */}
+                    <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black" style={{ color: t.edge }}>
+                      <Icon name="clock" width={11} weight="bold" color={t.edge} />{t.time}
+                    </span>
                   </div>
                   <div className="flex flex-1 flex-col bg-white p-3">
                     <h3 className="font-tight text-[15px] font-black leading-tight">{t.title}</h3>
                     <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">{t.desc}</p>
-                    <span className="mt-auto pt-2 text-[10px] font-black uppercase tracking-[.05em]" style={{ color: t.edge }}>{hasDraft ? "продолжить черновик" : last ? "можно повторить" : "попробовать"}</span>
+                    {t.soon && <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[.06em]" style={{ background: "var(--head-soft)", color: "var(--muted)" }}>в разработке</span>}
                   </div>
+                  {t.soon && <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[17px]" style={{ background: "rgba(32,28,24,.14)" }} />}
                 </button>
-              </Reveal>;
-            })}
+              </Reveal>
+            ))}
           </div>
 
           <div className="mb-2 mt-6 flex items-end justify-between">

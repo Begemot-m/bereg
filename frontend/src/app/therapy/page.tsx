@@ -21,29 +21,27 @@ import { SessionCheckin } from "@/components/session-checkin";
 import { ClientSessionJourney } from "@/components/session-reflections";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, SkeletonRow } from "@/components/ui";
-import { bookSlot } from "@/lib/mybookings";
+import { bookSlot, cancelMyBooking } from "@/lib/mybookings";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { loadTherapists, saveTherapists, type TherapistStore } from "@/lib/therapists";
+import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, type TherapistStore } from "@/lib/therapists";
 import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
 
 const ME = 1; // в демо клиент «я» — карточка №1
 const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
 // Прикреплённые терапевты: общий стор (каталог добавляет) + автодобавление из записей.
-function useMyTherapists(bookingNames: string[]) {
+function useMyTherapists(bookingNames: string[], onDetach: (name: string) => void) {
   const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null });
   const sync = () => {
     const base = loadTherapists();
-    const merged = [...new Set([...base.list, ...bookingNames.filter((n) => !base.removed.includes(n))])];
-    const active = base.active && merged.includes(base.active) ? base.active : merged[0] ?? null;
-    const next = { ...base, list: merged, active };
+    const next = mergeWithBookings(base, bookingNames);
     setStore(next);
-    if (merged.length !== base.list.length || active !== base.active) saveTherapists(next);
+    if (next.list.length !== base.list.length || next.active !== base.active) saveTherapists(next);
   };
   useEffect(() => { sync(); const on = () => sync(); window.addEventListener("bereg:therapists", on); return () => window.removeEventListener("bereg:therapists", on); }, [bookingNames.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
   const persist = (nextStore: TherapistStore) => { setStore(nextStore); saveTherapists(nextStore); };
@@ -51,7 +49,8 @@ function useMyTherapists(bookingNames: string[]) {
     list: store.list,
     active: store.active,
     setActive: (name: string) => { select(); persist({ ...store, active: name }); },
-    remove: (name: string) => { tap(); const list = store.list.filter((n) => n !== name); persist({ list, removed: [...new Set([...store.removed, name])], active: store.active === name ? list[0] ?? null : store.active }); },
+    // Открепили — записи к этому специалисту отменяются: и здесь, и на главной.
+    remove: (name: string) => { tap(); setStore(detachTherapist(name)); onDetach(name); },
   };
 }
 
@@ -63,7 +62,15 @@ export default function TherapyPage() {
   const therapy = therapyQuery.data;
   const ordered = useMemo(() => [...bookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)), [bookings]);
   const bookingNames = useMemo(() => [...new Set(ordered.map((b) => b.psyName))], [ordered]);
-  const therapists = useMyTherapists(bookingNames);
+  // Открепление специалиста снимает все будущие записи к нему — иначе на главной
+  // осталась бы висеть сессия с тем, кого в терапии уже нет.
+  const dropBookings = useMutation({
+    mutationFn: async (name: string) => {
+      for (const item of ordered.filter((b) => b.psyName === name)) await cancelMyBooking(item.id);
+    },
+    onSettled: () => { for (const key of ["my-bookings", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [key] }); },
+  });
+  const therapists = useMyTherapists(bookingNames, (name) => dropBookings.mutate(name));
   const active = therapists.active;
   const next = ordered.find((item) => item.psyName === active && new Date(item.startsAt) > new Date())
     ?? ordered.find((item) => new Date(item.startsAt) > new Date()) ?? null;
@@ -187,8 +194,8 @@ function MoodStatsBlock({ moods }: { moods: Mood[] }) {
 // Блок подбора терапевта в шапке терапии (когда никого ещё не прикреплено).
 function FindTherapistBlock() {
   return (
-    <Link href="/catalog" onClick={tap} className="card-lav mt-4 flex items-center gap-3 p-3.5 transition-transform active:scale-[0.99]">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white"><Icon name="compass" width={24} weight="bold" color="var(--purple-edge)" /></span>
+    <Link href="/catalog" onClick={tap} className="mt-4 flex items-center gap-3 rounded-[18px] bg-white p-3.5 transition-transform active:scale-[0.99]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]"><Icon name="compass" width={24} weight="bold" color="var(--purple-edge)" /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-black">Найти терапевта</span>
         <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания. Ваша статистика уже собирается ниже.</span>
@@ -232,7 +239,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
   return (
     <div className="relative mt-3 rounded-[18px] bg-[#ffffff] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
-      {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}?`)) onRemove(); }} className="absolute right-2 top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)", color: "var(--salmon-edge)" }} aria-label="Открепить терапевта">×</button>}
+      {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}? Ваши записи к этому специалисту будут отменены.`)) onRemove(); }} className="absolute right-2 top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)", color: "var(--salmon-edge)" }} aria-label="Открепить терапевта">×</button>}
       {/* Тап по карточке — на страницу терапевта */}
       <Link href={href} onClick={tap} className="flex gap-3">
         {portrait ? (

@@ -280,9 +280,23 @@ function PsySell({ onStart }: { onStart: () => void }) {
   );
 }
 
-const ROLE_OPTIONS: { role: Role; title: string; text: string; icon: IconName }[] = [
-  { role: "psychologist", title: "Я психолог", text: "Клиенты, записи, расписание и статистика практики", icon: "users" },
-  { role: "client", title: "Я пользователь", text: "Подбор специалиста, сессии и практики для себя", icon: "heart" },
+const ROLE_OPTIONS: { role: Role; title: string; text: string; icon: IconName; features: { icon: IconName; title: string; text: string }[] }[] = [
+  {
+    role: "psychologist", title: "Я психолог", text: "Клиенты, записи, расписание и статистика практики", icon: "users",
+    features: [
+      { icon: "calendar", title: "Расписание и записи", text: "Рабочие часы, свободные окна, напоминания клиентам" },
+      { icon: "users", title: "Карточки клиентов", text: "Настроение, задания и заметки по каждому в одном месте" },
+      { icon: "chart", title: "Статистика практики", text: "Сессии, доход и загрузка недели считаются сами" },
+    ],
+  },
+  {
+    role: "client", title: "Я пользователь", text: "Подбор специалиста, сессии и практики для себя", icon: "heart",
+    features: [
+      { icon: "compass", title: "Поиск специалиста", text: "Подбор по запросу, методу и цене — и запись в удобное окно" },
+      { icon: "chart", title: "Динамика и прогресс встреч", text: "Настроение, колесо баланса и итоги каждой сессии" },
+      { icon: "tools", title: "Самостоятельные практики", text: "Дыхание и упражнения между встречами — в своём темпе" },
+    ],
+  },
 ];
 
 function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
@@ -318,16 +332,28 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.p
+        <motion.div
           key={active.role}
           initial={{ opacity: 0, x: index === 0 ? -14 : 14 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: index === 0 ? 14 : -14 }}
           transition={{ duration: 0.24, ease: EASE }}
-          className="mt-4 text-[13.5px] font-bold leading-snug text-[var(--ink)]"
+          className="mt-4"
         >
-          {active.text}
-        </motion.p>
+          <p className="text-[13.5px] font-bold leading-snug text-[var(--ink)]">{active.text}</p>
+          {/* Список возможностей роли — иначе низ экрана оставался пустым */}
+          <div className="mt-4 space-y-2">
+            {active.features.map((item) => (
+              <div key={item.title} className="flex items-start gap-3 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-[var(--purple-soft)]"><Icon name={item.icon} width={18} weight="bold" color="var(--purple-edge)" /></span>
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-black leading-tight">{item.title}</span>
+                  <span className="mt-0.5 block text-[11.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.6)" }}>{item.text}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </AnimatePresence>
 
       <div className="mt-auto pt-6">

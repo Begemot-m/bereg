@@ -33,3 +33,25 @@ export function attachTherapist(name: string): boolean {
 export function isAttached(name: string): boolean {
   return loadTherapists().list.includes(name);
 }
+
+// Имена из записей считаются прикреплёнными, пока их не открепили вручную.
+// Одна и та же склейка нужна и главной, и «Терапии» — иначе разделы расходятся.
+export function mergeWithBookings(store: TherapistStore, bookingNames: string[]): TherapistStore {
+  const list = [...new Set([...store.list, ...bookingNames.filter((name) => !store.removed.includes(name))])];
+  const active = store.active && list.includes(store.active) ? store.active : list[0] ?? null;
+  return { ...store, list, active };
+}
+
+// Открепить терапевта: уходит из списка и попадает в «удалённые», чтобы его
+// не вернула склейка с записями.
+export function detachTherapist(name: string): TherapistStore {
+  const store = loadTherapists();
+  const list = store.list.filter((item) => item !== name);
+  const next: TherapistStore = {
+    list,
+    removed: [...new Set([...store.removed, name])],
+    active: store.active === name ? list[0] ?? null : store.active,
+  };
+  saveTherapists(next);
+  return next;
+}

@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
@@ -13,17 +13,15 @@ import { WorkStats } from "@/components/work-stats";
 import { motion } from "motion/react";
 
 import { Stagger, StaggerItem } from "@/components/motion";
-import { TodayCard, type TodayItem } from "@/components/today";
 import { listAppointments, type Appointment } from "@/lib/appointments";
-import { listHomework, listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
+import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
-import { Disclosure } from "@/components/ui";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
-import { loadTherapists } from "@/lib/therapists";
+import { loadTherapists, mergeWithBookings, type TherapistStore } from "@/lib/therapists";
 import { startTour, tourSeen } from "@/components/room-tour";
 import type { Role } from "@/lib/role";
 
@@ -88,26 +86,28 @@ function PersonHome({ guest }: { guest: boolean }) {
   const name = useName();
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const { data: therapy } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
-  const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(1) });
   const now = new Date();
   const todayKey = localDay(now);
-  const next = [...bookings].filter((b) => new Date(b.startsAt) > now).sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0];
   const todayEntry = therapy ? [...therapy.moods].reverse().find((entry) => localDay(new Date(entry.date)) === todayKey) : undefined;
 
-  const pending = homework.filter((h) => h.status !== "done").length;
-  // «Сегодня» — только невыполненное: сделал задание — строка уходит из списка.
-  const clientToday: TodayItem[] = [];
-  if (therapy && !todayEntry) clientToday.push({ icon: "mood", title: "Отметить настроение", sub: "Полминуты на себя", href: "/therapy" });
-  if (pending > 0) clientToday.push({ icon: "note", title: `${pending} ${plural(pending, "задание", "задания", "заданий")} ждут`, sub: "От вашего терапевта", href: "/therapy" });
-  if (therapy && !therapy.wheel) clientToday.push({ icon: "balance", title: "Собрать колесо баланса", sub: "5 минут на себя", href: "/therapy", tone: "purple" });
-  // Терапевт берётся из выбранных в разделе «Терапия» (общий стор).
-  const [therapist, setTherapist] = useState<string | null>(null);
+  // Терапевты — тот же стор и та же склейка с записями, что в разделе «Терапия»:
+  // открепили специалиста там — здесь сразу подбор, а не запись к нему.
+  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null });
   useEffect(() => {
-    const sync = () => { const s = loadTherapists(); setTherapist(s.active ?? s.list[0] ?? null); };
+    const sync = () => setStore(loadTherapists());
     sync();
     window.addEventListener("bereg:therapists", sync);
     return () => window.removeEventListener("bereg:therapists", sync);
   }, []);
+  const bookingNames = useMemo(() => [...new Set(bookings.map((b) => b.psyName))], [bookings]);
+  const attached = useMemo(() => mergeWithBookings(store, bookingNames), [store, bookingNames]);
+  const therapist = attached.active;
+  const next = useMemo(
+    () => bookings
+      .filter((b) => attached.list.includes(b.psyName) && new Date(b.startsAt) > new Date())
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0],
+    [bookings, attached.list],
+  );
 
   return (
     <HomeFrame
@@ -120,8 +120,6 @@ function PersonHome({ guest }: { guest: boolean }) {
       <TourBanner role={guest ? "guest" : "client"} />
 
       {guest ? <GuestStart /> : <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />}
-
-      {!guest && <TodayCard items={clientToday} />}
 
       {/* в) разделы — листающаяся вбок карусель */}
       <HomeRoutesCarousel items={guest ? [
@@ -223,12 +221,32 @@ function FindTherapistCard() {
 }
 
 function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title: string; subtitle: string; subIcon?: IconName; icon?: IconName; focus?: React.ReactNode; children: React.ReactNode }) {
+  const focusRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  // Отступ листа считается от реального низа фокус-блока: при длинном имени,
+  // переносе даты или бейдже «сегодня» карточка растёт вниз, и фиксированное
+  // число снова наехало бы на настроение.
+  const [pad, setPad] = useState(120);
+  useEffect(() => {
+    if (!focus) return;
+    const measure = () => {
+      const focusBox = focusRef.current?.getBoundingClientRect();
+      const sheetBox = sheetRef.current?.getBoundingClientRect();
+      if (!focusBox || !sheetBox) return;
+      setPad(Math.max(20, Math.round(focusBox.bottom - sheetBox.top) + 20));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (focusRef.current) observer.observe(focusRef.current);
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, [focus]);
   return (
     <div>
       {/* Фокус-блок наезжает на белый лист: как на референсе, он пересекает
           границу цветной шапки и нижней области. */}
-      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div className="relative z-10 -mb-[132px] mt-6">{focus}</div>}</PageHead>
-      <div className="sheet relative z-0" style={focus ? { paddingTop: 120 } : undefined}>
+      <PageHead title={title} sub={subtitle} subIcon={subIcon} icon={icon}>{focus && <div ref={focusRef} className="relative z-10 -mb-[132px] mt-6">{focus}</div>}</PageHead>
+      <div ref={sheetRef} className="sheet relative z-0" style={focus ? { paddingTop: pad } : undefined}>
         <Stagger className="space-y-6">
           {Array.isArray(children)
             ? children.map((child, index) => child ? <StaggerItem key={index} className="empty:hidden">{child}</StaggerItem> : null)
@@ -402,12 +420,4 @@ function whenBadge(iso: string): string | undefined {
   if (diff === 1) return "завтра";
   if (diff === -1) return "вчера";
   return undefined;
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
 }

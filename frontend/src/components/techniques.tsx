@@ -74,15 +74,17 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
   useEffect(() => { const old = document.body.style.overflow; document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = old; }; }, []);
   return <motion.div className="fixed inset-0 z-[90] flex justify-center bg-[rgba(32,28,24,.38)] p-0 @md:items-center @md:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
     <motion.section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[var(--surface)] @md:h-[min(844px,94dvh)] @md:rounded-[27px]" initial={reduce ? false : { y: 28, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={reduce ? undefined : { y: 20, opacity: 0 }} transition={{ duration: .24, ease: [0.32, 0.72, 0, 1] }} style={{ border: `var(--bw-lg) solid ${c.edge}`, "--edge": c.edge } as CSSProperties}>
-      <header className="shrink-0 px-4 pb-5 pt-[max(14px,var(--top-pad))]" style={{ background: c.bg, borderBottom: `var(--bw-lg) solid ${c.edge}` }}>
+      {/* Шапка как в разделах приложения: цветная полоса, на которую наезжает
+          белый лист с крупным скруглением. */}
+      <header className="shrink-0 px-4 pb-9 pt-[max(14px,var(--top-pad))]" style={{ background: c.bg }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0">Назад</button>
+          <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0 rounded-full bg-white px-3" style={{ color: c.edge, border: `var(--bw) solid ${c.edge}` }}>Назад</button>
           <div className="min-w-0 flex-1"><p className="truncate font-tight text-[18px] font-black leading-tight">{meta.title}</p><p className="truncate text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">{meta.based}</p></div>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
         </div>
         <div className="mt-4"><Progress value={progress} tone={meta.tone} /></div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(24px,var(--safe-bottom))] pt-5">{children}</div>
+      <div className="relative -mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-t-[27px] bg-[var(--surface)] px-4 pb-[max(24px,var(--safe-bottom))] pt-6">{children}</div>
     </motion.section>
   </motion.div>;
 }
@@ -90,7 +92,7 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
 export function TechniqueRunner({ tech, onClose }: { tech: TechKey; onClose: () => void }) {
   const [progress, setProgress] = useState(0);
   return <AnimatePresence><TechShell tech={tech} progress={progress} onClose={onClose}>
-    {tech === "breathing" && <Breathing onProgress={setProgress} />}
+    {tech === "breathing" && <Breathing onProgress={setProgress} onClose={onClose} />}
     {tech === "thought" && <ThoughtRecord onProgress={setProgress} />}
   </TechShell></AnimatePresence>;
 }
@@ -136,7 +138,45 @@ function playBreathCue(ctx: AudioContext | null, frequency = 560) {
   oscillator.start();
   oscillator.stop(ctx.currentTime + 0.2);
 }
-function Breathing({ onProgress }: { onProgress: (n: number) => void }) {
+// Компактная история дыхания: счётчик, последняя практика и календарик месяца
+// с отметками дней, когда практика была.
+function BreathHistory() {
+  const [items, setItems] = useState<HistoryItem[]>([]);
+  useEffect(() => { setItems(loadHistory().filter((x) => x.tech === "breathing")); }, []);
+  const c = TONE.sky;
+  const today = new Date();
+  const done = useMemo(() => new Set(items.map((x) => new Date(x.completedAt).toDateString())), [items]);
+  const first = new Date(today.getFullYear(), today.getMonth(), 1);
+  const shift = (first.getDay() + 6) % 7; // неделя с понедельника
+  const days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const monthLabel = first.toLocaleDateString("ru-RU", { month: "long" });
+  const last = items[0];
+  return <div className="mt-4 rounded-[16px] bg-white p-3" style={{ border: `var(--bw) solid ${c.edge}` }}>
+    <div className="flex items-center justify-between">
+      <span className="inline-flex items-center gap-1.5 text-[11.5px] font-black"><Icon name="clock" width={13} weight="bold" color={c.edge} />{items.length ? `${items.length} ${plural(items.length, "практика", "практики", "практик")}` : "Практик пока не было"}</span>
+      <span className="text-[10.5px] font-bold text-[var(--muted-2)]">{last ? `последняя — ${new Date(last.completedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}` : monthLabel}</span>
+    </div>
+    <div className="mt-2.5 grid grid-cols-7 gap-[3px]">
+      {["П", "В", "С", "Ч", "П", "С", "В"].map((d, i) => <span key={i} className="text-center text-[8px] font-black text-[var(--muted-2)]">{d}</span>)}
+      {Array.from({ length: shift }, (_, i) => <span key={`x${i}`} />)}
+      {Array.from({ length: days }, (_, i) => {
+        const date = new Date(today.getFullYear(), today.getMonth(), i + 1);
+        const on = done.has(date.toDateString());
+        const isToday = date.toDateString() === today.toDateString();
+        return <span key={i} className="tnum flex h-5 items-center justify-center rounded-[6px] text-[9px] font-black" style={{ background: on ? c.bg : "transparent", color: on ? "var(--ink)" : "var(--muted-2)", border: isToday ? `1px solid ${c.edge}` : "1px solid transparent" }}>{i + 1}</span>;
+      })}
+    </div>
+  </div>;
+}
+
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+function Breathing({ onProgress, onClose }: { onProgress: (n: number) => void; onClose: () => void }) {
   const [stage, setStage] = useState<BreathStage>("intro");
   const [protocol, setProtocol] = useState<"slow" | "478">("slow");
   const [minutes, setMinutes] = useState(1);
@@ -167,7 +207,7 @@ function Breathing({ onProgress }: { onProgress: (n: number) => void }) {
     return () => window.clearInterval(iv);
   }, [stage, running, phase, phases, sound]);
 
-  if (stage === "intro") return <Intro tech="breathing" eyebrow="1–5 минут" title="Дайте телу более спокойный ритм" text="Мягкий вдох на 4 счёта и более длинный выдох на 6. Не нужно стараться дышать глубже обычного." note="Медленное дыхание может снизить напряжение в моменте, но это не лечение и не тест на «правильность»." onStart={() => setStage("setup")} />;
+  if (stage === "intro") return <><Intro tech="breathing" eyebrow="1–5 минут" title="Дайте телу более спокойный ритм" text="Мягкий вдох на 4 счёта и более длинный выдох на 6. Не нужно стараться дышать глубже обычного." note="Медленное дыхание может снизить напряжение в моменте, но это не лечение и не тест на «правильность»." onStart={() => setStage("setup")} /><BreathHistory /></>;
   if (stage === "setup") return <div><h2 className="font-tight text-[23px] font-black">Настройте практику</h2><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Начните с минуты. Остановиться можно в любой момент.</p>
     <p className="lbl mt-5">Ритм</p><div className="grid grid-cols-2 gap-2">{([{ id: "slow", title: "4 · 6", text: "вдох · выдох" }, { id: "478", title: "4 · 7 · 8", text: "с паузой" }] as const).map((x) => <button key={x.id} onClick={() => { select(); setProtocol(x.id); }} className="rounded-[16px] p-3 text-left" style={protocol === x.id ? { background: c.soft, border: `var(--bw-lg) solid ${c.edge}` } : { background: "#fff", border: "var(--bw) solid var(--edge-neutral)" }}><span className="block font-tight text-[20px] font-black">{x.title}</span><span className="text-[11px] font-semibold text-[var(--muted)]">{x.text}</span></button>)}</div>
     {protocol === "478" && <p className="mt-2 rounded-[13px] bg-[var(--amber-soft)] p-3 text-[11px] font-semibold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--amber-edge)" }}>Пауза подходит не всем. Если появляется дискомфорт или головокружение, вернитесь к ритму 4 · 6.</p>}
@@ -187,7 +227,7 @@ function Breathing({ onProgress }: { onProgress: (n: number) => void }) {
     </div>
     <p className="text-center text-[11px] font-semibold text-[var(--muted)]">Дышите комфортно. Не нужно наполнять лёгкие до предела.</p><button onClick={() => { tap(); setRunning(!running); }} className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white">{running ? <Pause size={18} weight="fill" /> : <Play size={18} weight="fill" />}{running ? "Пауза" : "Продолжить"}</button><button onClick={() => { setRunning(false); setStage("after"); }} className="mt-2 py-2 text-[11px] font-black text-[var(--muted)]">Завершить раньше</button></div>; }
   if (stage === "after") return <div><h2 className="font-tight text-[23px] font-black">Что изменилось?</h2><p className="mb-6 mt-1 text-[12px] font-semibold text-[var(--muted)]">Любой результат нормален — даже если напряжение осталось тем же.</p><Rating value={after} onChange={setAfter} tone="green" label="Напряжение после практики" /><Primary onClick={() => { saveResult("breathing", { before, after, protocol, duration: minutes * 60 - totalLeft }); setStage("done"); success(); }}>Сохранить наблюдение</Primary></div>;
-  return <ResultCard tech="breathing" title="Практика завершена" text={after < before ? `Напряжение изменилось с ${before} до ${after}. Это личное наблюдение, не оценка.` : "Вы остановились и уделили внимание состоянию — этого уже достаточно."} onAgain={() => setStage("setup")} />;
+  return <ResultCard tech="breathing" title="Практика завершена" text={after < before ? `Напряжение изменилось с ${before} до ${after}. Это личное наблюдение, не оценка.` : "Вы остановились и уделили внимание состоянию — этого уже достаточно."} onAgain={() => setStage("setup")} onDone={onClose} />;
 }
 
 type ThoughtData = { mode: "quick" | "full"; step: number; situation: string; thought: string; emotion: string; before: number; evidenceFor: string; evidenceAgainst: string; distortions: string[]; alternative: string; action: string; after: number; done: boolean };
@@ -278,7 +318,12 @@ function ThoughtEntryView({ entry, onBack, onDelete }: { entry: JournalEntry; on
   </div>;
 }
 
-function ResultCard({ tech, title, text, onAgain }: { tech: TechKey; title: string; text: string; onAgain: () => void }) {
+function ResultCard({ tech, title, text, onAgain, onDone }: { tech: TechKey; title: string; text: string; onAgain: () => void; onDone?: () => void }) {
   const meta = TECH_META[tech]; const c = TONE[meta.tone];
-  return <div className="text-center"><div className="mx-auto flex h-[188px] w-full items-center justify-center rounded-[22px]" style={{ background: c.soft, border: `var(--bw-lg) solid ${c.edge}` }}><img src={asset(meta.image)} alt="" className="h-[172px] w-[172px] object-contain" /></div><span className="mt-5 inline-flex h-10 w-10 items-center justify-center rounded-full" style={{ background: c.bg, border: `var(--bw) solid ${c.edge}` }}><Icon name="check" width={21} weight="fill" /></span><h2 className="mt-3 font-tight text-[23px] font-black">{title}</h2><p className="mx-auto mt-2 max-w-[310px] text-[12px] font-semibold leading-relaxed text-[var(--muted)]">{text}</p><Primary onClick={onAgain}>Повторить практику</Primary><p className="mt-3 text-[10px] font-semibold text-[var(--muted-2)]">Результат сохранён только на этом устройстве.</p></div>;
+  return <div className="text-center"><div className="mx-auto flex h-[188px] w-full items-center justify-center rounded-[22px]" style={{ background: c.soft, border: `var(--bw-lg) solid ${c.edge}` }}><img src={asset(meta.image)} alt="" className="h-[172px] w-[172px] object-contain" /></div><span className="mt-5 inline-flex h-10 w-10 items-center justify-center rounded-full" style={{ background: c.bg, border: `var(--bw) solid ${c.edge}` }}><Icon name="check" width={21} weight="fill" /></span><h2 className="mt-3 font-tight text-[23px] font-black">{title}</h2><p className="mx-auto mt-2 max-w-[310px] text-[12px] font-semibold leading-relaxed text-[var(--muted)]">{text}</p>
+    <div className="mt-5 flex gap-2">
+      <button onClick={() => { tap(); onAgain(); }} className="flex-1 rounded-[14px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform duration-150 active:scale-[.98]">Повторить</button>
+      {onDone && <button onClick={() => { tap(); onDone(); }} className="flex-1 rounded-[14px] bg-white py-3.5 text-[14px] font-black transition-transform duration-150 active:scale-[.98]" style={{ border: `var(--bw-lg) solid ${c.edge}`, color: c.edge }}>Завершить</button>}
+    </div>
+    <p className="mt-3 text-[10px] font-semibold text-[var(--muted-2)]">Результат сохранён только на этом устройстве.</p></div>;
 }
