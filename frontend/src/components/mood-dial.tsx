@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { Arrow, DailyDot } from "@/components/blocks";
 import { Icon } from "@/components/icons";
@@ -161,7 +162,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
     onClose();
   };
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   // Порядок стабилен (сначала подсказки уровня, отмеченные вне списка — в конец),
   // чтобы при выборе чипы не переставлялись и не «лагали».
@@ -169,8 +170,10 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
   const suggestions = [...base, ...picked.filter((p) => !base.includes(p))];
   const tint = moodColor(value);
 
-  return (
-    <div className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white text-[var(--ink)]">
+  // Лист рисуем в body: внутри страницы он лежал бы в слое `.sheet` (z-0), и
+  // поверх него оставались фокус-блок главной и нижнее меню — их слои выше.
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-white text-[var(--ink)]">
       <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center bg-white px-4 pb-2 pt-[max(12px,var(--top-pad))]">
         <button onClick={() => { tap(); close(); }} className="back-link justify-self-start" aria-label="Вернуться назад">Назад</button>
         <p className="t-micro">Настроение сегодня</p>
@@ -267,6 +270,7 @@ export function MoodSheet({ open, mood, emotions, onClose, onSave }: {
           <Icon name="check" width={17} weight="bold" color="#fff" /> Сохранить настроение
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

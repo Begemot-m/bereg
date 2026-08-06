@@ -8,8 +8,10 @@ import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { Button, Disclosure } from "@/components/ui";
+import Link from "next/link";
+
 import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
-import { listClients } from "@/lib/clients";
+import { isPhone, listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
 import { slotStyle } from "@/lib/slot-style";
@@ -19,7 +21,7 @@ const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.g
 const SPRING = { type: "spring" as const, stiffness: 460, damping: 26 };
 type Patch = { removed?: boolean; fmt?: ApptFormat };
 
-export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?: boolean }) {
+export function DaySlots({ date }: { date: Date }) {
   const qc = useQueryClient();
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
@@ -55,12 +57,6 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
       return { t: timeF.format(dt), hour: dt.getHours(), fmt: appt.format, iso: appt.startsAt, past: dt.getTime() < now, appt, removed: false };
     });
   const slots = [...scheduleSlots, ...appointmentOnlySlots].sort((a, b) => a.iso.localeCompare(b.iso));
-
-  // Режим «Ближайшие»: только записи этого дня (независимо от шаблона), без свободных окон и меню.
-  if (bookedOnly) {
-    if (dayAppts.length === 0) return null;
-    return <div className="space-y-1.5">{dayAppts.map((a) => <BusyRow key={a.id} appt={a} hour={new Date(a.startsAt).getHours()} onChanged={inv} />)}</div>;
-  }
 
   if (slots.length === 0) return <p className="py-3 text-center text-[13px] font-semibold text-[var(--muted-2)]">В этот день окон нет.</p>;
 
@@ -138,12 +134,18 @@ export function DaySlots({ date, bookedOnly = false }: { date: Date; bookedOnly?
   );
 }
 
-// Занятое окно: белая карточка + компактная шестерёнка (отменить / перенести).
+// Занятое окно: белая карточка + компактная шестерёнка (перенести / написать / отменить).
 function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; onChanged: () => void }) {
   const [manage, setManage] = useState(false);
   const [resch, setResch] = useState(false);
   const st = slotStyle(hour);
   const past = new Date(appt.startsAt).getTime() < Date.now();
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const contact = clients.find((c) => c.id === appt.client.id)?.contact ?? null;
+  // Телефон в t.me не открыть — тогда ведём в карточку клиента, там есть связь.
+  const tgLink = contact && !isPhone(contact)
+    ? `https://t.me/${contact.replace(/^@/, "")}?text=${encodeURIComponent("Здравствуйте! Пишу из «Хроники».")}`
+    : null;
   const setFmt = useMutation({ mutationFn: (format: ApptFormat) => updateAppointment(appt.id, { format }), onSuccess: onChanged });
   const cancel = useMutation({ mutationFn: () => updateAppointment(appt.id, { status: "cancelled" }), onSuccess: () => { setManage(false); onChanged(); } });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(appt.id, { startsAt: iso }), onSuccess: () => { setResch(false); setManage(false); onChanged(); } });
@@ -173,9 +175,18 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
               <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
             </div>
           ) : (
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               <button onClick={() => setResch(true)} className="btn btn-accent px-3 py-1 text-[11px]">Перенести</button>
-              <button onClick={() => cancel.mutate()} className="btn px-3 py-1 text-[11px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>
+              {tgLink ? (
+                <a href={tgLink} target="_blank" rel="noreferrer" onClick={tap} className="btn px-3 py-1 text-[11px]" style={{ background: "#fff", color: "var(--ink)" }}>
+                  <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
+                </a>
+              ) : (
+                <Link href={`/clients/?id=${appt.client.id}`} onClick={tap} className="btn px-3 py-1 text-[11px]" style={{ background: "#fff", color: "var(--ink)" }}>
+                  <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
+                </Link>
+              )}
+              {!past && <button onClick={() => cancel.mutate()} className="btn px-3 py-1 text-[11px]" style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Отменить</button>}
             </div>
           )}
         </div>

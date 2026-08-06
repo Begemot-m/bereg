@@ -131,7 +131,7 @@ function ClientsList() {
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по имени" className="!pl-9" />
           </div>
           <motion.button
-            onClick={() => { tap(); if (!approved) { router.push("/cabinet/"); return; } if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
+            onClick={() => { tap(); if (!approved) { router.push("/cabinet/verification/"); return; } if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
             whileTap={{ scale: 0.85 }}
             whileHover={{ scale: 1.06 }}
             animate={{ rotate: open ? 45 : 0 }}

@@ -346,8 +346,6 @@ function TourBanner({ role }: { role: Role }) {
   }, [role]);
   if (!show) return null;
   const title = role === "psychologist" ? "Освойте кабинет психолога" : "Познакомьтесь с приложением";
-  // У клиента подписи нет: заголовка и подсказки внизу достаточно.
-  const sub = role === "psychologist" ? "Расписание, анкета и работа с клиентом — по шагам" : null;
   return (
     <button onClick={() => { tap(); startTour(); }} className="relative w-full overflow-hidden p-4 text-left transition-transform active:scale-[0.99]">
       <div className="relative flex items-center gap-3.5">
@@ -359,7 +357,6 @@ function TourBanner({ role }: { role: Role }) {
         >!</motion.span>
         <span className="min-w-0 flex-1">
           <span className="t-head block">{title}</span>
-          {sub && <span className="t-sub mt-0.5 block">{sub}</span>}
           <span className="t-cap mt-1.5 block" style={{ color: "var(--purple-edge)" }}>Нажмите, чтобы пошагово ознакомиться с функционалом</span>
         </span>
       </div>

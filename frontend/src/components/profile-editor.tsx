@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { Arrow, ArrowGlyph } from "@/components/blocks";
+import { VerificationPrompt } from "@/components/verification-prompt";
 import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
@@ -55,9 +56,9 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
           <p className="truncate text-[21px] font-extrabold leading-tight">{name}</p>
           <button onClick={openEditor} className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="edit" width={12} weight="bold" color="currentColor" /> Редактировать профиль</button>
         </div>
-        {professional && profile && <VerifyChip status={profile.status} />}
       </div>
       {roleControl}
+      {professional && <VerificationPrompt />}
       {professional && <ProfileProgress profile={profile} onContinue={openEditor} />}
     </div>
 
@@ -72,16 +73,8 @@ export function ProfessionalProfileEditor() {
   return <ProfileForm livePreview onDone={() => router.push("/cabinet")} />;
 }
 
-// Статус верификации профиля — компактный чип.
-function VerifyChip({ status }: { status: "review" | "approved" }) {
-  const approved = status === "approved";
-  const tone = approved ? "green" : "amber";
-  return (
-    <span className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `var(--${tone}-soft)`, border: `var(--bw) solid var(--${tone}-edge)`, color: `var(--${tone}-edge)` }}>
-      <Icon name={approved ? "check" : "clock"} width={11} weight="bold" color={`var(--${tone}-edge)`} /> {approved ? "Проверен" : "На проверке"}
-    </span>
-  );
-}
+// Статус проверки показывает VerificationPrompt под шапкой. Отдельный чип брал
+// его из поля профиля, которое в демо всегда «на проверке», — и спорил с ним.
 
 // Заполненность анкеты — компактный живой блок с иконкой и короткой подсказкой.
 function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; onContinue: () => void }) {

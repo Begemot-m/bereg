@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 
-import { PageHead } from "@/components/blocks";
+import { ArrowGlyph, PageHead } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import type { TechKey } from "@/components/techniques";
@@ -73,7 +73,15 @@ function ClientTools() {
                   <div className="flex flex-1 flex-col bg-white p-3">
                     <h3 className="font-tight text-[15px] font-black leading-tight">{t.title}</h3>
                     <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">{t.desc}</p>
-                    {t.soon && <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[.06em]" style={{ background: "var(--head-soft)", color: "var(--muted)" }}>в разработке</span>}
+                    {t.soon
+                      ? <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[.06em]" style={{ background: "var(--head-soft)", color: "var(--muted)" }}>в разработке</span>
+                      : (
+                        // Карточка нажимается целиком, но без явной кнопки это не читалось
+                        // как «здесь можно начать» — практику просто не открывали.
+                        <span className="mt-auto flex items-center justify-center gap-1.5 rounded-full py-2 text-[12px] font-black text-white" style={{ background: "var(--tiffany-edge)", marginTop: 10 }}>
+                          Перейти <ArrowGlyph size={12} />
+                        </span>
+                      )}
                   </div>
                   {t.soon && <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[17px]" style={{ background: "rgba(32,28,24,.14)" }} />}
                 </button>

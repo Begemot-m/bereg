@@ -6,7 +6,11 @@ import { AuthError, requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
 
-type Verification = { fullName?: string; education?: string; publicLink?: string; about?: string };
+type Diploma = { name: string; type: string; size: number; dataUrl: string };
+type Verification = {
+  fullName?: string; education?: string; publicLink?: string; about?: string;
+  profilePercent?: number; diploma?: Diploma | null;
+};
 
 function row(p: {
   userId: number; name: string; primaryMethod: string; experienceYears: number;
@@ -34,6 +38,8 @@ function row(p: {
     education: v.education ?? "",
     publicLink: v.publicLink ?? "",
     about: v.about ?? "",
+    profilePercent: v.profilePercent ?? 0,
+    diploma: v.diploma ?? null,
   };
 }
 

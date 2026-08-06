@@ -290,7 +290,7 @@ function PsySessions() {
                       </div>
                       <p className="text-[10.5px] font-black text-[var(--muted-2)]">{dayShort.format(new Date(y + "T00:00:00"))}</p>
                     </div>
-                    <DaySlots date={d} bookedOnly />
+                    <DaySlots date={d} />
                   </div>
                 );
               })}

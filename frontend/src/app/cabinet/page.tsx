@@ -12,7 +12,6 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
 import { ProfileEditor } from "@/components/profile-editor";
-import { VerificationBanner, VerificationSheet } from "@/components/psy-verification";
 import { RemindersModule } from "@/components/reminders";
 import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
@@ -362,6 +361,9 @@ function useCanSwitchRole() {
   const me = useMe();
   const verification = useVerification();
   const [intent, intentReady] = useRoleIntent();
+  // Кто уже работает психологом на этом устройстве, но зашёл до появления
+  // «намерения»: без этого страж ниже молча вернул бы его в клиенты.
+  const [role] = useRole();
 
   const status = verification.data?.status ?? "none";
   // В демо сервера нет, и `me.role` там всегда «психолог» — заглушка, чтобы
@@ -372,7 +374,10 @@ function useCanSwitchRole() {
   return {
     ready: !me.isLoading && intentReady,
     loaded: Boolean(me.data) && intentReady,
-    canSwitch: isPsy || intent === "psychologist" || status !== "none",
+    // Решает только выбор роли: кто в онбординге выбрал клиента, тумблера не
+    // видит вовсе. Статус заявки сюда не входит — из-за него переключатель
+    // всплывал у клиентов, едва верификация переставала быть «none».
+    canSwitch: isPsy || intent === "psychologist" || (intent === null && role === "psychologist"),
     // Роль выбрана на устройстве, а в базе человек всё ещё клиент. Так вышло
     // у всех, кто перешёл в психологи, пока переход не доезжал до сервера.
     needsClaim: !DEMO && Boolean(me.data) && intentReady && !isPsy && intent === "psychologist",
@@ -382,10 +387,9 @@ function useCanSwitchRole() {
 }
 
 function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
-  const { ready, loaded, canSwitch, needsClaim, status, rejectReason } = useCanSwitchRole();
+  const { ready, loaded, canSwitch, needsClaim } = useCanSwitchRole();
   const qc = useQueryClient();
   const claimed = useRef(false);
-  const [sheet, setSheet] = useState(false);
 
   useEffect(() => {
     if (loaded && !canSwitch && role === "psychologist") onSwitch("client");
@@ -403,13 +407,9 @@ function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => vo
 
   if (!ready || !canSwitch) return null;
 
-  return (
-    <>
-      <RoleSwitch role={role} onSwitch={onSwitch} />
-      {role === "psychologist" && <VerificationBanner status={status} reason={rejectReason} onOpen={() => setSheet(true)} />}
-      <VerificationSheet open={sheet} onClose={() => setSheet(false)} />
-    </>
-  );
+  // Состояние верификации показывает VerificationPrompt под переключателем —
+  // отдельный баннер здесь дублировал его слово в слово.
+  return <RoleSwitch role={role} onSwitch={onSwitch} />;
 }
 
 // Переход в психологи — в самом низу кабинета. Анкеты тут больше нет: роль

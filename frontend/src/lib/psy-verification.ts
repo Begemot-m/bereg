@@ -11,6 +11,8 @@ export type Verification = {
   status: PsyStatus;
   rejectReason: string | null;
   submittedAt: string | null;
+  /** Демо: номер заявки в очереди админки — по нему подтягиваем решение модератора. */
+  applicationId?: number | null;
 };
 
 export type VerificationForm = {
@@ -72,11 +74,10 @@ const KEY = "psy_verification";
 function demoRead(): Verification {
   if (typeof window === "undefined") return { status: "none", rejectReason: null, submittedAt: null };
   const raw = localStorage.getItem(KEY);
-  // Демо-психолог заходит с готовой практикой: у него уже есть клиенты и
-  // сессии. Считать его неодобренным — значит молча запретить запись и
-  // показать пустое приложение вместо продукта. Путь верификации щупается
-  // через явный сброс в кабинете.
-  if (!raw) return { status: "approved", rejectReason: null, submittedAt: null };
+  // Раньше пустой ключ означал «уже подтверждён», и верификация выглядела
+  // пройденной сама собой. Проверку проходят, а не получают по умолчанию:
+  // новый психолог начинает с «не подана».
+  if (!raw) return { status: "none", rejectReason: null, submittedAt: null };
   return JSON.parse(raw) as Verification;
 }
 
@@ -84,23 +85,30 @@ function demoWrite(next: Verification) {
   localStorage.setItem(KEY, JSON.stringify(next));
 }
 
-// Демо крутится без сервера, поэтому модерацию имитируем таймером: подал —
-// через несколько секунд одобрено. Иначе экран «на проверке» не пощупать.
-const DEMO_REVIEW_MS = 6000;
+// Решение по заявке принимает модератор в админке — таймера «через шесть
+// секунд одобрено» больше нет: он и делал верификацию формальностью. В демо
+// цепочка та же, что в проде: отправил документы → заявка в админке → владелец
+// одобрил или вернул на правки → статус здесь поменялся.
+function demoSyncWithQueue(cur: Verification): Verification {
+  if (cur.status !== "review" || !cur.applicationId) return cur;
+  let queue: { userId: number; status: string; rejectReason: string | null }[] = [];
+  try { queue = JSON.parse(localStorage.getItem(DEMO_QUEUE_KEY) ?? "[]"); } catch { return cur; }
+  const row = queue.find((item) => item.userId === cur.applicationId);
+  if (!row || row.status === "review") return cur;
+  const next: Verification = {
+    ...cur,
+    status: row.status === "approved" ? "approved" : "rejected",
+    rejectReason: row.rejectReason ?? null,
+  };
+  demoWrite(next);
+  return next;
+}
 
 export function useVerification() {
   return useQuery<Verification>({
     queryKey: ["psy-verification"],
     queryFn: async () => {
-      if (DEMO) {
-        const cur = demoRead();
-        if (cur.status === "review" && cur.submittedAt && Date.now() - new Date(cur.submittedAt).getTime() > DEMO_REVIEW_MS) {
-          const next: Verification = { ...cur, status: "approved" };
-          demoWrite(next);
-          return next;
-        }
-        return cur;
-      }
+      if (DEMO) return demoSyncWithQueue(demoRead());
       const row = await apiFetch<{ status?: string; rejectReason?: string | null; submittedAt?: string | null } | null>("/profile");
       if (!row) return { status: "none", rejectReason: null, submittedAt: null };
       return {
@@ -136,9 +144,10 @@ const DEMO_QUEUE_KEY = "bereg_demo_psy_queue";
 // В демо админки нет сервера — кладём заявку в ту же очередь, которую читает
 // /admin. Диплом может не поместиться в localStorage: тогда сохраняем заявку
 // без файла, но с пометкой, вместо того чтобы потерять её целиком.
-function pushDemoApplication(sub: CatalogSubmission) {
+function pushDemoApplication(sub: CatalogSubmission): number {
+  const applicationId = Date.now() % 100000;
   const row = {
-    userId: Date.now() % 100000,
+    userId: applicationId,
     name: sub.name || "Без имени",
     username: null,
     email: null,
@@ -167,6 +176,7 @@ function pushDemoApplication(sub: CatalogSubmission) {
   } catch {
     write([{ ...row, diploma: sub.diploma ? { ...sub.diploma, dataUrl: "" } : null }, ...queue]);
   }
+  return applicationId;
 }
 
 export function useSubmitCatalogVerification() {
@@ -175,9 +185,10 @@ export function useSubmitCatalogVerification() {
     mutationFn: async (sub: CatalogSubmission) => {
       const next: Verification = { status: "review", rejectReason: null, submittedAt: new Date().toISOString() };
       if (DEMO) {
-        demoWrite(next);
-        pushDemoApplication(sub);
-        return next;
+        const applicationId = pushDemoApplication(sub);
+        const withId = { ...next, applicationId };
+        demoWrite(withId);
+        return withId;
       }
       await apiFetch("/profile/verification", { method: "POST", body: JSON.stringify(sub) });
       return next;
@@ -190,7 +201,5 @@ export function useSubmitCatalogVerification() {
 }
 
 export function resetVerification() {
-  // Пишем статус явно, а не стираем ключ: пустой ключ означает «демо со
-  // всеми правами», и сброс тогда ничего бы не сбросил.
-  demoWrite({ status: "none", rejectReason: null, submittedAt: null });
+  demoWrite({ status: "none", rejectReason: null, submittedAt: null, applicationId: null });
 }
