@@ -13,7 +13,7 @@
 > - PostgreSQL Beget работает отдельно от VPS по приватной сети
 >   `10.16.0.1:5432`, база `default_db`;
 > - приложение работает на образе
->   `ghcr.io/begemot-m/bereg:sha-ffe9b78` (выкатка 6 августа 2026);
+>   `ghcr.io/begemot-m/bereg:sha-77b890e` (выкатка 6 августа 2026);
 > - выкатка идёт в два шага: `gh workflow run app-deploy.yml` собирает образ
 >   (deploy-шаг в CI падает — секретов SSH нет), дальше с рабочей машины
 >   `ssh bereg-vps "cd /opt/bereg && ./deploy.sh ghcr.io/begemot-m/bereg:sha-XXXXXXX"`;
