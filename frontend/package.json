@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun test && node scripts/check-migrations.mjs",
     "deploy:demo": "node scripts/deploy-demo.mjs",
+    "deploy:status": "node scripts/deploy-demo.mjs --status",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",

@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 /**
- * Выкатка демо на Pages с проверкой результата.
+ * Выкатка демо: пуш в master, дальше GitHub Actions собирает и публикует сам.
  *
- * Всё общение с GitHub идёт через git по `github.com`. Раньше скрипт опрашивал
- * `api.github.com` и сам сайт `*.github.io` — в части сетей оба закрыты, и
- * выкатка выглядела упавшей, хотя на самом деле шла нормально.
+ * Скрипт не ждёт сборку и ничего не опрашивает — именно ожидание и делало
+ * выкатку «долгой». Пуш и есть выкатка: через пару минут демо обновлено.
  *
- * Признак успеха теперь — тег `demo-live`: workflow двигает его на коммит,
- * который реально доехал до Pages. Тег виден обычным `git ls-remote`.
+ * Проверить, что сейчас выложено, можно в любой момент одной командой:
+ *   bun run deploy:status
+ * Она читает тег `demo-live`, который workflow двигает на выкаченный коммит,
+ * через `git ls-remote` — по github.com, без api.github.com и без самого
+ * сайта Pages (в части сетей оба хоста закрыты, и старый скрипт на них падал).
  *
- * Пуш сам по себе ничего не гарантирует: сборка может не запуститься вовсе
- * (зависшая очередь Pages, авария Actions). Если тег долго не двигается,
- * скрипт толкает выкатку пустым коммитом — это создаёт новый запуск workflow
- * без обращения к API.
+ * `bun run deploy:demo --wait` — если всё-таки нужно дождаться подтверждения.
  */
 import { execFileSync } from "node:child_process";
 
@@ -22,12 +21,9 @@ const log = (msg) => console.log(msg);
 
 const BRANCH = "master";
 const TAG = "demo-live";
-const POLL_MS = 15_000;
-/** Обычная сборка укладывается в 5–7 минут; после этого считаем, что она не стартовала. */
-const NUDGE_AFTER_MS = 9 * 60_000;
-const DEADLINE_MS = 25 * 60_000;
+const SITE = "https://begemot-m.github.io/bereg/";
 
-/** Что сейчас выложено в демо. `null` — тега ещё нет (или сеть моргнула). */
+/** Что сейчас выложено в демо. `null` — тега ещё нет или сеть моргнула. */
 function liveSha() {
   try {
     const out = sh("git", ["ls-remote", "origin", `refs/tags/${TAG}`]);
@@ -37,23 +33,31 @@ function liveSha() {
   }
 }
 
-/**
- * Приятный, но необязательный контроль: если сайт из этой сети открывается,
- * сверим ещё и version.json. Недоступность демо здесь ничего не значит —
- * тег уже доказал, что выкатка прошла.
- */
-async function siteBuild(sha) {
-  try {
-    const res = await fetch(`https://begemot-m.github.io/bereg/version.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    const v = await res.json();
-    return v.sha === sha ? v.build : null;
-  } catch {
-    return null;
+function status() {
+  const live = liveSha();
+  const head = sh("git", ["rev-parse", "HEAD"]);
+  if (!live) {
+    log("Метки выкатки ещё нет — первая сборка с ней либо идёт, либо не запускалась.");
+    return;
   }
+  log(live === head
+    ? `В демо ${live.slice(0, 8)} — это текущий HEAD. ${SITE}`
+    : `В демо ${live.slice(0, 8)}, локально ${head.slice(0, 8)} — сборка ещё идёт или не запускалась.`);
+}
+
+async function wait(sha) {
+  const deadline = Date.now() + 15 * 60_000;
+  while (Date.now() < deadline) {
+    await sleep(15_000);
+    if (liveSha() === sha) { log(`Демо обновлено: ${SITE}`); return; }
+  }
+  console.error(`Выкатка не подтвердилась за 15 минут. Смотри Actions; при аварии Actions/Pages пуши не создают сборок — https://www.githubstatus.com`);
+  process.exit(1);
 }
 
 async function main() {
+  if (process.argv.includes("--status")) { status(); return; }
+
   const dirty = sh("git", ["status", "--porcelain"]);
   if (dirty) {
     console.error("Есть незакоммиченные правки — сначала commit, иначе выкатится не то:\n" + dirty);
@@ -66,47 +70,12 @@ async function main() {
     process.exit(1);
   }
 
-  const before = liveSha();
-
-  log("Пушу в origin…");
   sh("git", ["push", "origin", BRANCH]);
+  const sha = sh("git", ["rev-parse", "HEAD"]);
+  log(`Запушено ${sha.slice(0, 8)} — сборка стартовала, демо обновится за пару минут: ${SITE}`);
+  log("Проверить: bun run deploy:status");
 
-  let sha = sh("git", ["rev-parse", "HEAD"]);
-  log(`HEAD ${sha.slice(0, 8)} — жду, когда сборка доедет до Pages…`);
-
-  const deadline = Date.now() + DEADLINE_MS;
-  let nudged = false;
-  let nudgeAt = Date.now() + NUDGE_AFTER_MS;
-
-  while (Date.now() < deadline) {
-    await sleep(POLL_MS);
-
-    const live = liveSha();
-    if (live === sha) {
-      const build = await siteBuild(sha);
-      log(build
-        ? `Демо обновлено: https://begemot-m.github.io/bereg/  (сборка ${build})`
-        : "Демо обновлено: https://begemot-m.github.io/bereg/");
-      return;
-    }
-
-    // Тег стоит там же, где до пуша, и время вышло — сборка, похоже,
-    // не запустилась. Пустой коммит рождает новый запуск workflow.
-    if (!nudged && Date.now() > nudgeAt && live === before) {
-      log("Сборка не отзывается — толкаю выкатку пустым коммитом.");
-      sh("git", ["commit", "--allow-empty", "-m", "Перезапуск выкатки демо"]);
-      sh("git", ["push", "origin", BRANCH]);
-      sha = sh("git", ["rev-parse", "HEAD"]);
-      nudged = true;
-      nudgeAt = Date.now() + NUDGE_AFTER_MS;
-    }
-  }
-
-  console.error(
-    `Выкатка не подтвердилась за ${Math.round(DEADLINE_MS / 60000)} минут: тег ${TAG} всё ещё на ${(liveSha() ?? "—").slice(0, 8)}.\n` +
-    "Смотри Actions репозитория; при авариях Actions/Pages пуши перестают создавать сборки вовсе — https://www.githubstatus.com",
-  );
-  process.exit(1);
+  if (process.argv.includes("--wait")) await wait(sha);
 }
 
 main();
