@@ -17,14 +17,39 @@ const log = (msg) => console.log(msg);
 const WORKFLOW = "deploy.yml";
 const BRANCH = "master";
 
-function ghJson(path) {
-  return JSON.parse(sh("gh", ["api", path]));
+/** Опрос длится минутами, и одинокий обрыв связи не повод бросать выкатку. */
+async function ghJson(path, tries = 5) {
+  for (let i = 1; ; i++) {
+    try {
+      return JSON.parse(sh("gh", ["api", path]));
+    } catch (e) {
+      if (i >= tries) throw e;
+      log(`GitHub не ответил (${i}/${tries}), повторю через 10 с…`);
+      await sleep(10000);
+    }
+  }
 }
 
-function runsForSha(repo, sha) {
-  return ghJson(`repos/${repo}/actions/runs?head_sha=${sha}&per_page=10`).workflow_runs.filter(
-    (r) => r.path === `.github/workflows/${WORKFLOW}`,
-  );
+/**
+ * Actions и Pages иногда просто лежат: пуши не создают сборок, а начатые
+ * висят в очереди. Без этой проверки авария выглядит как «сломали конфиг».
+ */
+async function githubTrouble() {
+  try {
+    const res = await fetch("https://www.githubstatus.com/api/v2/summary.json");
+    const { components } = await res.json();
+    const broken = components
+      .filter((c) => ["Actions", "Pages"].includes(c.name) && c.status !== "operational")
+      .map((c) => `${c.name}: ${c.status}`);
+    return broken.length ? broken.join(", ") : null;
+  } catch {
+    return null;
+  }
+}
+
+async function runsForSha(repo, sha) {
+  const { workflow_runs } = await ghJson(`repos/${repo}/actions/runs?head_sha=${sha}&per_page=10`);
+  return workflow_runs.filter((r) => r.path === `.github/workflows/${WORKFLOW}`);
 }
 
 async function main() {
@@ -51,17 +76,22 @@ async function main() {
   let runs = [];
   for (let i = 0; i < 12 && runs.length === 0; i++) {
     await sleep(5000);
-    runs = runsForSha(repo, sha);
+    runs = await runsForSha(repo, sha);
   }
   if (runs.length === 0) {
     log("Пуш не создал сборку — запускаю workflow вручную.");
     sh("gh", ["workflow", "run", WORKFLOW, "--ref", BRANCH]);
     for (let i = 0; i < 12 && runs.length === 0; i++) {
       await sleep(5000);
-      runs = runsForSha(repo, sha);
+      runs = await runsForSha(repo, sha);
     }
     if (runs.length === 0) {
-      console.error("Сборка так и не появилась. Загляни в Actions: gh run list");
+      const trouble = await githubTrouble();
+      console.error(
+        trouble
+          ? `Сборка не появилась — на стороне GitHub авария (${trouble}). Дождись починки и повтори.`
+          : "Сборка так и не появилась. Загляни в Actions: gh run list",
+      );
       process.exit(1);
     }
   }
@@ -73,11 +103,16 @@ async function main() {
   const deadline = Date.now() + 20 * 60_000;
   while (run.status !== "completed") {
     if (Date.now() > deadline) {
-      console.error("Сборка идёт больше 20 минут — что-то не так, смотри лог.");
+      const trouble = await githubTrouble();
+      console.error(
+        trouble
+          ? `Сборка встала: на стороне GitHub авария (${trouble}). Повтори, когда починят.`
+          : "Сборка идёт больше 20 минут — что-то не так, смотри лог.",
+      );
       process.exit(1);
     }
     await sleep(15000);
-    run = ghJson(`repos/${repo}/actions/runs/${runId}`);
+    run = await ghJson(`repos/${repo}/actions/runs/${runId}`);
   }
   if (run.conclusion !== "success") {
     console.error(`Сборка завершилась как ${run.conclusion}. Лог: gh run view ${runId} --log-failed`);
@@ -86,7 +121,7 @@ async function main() {
   log("Сборка зелёная, жду обновления сайта…");
 
   // Зелёный run ещё не значит свежий сайт: CDN Pages отдаёт старое до минуты.
-  const site = ghJson(`repos/${repo}/pages`).html_url.replace(/\/$/, "");
+  const site = (await ghJson(`repos/${repo}/pages`)).html_url.replace(/\/$/, "");
   const until = Date.now() + 5 * 60_000;
   while (Date.now() < until) {
     try {
