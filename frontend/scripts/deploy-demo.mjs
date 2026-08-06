@@ -72,7 +72,22 @@ async function main() {
 
   sh("git", ["push", "origin", BRANCH]);
   const sha = sh("git", ["rev-parse", "HEAD"]);
-  log(`Запушено ${sha.slice(0, 8)} — сборка стартовала, демо обновится за пару минут: ${SITE}`);
+
+  // Пуш в этом репозитории перестал рождать сборки: события доходят, а run не
+  // создаётся (проверено 7 августа 2026 — PushEvent есть, workflow_runs пусто).
+  // Поэтому запускаем workflow явно. Ручной запуск работает даже когда push-
+  // триггер молчит, и лишним он не бывает: если сборка уже идёт, очередь Pages
+  // просто выполнит их по очереди.
+  let started = true;
+  try {
+    sh("gh", ["workflow", "run", "deploy.yml", "--ref", BRANCH]);
+  } catch {
+    started = false;
+  }
+
+  log(started
+    ? `Запушено ${sha.slice(0, 8)}, сборка запущена — демо обновится за пару минут: ${SITE}`
+    : `Запушено ${sha.slice(0, 8)}, но запустить сборку не удалось (GitHub API не ответил).\nПовтори позже: bun run deploy:demo — или запусти workflow «Deploy demo to GitHub Pages» кнопкой в Actions.`);
   log("Проверить: bun run deploy:status");
 
   if (process.argv.includes("--wait")) await wait(sha);
