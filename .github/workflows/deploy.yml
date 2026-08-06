@@ -9,6 +9,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # Нужно, чтобы гасить зависшие в очереди деплойменты перед своим.
+  deployments: write
 
 # Начатую выкатку не рвём: отменённый на середине deploy-pages оставляет
 # деплоймент висеть в очереди, и следующий пуш ждёт его до таймаута — именно
@@ -59,7 +61,7 @@ jobs:
         run: |
           export NEXT_PUBLIC_BUILD="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           bunx next build
-          printf '{"build":"%s"}' "$NEXT_PUBLIC_BUILD" > out/version.json
+          printf '{"build":"%s","sha":"%s"}' "$NEXT_PUBLIC_BUILD" "$GITHUB_SHA" > out/version.json
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -72,6 +74,24 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # Чужой деплоймент, застрявший в очереди, держит окно Pages: наш
+      # deploy-pages молча ждёт его до таймаута и падает, а демо остаётся
+      # на старой сборке. Помечаем такие хвосты неактивными и идём дальше.
+      - name: Погасить зависшие деплойменты Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ids=$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=github-pages&per_page=30" --jq '.[].id')
+          for id in $ids; do
+            state=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses?per_page=1" --jq '.[0].state // "unknown"')
+            case "$state" in
+              in_progress|queued|pending|waiting)
+                echo "гасим зависший деплоймент $id ($state)"
+                gh api -X POST "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" -f state=inactive >/dev/null || true
+                ;;
+            esac
+          done
+
       # 600000 мс — потолок самого действия, больше оно молча обрезает.
       # Если очередь Pages не ответила за это время, пробуем ещё раз.
       - id: deploy
