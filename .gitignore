@@ -49,3 +49,4 @@ deploy/.previous-image
 frontend/public/mascots/*.png
 frontend/public/mood/*.png
 frontend/public/practices/*.png
+.playwright-mcp/
