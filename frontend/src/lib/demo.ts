@@ -811,6 +811,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     return delay({ role: "psychologist" } as T);
   }
 
+  // удаление своих сведений: в демо всё лежит на устройстве, его чистит
+  // resetLocalData сразу после ответа — серверной части тут просто нет
+  if (clean === "/my/data" && method === "DELETE") {
+    return delay(undefined as T);
+  }
+
   // support (отдел заботы)
   if (clean === "/support" && method === "POST") {
     const s: Support = { id: ++db.seq, kind: String(body.kind ?? "вопрос"), text: String(body.text ?? ""), createdAt: new Date().toISOString() };

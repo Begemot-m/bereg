@@ -104,8 +104,7 @@ export default function CabinetPage() {
               onClick={() => router.push("/policy")}
             />
             <ActionRow icon="compass" title="Пройти знакомство заново" sub="Онбординг и экскурсия по разделам" onClick={() => { resetTours(); resetOnboarding(); }} />
-            <ActionRow icon="gear" title="Очистить данные на устройстве" sub="Удалить все сведения о себе" danger onClick={() => { if (confirm("Удалить все данные на этом устройстве?")) { resetLocalData(); location.reload(); } }} />
-            <DeleteAccountRow />
+            <WipeDataRow />
           </Card>
         </div>
 
@@ -143,33 +142,91 @@ export default function CabinetPage() {
   );
 }
 
-// Удаление аккаунта. Двойное подтверждение не для красоты: действие
-// необратимо, а дневник и заметки стираются сразу.
-function DeleteAccountRow() {
+// Удаление сведений о себе. Доступ при этом остаётся: закрывать человеку вход
+// в его же кабинет за то, что он попросил стереть данные, — не то, о чём он
+// просил. Карточки клиентов, записи на приём и подписка не трогаются.
+function WipeDataRow() {
+  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  const remove = async () => {
-    if (!confirm("Удалить аккаунт? Дневник, заметки и колесо будут стёрты безвозвратно.")) return;
-    if (!confirm("Точно? Это нельзя отменить.")) return;
+  const wipe = async () => {
     setBusy(true);
+    setFailed(false);
     try {
-      await apiFetch("/my/account", { method: "DELETE" });
-      location.href = "/";
+      await apiFetch("/my/data", { method: "DELETE" });
     } catch {
-      alert("Не получилось. Попробуйте ещё раз или напишите в отдел заботы.");
       setBusy(false);
+      setFailed(true);
+      return;
     }
+    resetLocalData();
+    location.reload();
   };
 
-  if (DEMO) return null;
   return (
-    <ActionRow
-      icon="user"
-      title={busy ? "Удаляем…" : "Удалить аккаунт"}
-      sub="Стирает данные и закрывает доступ"
-      danger
-      onClick={remove}
-    />
+    <>
+      <ActionRow
+        icon="gear"
+        title={busy ? "Удаляем…" : "Удалить мои данные"}
+        sub="Стирает сведения о себе, доступ остаётся"
+        danger
+        onClick={() => { tap(); setConfirming(true); }}
+      />
+      <WipeConfirm
+        open={confirming}
+        busy={busy}
+        failed={failed}
+        onClose={() => { setConfirming(false); setFailed(false); }}
+        onConfirm={wipe}
+      />
+    </>
+  );
+}
+
+// Пауза перед подтверждением. Три секунды — не формальность: кнопка стоит в
+// списке рядом с безобидными, а стёртый дневник не вернуть.
+const WIPE_DELAY_SEC = 3;
+
+function WipeConfirm({ open, busy, failed, onClose, onConfirm }: { open: boolean; busy: boolean; failed: boolean; onClose: () => void; onConfirm: () => void }) {
+  const [left, setLeft] = useState(WIPE_DELAY_SEC);
+
+  useEffect(() => {
+    if (!open) { setLeft(WIPE_DELAY_SEC); return; }
+    const timer = setInterval(() => setLeft((v) => (v <= 1 ? 0 : v - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [open]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3" onClick={onClose}>
+          <motion.div
+            initial={{ y: 42 }}
+            animate={{ y: 0 }}
+            exit={{ y: 42, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 34 }}
+            onClick={(event) => event.stopPropagation()}
+            className="chunk w-full max-w-md overflow-hidden bg-white p-5"
+          >
+            <div className="flex items-start gap-3">
+              <span className="ico ico-mid h-11 w-11 shrink-0" style={{ background: "var(--danger)" }}><Icon name="lock" width={20} weight="bold" color="#fff" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="font-tight text-[18px] font-black leading-tight">Удалить все сведения о себе?</p>
+                <p className="t-body mt-1.5">Дневник, отметки настроения, задания, колесо, анкета специалиста и привязка почты будут стёрты безвозвратно. Вход в приложение останется, карточки клиентов и записи на приём не тронем.</p>
+              </div>
+            </div>
+            {failed && <p className="t-cap mt-3" style={{ color: "var(--danger)" }}>Не получилось. Проверьте связь и попробуйте ещё раз.</p>}
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => { tap(); onClose(); }} className="btn btn-white flex-1">Отмена</button>
+              <Button className="flex-1" disabled={left > 0 || busy} onClick={onConfirm} style={{ background: "var(--danger)", borderColor: "var(--danger)" }}>
+                {busy ? "Удаляем…" : left > 0 ? `Удалить · ${left}` : "Удалить"}
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
