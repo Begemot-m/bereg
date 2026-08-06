@@ -72,18 +72,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      # Очередь Pages иногда держит деплоймент дольше стандартных 10 минут.
-      # Даём ей полчаса и одну повторную попытку — вместо красного креста и
-      # демо, застрявшего на позапрошлом коммите.
+      # 600000 мс — потолок самого действия, больше оно молча обрезает.
+      # Если очередь Pages не ответила за это время, пробуем ещё раз.
       - id: deploy
         uses: actions/deploy-pages@v4
         continue-on-error: true
         with:
-          timeout: 1800000
+          timeout: 600000
           error_count: 20
       - name: Повторная выкатка, если очередь Pages не ответила
         if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
         with:
-          timeout: 1800000
+          timeout: 600000
           error_count: 20
