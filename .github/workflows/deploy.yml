@@ -70,6 +70,12 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # contents: write — чтобы двигать тег `demo-live` (см. последний шаг).
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+      deployments: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -106,3 +112,14 @@ jobs:
         with:
           timeout: 600000
           error_count: 20
+
+      # Отметка «вот это сейчас в демо». Тег читается обычным `git ls-remote`,
+      # то есть через github.com — единственный узел GitHub, доступный из
+      # сетей, где api.github.com и *.github.io закрыты. Локальный
+      # `bun run deploy:demo` по этому тегу понимает, доехала ли выкатка, и
+      # больше не зависит от API.
+      - uses: actions/checkout@v4
+      - name: Пометить выкаченный коммит тегом demo-live
+        run: |
+          git tag -f demo-live "$GITHUB_SHA"
+          git push -f origin refs/tags/demo-live
