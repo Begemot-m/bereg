@@ -146,21 +146,6 @@ function ClientsList() {
           </motion.button>
         </div>
 
-        {/* Пока анкета не подтверждена, клиентов брать нельзя — то же правило
-            стоит на сервере. Объясняем здесь, иначе «плюс» молча уводит в кабинет. */}
-        {!approved && (
-          <button onClick={() => { tap(); router.push("/cabinet/"); }} className="card-soft mb-4 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--page)" }}>
-            <span className="ico ico-mid h-9 w-9 shrink-0"><Icon name="lock" width={16} weight="bold" /></span>
-            <span className="min-w-0 flex-1">
-              <span className="t-head block">
-                {verification?.status === "review" ? "Анкета на проверке" : verification?.status === "rejected" ? "Анкета вернулась с правками" : "Анкета не подтверждена"}
-              </span>
-              <span className="t-sub block">Принимать клиентов можно после подтверждения. Заявка — в кабинете.</span>
-            </span>
-            <span className="chip shrink-0">Кабинет ›</span>
-          </button>
-        )}
-
         <QuickAddClient
           open={open}
           first={first}
@@ -175,6 +160,18 @@ function ClientsList() {
 
         <ModulesTeaser />
 
+        {/* Фон как у шапки раздела — счётчик читается как часть раздела, а не как тревога */}
+        {!pro && (
+          <button onClick={() => { tap(); setPaywall(true); }} className="card-soft mb-3 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--page)" }}>
+            <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="spark" width={16} weight="bold" color="#fff" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="t-head block">{clients.length}/{FREE_CLIENT_LIMIT} на бесплатном тарифе</span>
+              {atCap ? <><strong className="t-head mt-1 block">Лимит достигнут</strong><span className="t-sub block">Перейдите на PRO, чтобы открыть безлимитные функции.</span></> : <span className="t-sub block">Все функции доступны для первых трёх клиентов.</span>}
+            </span>
+            <span className="chip chip-strong shrink-0">PRO ›</span>
+          </button>
+        )}
+
         <div className="mb-4 flex gap-1 overflow-x-auto">
           {FILTERS.map((f) => (
             <button
@@ -187,17 +184,6 @@ function ClientsList() {
           ))}
         </div>
 
-        {/* Фон как у шапки раздела — счётчик читается как часть раздела, а не как тревога */}
-        {!pro && (
-          <button onClick={() => { tap(); setPaywall(true); }} className="card-soft mb-4 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--page)" }}>
-            <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="spark" width={16} weight="bold" color="#fff" /></span>
-            <span className="min-w-0 flex-1">
-              <span className="t-head block">{clients.length}/{FREE_CLIENT_LIMIT} на бесплатном тарифе</span>
-              {atCap ? <><strong className="t-head mt-1 block">Лимит достигнут</strong><span className="t-sub block">Перейдите на PRO, чтобы открыть безлимитные функции.</span></> : <span className="t-sub block">Все функции доступны для первых трёх клиентов.</span>}
-            </span>
-            <span className="chip chip-strong shrink-0">PRO ›</span>
-          </button>
-        )}
       </Reveal>
 
       {isError ? (

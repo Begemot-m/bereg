@@ -30,6 +30,7 @@ import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
 import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
 import { createClient, listClients } from "@/lib/clients";
+import { ProPaywall } from "@/components/pro-sell";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { useRole } from "@/lib/role";
 import { getMonthAvailability, getOverrides, getWorkHours, setOverride, WEEKDAYS, ymdLocal, type WorkHours } from "@/lib/schedule";
@@ -441,6 +442,8 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   const [client, setClient] = useState<{ id: number; name: string } | null>(null);
   // «+ новый клиент» из шапки открывает ту же форму, что и пункт внутри списка.
   const [addingClient, setAddingClient] = useState(false);
+  // Лимит бесплатного тарифа не прячет кнопку, а объясняет себя через пейволл.
+  const [paywall, setPaywall] = useState(false);
   const book = useMutation({
     mutationFn: ({ iso, format }: { iso: string; format: ApptFormat }) => createAppointment({ clientId: client!.id, startsAt: iso, format }),
     onSuccess: () => { success(); setClient(null); onClose(); for (const k of ["appointments", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); },
@@ -469,13 +472,13 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
               <p className="text-[13px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
               <div className="flex items-center gap-3">
                 {client && <button onClick={() => setClient(null)} className="text-[11px] font-black text-[var(--muted)]">← другой</button>}
-                {!client && !atCap && <button onClick={() => { tap(); setAddingClient(true); }} className="inline-flex items-center gap-1 text-[11px] font-black text-[var(--olive-edge)]"><Icon name="plus" width={12} weight="bold" color="var(--olive-edge)" /> новый клиент</button>}
+                {!client && <button onClick={() => { tap(); if (atCap) { setPaywall(true); return; } setAddingClient(true); }} className="inline-flex items-center gap-1 text-[11px] font-black text-[var(--olive-edge)]"><Icon name="plus" width={12} weight="bold" color="var(--olive-edge)" /> новый клиент</button>}
                 <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full stroke" aria-label="Закрыть">×</button>
               </div>
             </div>
             <div className="overflow-y-auto p-4">
               {!client ? (
-                <ClientPicker key={addingClient ? "add" : "pick"} startAdding={addingClient} clients={sorted} compact={false} onCreateClient={atCap ? undefined : (name, contact) => create.mutate({ name, contact })} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+                <ClientPicker key={addingClient ? "add" : "pick"} startAdding={addingClient} clients={sorted} compact={false} onCreateClient={(name, contact) => { if (atCap) { setPaywall(true); return; } create.mutate({ name, contact }); }} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
               ) : (
                 <div>
                   <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">
@@ -488,6 +491,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
               )}
             </div>
           </motion.section>
+          <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={`Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки. PRO открывает клиентов без лимита.`} />
         </motion.div>
       )}
     </AnimatePresence>

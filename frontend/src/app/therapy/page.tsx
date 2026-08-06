@@ -280,6 +280,24 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
             <div className="text-center">
               <p className="text-[13px] font-black">Вы записаны к {name.split(" ")[0]}</p>
               <p className="t-cap mt-1 inline-flex items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" />{new Date(booked.at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {new Date(booked.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+              {/* Куда идти или чего ждать — сразу после записи, чтобы не искать */}
+              <div className="card-soft mt-2.5 flex items-start gap-2.5 p-2.5 text-left" style={{ background: booked.format === "online" ? "var(--purple-soft)" : "var(--green-soft)" }}>
+                <span className="ico h-8 w-8 shrink-0" style={{ background: "#fff" }}>
+                  <Icon name={booked.format === "online" ? "video" : "pin"} width={15} weight="bold" color={booked.format === "online" ? "var(--purple)" : "var(--green)"} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  {booked.format === "online" ? (
+                    <span className="t-sub block">{name.split(" ")[0]} пришлёт ссылку для подключения до начала встречи.</span>
+                  ) : psy?.address ? (
+                    <>
+                      <span className="t-head block leading-tight">{psy.address}</span>
+                      {psy.city && <span className="t-cap mt-0.5 block">{[psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : ""].filter(Boolean).join(" · ")}</span>}
+                    </>
+                  ) : (
+                    <span className="t-sub block">Точный адрес {name.split(" ")[0]} пришлёт перед встречей.</span>
+                  )}
+                </span>
+              </div>
               <button onClick={() => { setBooked(null); setPickSlot(false); }} className="btn mt-2.5 px-4 py-1.5 text-[11px]">Готово</button>
             </div>
           ) : manage ? (

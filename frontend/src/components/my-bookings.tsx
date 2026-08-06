@@ -35,7 +35,8 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
   return (
     <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="card-nested overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2">
-        <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bd }} />
+        {/* Миниатюра терапевта: буква на тоне времени суток — как в сессиях психолога */}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[13px] font-black" style={{ background: st.bg, border: `var(--bw) solid ${st.bd}` }}>{b.psyName.charAt(0).toUpperCase()}</span>
         <button onClick={toggle} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={manage}>
           <span className={`tnum text-[13px] font-extrabold ${past ? "line-through" : ""}`}>{timeF.format(date)}</span>
           <span className="min-w-0 flex-1">

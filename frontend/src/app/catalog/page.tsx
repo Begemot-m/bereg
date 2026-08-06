@@ -289,7 +289,7 @@ function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy
     <div className="-mx-4 -mt-9 space-y-5 rounded-t-[27px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
       {/* Постер встречи и запись — первое, что нужно решить */}
       <PricePoster psy={psy} />
-      <BookingMini psyName={psy.name} tone={tone} onDone={onBack} />
+      <BookingMini psy={psy} tone={tone} onDone={onBack} />
 
       {/* Почему предложен именно этому пользователю */}
       {reasons.length > 0 && <Section title="Почему подходит именно вам"><ul className="space-y-2">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></Section>}
@@ -381,7 +381,7 @@ function Fact({ icon, text }: { icon: IconName; text: string }) {
 
 // Миниатюра записи: свёрнутая показывает ближайший свободный день,
 // раскрытая — выбор дня и времени.
-function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: string; soft: string; edge: string }; onDone: () => void }) {
+function BookingMini({ psy, tone, onDone }: { psy: Psy; tone: { bg: string; soft: string; edge: string }; onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const { data: avail } = useQuery({ queryKey: ["month-avail", true], queryFn: () => getMonthAvailability(true) });
   const nearest = useMemo(() => {
@@ -408,7 +408,7 @@ function BookingMini({ psyName, tone, onDone }: { psyName: string; tone: { bg: s
       <Disclosure open={open} autoScroll={false}>
         <div className="px-4 pb-4">
           <div className="rounded-[14px] bg-white p-3">
-            <BookFlow psyName={psyName} onDone={onDone} />
+            <BookFlow psy={psy} onDone={onDone} />
           </div>
         </div>
       </Disclosure>
@@ -645,19 +645,22 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
   );
 }
 
-function BookFlow({ psyName, onDone }: { psyName: string; onDone: () => void }) {
+function BookFlow({ psy, onDone }: { psy: Psy; onDone: () => void }) {
+  const psyName = psy.name;
   const qc = useQueryClient();
   const [done, setDone] = useState<{ at: string; format: string } | null>(null);
   const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psyName, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
-  if (done) return <BookedNext psyName={psyName} at={done.at} format={done.format} onDone={onDone} />;
+  if (done) return <BookedNext psy={psy} at={done.at} format={done.format} onDone={onDone} />;
   return <><p className="t-micro mb-2">День и окно</p><SlotPicker forClient variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
 }
 
 // Что делать сразу после записи. Для новичка это первый экран приложения:
 // сначала подтверждаем встречу, потом мягко объясняем, зачем оставаться.
-function BookedNext({ psyName, at, format, onDone }: { psyName: string; at: string; format: string; onDone: () => void }) {
+function BookedNext({ psy, at, format, onDone }: { psy: Psy; at: string; format: string; onDone: () => void }) {
+  const psyName = psy.name;
   const [attached, setAttached] = useState(() => isAttached(psyName));
   const date = new Date(at);
+  const place = [psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : ""].filter(Boolean).join(" · ");
   const finishFastEntry = () => window.dispatchEvent(new CustomEvent("bereg-fast-entry-complete"));
   const attach = () => { success(); attachTherapist(psyName); setAttached(true); };
 
@@ -669,6 +672,30 @@ function BookedNext({ psyName, at, format, onDone }: { psyName: string; at: stri
         <p className="t-cap mt-1">
           {date.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })} в {date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {format === "online" ? "онлайн" : "очно"}
         </p>
+      </div>
+
+      {/* Куда приходить или чего ждать. Очно — адрес специалиста, онлайн —
+          ссылка придёт от него же: сами мы её не генерируем. */}
+      <div className="card-soft mt-3 flex items-start gap-3 p-3.5" style={{ background: format === "online" ? "var(--purple-soft)" : "var(--green-soft)" }}>
+        <span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}>
+          <Icon name={format === "online" ? "video" : "pin"} width={17} weight="bold" color={format === "online" ? "var(--purple)" : "var(--green)"} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="t-head block leading-tight">{format === "online" ? "Встреча пройдёт онлайн" : "Очная встреча"}</span>
+          {format === "online" ? (
+            <span className="t-sub mt-1 block">{psyName.split(" ")[0]} пришлёт ссылку для подключения до начала сессии — она появится здесь и в напоминании.</span>
+          ) : psy.address ? (
+            <>
+              <span className="t-sub mt-1 block">{psy.address}</span>
+              {place && <span className="t-cap mt-0.5 block">{place}</span>}
+            </>
+          ) : (
+            <>
+              {place && <span className="t-sub mt-1 block">{place}</span>}
+              <span className="t-cap mt-0.5 block">Точный адрес {psyName.split(" ")[0]} пришлёт перед встречей.</span>
+            </>
+          )}
+        </span>
       </div>
 
       {/* Главный следующий шаг — прикрепить специалиста: без этого раздел

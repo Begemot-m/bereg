@@ -82,9 +82,9 @@ function ClientTools() {
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Улучшить терапию</p>
             <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--green-soft)" }}><span className="ico ico-mid h-9 w-9"><Icon name="mood" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
-            <Link href="/therapy" onClick={() => tap()} className="card-soft p-3" style={{ background: "var(--purple-soft)" }}><span className="ico ico-mid h-9 w-9"><Icon name="balance" width={19} weight="bold" color="#fff" /></span><span className="mt-2 block text-[13px] font-black">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
+          <div className="grid grid-cols-2 items-stretch gap-2.5">
+            <Link href="/therapy" onClick={() => tap()} className="card-soft flex h-full min-h-[124px] flex-col p-3" style={{ background: "var(--green-soft)" }}><span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}><Icon name="mood" width={19} weight="bold" color="var(--green)" /></span><span className="mt-auto block pt-2 text-[13px] font-black leading-tight">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="card-soft flex h-full min-h-[124px] flex-col p-3" style={{ background: "var(--purple-soft)" }}><span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}><Icon name="balance" width={19} weight="bold" color="var(--purple)" /></span><span className="mt-auto block pt-2 text-[13px] font-black leading-tight">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
           </div>
 
 

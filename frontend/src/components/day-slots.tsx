@@ -148,9 +148,10 @@ function BusyRow({ appt, hour, onChanged }: { appt: Appointment; hour: number; o
   const cancel = useMutation({ mutationFn: () => updateAppointment(appt.id, { status: "cancelled" }), onSuccess: () => { setManage(false); onChanged(); } });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(appt.id, { startsAt: iso }), onSuccess: () => { setResch(false); setManage(false); onChanged(); } });
   return (
-    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="rounded-[11px] stroke-lg" style={{ background: "#fff", borderColor: "var(--edge-neutral)" }}>
+    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="card-nested overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2">
-        <span className="h-6 w-1.5 shrink-0 rounded-full" style={{ background: st.bd }} />
+        {/* Миниатюра клиента: буква на тоне времени суток вместо тонкой полоски */}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[13px] font-black" style={{ background: st.bg, border: `var(--bw) solid ${st.bd}` }}>{appt.client.name.charAt(0).toUpperCase()}</span>
         {/* Тап по строке разворачивает управление — как по шестерне */}
         <button onClick={() => { tap(); setManage(!manage); }} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={manage}>
           <span className={`text-[13px] font-extrabold tnum ${past ? "line-through" : ""}`}>{timeF.format(new Date(appt.startsAt))}</span>
