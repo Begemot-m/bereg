@@ -17,7 +17,6 @@ type Intro = {
   kicker: string;
   title: string;
   points: string[];
-  icon: IconName;    // живёт в белом кружке в шапке
   bg: string;        // яркая заливка экрана-постера
   soft: string;      // мягкий тон для подложки под «арт»
   tone: string;      // акцент рамки скрина / кромок
@@ -27,28 +26,28 @@ type Intro = {
 
 const INTRO: Intro[] = [
   {
-    key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой", icon: "home",
+    key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Найти своего специалиста", "Отслеживать динамику настроения и сессий", "Самостоятельная помощь на каждый день"],
     mock: <OverviewMock />,
   },
   {
-    key: "catalog", kicker: "каталог", title: "Умный подбор специалистов", icon: "compass",
+    key: "catalog", kicker: "каталог", title: "Умный подбор специалистов",
     bg: "var(--tiffany-soft)", soft: "#effaf7", tone: "var(--tiffany-edge)",
     points: ["Персональный подбор вместо рейтинга", "Честные отзывы после встреч", "Удобный поиск по запросу"],
     mock: <CatalogMock />,
   },
   {
-    key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний", icon: "tools",
+    key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний",
     bg: "var(--green-soft)", soft: "#eaf0e4", tone: "var(--green-edge)",
     points: ["Эффективные практики для самостоятельной работы", "Интерактивные инструменты внутри приложения", "Тесты и анализ собственного состояния"],
     mock: <ToolsMock />,
   },
   {
-    key: "psy", kicker: "для психологов", title: "Удобная работа с клиентами", icon: "users",
+    key: "psy", kicker: "для психологов", title: "Клиент и специалист — в одном пространстве",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
-    points: ["Формирование свободных окон для записи", "CRM-система для ведения клиентов", "Напоминания о встречах"],
-    mock: <ScheduleMock />,
+    points: ["Общение с клиентом между сессиями", "Статистика работы: сессии, часы, клиенты", "Заметки и динамика прогресса по каждому"],
+    mock: <ClientProgressMock />,
   },
 ];
 
@@ -77,12 +76,19 @@ export function Onboarding() {
     if (delta < 0) next(); else back();
   };
 
-  const bg = psySell ? "#ffffff" : isWelcome ? "var(--purple-soft)" : isRole ? "var(--tiffany-soft)" : cur.bg;
-  const tone = isWelcome ? "var(--purple-edge)" : isRole ? "var(--tiffany-edge)" : cur?.tone ?? "var(--purple-edge)";
-  const headIcon: IconName = isWelcome ? "spark" : isRole ? "therapy" : cur.icon;
+  // На экране продажи PRO шаг остаётся последним, а `cur` для него нет:
+  // обращение к нему без проверки роняло приложение при выборе психолога.
+  const bg = psySell ? "#ffffff" : isWelcome ? "var(--purple-soft)" : isRole ? "var(--tiffany-soft)" : cur?.bg ?? "var(--purple-soft)";
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" data-accent="purple" style={{ background: bg, transition: "background-color .5s ease" }}>
+    <motion.div
+      className="fixed inset-0 z-50 overflow-y-auto"
+      data-accent="purple"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.7, ease: EASE }}
+      style={{ background: bg, transition: "background-color .5s ease" }}
+    >
       {isWelcome && <SilkWaves />}
 
       {/* Декоративные заливки-круги для «постерного» объёма */}
@@ -101,9 +107,8 @@ export function Onboarding() {
       )}
 
       <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col px-4 pb-[calc(var(--safe-bottom)+18px)] pt-[var(--top-pad)] min-[360px]:px-5 min-[390px]:px-6 md:pt-8">
-        {/* Верх: живая иконка на белом + прогресс + пропустить */}
+        {/* Верх: прогресс + пропустить */}
         <div className="flex items-center gap-3">
-          <HeadIcon name={headIcon} tone={tone} />
           <div className="flex flex-1 gap-1.5">
             {Array.from({ length: ROLE_STEP + 1 }).map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />)}
           </div>
@@ -159,17 +164,18 @@ export function Onboarding() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 // Приветствие: текст проявляется по очереди — заголовок, подзаголовок, кнопка.
 function Welcome({ onNext }: { onNext: () => void }) {
-  // Без анимации filter: блюр на каждом кадре роняет вебвью Telegram.
+  // Чистое проявление, без сдвига: текст набирает плотность на месте.
+  // Без анимации filter — блюр на каждом кадре роняет вебвью Telegram.
   const rise = (delay: number) => ({
-    initial: { opacity: 0, y: 18 },
-    animate: { opacity: 1, y: 0 },
-    transition: { delay, duration: 0.6, ease: EASE },
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { delay, duration: 0.9, ease: EASE },
   });
   return (
     <div className="flex flex-1 flex-col justify-center py-10">
@@ -216,30 +222,6 @@ function SilkWaves() {
         ))}
       </svg>
     </div>
-  );
-}
-
-// Иконка раздела в белом кружке — вместо прежней плашки с названием.
-// Меняется вместе с экраном и мягко «дышит».
-function HeadIcon({ name, tone }: { name: IconName; tone: string }) {
-  return (
-    <span
-      className="head-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
-      style={{ boxShadow: "0 6px 16px -8px rgba(32,28,24,.5)" }}
-    >
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={name}
-          initial={{ opacity: 0, scale: 0.5, rotate: -25 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          exit={{ opacity: 0, scale: 0.5, rotate: 25 }}
-          transition={{ duration: 0.32, ease: EASE }}
-          className="flex items-center justify-center"
-        >
-          <Icon name={name} width={19} weight="bold" color={tone} />
-        </motion.span>
-      </AnimatePresence>
-    </span>
   );
 }
 
@@ -442,16 +424,26 @@ function ToolsMock() {
   );
 }
 
-function ScheduleMock() {
+function ClientProgressMock() {
   return (
     <div className="space-y-2">
-      <div className="flex justify-between">{["пн", "вт", "ср", "чт", "пт"].map((d, i) => <span key={d} className="flex h-7 w-7 items-center justify-center rounded-[8px] text-[7px] font-black" style={{ background: i === 2 ? "var(--ink)" : "#fff", color: i === 2 ? "#fff" : "var(--muted)", border: "1.5px solid rgba(32,28,24,.16)" }}>{d}</span>)}</div>
-      {([["10:00", "var(--green-soft)", "var(--green-edge)", "свободно"], ["13:30", "var(--purple-soft)", "var(--purple-edge)", "Марина"], ["18:00", "#fff", "rgba(32,28,24,.16)", "свободно"]] as const).map(([time, bg, edge, who]) => (
-        <div key={time} className="flex items-center gap-1.5 rounded-[9px] p-1.5" style={{ background: bg, border: `1.5px solid ${edge}` }}>
-          <span className="text-[8px] font-black">{time}</span><span className="flex-1 text-[7px] font-bold text-[var(--muted)]">{who}</span>
+      <Box tone="var(--purple-soft)" edge="var(--purple-edge)">
+        <div className="flex items-center gap-1.5">
+          <span className="h-6 w-6 shrink-0 rounded-full bg-white" style={{ border: "1.5px solid var(--purple-edge)" }} />
+          <span className="flex-1 space-y-1"><Bar w="52%" h={6} tone="rgba(32,28,24,.32)" /><Bar w="34%" h={4} /></span>
+          <span className="rounded-full bg-white px-1.5 py-0.5 text-[7px] font-black">8 сессий</span>
         </div>
-      ))}
-      <div className="flex items-center gap-1 rounded-[8px] bg-[var(--amber-soft)] p-1.5" style={{ border: "1.5px solid var(--amber-edge)" }}><Icon name="bell" width={9} weight="bold" /><span className="text-[7px] font-black">Напоминание за час</span></div>
+      </Box>
+      <Box>
+        <div className="flex items-center justify-between"><Bar w="42%" h={5} tone="rgba(32,28,24,.3)" /><span className="text-[7px] font-black uppercase text-[var(--muted)]">прогресс</span></div>
+        <div className="mt-1.5 flex items-end justify-center gap-[3px]">
+          {[9, 13, 11, 18, 17, 24, 29].map((height, i) => <span key={i} className="w-[7px] rounded-full" style={{ height, background: i > 4 ? "var(--olive-edge)" : "var(--amber-soft)", border: "1px solid rgba(32,28,24,.18)" }} />)}
+        </div>
+      </Box>
+      <Box tone="var(--amber-soft)" edge="var(--amber-edge)">
+        <span className="flex items-center gap-1"><Icon name="note" width={9} weight="bold" /><Bar w="55%" h={5} tone="rgba(32,28,24,.3)" /></span>
+        <p className="mt-1 text-[7.5px] font-black leading-tight">Заметка после встречи · задание отправлено</p>
+      </Box>
     </div>
   );
 }
