@@ -4,7 +4,9 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Pause, Play, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
+import { ArrowGlyph } from "@/components/blocks";
 import { Icon, type IconName } from "@/components/icons";
+import { Disclosure } from "@/components/ui";
 import { asset } from "@/lib/asset";
 import { select, success, tap } from "@/lib/haptics";
 
@@ -76,13 +78,13 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
     <motion.section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[var(--surface)] @md:h-[min(844px,94dvh)] @md:rounded-[27px]" initial={reduce ? false : { y: 28, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={reduce ? undefined : { y: 20, opacity: 0 }} transition={{ duration: .24, ease: [0.32, 0.72, 0, 1] }} style={{ border: `var(--bw-lg) solid ${c.edge}`, "--edge": c.edge } as CSSProperties}>
       {/* Шапка как в разделах приложения: цветная полоса, на которую наезжает
           белый лист с крупным скруглением. */}
-      <header className="shrink-0 px-4 pb-9 pt-[max(14px,var(--top-pad))]" style={{ background: c.bg }}>
+      <header className="shrink-0 px-4 pb-10 pt-[max(22px,calc(var(--top-pad)+10px))]" style={{ background: c.bg }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0 rounded-full bg-white px-3" style={{ color: c.edge, border: `var(--bw) solid ${c.edge}` }}>Назад</button>
+          <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0" style={{ color: c.edge }}>Назад</button>
           <div className="min-w-0 flex-1"><p className="truncate font-tight text-[18px] font-black leading-tight">{meta.title}</p><p className="truncate text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">{meta.based}</p></div>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
         </div>
-        <div className="mt-4"><Progress value={progress} tone={meta.tone} /></div>
+        <div className="mt-6"><Progress value={progress} tone={meta.tone} /></div>
       </header>
       <div className="relative -mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-t-[27px] bg-[var(--surface)] px-4 pb-[max(24px,var(--safe-bottom))] pt-6">{children}</div>
     </motion.section>
@@ -142,6 +144,7 @@ function playBreathCue(ctx: AudioContext | null, frequency = 560) {
 // с отметками дней, когда практика была.
 function BreathHistory() {
   const [items, setItems] = useState<HistoryItem[]>([]);
+  const [open, setOpen] = useState(false);
   useEffect(() => { setItems(loadHistory().filter((x) => x.tech === "breathing")); }, []);
   const c = TONE.sky;
   const today = new Date();
@@ -152,20 +155,27 @@ function BreathHistory() {
   const monthLabel = first.toLocaleDateString("ru-RU", { month: "long" });
   const last = items[0];
   return <div className="mt-4 rounded-[16px] bg-white p-3" style={{ border: `var(--bw) solid ${c.edge}` }}>
-    <div className="flex items-center justify-between">
+    {/* Календарь раскрывается по тапу: перед практикой нужен счётчик, а сетка
+        месяца занимала пол-экрана и отодвигала кнопку «Начать». */}
+    <button onClick={() => { tap(); setOpen((v) => !v); }} className="flex w-full items-center justify-between gap-2 text-left" aria-expanded={open}>
       <span className="inline-flex items-center gap-1.5 text-[11.5px] font-black"><Icon name="clock" width={13} weight="bold" color={c.edge} />{items.length ? `${items.length} ${plural(items.length, "практика", "практики", "практик")}` : "Практик пока не было"}</span>
-      <span className="text-[10.5px] font-bold text-[var(--muted-2)]">{last ? `последняя — ${new Date(last.completedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}` : monthLabel}</span>
-    </div>
-    <div className="mt-2.5 grid grid-cols-7 gap-[3px]">
-      {["П", "В", "С", "Ч", "П", "С", "В"].map((d, i) => <span key={i} className="text-center text-[8px] font-black text-[var(--muted-2)]">{d}</span>)}
-      {Array.from({ length: shift }, (_, i) => <span key={`x${i}`} />)}
-      {Array.from({ length: days }, (_, i) => {
-        const date = new Date(today.getFullYear(), today.getMonth(), i + 1);
-        const on = done.has(date.toDateString());
-        const isToday = date.toDateString() === today.toDateString();
-        return <span key={i} className="tnum flex h-5 items-center justify-center rounded-[6px] text-[9px] font-black" style={{ background: on ? c.bg : "transparent", color: on ? "var(--ink)" : "var(--muted-2)", border: isToday ? `1px solid ${c.edge}` : "1px solid transparent" }}>{i + 1}</span>;
-      })}
-    </div>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-[10.5px] font-bold text-[var(--muted-2)]">{last ? `последняя — ${new Date(last.completedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}` : monthLabel}</span>
+        <motion.span animate={{ rotate: open ? -90 : 90 }} transition={{ duration: 0.2 }} className="flex shrink-0 items-center" style={{ color: c.edge }}><ArrowGlyph size={13} /></motion.span>
+      </span>
+    </button>
+    <Disclosure open={open} autoScroll={false}>
+      <div className="mt-2.5 grid grid-cols-7 gap-[3px]">
+        {["П", "В", "С", "Ч", "П", "С", "В"].map((d, i) => <span key={i} className="text-center text-[8px] font-black text-[var(--muted-2)]">{d}</span>)}
+        {Array.from({ length: shift }, (_, i) => <span key={`x${i}`} />)}
+        {Array.from({ length: days }, (_, i) => {
+          const date = new Date(today.getFullYear(), today.getMonth(), i + 1);
+          const on = done.has(date.toDateString());
+          const isToday = date.toDateString() === today.toDateString();
+          return <span key={i} className="tnum flex h-5 items-center justify-center rounded-[6px] text-[9px] font-black" style={{ background: on ? c.bg : "transparent", color: on ? "var(--ink)" : "var(--muted-2)", border: isToday ? `1px solid ${c.edge}` : "1px solid transparent" }}>{i + 1}</span>;
+        })}
+      </div>
+    </Disclosure>
   </div>;
 }
 
@@ -174,6 +184,60 @@ function plural(n: number, one: string, few: string, many: string): string {
   if (mod10 === 1 && mod100 !== 11) return one;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
   return many;
+}
+
+// Барабан минут как в будильнике: крутим список, выбранное значение стоит в
+// окне по центру. Три кнопки давали ровно три варианта и выглядели формой.
+const WHEEL_H = 44;
+function MinutesWheel({ value, onChange, edge }: { value: number; onChange: (n: number) => void; edge: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const settle = useRef<number | null>(null);
+  const items = useMemo(() => Array.from({ length: 15 }, (_, i) => i + 1), []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el) el.scrollTop = (value - 1) * WHEEL_H;
+    // Позиционируем один раз: дальше барабан ведёт пользователь.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onScroll = () => {
+    const el = ref.current;
+    if (!el) return;
+    const next = clamp(Math.round(el.scrollTop / WHEEL_H) + 1, 1, items.length);
+    if (next !== value) { select(); onChange(next); }
+    // Палец отпущен — доводим ближайшее значение точно в окно.
+    if (settle.current) window.clearTimeout(settle.current);
+    settle.current = window.setTimeout(() => {
+      el.scrollTo({ top: (next - 1) * WHEEL_H, behavior: "smooth" });
+    }, 140);
+  };
+
+  return (
+    <div className="relative mx-auto w-full max-w-[240px] overflow-hidden rounded-[16px] bg-white" style={{ height: WHEEL_H * 3, border: "var(--bw) solid var(--edge-neutral)" }}>
+      <div aria-hidden className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 rounded-[12px]" style={{ height: WHEEL_H, background: "var(--head-soft)", border: `var(--bw) solid ${edge}` }} />
+      {/* Затемнение краёв — ощущение барабана, а не списка */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[2]" style={{ height: WHEEL_H, background: "linear-gradient(#fff, rgba(255,255,255,0))" }} />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[2]" style={{ height: WHEEL_H, background: "linear-gradient(rgba(255,255,255,0), #fff)" }} />
+      <div
+        ref={ref}
+        onScroll={onScroll}
+        className="relative z-[1] h-full snap-y snap-mandatory overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none", paddingTop: WHEEL_H, paddingBottom: WHEEL_H }}
+      >
+        {items.map((m) => (
+          <button
+            key={m}
+            onClick={() => { select(); onChange(m); ref.current?.scrollTo({ top: (m - 1) * WHEEL_H, behavior: "smooth" }); }}
+            className="tnum flex w-full snap-center items-center justify-center text-[16px] font-black transition-opacity"
+            style={{ height: WHEEL_H, color: m === value ? "var(--ink)" : "var(--muted-2)", opacity: m === value ? 1 : 0.45 }}
+          >
+            {m} мин
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function Breathing({ onProgress, onClose }: { onProgress: (n: number) => void; onClose: () => void }) {
@@ -211,11 +275,13 @@ function Breathing({ onProgress, onClose }: { onProgress: (n: number) => void; o
   if (stage === "setup") return <div><h2 className="font-tight text-[23px] font-black">Настройте практику</h2><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Начните с минуты. Остановиться можно в любой момент.</p>
     <p className="lbl mt-5">Ритм</p><div className="grid grid-cols-2 gap-2">{([{ id: "slow", title: "4 · 6", text: "вдох · выдох" }, { id: "478", title: "4 · 7 · 8", text: "с паузой" }] as const).map((x) => <button key={x.id} onClick={() => { select(); setProtocol(x.id); }} className="rounded-[16px] p-3 text-left" style={protocol === x.id ? { background: c.soft, border: `var(--bw-lg) solid ${c.edge}` } : { background: "#fff", border: "var(--bw) solid var(--edge-neutral)" }}><span className="block font-tight text-[20px] font-black">{x.title}</span><span className="text-[11px] font-semibold text-[var(--muted)]">{x.text}</span></button>)}</div>
     {protocol === "478" && <p className="mt-2 rounded-[13px] bg-[var(--amber-soft)] p-3 text-[11px] font-semibold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--amber-edge)" }}>Пауза подходит не всем. Если появляется дискомфорт или головокружение, вернитесь к ритму 4 · 6.</p>}
-    <p className="lbl mt-5">Длительность</p><div className="grid grid-cols-3 gap-2">{[1, 3, 5].map((m) => <button key={m} onClick={() => { select(); setMinutes(m); }} className="rounded-[13px] py-3 text-[13px] font-black" style={minutes === m ? { background: "var(--ink)", color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--edge-neutral)" }}>{m} мин</button>)}</div>
+    <p className="lbl mt-5">Длительность</p><MinutesWheel value={minutes} onChange={setMinutes} edge={c.edge} />
     <Primary onClick={() => setStage("rating")}>Дальше</Primary><Back onClick={() => setStage("intro")} /></div>;
   if (stage === "rating") return <div><h2 className="font-tight text-[23px] font-black">Как вы сейчас?</h2><p className="mb-6 mt-1 text-[12px] font-semibold text-[var(--muted)]">Отметка нужна только для вашей личной динамики.</p><Rating value={before} onChange={setBefore} tone="sky" label="Напряжение до практики" /><Primary onClick={() => { setTotalLeft(minutes * 60); setPhase(0); setPhaseLeft(phases[0].seconds); setRunning(true); setStage("run"); }}>Начать дыхание</Primary><Back onClick={() => setStage("setup")} /></div>;
   if (stage === "run") { const current = phases[phase]; const pct = 1 - phaseLeft / current.seconds; return <div className="flex min-h-full flex-col items-center"><div className="flex w-full items-center justify-between"><span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black" style={{ border: `var(--bw) solid ${c.edge}` }}>{Math.floor(totalLeft / 60)}:{String(totalLeft % 60).padStart(2, "0")}</span><button onClick={() => { tap(); if (!sound) { const ctx = audioRef.current ?? new window.AudioContext(); audioRef.current = ctx; void ctx.resume().then(() => playBreathCue(ctx)); setSound(true); } else { setSound(false); } }} className="flex h-9 w-9 items-center justify-center rounded-full bg-white" style={{ border: `var(--bw) solid ${c.edge}` }} aria-label={sound ? "Выключить сигнал" : "Включить сигнал"}>{sound ? <SpeakerHigh size={17} weight="bold" /> : <SpeakerSlash size={17} weight="bold" />}</button></div>
-    <div className="relative my-5 flex h-[300px] w-full items-center justify-center overflow-hidden rounded-[23px]" style={{ background: c.soft, border: `var(--bw-lg) solid ${c.edge}` }}>
+    {/* Без рамки и заливки: во время практики коробка вокруг круга только
+        отвлекает — дышит сам круг на чистом фоне. */}
+    <div className="relative my-5 flex h-[300px] w-full items-center justify-center overflow-hidden">
       {/* Расширяющийся пунктирный круг: вдох — растёт, выдох — сжимается */}
       {(() => { const scale = reduce ? 1 : current.name === "Вдох" ? 0.62 + pct * 0.5 : current.name === "Выдох" ? 1.12 - pct * 0.5 : 1.12;
         return <>

@@ -50,14 +50,17 @@ function ClientTools() {
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики</p>
             <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          {/* items-stretch + h-full по всей цепочке: иначе обёртка Reveal
+              тянется на всю строку, а кнопка внутри живёт по своему тексту —
+              и карточки выходят разной высоты. */}
+          <div className="grid grid-cols-2 items-stretch gap-2.5">
             {CLIENT_PRACTICES.map((t, i) => (
-              <Reveal key={t.tech} delay={0.03 + i * 0.04}>
+              <Reveal key={t.tech} delay={0.03 + i * 0.04} className="h-full">
                 <button
                   onClick={() => { if (t.soon) return; tap(); setTech(t.tech); }}
                   disabled={t.soon}
                   aria-disabled={t.soon}
-                  className="group relative flex min-h-[210px] w-full flex-col overflow-hidden rounded-[19px] text-left transition-transform duration-200 active:scale-[.98] disabled:active:scale-100"
+                  className="group relative flex h-full min-h-[210px] w-full flex-col overflow-hidden rounded-[19px] text-left transition-transform duration-200 active:scale-[.98] disabled:active:scale-100"
                   style={{ background: t.bg, border: `2px solid ${t.edge}` }}
                 >
                   <div className="relative flex h-[118px] items-center justify-center overflow-hidden">
@@ -83,8 +86,10 @@ function ClientTools() {
             <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 items-stretch gap-2.5">
-            <Link href="/therapy" onClick={() => tap()} className="card-soft flex h-full min-h-[124px] flex-col p-3" style={{ background: "var(--green-soft)" }}><span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}><Icon name="mood" width={19} weight="bold" color="var(--green)" /></span><span className="mt-auto block pt-2 text-[13px] font-black leading-tight">Отметить настроение</span><span className="block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
-            <Link href="/therapy" onClick={() => tap()} className="card-soft flex h-full min-h-[124px] flex-col p-3" style={{ background: "var(--purple-soft)" }}><span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}><Icon name="balance" width={19} weight="bold" color="var(--purple)" /></span><span className="mt-auto block pt-2 text-[13px] font-black leading-tight">Колесо баланса</span><span className="block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
+            {/* Иконка и подпись идут подряд: mt-auto с min-h раздвигал их
+                на всю карточку и оставлял дыру посередине. */}
+            <Link href="/therapy" onClick={() => tap()} className="card-soft flex h-full flex-col gap-2 p-3" style={{ background: "var(--green-soft)" }}><span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}><Icon name="mood" width={19} weight="bold" color="var(--green)" /></span><span className="block text-[13px] font-black leading-tight">Отметить настроение</span><span className="-mt-1.5 block text-[10px] font-semibold text-[var(--muted)]">быстрый чек-ин</span></Link>
+            <Link href="/therapy" onClick={() => tap()} className="card-soft flex h-full flex-col gap-2 p-3" style={{ background: "var(--purple-soft)" }}><span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}><Icon name="balance" width={19} weight="bold" color="var(--purple)" /></span><span className="block text-[13px] font-black leading-tight">Колесо баланса</span><span className="-mt-1.5 block text-[10px] font-semibold text-[var(--muted)]">сферы жизни</span></Link>
           </div>
 
 

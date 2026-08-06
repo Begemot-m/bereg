@@ -184,7 +184,7 @@ function PsySessions() {
           <div>
             <MonthCalendar appts={appts} selected={selDay} onSelectDay={(y) => { select(); setSelDay(y); }} avail={avail} tone="blend" multi={multiMode ? multiDays : undefined} onToggle={toggleDay} />
             {/* Выбор нескольких дней и действия над ними — рядом, под календарём */}
-            <div className="relative mt-2 flex items-center justify-center gap-2">
+            <div className="mt-2 flex items-center justify-center gap-2">
               <button
                 onClick={() => { tap(); setMultiMode(!multiMode); setMultiDays(new Set()); setBulkMenu(false); }}
                 className={`btn px-4 py-1.5 text-[11.5px] ${multiMode ? "" : "btn-accent"}`}
@@ -193,24 +193,21 @@ function PsySessions() {
                 {multiMode ? "Готово" : "Выбор"}
               </button>
               {multiMode && (
-                <>
-                  <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="btn btn-accent px-4 py-1.5 text-[11.5px]">
-                    <Icon name="gear" width={13} weight="bold" color="#fff" /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}
-                  </button>
-                  {bulkMenu && multiDays.size > 0 && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setBulkMenu(false)} />
-                      <div className="absolute right-0 top-9 z-20 w-56 overflow-hidden rounded-[12px] p-1 stroke" style={{ background: "#fff", boxShadow: "0 12px 30px -12px rgba(32,28,24,.35)" }}>
-                        <BulkItem onClick={() => bulkAct("off")}>🌙 Сделать выходными</BulkItem>
-                        <BulkItem onClick={() => bulkAct("open")}>↺ Открыть все окна</BulkItem>
-                        <BulkItem onClick={() => bulkAct("online")}>📹 Все окна — онлайн</BulkItem>
-                        <BulkItem onClick={() => bulkAct("offline")}>📍 Все окна — очно</BulkItem>
-                      </div>
-                    </>
-                  )}
-                </>
+                <button disabled={multiDays.size === 0} onClick={() => { tap(); setBulkMenu(!bulkMenu); }} className="btn btn-accent px-4 py-1.5 text-[11.5px]" aria-expanded={bulkMenu}>
+                  <Icon name="gear" width={13} weight="bold" color="#fff" /> Действия{multiDays.size ? ` · ${multiDays.size}` : ""}
+                </button>
               )}
             </div>
+            {/* Список раскрывается в потоке: всплывашка тут обрезалась разворотом
+                календаря (у него overflow: hidden) — кнопка нажималась впустую. */}
+            <Disclosure open={multiMode && bulkMenu && multiDays.size > 0} autoScroll={false}>
+              <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-[12px] p-1.5 stroke" style={{ background: "#fff" }}>
+                <BulkItem onClick={() => bulkAct("off")}>🌙 Выходные</BulkItem>
+                <BulkItem onClick={() => bulkAct("open")}>↺ Открыть окна</BulkItem>
+                <BulkItem onClick={() => bulkAct("online")}>📹 Все онлайн</BulkItem>
+                <BulkItem onClick={() => bulkAct("offline")}>📍 Все очно</BulkItem>
+              </div>
+            </Disclosure>
           </div>
         </Disclosure>
       </PageHead>
@@ -284,9 +281,14 @@ function PsySessions() {
                 const y = ymdLocal(d);
                 return (
                   <div key={y}>
-                    <div className="mb-2 flex items-center gap-2 border-b pb-2" style={{ borderColor: "var(--edge-neutral)" }}>
-                      {(() => { const r = relTone(y); return r && <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: `var(--${r.tone}-soft)`, color: `var(--${r.tone}-edge)` }}>{r.label}</span>; })()}
-                      <span className="text-[14px] font-extrabold capitalize">{dayShort.format(new Date(y + "T00:00:00"))} · {weekdayF.format(new Date(y + "T00:00:00"))}</span>
+                    {/* Тот же заголовок дня, что в «Неделе»: линия-разделитель
+                        и своя типографика выбивались из остальных блоков. */}
+                    <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-[13.5px] font-black capitalize">{weekdayF.format(new Date(y + "T00:00:00"))}, {d.getDate()}</h3>
+                        {(() => { const r = relTone(y); return r && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: `var(--${r.tone}-soft)`, color: `var(--${r.tone}-edge)` }}>{r.label}</span>; })()}
+                      </div>
+                      <p className="text-[10.5px] font-black text-[var(--muted-2)]">{dayShort.format(new Date(y + "T00:00:00"))}</p>
                     </div>
                     <DaySlots date={d} bookedOnly />
                   </div>

@@ -72,7 +72,11 @@ const KEY = "psy_verification";
 function demoRead(): Verification {
   if (typeof window === "undefined") return { status: "none", rejectReason: null, submittedAt: null };
   const raw = localStorage.getItem(KEY);
-  if (!raw) return { status: "none", rejectReason: null, submittedAt: null };
+  // Демо-психолог заходит с готовой практикой: у него уже есть клиенты и
+  // сессии. Считать его неодобренным — значит молча запретить запись и
+  // показать пустое приложение вместо продукта. Путь верификации щупается
+  // через явный сброс в кабинете.
+  if (!raw) return { status: "approved", rejectReason: null, submittedAt: null };
   return JSON.parse(raw) as Verification;
 }
 
@@ -186,5 +190,7 @@ export function useSubmitCatalogVerification() {
 }
 
 export function resetVerification() {
-  localStorage.removeItem(KEY);
+  // Пишем статус явно, а не стираем ключ: пустой ключ означает «демо со
+  // всеми правами», и сброс тогда ничего бы не сбросил.
+  demoWrite({ status: "none", rejectReason: null, submittedAt: null });
 }

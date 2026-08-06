@@ -407,7 +407,9 @@ const APPROVED_ONLY = JSON.stringify({
 function demoApproved(): boolean {
   if (typeof window === "undefined") return false;
   const raw = localStorage.getItem("psy_verification");
-  if (!raw) return false;
+  // Нет записи — демо-психолог с готовой практикой, права полные
+  // (то же правило, что в psy-verification.ts).
+  if (!raw) return true;
   const v = JSON.parse(raw) as { status?: string; submittedAt?: string | null };
   // Демо-модерация одобряет сама через несколько секунд после подачи; здесь
   // повторяем то же правило, иначе гейт спорил бы с экраном «на проверке».
