@@ -1,20 +1,31 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { DesktopLandingBody, DesktopLandingIntro } from "@/components/landing";
 import { isTelegram } from "@/components/telegram-init";
 
 import { APP_NAME } from "@/lib/brand";
 
 // Рамка-телефон для десктопа: показывает, как приложение выглядит в Telegram.
-// На мобильном — на весь экран.
+// На мобильном — на весь экран. На главной вокруг рамки разворачивается лендинг:
+// приложение при этом монтируется один раз, лендинг просто скрыт на мобильном
+// через CSS — иначе получили бы две копии всего дерева.
 export function DemoFrame({ children }: { children: ReactNode }) {
   const [inTelegram, setInTelegram] = useState(false);
+  // В статике лендинг должен попасть в HTML (иначе его не увидит поисковик),
+  // поэтому первый рендер всегда с ним, а на узком экране он снимается сразу
+  // после гидратации — чтобы телефон не тащил лишние два десятка карточек.
+  const [wide, setWide] = useState(true);
+  const pathname = usePathname();
   useEffect(() => { const id = window.setTimeout(() => setInTelegram(isTelegram()), 400); return () => window.clearTimeout(id); }, []);
+  useEffect(() => { setWide(window.matchMedia("(min-width: 768px)").matches); }, []);
+  const landing = (pathname === "/" || pathname === "") && wide;
   if (inTelegram) return <>{children}</>;
   return (
     <div
-      className="md:flex md:min-h-[100dvh] md:items-center md:justify-center md:p-8"
+      className={landing ? "" : "md:flex md:min-h-[100dvh] md:items-center md:justify-center md:p-8"}
       style={{ background: "radial-gradient(120% 80% at 50% -10%, #ffffff 0%, var(--bg) 55%)" }}
     >
       <div className="fixed left-4 top-4 z-50 hidden items-center gap-3 md:flex">
@@ -41,10 +52,12 @@ export function DemoFrame({ children }: { children: ReactNode }) {
         </button>
       </div>
 
-      <div className="md:rounded-[3rem] md:border md:border-[color:var(--hairline)] md:bg-white md:p-2.5 md:shadow-[0_50px_120px_-30px_rgba(44,46,49,0.4)]">
+      <div className={landing ? "md:mx-auto md:grid md:max-w-[1180px] md:grid-cols-[minmax(0,1fr)_425px] md:items-start md:gap-14 md:px-8 md:pb-8 md:pt-20" : "contents"}>
+      {landing && <DesktopLandingIntro />}
+      <div className={`${landing ? "md:sticky md:top-8 md:justify-self-end " : ""}md:rounded-[3rem] md:border md:border-[color:var(--hairline)] md:bg-white md:p-2.5 md:shadow-[0_50px_120px_-30px_rgba(44,46,49,0.4)]`}>
         <div
           data-testid="phone-screen"
-          className="relative md:h-[min(864px,90vh)] md:w-[400px] md:overflow-hidden md:rounded-[2.4rem] md:[transform:translateZ(0)]"
+          className={`relative md:w-[400px] md:overflow-hidden md:rounded-[2.4rem] md:[transform:translateZ(0)] ${landing ? "md:h-[min(720px,78vh)]" : "md:h-[min(864px,90vh)]"}`}
           style={{ background: "var(--bg)" }}
         >
           <div className="md:h-full md:overflow-y-auto">
@@ -61,6 +74,8 @@ export function DemoFrame({ children }: { children: ReactNode }) {
           </div>
         </div>
       </div>
+      </div>
+      {landing && <DesktopLandingBody />}
     </div>
   );
 }
