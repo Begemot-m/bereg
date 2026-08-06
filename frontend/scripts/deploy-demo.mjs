@@ -85,9 +85,16 @@ async function main() {
     started = false;
   }
 
-  log(started
-    ? `Запушено ${sha.slice(0, 8)}, сборка запущена — демо обновится за пару минут: ${SITE}`
-    : `Запушено ${sha.slice(0, 8)}, но запустить сборку не удалось (GitHub API не ответил).\nПовтори позже: bun run deploy:demo — или запусти workflow «Deploy demo to GitHub Pages» кнопкой в Actions.`);
+  // Не запустили сборку — это провал выкатки, а не примечание. Иначе «пуш
+  // прошёл» читается как «выкачено», и демо неделю живёт на старом коммите.
+  if (!started) {
+    console.error(`Запушено ${sha.slice(0, 8)}, но запустить сборку не удалось (api.github.com не ответил).`);
+    console.error("Дальше руками: открой https://github.com/Begemot-m/bereg/actions, workflow «Deploy demo to GitHub Pages» → Run workflow.");
+    console.error("Или повтори позже: cd frontend && bun run deploy:demo. Проверить: bun run deploy:status");
+    process.exit(2);
+  }
+
+  log(`Запушено ${sha.slice(0, 8)}, сборка запущена — демо обновится за пару минут: ${SITE}`);
   log("Проверить: bun run deploy:status");
 
   if (process.argv.includes("--wait")) await wait(sha);

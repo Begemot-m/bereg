@@ -49,4 +49,5 @@ if (dirty) {
 
 console.log("→ Пуш и сборка демо…");
 const deploy = run(process.execPath, ["scripts/deploy-demo.mjs", ...(wait ? ["--wait"] : [])]);
+if (deploy.status === 2) die("Коммит и пуш прошли, а сборку демо запустить не удалось — смотри выше, что сделать руками.");
 if (deploy.status !== 0) die("Выкатка не удалась. Смотри сообщение выше.");
