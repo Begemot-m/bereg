@@ -23,17 +23,17 @@ const EMPTY_PROFILE: PsyProfile = {
 };
 
 type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "preview";
-type StepDefinition = { id: StepId; title: string; short: string; icon: IconName; tone: string; filter: string; optional?: boolean };
+type StepDefinition = { id: StepId; title: string; short: string; icon: IconName; tone: string; optional?: boolean };
 
 const STEPS: StepDefinition[] = [
-  { id: "identity", title: "Фото и основное", short: "Имя, фото, язык и связь", icon: "user", tone: "var(--purple-soft)", filter: "Фильтры «пол» и «язык», карточка в каталоге" },
-  { id: "topics", title: "Запросы клиентов", short: "С чем вы работаете", icon: "heart", tone: "var(--salmon-soft)", filter: "Фильтр «запрос» — главный в подборе" },
-  { id: "methods", title: "Методы работы", short: "Основной и дополнительные", icon: "therapy", tone: "var(--green-soft)", filter: "Фильтр «метод»" },
-  { id: "format", title: "Формат и адрес", short: "Онлайн, очно и приватность", icon: "pin", tone: "var(--sky)", filter: "Фильтры «формат» и «город»" },
-  { id: "conditions", title: "Условия встречи", short: "Цена и длительность", icon: "clock", tone: "var(--amber-soft)", filter: "Фильтр «бюджет» и сортировка по цене" },
-  { id: "experience", title: "Опыт и образование", short: "Практика и квалификация", icon: "book", tone: "var(--green-soft)", filter: "Фильтр «опыт» и сортировка по стажу" },
-  { id: "story", title: "О вас", short: "Подход и первая встреча", icon: "spark", tone: "var(--coral-soft)", filter: "Поиск по словам и страница профиля" },
-  { id: "preview", title: "Предпросмотр", short: "Как профиль увидит клиент", icon: "check", tone: "var(--purple-soft)", filter: "Итоговая карточка в каталоге" },
+  { id: "identity", title: "Фото и основное", short: "Имя, фото, язык и связь", icon: "user", tone: "var(--purple-soft)" },
+  { id: "topics", title: "Запросы клиентов", short: "С чем вы работаете", icon: "heart", tone: "var(--salmon-soft)" },
+  { id: "methods", title: "Методы работы", short: "Основной и дополнительные", icon: "therapy", tone: "var(--green-soft)" },
+  { id: "format", title: "Формат и адрес", short: "Онлайн, очно и приватность", icon: "pin", tone: "var(--sky)" },
+  { id: "conditions", title: "Условия встречи", short: "Цена и длительность", icon: "clock", tone: "var(--amber-soft)" },
+  { id: "experience", title: "Опыт и образование", short: "Практика и квалификация", icon: "book", tone: "var(--green-soft)" },
+  { id: "story", title: "О вас", short: "Подход и первая встреча", icon: "spark", tone: "var(--coral-soft)" },
+  { id: "preview", title: "Предпросмотр", short: "Как профиль увидит клиент", icon: "check", tone: "var(--purple-soft)" },
 ];
 
 export function ProfileEditor({ embedded = false, professional = true, roleControl }: { embedded?: boolean; professional?: boolean; roleControl?: ReactNode }) {
@@ -213,6 +213,9 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
   const [navOpen, setNavOpen] = useState(false);
   const [savedAt, setSavedAt] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  // Пока пользователь ничего не менял, автосохранение молчит: иначе открытие
+  // анкеты само записало бы в профиль значения по умолчанию.
+  const touched = useRef(false);
 
   useEffect(() => {
     try {
@@ -221,27 +224,26 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
     } catch { /* битый черновик не мешает открыть профиль */ }
   }, []);
 
+  // Всё, что ввели, сохраняется само — кнопки «Сохранить» больше нет.
+  // Пишем и черновик, и сам профиль: статус проверки при этом не трогаем,
+  // иначе автосохранение молча снимало бы пройденную модерацию.
   useEffect(() => {
+    if (!touched.current) return;
     const timer = window.setTimeout(() => {
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* локальное хранилище может быть недоступно */ }
-    }, 250);
+      const stored = getPsyProfile();
+      savePsyProfile({ ...draft, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: stored?.status ?? "review" });
+      setSavedAt(new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }));
+    }, 400);
     return () => window.clearTimeout(timer);
   }, [draft]);
 
   const completion = useMemo(() => STEPS.slice(0, -1).filter((item) => isComplete(item.id, draft)).length, [draft]);
   const percent = Math.round((completion / (STEPS.length - 1)) * 100);
-  const update = (patch: Partial<PsyProfile>) => setDraft((current) => ({ ...current, ...patch }));
-  const updateLocation = (patch: Partial<PsyProfile["location"]>) => setDraft((current) => ({ ...current, location: { ...current.location, ...patch } }));
+  const update = (patch: Partial<PsyProfile>) => { touched.current = true; setDraft((current) => ({ ...current, ...patch })); };
+  const updateLocation = (patch: Partial<PsyProfile["location"]>) => { touched.current = true; setDraft((current) => ({ ...current, location: { ...current.location, ...patch } })); };
 
   const openStep = (target: number) => { tap(); setError(""); setStep(target); };
-  // Сохранение без публикации: анкету можно дозаполнять частями и возвращаться.
-  // Статус не трогаем — иначе «сохранить» молча снимало бы пройденную проверку.
-  const saveProgress = () => {
-    const stored = getPsyProfile();
-    savePsyProfile({ ...draft, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: stored?.status ?? "review" });
-    success();
-    setSavedAt(new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }));
-  };
   // Пролистывать можно всегда — незаполненные шаги подсвечены цветом в полосе сверху.
   const next = () => { select(); setError(""); setStep(Math.min(flowSteps.length - 1, step + 1)); };
   const back = () => { tap(); setError(""); setStep((current) => Math.max(0, current - 1)); };
@@ -295,7 +297,7 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
           в нём заполнять, нужен список с названиями — он и раскрывается ниже. */}
       <button onClick={() => { tap(); setNavOpen((value) => !value); }} className="flex w-full items-center justify-between border-t px-3 py-2.5 text-[12px] font-black text-[var(--muted)]" style={{ borderColor: "var(--edge-neutral)" }} aria-expanded={navOpen}>
         {navOpen ? "Свернуть разделы" : "Все разделы анкеты"}
-        <motion.span animate={{ rotate: navOpen ? 90 : 0 }} className="arrow"><Arrow /></motion.span>
+        <motion.span animate={{ rotate: navOpen ? -90 : 90 }} className="flex shrink-0 items-center text-[var(--muted)]"><ArrowGlyph size={14} /></motion.span>
       </button>
       <Disclosure open={navOpen}>
         <div className="space-y-1.5 border-t px-3 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
@@ -342,10 +344,6 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
     </motion.div></AnimatePresence>
     </div>
 
-    <p className="mt-3 flex items-start gap-1.5 px-1 text-[10.5px] font-semibold leading-relaxed text-[var(--muted-2)]">
-      <Icon name="compass" width={13} className="mt-[1px] shrink-0" /> {current.filter}
-    </p>
-
     {error && <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[13px] bg-[var(--salmon-soft)] px-3 py-2 text-[12px] font-bold stroke" style={{ borderColor: "var(--salmon-edge)" }}>{error}</motion.p>}
 
     <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
@@ -353,11 +351,7 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
         <button className="back-link disabled:opacity-0" onClick={back} disabled={index === 0}>Назад</button>
         {index === flowSteps.length - 1
           ? <Button className="flex-1" onClick={save}>Опубликовать профиль</Button>
-          : <Button className="flex-1" onClick={next}>Продолжить</Button>}
-      </div>
-      <div className="mt-2 flex items-center justify-center gap-4">
-        <button onClick={() => { tap(); saveProgress(); }} className="py-1 text-[12px] font-black text-[var(--edge)]">Сохранить</button>
-        <button onClick={() => { tap(); saveProgress(); onDone(); }} className="py-1 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Заполню позже</button>
+          : <Button className="flex-1" onClick={next}>Далее</Button>}
       </div>
       {savedAt && <p className="t-cap mt-1 text-center">Сохранено в {savedAt}</p>}
     </div>

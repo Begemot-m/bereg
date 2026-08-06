@@ -60,11 +60,13 @@ export function NoWorkHours() {
 
 // Агенда одного дня. Тап по окну не открывает меню снизу — само окно
 // разворачивается в широкий блок и сворачивается обратно.
-export function DayAgenda({ date, today }: { date: Date; today?: boolean }) {
+export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date; today?: boolean; busyOnly?: boolean; badge?: { label: string; tone: string } | null }) {
   const { daySlots } = useDayWindows();
   const [open, setOpen] = useState<string | null>(null);
   // Закрытые окна и пустые прошедшие не показываем — они только шумят.
-  const slots = daySlots(date).filter((s) => !s.removed && !(s.past && !s.appt));
+  const visible = daySlots(date).filter((s) => !s.removed && !(s.past && !s.appt));
+  // «Ближайшие» — только занятые окна впереди: раздел про встречи, не про график.
+  const slots = busyOnly ? visible.filter((s) => !!s.appt && !s.past) : visible;
   const free = slots.filter((s) => !s.appt && !s.past).length;
   const busy = slots.filter((s) => !!s.appt).length;
 
@@ -73,10 +75,14 @@ export function DayAgenda({ date, today }: { date: Date; today?: boolean }) {
       <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
         <div className="flex items-center gap-2">
           <h3 className="text-[13.5px] font-black">{cap(wdF.format(date))}, {date.getDate()}</h3>
-          {today && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}>сегодня</span>}
+          {badge
+            ? <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: `var(--${badge.tone}-soft)`, color: `var(--${badge.tone}-edge)` }}>{badge.label}</span>
+            : today && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}>сегодня</span>}
         </div>
         <p className="text-[10.5px] font-black text-[var(--muted-2)]">
-          {busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : free > 0 ? `${free} свободно` : "окон нет"}
+          {busyOnly
+            ? `${busy} ${pl(busy, "запись", "записи", "записей")}`
+            : busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : free > 0 ? `${free} свободно` : "окон нет"}
         </p>
       </div>
       <motion.div layout transition={MORPH} className="grid grid-cols-3 items-start gap-2">
@@ -89,13 +95,15 @@ export function DayAgenda({ date, today }: { date: Date; today?: boolean }) {
             onClose={() => setOpen(null)}
           />
         ))}
-        <NewSlotCell
-          date={date}
-          taken={slots.map((s) => s.iso)}
-          active={open === "new"}
-          onTap={() => { tap(); setOpen(open === "new" ? null : "new"); }}
-          onClose={() => setOpen(null)}
-        />
+        {!busyOnly && (
+          <NewSlotCell
+            date={date}
+            taken={slots.map((s) => s.iso)}
+            active={open === "new"}
+            onTap={() => { tap(); setOpen(open === "new" ? null : "new"); }}
+            onClose={() => setOpen(null)}
+          />
+        )}
       </motion.div>
     </section>
   );

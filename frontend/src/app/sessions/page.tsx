@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
 import { ArrowGlyph, PageHead } from "@/components/blocks";
-import { ClientPicker, DaySlots } from "@/components/day-slots";
+import { ClientPicker } from "@/components/day-slots";
 import { SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
 
 // Справка открывается по кнопке «Как это работает?» — до этого не нужна.
@@ -155,10 +155,11 @@ function PsySessions() {
 
   const todayY = ymdLocal(new Date());
   const markedDays = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
-  // Ближайшие дни (сегодня, завтра …) с окнами или записями
+  // Ближайшие дни (сегодня, завтра …) с ещё не прошедшими записями
+  const now = Date.now();
   const soonDays = Array.from({ length: 30 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }).filter((d) => {
     const y = ymdLocal(d);
-    const hasAppt = appts.some((a) => a.status !== "cancelled" && ymdLocal(new Date(a.startsAt)) === y);
+    const hasAppt = appts.some((a) => a.status !== "cancelled" && ymdLocal(new Date(a.startsAt)) === y && new Date(a.startsAt).getTime() >= now);
     return selDay ? y === selDay && hasAppt : hasAppt;
   });
 
@@ -276,23 +277,12 @@ function PsySessions() {
           ) : soonDays.length === 0 ? (
             <EmptyState onAdd={openCalendar} selDay={null} />
           ) : (
-            <div className="space-y-6">
+            // Тот же блок дня, что в «Неделе», только с занятыми окнами:
+            // управление графиком живёт в «Неделе» и календаре.
+            <div className="space-y-4">
               {soonDays.map((d) => {
                 const y = ymdLocal(d);
-                return (
-                  <div key={y}>
-                    {/* Тот же заголовок дня, что в «Неделе»: линия-разделитель
-                        и своя типографика выбивались из остальных блоков. */}
-                    <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-[13.5px] font-black capitalize">{weekdayF.format(new Date(y + "T00:00:00"))}, {d.getDate()}</h3>
-                        {(() => { const r = relTone(y); return r && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: `var(--${r.tone}-soft)`, color: `var(--${r.tone}-edge)` }}>{r.label}</span>; })()}
-                      </div>
-                      <p className="text-[10.5px] font-black text-[var(--muted-2)]">{dayShort.format(new Date(y + "T00:00:00"))}</p>
-                    </div>
-                    <DaySlots date={d} />
-                  </div>
-                );
+                return <DayAgenda key={y} date={d} today={y === todayY} badge={relTone(y)} busyOnly />;
               })}
             </div>
           )
