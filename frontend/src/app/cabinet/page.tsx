@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Arrow, PageHead, SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
@@ -316,18 +316,33 @@ function useCanSwitchRole() {
     ready: !me.isLoading && intentReady,
     loaded: Boolean(me.data) && intentReady,
     canSwitch: isPsy || intent === "psychologist" || status !== "none",
+    // Роль выбрана на устройстве, а в базе человек всё ещё клиент. Так вышло
+    // у всех, кто перешёл в психологи, пока переход не доезжал до сервера.
+    needsClaim: !DEMO && Boolean(me.data) && intentReady && !isPsy && intent === "psychologist",
     status,
     rejectReason: verification.data?.rejectReason ?? null,
   };
 }
 
 function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
-  const { ready, loaded, canSwitch, status, rejectReason } = useCanSwitchRole();
+  const { ready, loaded, canSwitch, needsClaim, status, rejectReason } = useCanSwitchRole();
+  const qc = useQueryClient();
+  const claimed = useRef(false);
   const [sheet, setSheet] = useState(false);
 
   useEffect(() => {
     if (loaded && !canSwitch && role === "psychologist") onSwitch("client");
   }, [loaded, canSwitch, role]);
+
+  // Догоняем тех, кто перешёл в психологи, пока переход жил только в браузере:
+  // кнопки перехода они уже не видят, а сервер до сих пор считает их клиентами.
+  useEffect(() => {
+    if (!needsClaim || role !== "psychologist" || claimed.current) return;
+    claimed.current = true;
+    apiFetch("/profile/role", { method: "POST" })
+      .then(() => qc.invalidateQueries({ queryKey: ["me"] }))
+      .catch(() => { claimed.current = false; });
+  }, [needsClaim, role]);
 
   if (!ready || !canSwitch) return null;
 
