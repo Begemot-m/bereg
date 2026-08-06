@@ -64,10 +64,9 @@ export const STATUS_LABEL: Record<PsyStatus, string> = {
   rejected: "Нужны правки",
 };
 
-// Пока анкета не одобрена, кабинет открыт целиком, но в каталог она не
-// попадает и приглашать клиентов нельзя: между непроверенным человеком и
-// чужой психикой должна стоять хотя бы одна дверь.
-export const canTakeClients = (status: PsyStatus) => status === "approved";
+// Верификация нужна ровно для каталога: своих клиентов психолог ведёт с
+// первого дня, а чужих людей платформа отправляет только к проверенным.
+export const isInCatalog = (status: PsyStatus) => status === "approved";
 
 const KEY = "psy_verification";
 

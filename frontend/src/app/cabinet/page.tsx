@@ -478,7 +478,7 @@ function RoleSwitchConfirm({ open, busy, failed, onClose, onConfirm }: { open: b
               <span className="ico ico-mid h-11 w-11 shrink-0"><Icon name="therapy" width={20} weight="bold" color="#fff" /></span>
               <div className="min-w-0 flex-1">
                 <p className="font-tight text-[18px] font-black leading-tight">Сменить роль на психолога?</p>
-                <p className="t-body mt-1.5">Кабинет переключится на профессиональный. После смены нужно будет заполнить профиль специалиста — без него вас не покажут в каталоге и нельзя приглашать клиентов.</p>
+                <p className="t-body mt-1.5">Кабинет переключится на профессиональный. Вести своих клиентов можно сразу, а чтобы попасть в каталог — заполнить профиль специалиста и пройти верификацию.</p>
               </div>
             </div>
             {failed && <p className="t-cap mt-3" style={{ color: "var(--danger)" }}>Не получилось сменить роль. Проверьте связь и попробуйте ещё раз.</p>}

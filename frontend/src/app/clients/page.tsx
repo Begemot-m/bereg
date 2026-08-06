@@ -14,7 +14,6 @@ import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonRow } from "@/components/ui";
 import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
-import { canTakeClients, useVerification } from "@/lib/psy-verification";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
 import { PROD_URL } from "@/lib/brand";
@@ -88,8 +87,6 @@ function ClientsList() {
   });
   const [inviteAfter, setInviteAfter] = useState(false);
   const [paywall, setPaywall] = useState(false);
-  const { data: verification } = useVerification();
-  const approved = canTakeClients(verification?.status ?? "none");
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const pro = isPro(sub);
   const atCap = !pro && clients.length >= FREE_CLIENT_LIMIT;
@@ -131,7 +128,7 @@ function ClientsList() {
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по имени" className="!pl-9" />
           </div>
           <motion.button
-            onClick={() => { tap(); if (!approved) { router.push("/cabinet/verification/"); return; } if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
+            onClick={() => { tap(); if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
             whileTap={{ scale: 0.85 }}
             whileHover={{ scale: 1.06 }}
             animate={{ rotate: open ? 45 : 0 }}

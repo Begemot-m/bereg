@@ -25,7 +25,7 @@ export function VerificationPrompt({ className }: { className?: string }) {
       ? { tone: "amber", icon: "clock" as const, title: "Заявка на проверке", note: "Проверяем документы вручную — обычно пара дней" }
       : status === "rejected"
         ? { tone: "salmon", icon: "question" as const, title: "Верификация: нужны правки", note: verification?.rejectReason ?? "Поправьте данные и отправьте заявку снова" }
-        : { tone: "amber", icon: "therapy" as const, title: "Пройдите верификацию", note: "Без неё вас не видно в каталоге и нельзя брать клиентов" };
+        : { tone: "amber", icon: "therapy" as const, title: "Пройдите верификацию", note: "Нужна для каталога — без неё вас там не показывают" };
 
   return (
     <Link
