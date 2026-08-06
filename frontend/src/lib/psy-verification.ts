@@ -22,6 +22,29 @@ export type VerificationForm = {
   about: string;
 };
 
+// Заявка на размещение в каталоге. Диплом храним как data-URL: в демо нет
+// файлового хранилища, а модератору нужно увидеть сам документ, а не имя файла.
+export type DiplomaFile = { name: string; type: string; size: number; dataUrl: string };
+
+export type CatalogSubmission = {
+  name: string;
+  education: string;
+  method: string;
+  experienceYears: number;
+  sessionPrice: number;
+  city: string;
+  format: string;
+  publicLink: string;
+  about: string;
+  photo: string | null;
+  profilePercent: number;
+  diploma: DiplomaFile | null;
+};
+
+// Порог, ниже которого заявку не принимаем: неполная карточка в каталоге
+// бесполезна и клиенту, и самому специалисту.
+export const CATALOG_MIN_PERCENT = 90;
+
 export const EMPTY_FORM: VerificationForm = {
   fullName: "",
   education: "",
@@ -101,6 +124,64 @@ export function useSubmitVerification() {
       return { status: "review", rejectReason: null, submittedAt: new Date().toISOString() } as Verification;
     },
     onSuccess: (next) => qc.setQueryData(["psy-verification"], next),
+  });
+}
+
+const DEMO_QUEUE_KEY = "bereg_demo_psy_queue";
+
+// В демо админки нет сервера — кладём заявку в ту же очередь, которую читает
+// /admin. Диплом может не поместиться в localStorage: тогда сохраняем заявку
+// без файла, но с пометкой, вместо того чтобы потерять её целиком.
+function pushDemoApplication(sub: CatalogSubmission) {
+  const row = {
+    userId: Date.now() % 100000,
+    name: sub.name || "Без имени",
+    username: null,
+    email: null,
+    registeredAt: new Date().toISOString(),
+    status: "review",
+    rejectReason: null,
+    submittedAt: new Date().toISOString(),
+    reviewedAt: null,
+    method: sub.method,
+    experienceYears: sub.experienceYears,
+    sessionPrice: sub.sessionPrice,
+    city: sub.city,
+    format: sub.format,
+    education: sub.education,
+    publicLink: sub.publicLink,
+    about: sub.about,
+    photo: sub.photo,
+    profilePercent: sub.profilePercent,
+    diploma: sub.diploma,
+  };
+  const write = (value: unknown[]) => localStorage.setItem(DEMO_QUEUE_KEY, JSON.stringify(value));
+  let queue: unknown[] = [];
+  try { queue = JSON.parse(localStorage.getItem(DEMO_QUEUE_KEY) ?? "[]") as unknown[]; } catch { queue = []; }
+  try {
+    write([row, ...queue]);
+  } catch {
+    write([{ ...row, diploma: sub.diploma ? { ...sub.diploma, dataUrl: "" } : null }, ...queue]);
+  }
+}
+
+export function useSubmitCatalogVerification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sub: CatalogSubmission) => {
+      const next: Verification = { status: "review", rejectReason: null, submittedAt: new Date().toISOString() };
+      if (DEMO) {
+        demoWrite(next);
+        pushDemoApplication(sub);
+        return next;
+      }
+      await apiFetch("/profile/verification", { method: "POST", body: JSON.stringify(sub) });
+      return next;
+    },
+    onSuccess: (next) => {
+      qc.setQueryData(["psy-verification"], next);
+      qc.invalidateQueries({ queryKey: ["admin-verification"] });
+    },
   });
 }
 

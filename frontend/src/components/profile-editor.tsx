@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { Arrow, ArrowGlyph } from "@/components/blocks";
-import { Button, Input, Textarea } from "@/components/ui";
+import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
@@ -217,6 +217,8 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
   });
   const [error, setError] = useState("");
   const [published, setPublished] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [savedAt, setSavedAt] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -239,6 +241,14 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
   const updateLocation = (patch: Partial<PsyProfile["location"]>) => setDraft((current) => ({ ...current, location: { ...current.location, ...patch } }));
 
   const openStep = (target: number) => { tap(); setError(""); setStep(target); };
+  // Сохранение без публикации: анкету можно дозаполнять частями и возвращаться.
+  // Статус не трогаем — иначе «сохранить» молча снимало бы пройденную проверку.
+  const saveProgress = () => {
+    const stored = getPsyProfile();
+    savePsyProfile({ ...draft, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: stored?.status ?? "review" });
+    success();
+    setSavedAt(new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }));
+  };
   // Пролистывать можно всегда — незаполненные шаги подсвечены цветом в полосе сверху.
   const next = () => { select(); setError(""); setStep(Math.min(flowSteps.length - 1, step + 1)); };
   const back = () => { tap(); setError(""); setStep((current) => Math.max(0, current - 1)); };
@@ -288,6 +298,41 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
           );
         })}
       </div>
+      {/* Полоска показывает только состояние. Чтобы понять, что за раздел и что
+          в нём заполнять, нужен список с названиями — он и раскрывается ниже. */}
+      <button onClick={() => { tap(); setNavOpen((value) => !value); }} className="flex w-full items-center justify-between border-t px-3 py-2.5 text-[12px] font-black text-[var(--muted)]" style={{ borderColor: "var(--edge-neutral)" }} aria-expanded={navOpen}>
+        {navOpen ? "Свернуть разделы" : "Все разделы анкеты"}
+        <motion.span animate={{ rotate: navOpen ? 90 : 0 }} className="arrow"><Arrow /></motion.span>
+      </button>
+      <Disclosure open={navOpen}>
+        <div className="space-y-1.5 border-t px-3 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
+          {flowSteps.map((item, itemIndex) => {
+            const isPreview = item.id === "preview";
+            const done = !isPreview && isComplete(item.id, draft);
+            const active = itemIndex === index;
+            return (
+              <button
+                key={item.id}
+                onClick={() => { openStep(itemIndex); setNavOpen(false); }}
+                aria-current={active}
+                className="flex w-full items-center gap-2.5 rounded-[13px] p-2.5 text-left transition-transform active:scale-[.99]"
+                style={{ background: active ? "var(--surface-2)" : "transparent", border: `var(--bw) solid ${active ? "var(--ink)" : "var(--edge-neutral)"}` }}
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px]" style={{ background: item.tone }}><Icon name={item.icon} width={17} weight="bold" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-black leading-tight">{itemIndex + 1}. {item.title}</span>
+                  <span className="t-cap block">{item.short}</span>
+                </span>
+                {!isPreview && (
+                  <span className="shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[.05em]" style={{ background: done ? "var(--green-soft)" : "var(--amber-soft)", color: done ? "var(--green-edge)" : "var(--amber-edge)" }}>
+                    {done ? "готово" : "нужно"}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </Disclosure>
     </div>
 
     {/* Статичная минимальная высота — окно не «скачет» между шагами */}
@@ -317,9 +362,11 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
           ? <Button className="flex-1" onClick={save}>Опубликовать профиль</Button>
           : <Button className="flex-1" onClick={next}>Продолжить</Button>}
       </div>
-      <button onClick={() => { tap(); onDone(); }} className="mx-auto mt-2 block py-1 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">
-        Заполню позже — черновик сохранён
-      </button>
+      <div className="mt-2 flex items-center justify-center gap-4">
+        <button onClick={() => { tap(); saveProgress(); }} className="py-1 text-[12px] font-black text-[var(--edge)]">Сохранить</button>
+        <button onClick={() => { tap(); saveProgress(); onDone(); }} className="py-1 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Заполню позже</button>
+      </div>
+      {savedAt && <p className="t-cap mt-1 text-center">Сохранено в {savedAt}</p>}
     </div>
     </div>
     {livePreview && (
@@ -565,6 +612,14 @@ function publicLocation(profile: PsyProfile | null) {
   return [profile.format === "both" ? "Онлайн и очно" : "Очно", place, exact].filter(Boolean).join(" · ");
 }
 function isComplete(step: StepId, profile: PsyProfile) { return !validateStep(step, profile); }
+
+// Заполненность анкеты в процентах. Нужна не только полосе прогресса, но и
+// заявке на каталог: там 90% — условие приёма.
+export function profileCompletionPercent(profile: PsyProfile | null) {
+  const merged = mergeProfile(profile);
+  const steps = STEPS.slice(0, -1);
+  return Math.round((steps.filter((item) => isComplete(item.id, merged)).length / steps.length) * 100);
+}
 function validateStep(step: StepId, profile: PsyProfile): string {
   if (step === "identity") {
     if (!profile.name.trim()) return "Укажите имя и фамилию.";

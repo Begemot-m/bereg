@@ -400,6 +400,9 @@ function Application({ a, busy, onApprove, onReject }: {
 }) {
   return (
     <div className="card p-3">
+      <div className="flex items-start gap-2.5">
+        {a.photo && <img src={a.photo} alt="" className="h-12 w-12 shrink-0 rounded-[11px] object-cover" />}
+        <div className="min-w-0 flex-1">
       <p className="t-head truncate">{a.name}</p>
       <p className="t-cap mt-0.5 truncate">
         {a.username ? `@${a.username}` : "без ника"} · {a.email ?? "без почты"}
@@ -416,6 +419,18 @@ function Application({ a, busy, onApprove, onReject }: {
           {a.publicLink}
         </a>
       )}
+        </div>
+      </div>
+
+      {/* Подтверждение образования — то, ради чего заявка вообще проверяется */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {typeof a.profilePercent === "number" && <span className="chip">профиль {a.profilePercent}%</span>}
+        {a.diploma
+          ? a.diploma.dataUrl
+            ? <a href={a.diploma.dataUrl} target="_blank" rel="noreferrer" download={a.diploma.name} className="chip chip-strong">Диплом · {a.diploma.name}</a>
+            : <span className="chip">Диплом «{a.diploma.name}» не поместился в хранилище демо</span>
+          : <span className="chip">диплом не приложен</span>}
+      </div>
 
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         <button disabled={busy} onClick={onApprove} className="btn btn-accent px-3 py-1.5 text-[11px] disabled:opacity-40">

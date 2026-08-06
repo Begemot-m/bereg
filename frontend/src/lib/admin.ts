@@ -23,6 +23,10 @@ export type PsyApplication = {
   education: string;
   publicLink: string;
   about: string;
+  // Приходят только из заявки на каталог: старые записи их не имеют.
+  photo?: string | null;
+  profilePercent?: number;
+  diploma?: { name: string; type: string; size: number; dataUrl: string } | null;
 };
 
 export type VerificationQueue = { queue: PsyApplication[]; recent: PsyApplication[] };

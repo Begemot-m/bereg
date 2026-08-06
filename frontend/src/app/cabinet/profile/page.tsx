@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { PageHead } from "@/components/blocks";
 import { ProfessionalProfileEditor } from "@/components/profile-editor";
+import { CatalogVerification } from "@/components/psy-verification";
 import { tap } from "@/lib/haptics";
 
 export default function CabinetProfilePage() {
@@ -13,6 +14,7 @@ export default function CabinetProfilePage() {
       <div className="sheet">
         <Link href="/cabinet" onClick={tap} className="back-link mb-3">Назад</Link>
         <ProfessionalProfileEditor />
+        <CatalogVerification />
       </div>
     </div>
   );
