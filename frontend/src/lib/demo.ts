@@ -806,6 +806,11 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     return delay({ confirmation_url: "/billing/return" } as T);
   }
 
+  // переход в психологи: в демо роль живёт в localStorage, серверу подтверждать нечего
+  if (clean === "/profile/role" && method === "POST") {
+    return delay({ role: "psychologist" } as T);
+  }
+
   // support (отдел заботы)
   if (clean === "/support" && method === "POST") {
     const s: Support = { id: ++db.seq, kind: String(body.kind ?? "вопрос"), text: String(body.text ?? ""), createdAt: new Date().toISOString() };

@@ -304,7 +304,7 @@ function EmailLink() {
 function useCanSwitchRole() {
   const me = useMe();
   const verification = useVerification();
-  const intent = useRoleIntent();
+  const [intent, intentReady] = useRoleIntent();
 
   const status = verification.data?.status ?? "none";
   // В демо сервера нет, и `me.role` там всегда «психолог» — заглушка, чтобы
@@ -313,8 +313,8 @@ function useCanSwitchRole() {
   // роли и заявка.
   const isPsy = !DEMO && me.data?.role === "psychologist";
   return {
-    ready: !me.isLoading,
-    loaded: Boolean(me.data),
+    ready: !me.isLoading && intentReady,
+    loaded: Boolean(me.data) && intentReady,
     canSwitch: isPsy || intent === "psychologist" || status !== "none",
     status,
     rejectReason: verification.data?.rejectReason ?? null,
@@ -344,14 +344,31 @@ function RoleControl({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => vo
 // даётся сразу, а данные о себе человек заполняет уже в профиле специалиста.
 function PsyRoleRequest() {
   const { ready, canSwitch } = useCanSwitchRole();
+  const qc = useQueryClient();
   const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   if (!ready || canSwitch) return null;
 
-  const become = () => {
+  // Роль поднимает сервер: раньше это делала отправка анкеты, и когда анкету
+  // из перехода убрали, интерфейс становился психологическим, а в базе человек
+  // оставался клиентом — дальше любое действие психолога отвечало отказом.
+  const become = async () => {
+    setBusy(true);
+    setFailed(false);
+    try {
+      await apiFetch("/profile/role", { method: "POST" });
+    } catch {
+      setBusy(false);
+      setFailed(true);
+      return;
+    }
     success();
     setRoleIntent("psychologist");
     setRole("psychologist");
+    await qc.invalidateQueries({ queryKey: ["me"] });
+    setBusy(false);
     setConfirming(false);
   };
 
@@ -366,13 +383,13 @@ function PsyRoleRequest() {
         </span>
         <Arrow />
       </button>
-      <RoleSwitchConfirm open={confirming} onClose={() => setConfirming(false)} onConfirm={become} />
+      <RoleSwitchConfirm open={confirming} busy={busy} failed={failed} onClose={() => { setConfirming(false); setFailed(false); }} onConfirm={become} />
     </div>
   );
 }
 
 // Подтверждение смены роли. Всплывает снизу, как остальные шторки кабинета.
-function RoleSwitchConfirm({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
+function RoleSwitchConfirm({ open, busy, failed, onClose, onConfirm }: { open: boolean; busy?: boolean; failed?: boolean; onClose: () => void; onConfirm: () => void }) {
   return (
     <AnimatePresence>
       {open && (
@@ -392,9 +409,10 @@ function RoleSwitchConfirm({ open, onClose, onConfirm }: { open: boolean; onClos
                 <p className="t-body mt-1.5">Кабинет переключится на профессиональный. После смены нужно будет заполнить профиль специалиста — без него вас не покажут в каталоге и нельзя приглашать клиентов.</p>
               </div>
             </div>
+            {failed && <p className="t-cap mt-3" style={{ color: "var(--danger)" }}>Не получилось сменить роль. Проверьте связь и попробуйте ещё раз.</p>}
             <div className="mt-4 flex gap-2">
               <button onClick={() => { tap(); onClose(); }} className="btn btn-white flex-1">Отмена</button>
-              <Button className="flex-1" onClick={onConfirm}>Сменить</Button>
+              <Button className="flex-1" disabled={busy} onClick={onConfirm}>{busy ? "Меняем…" : "Сменить"}</Button>
             </div>
           </motion.div>
         </motion.div>

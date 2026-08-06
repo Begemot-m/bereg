@@ -41,19 +41,26 @@ export function getRoleIntent(): Role | null {
   return (localStorage.getItem(INTENT_KEY) as Role) || null;
 }
 
-// Намерение читается так же, как роль: на сервере его нет, а меняться оно
-// может прямо в открытом кабинете — когда клиент переключается в психологи.
-export function useRoleIntent(): Role | null {
+/**
+ * Намерение читается так же, как роль: на сервере его нет, а меняться оно
+ * может прямо в открытом кабинете — когда клиент переключается в психологи.
+ *
+ * Вторым элементом — прочитано ли оно. До первого эффекта «намерения нет» и
+ * «ещё не смотрели» выглядят одинаково, и страж кабинета на этом отправлял
+ * свежего психолога обратно в клиенты.
+ */
+export function useRoleIntent(): [Role | null, boolean] {
   const [intent, setIntent] = useState<Role | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const read = () => setIntent(getRoleIntent());
+    const read = () => { setIntent(getRoleIntent()); setReady(true); };
     read();
     window.addEventListener(EVENT, read);
     return () => window.removeEventListener(EVENT, read);
   }, []);
 
-  return intent;
+  return [intent, ready];
 }
 
 /**
