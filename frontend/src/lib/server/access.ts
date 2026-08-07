@@ -18,7 +18,7 @@ export const FREE_CLIENT_LIMIT = 3;
 const TRIAL_DAYS = 14;
 
 /** Сколько анкета стоит в каталоге бесплатно после одобрения. */
-const CATALOG_FREE_DAYS = 30;
+const CATALOG_FREE_DAYS = 14;
 
 export type Access = {
   pro: boolean;
@@ -61,7 +61,7 @@ async function firstSessionAt(userId: number): Promise<Date | null> {
  * Есть ли у психолога доступ PRO. Три пути: идёт триал, оплачена подписка,
  * либо доступ выдан вручную из админки (тот же `status: active`, но с
  * пометкой `grantedBy`). Размещение в каталоге входит в PRO, а до него —
- * первые 30 дней после одобрения анкеты.
+ * первые 14 дней после одобрения анкеты.
  */
 export async function access(userId: number): Promise<Access> {
   const [user, sub, psy] = await Promise.all([
@@ -73,7 +73,7 @@ export async function access(userId: number): Promise<Access> {
 
   const now = Date.now();
 
-  // Бесплатные 30 дней в каталоге идут от одобрения анкеты и не зависят от
+  // Бесплатные 14 дней в каталоге идут от одобрения анкеты и не зависят от
   // подписки: пока они не вышли, карточка стоит даже на бесплатном тарифе.
   let catalogUntil: Date | null = null;
   if (psy?.status === "approved" && psy.reviewedAt) {

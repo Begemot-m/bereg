@@ -137,15 +137,15 @@ describe("бесплатное размещение в каталоге", () => 
     expect(acc.catalogUntil).toBeNull();
   });
 
-  test("30 дней после одобрения карточка стоит бесплатно", async () => {
+  test("14 дней после одобрения карточка стоит бесплатно", async () => {
     psyRow = { status: "approved", reviewedAt: days(-5) };
     const acc = await access(1);
     expect(acc.catalog).toBe(true);
     expect(acc.pro).toBe(false);
   });
 
-  test("после 30 дней без PRO карточка снимается", async () => {
-    psyRow = { status: "approved", reviewedAt: days(-31) };
+  test("после 14 дней без PRO карточка снимается", async () => {
+    psyRow = { status: "approved", reviewedAt: days(-15) };
     expect((await access(1)).catalog).toBe(false);
   });
 

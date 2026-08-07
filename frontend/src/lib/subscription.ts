@@ -1,7 +1,7 @@
 import { apiFetch } from "@/lib/api";
 
 // Тариф один: Хроника PRO. Размещение в каталоге входит в него, а до подписки
-// работает бесплатные 30 дней с момента одобрения анкеты.
+// работает бесплатные 14 дней с момента одобрения анкеты.
 export type PlanId = "pro";
 export type SubStatus = "free" | "trial" | "active" | "pending" | "expired";
 export type Subscription = {
@@ -24,7 +24,7 @@ export const FREE_CLIENT_LIMIT = 3;
 // Сколько длится пробный PRO и бесплатное размещение в каталоге.
 // Дублируют константы сервера — там источник правды, здесь только тексты.
 export const TRIAL_DAYS = 14;
-export const CATALOG_FREE_DAYS = 30;
+export const CATALOG_FREE_DAYS = 14;
 
 // PRO активен во время триала и при оплаченной подписке. Решение принимает
 // сервер, здесь — только чтение его ответа.

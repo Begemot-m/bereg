@@ -283,9 +283,9 @@ function notify(db: DB, forRole: NotifRole, kind: string, text: string) {
 }
 
 // Те же правила, что в lib/server/access.ts: пробный PRO идёт 14 дней от первой
-// проведённой сессии, каталог бесплатен 30 дней после одобрения анкеты.
+// проведённой сессии, каталог бесплатен 14 дней после одобрения анкеты.
 const TRIAL_DAYS = 14;
-const CATALOG_FREE_DAYS = 30;
+const CATALOG_FREE_DAYS = 14;
 const addDays = (from: number, days: number) => new Date(from + days * 86_400_000);
 
 /** Момент первой проведённой сессии — с него стартует триал. */
@@ -301,7 +301,7 @@ function firstSessionAt(db: DB): number | null {
 /**
  * Когда анкету одобрили. В демо модерация проходит сама через 6 секунд после
  * подачи; если записи о верификации нет — это готовая демо-практика, считаем
- * её одобренной только что, чтобы бесплатные 30 дней были видны в работе.
+ * её одобренной только что, чтобы бесплатные 14 дней были видны в работе.
  */
 function approvedAt(): number | null {
   if (typeof window === "undefined") return null;

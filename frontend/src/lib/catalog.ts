@@ -134,7 +134,7 @@ const PUBLIC_PSYS = PSYS.filter((psy) => psy.verified).map((psy) => ({
 /** Своя анкета в каталоге: по этому id ведёт ссылка-приглашение на запись. */
 export const OWN_PROFILE_ID = 100_001;
 
-// Карточка стоит в каталоге, если есть PRO либо ещё идут бесплатные 30 дней
+// Карточка стоит в каталоге, если есть PRO либо ещё идут бесплатные 14 дней
 // после одобрения анкеты.
 export function hasCatalogPlacement(subscription: Subscription | null | undefined, now = Date.now()): boolean {
   if (!subscription) return false;
