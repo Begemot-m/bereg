@@ -184,6 +184,11 @@ function AllControls({ filters, setFilters, sort, setSort, activeFilters, openFi
   return <Reveal delay={.03}><div className="mt-4 space-y-2"><label className="flex items-center gap-2 rounded-[14px] bg-white px-3.5 py-2.5 stroke"><Icon name="compass" width={16} color="var(--muted)" /><input value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder="Имя, подход или запрос" className="min-w-0 flex-1 bg-transparent text-[13px] font-bold outline-none placeholder:font-semibold placeholder:text-[var(--muted-2)]" />{filters.query && <button onClick={() => setFilters({ ...filters, query: "" })} className="font-black text-[var(--muted)]" aria-label="Очистить поиск">×</button>}</label><div className="flex gap-2"><button onClick={openFilters} className="relative flex flex-1 items-center justify-center gap-1.5 rounded-[12px] bg-white px-3 py-2 text-[11px] font-black stroke"><Icon name="filter" width={15} weight="bold" /> Фильтры{activeFilters > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--coral)] px-1 text-[10px] stroke">{activeFilters}</span>}</button><label className="flex flex-[1.35] items-center gap-1.5 rounded-[12px] bg-white px-3 py-2 stroke"><Icon name="sort" width={15} weight="bold" /><select value={sort} onChange={(event) => setSort(event.target.value as SortMode)} className="min-w-0 flex-1 bg-transparent text-[11px] font-black outline-none">{SORTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label></div></div></Reveal>;
 }
 
+// Кем человек работает: психолог, психиатр, коуч… Анкета допускает несколько.
+function specialistLine(psy: Psy): string {
+  return (psy.specialistTypes?.length ? psy.specialistTypes : ["Психолог"]).join(" · ");
+}
+
 function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   const portrait = asset(psy.portrait);
   const helps = psy.helps ?? psy.topics.slice(0, 3).join(", ");
@@ -198,8 +203,9 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center gap-1.5">
             <h3 className="t-head min-w-0">{psy.name}</h3>
-            {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" title="Профиль подтверждён"><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
+            {psy.verified && <Icon name="seal" width={17} weight="fill" color="var(--green)" className="shrink-0" />}
           </div>
+          <p className="mt-0.5 text-[11px] font-black" style={{ color: "var(--edge)" }}>{specialistLine(psy)}</p>
            <p className="t-body mt-1.5"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
            {psy.quote && <p className="t-sub mt-2 pl-2.5 italic" style={{ borderLeft: "2px solid var(--edge)" }}>«{psy.quote}»</p>}
          </div>
@@ -269,7 +275,8 @@ function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} tone={tone} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-1.5"><h1 className="t-title">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
+          <div className="flex items-start gap-1.5"><h1 className="t-title">{psy.name}</h1>{psy.verified && <Icon name="seal" width={19} weight="fill" color="var(--green)" className="mt-0.5 shrink-0" />}</div>
+          <p className="mt-0.5 text-[12px] font-black" style={{ color: tone.edge }}>{specialistLine(psy)}</p>
           <p className="t-cap mt-1">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="chip" style={{ background: "#fff" }}>
@@ -277,9 +284,6 @@ function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy
               <span className="tnum">{psy.rating.toFixed(1)}</span>
               <span className="text-[var(--muted)]">· {psy.reviews}</span>
             </span>
-            {psy.specialistTypes?.map((type) => (
-              <span key={type} className="chip" style={{ background: "#fff" }}>{type}</span>
-            ))}
             {psy.style && <span className="chip" style={{ background: "#fff" }}><Icon name="spark" width={11} weight="fill" color={tone.edge} /> {psy.style}</span>}
           </div>
         </div>
