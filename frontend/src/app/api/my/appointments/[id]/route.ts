@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
+import { lockedByPolicy } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { cancelPendingReminders, queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
 
@@ -8,7 +9,13 @@ export const runtime = "nodejs";
 
 /** Запись принадлежит этому клиенту? id из пути сам по себе ничего не даёт. */
 async function myAppointment(id: number, userId: number) {
-  const appt = await prisma.appointment.findUnique({ where: { id }, include: { client: { select: { userId: true } } } });
+  const appt = await prisma.appointment.findUnique({
+    where: { id },
+    include: {
+      client: { select: { userId: true } },
+      psychologist: { select: { workHours: { select: { cancelLockDays: true } } } },
+    },
+  });
   return appt && appt.client.userId === userId ? appt : null;
 }
 
@@ -19,6 +26,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const { id } = await ctx.params;
     const appt = await myAppointment(Number(id), user.id);
     if (!appt) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const lockDays = appt.psychologist.workHours?.cancelLockDays ?? 0;
+    if (lockedByPolicy(appt.startsAt, lockDays)) {
+      return NextResponse.json({ error: `Перенести можно не позже чем за ${lockDays} дн. до встречи` }, { status: 409 });
+    }
 
     const body = (await req.json()) as { startsAt?: string };
     const startsAt = new Date(String(body.startsAt));
@@ -56,6 +68,11 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     const { id } = await ctx.params;
     const appt = await myAppointment(Number(id), user.id);
     if (!appt) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const lockDays = appt.psychologist.workHours?.cancelLockDays ?? 0;
+    if (lockedByPolicy(appt.startsAt, lockDays)) {
+      return NextResponse.json({ error: `Отменить можно не позже чем за ${lockDays} дн. до встречи` }, { status: 409 });
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.appointment.update({ where: { id: appt.id }, data: { status: "cancelled" } });

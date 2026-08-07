@@ -8,6 +8,7 @@ import { Icon } from "@/components/icons";
 import { botDeepLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { success, tap } from "@/lib/haptics";
+import { useMe } from "@/lib/me";
 import { useProfile } from "@/lib/profile";
 import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
 
@@ -21,8 +22,8 @@ const MSG_KEY = "bereg_invite_message";
  * и отдаёт метку в start_param — по ней StartRoute сразу показывает анкету с
  * окнами. Обычный https-адрес открылся бы в браузере, мимо приложения.
  */
-export function bookingInviteUrl(): string {
-  return botDeepLink(`book_${OWN_PROFILE_ID}`);
+export function bookingInviteUrl(psyId?: number): string {
+  return botDeepLink(`book_${psyId || OWN_PROFILE_ID}`);
 }
 
 // Кнопка живёт в «Сессиях», рядом с графиком: позвать клиента — часть работы
@@ -45,8 +46,9 @@ export function SessionInviteButton() {
 
 function SessionInviteSheet({ onClose }: { onClose: () => void }) {
   const profile = useProfile();
+  const { data: me } = useMe();
   const [copied, setCopied] = useState(false);
-  const { data: avail } = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
+  const { data: avail } = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability() });
 
   // Ближайший день со свободным окном — с него и начинаем разговор.
   const firstFree = useMemo(() => {
@@ -55,13 +57,15 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
     return Object.keys(avail).filter((d) => d >= today && avail[d] === "free").sort()[0] ?? null;
   }, [avail]);
   const { data: slots = [] } = useQuery({
-    queryKey: ["slots", firstFree, false],
-    queryFn: () => getSlots(firstFree!, false),
+    queryKey: ["slots", firstFree, null],
+    queryFn: () => getSlots(firstFree!),
     enabled: Boolean(firstFree),
   });
   const free = slots.filter((s) => !s.taken).slice(0, 4);
 
-  const link = bookingInviteUrl();
+  // Ссылка ведёт на реальный id психолога: по нему клиент откроет анкету и
+  // увидит именно его окна. OWN_PROFILE_ID — запасной вариант для демо.
+  const link = bookingInviteUrl(me?.id);
   const dayLabel = firstFree ? cap(dayF.format(new Date(firstFree + "T00:00:00"))) : null;
   const times = free.map((s) => timeF.format(new Date(s.start))).join(", ");
   const name = profile?.name?.trim();

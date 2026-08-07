@@ -6,30 +6,46 @@ import { prisma } from "@/lib/server/prisma";
 
 export type SlotFormat = "online" | "offline";
 export type WorkSlot = { t: string; d: number; fmt: SlotFormat };
-export type WorkHoursDTO = { hours: Record<number, WorkSlot[]>; sessionMinutes: number };
+export type WorkHoursDTO = { hours: Record<number, WorkSlot[]>; sessionMinutes: number; cancelLockDays: number };
 export type SlotDTO = { start: string; taken: boolean; fmt: SlotFormat };
 /** Занятый интервал психолога: начало записи и её длительность. */
 export type Busy = { start: string; minutes: number };
 export type OverrideDTO = { removed?: boolean; fmt?: SlotFormat };
 
-const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50 };
+const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50, cancelLockDays: 0 };
+
+/** Запрет отмены — целое число дней от 0 (без ограничения) до недели. */
+const clampLock = (days: number) => Math.min(7, Math.max(0, Math.trunc(days) || 0));
 
 export async function getWorkHours(userId: number): Promise<WorkHoursDTO> {
   const row = await prisma.workHours.findUnique({ where: { userId } });
   if (!row) return DEFAULT_HOURS;
-  return { hours: (row.hours as WorkHoursDTO["hours"]) ?? {}, sessionMinutes: row.sessionMinutes };
+  return { hours: (row.hours as WorkHoursDTO["hours"]) ?? {}, sessionMinutes: row.sessionMinutes, cancelLockDays: row.cancelLockDays };
 }
 
 export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>): Promise<WorkHoursDTO> {
   const current = await getWorkHours(userId);
   const hours = patch.hours ?? current.hours;
   const sessionMinutes = patch.sessionMinutes ?? current.sessionMinutes;
+  const cancelLockDays = patch.cancelLockDays === undefined ? current.cancelLockDays : clampLock(patch.cancelLockDays);
   const row = await prisma.workHours.upsert({
     where: { userId },
-    create: { userId, hours, sessionMinutes },
-    update: { hours, sessionMinutes },
+    create: { userId, hours, sessionMinutes, cancelLockDays },
+    update: { hours, sessionMinutes, cancelLockDays },
   });
-  return { hours: (row.hours as WorkHoursDTO["hours"]) ?? {}, sessionMinutes: row.sessionMinutes };
+  return { hours: (row.hours as WorkHoursDTO["hours"]) ?? {}, sessionMinutes: row.sessionMinutes, cancelLockDays: row.cancelLockDays };
+}
+
+/**
+ * Чьё расписание показываем. Клиент записывается к специалисту, а не к себе:
+ * без явного id считали окна текущего пользователя, и по ссылке-приглашению
+ * человек видел собственное пустое расписание.
+ */
+export async function resolveScheduleOwner(viewerId: number, psyParam: string | null): Promise<number | null> {
+  const id = Number(psyParam);
+  if (!psyParam || !Number.isInteger(id) || id <= 0 || id === viewerId) return viewerId;
+  const psy = await prisma.psyProfile.findUnique({ where: { userId: id }, select: { status: true } });
+  return psy?.status === "approved" ? id : null;
 }
 
 /** Правки окон в виде, в котором их ждёт клиент: ключ — ISO начала окна. */
@@ -81,6 +97,15 @@ export async function setOverride(userId: number, iso: string, patch: OverrideDT
     });
   }
   return getOverrides(userId);
+}
+
+/**
+ * Правило психолога: за lockDays до встречи клиент её уже не отменит и не
+ * перенесёт. 0 — ограничения нет. Прошедшую встречу трогать тоже нельзя.
+ */
+export function lockedByPolicy(startsAt: Date, lockDays: number, now = Date.now()): boolean {
+  if (lockDays <= 0) return false;
+  return (startsAt.getTime() - now) / 86_400_000 < lockDays;
 }
 
 /** Интервалы записей в миллисекундах — с ними сравниваются окна шаблона. */

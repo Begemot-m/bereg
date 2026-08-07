@@ -12,14 +12,20 @@ export async function GET(req: NextRequest) {
   const format = url.searchParams.get("format");
   const maxPrice = Number(url.searchParams.get("maxPrice") ?? 0);
 
+  // ?id=<userId> — одна анкета для ссылки-приглашения. Размещение в каталоге
+  // тут не требуется: по прямой ссылке специалист открывается и без PRO.
+  const one = Number(url.searchParams.get("id"));
+
   const rows = await prisma.psyProfile.findMany({
-    where: {
-      status: "approved",
-      ...(format && format !== "any" ? { OR: [{ format }, { format: "both" }] } : {}),
-      ...(maxPrice > 0 ? { sessionPrice: { lte: maxPrice } } : {}),
-    },
+    where: one > 0
+      ? { userId: one, status: "approved" }
+      : {
+          status: "approved",
+          ...(format && format !== "any" ? { OR: [{ format }, { format: "both" }] } : {}),
+          ...(maxPrice > 0 ? { sessionPrice: { lte: maxPrice } } : {}),
+        },
     orderBy: { sessionPrice: "asc" },
-    take: 100,
+    take: one > 0 ? 1 : 100,
   });
 
   const psys = rows.map((row) => {

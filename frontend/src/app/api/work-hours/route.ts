@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const body = (await req.json()) as { hours?: Record<number, WorkSlot[]>; sessionMinutes?: number };
+    const body = (await req.json()) as { hours?: Record<number, WorkSlot[]>; sessionMinutes?: number; cancelLockDays?: number };
 
     // Шаблон приходит целиком — проверяем форму, чтобы в базу не легло что попало.
     if (body.hours !== undefined) {
@@ -31,6 +31,12 @@ export async function PATCH(req: NextRequest) {
       const m = Number(body.sessionMinutes);
       if (!Number.isFinite(m) || m < 15 || m > 240) {
         return NextResponse.json({ error: "invalid sessionMinutes" }, { status: 422 });
+      }
+    }
+    if (body.cancelLockDays !== undefined) {
+      const d = Number(body.cancelLockDays);
+      if (!Number.isInteger(d) || d < 0 || d > 7) {
+        return NextResponse.json({ error: "invalid cancelLockDays" }, { status: 422 });
       }
     }
 

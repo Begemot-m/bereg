@@ -90,6 +90,8 @@ model WorkHours {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   hours          Json     @default("{}")
   sessionMinutes Int      @default(50)
+  /// За сколько дней до встречи клиент уже не может её отменить. 0 — без ограничения.
+  cancelLockDays Int      @default(0)
   updatedAt      DateTime @updatedAt
 }
 

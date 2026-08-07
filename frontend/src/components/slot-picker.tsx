@@ -15,7 +15,7 @@ const monShort = new Intl.DateTimeFormat("ru-RU", { month: "short" });
 
 // Лента дней (или мини-календарик) + сетка свободных времён. Формат берётся из окна.
 export function SlotPicker({
-  forClient = false,
+  psyId,
   daysAhead = 21,
   variant = "strip",
   showAvail = false,
@@ -24,7 +24,8 @@ export function SlotPicker({
   appts = [],
   onPick,
 }: {
-  forClient?: boolean;
+  /** Чьи окна показываем. Без id — своё расписание, с id — расписание специалиста. */
+  psyId?: number | null;
   daysAhead?: number;
   variant?: "strip" | "calendar";
   showAvail?: boolean;
@@ -52,13 +53,13 @@ export function SlotPicker({
   useEffect(() => { if (startDay && !touched.current) setActive(startDay); }, [startDay]);
 
   const { data: slots = [], isLoading } = useQuery({
-    queryKey: ["slots", active, forClient],
-    queryFn: () => getSlots(active, forClient),
+    queryKey: ["slots", active, psyId ?? null],
+    queryFn: () => getSlots(active, psyId),
   });
 
   const { data: avail } = useQuery({
-    queryKey: ["month-avail", forClient],
-    queryFn: () => getMonthAvailability(forClient),
+    queryKey: ["month-avail", psyId ?? null],
+    queryFn: () => getMonthAvailability(psyId),
     enabled: variant === "calendar" && showAvail,
   });
 

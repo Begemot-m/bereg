@@ -18,21 +18,30 @@ const bookSchema = z.object({
 
 type ApptRow = {
   id: number;
+  psychologistId: number;
   startsAt: Date;
   durationMin: number;
   format: string;
-  psychologist: { psyProfile: { name: string } | null; firstName: string | null };
+  psychologist: { psyProfile: { name: string } | null; firstName: string | null; workHours: { cancelLockDays: number } | null };
 };
 
+// cancelLockDays едет вместе с записью: правило задаёт психолог, а применяет
+// его экран клиента на другом устройстве — из localStorage оно туда не попадёт.
 const toDTO = (a: ApptRow) => ({
   id: a.id,
+  psychologistId: a.psychologistId,
   psyName: a.psychologist.psyProfile?.name ?? a.psychologist.firstName ?? "Специалист",
   startsAt: a.startsAt.toISOString(),
   durationMin: a.durationMin,
   format: a.format,
+  cancelLockDays: a.psychologist.workHours?.cancelLockDays ?? 0,
 });
 
-const include = { psychologist: { select: { firstName: true, psyProfile: { select: { name: true } } } } };
+const include = {
+  psychologist: {
+    select: { firstName: true, psyProfile: { select: { name: true } }, workHours: { select: { cancelLockDays: true } } },
+  },
+};
 
 // Записи клиента к специалистам. Это те же Appointment, что видит психолог, —
 // просто смотрим с другой стороны: через карточки, привязанные к аккаунту.

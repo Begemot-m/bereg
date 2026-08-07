@@ -4,10 +4,12 @@
 // Хранится на устройстве; каталог добавляет сюда, раздел «Терапия» читает.
 export const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
-export type TherapistStore = { list: string[]; removed: string[]; active: string | null };
+// ids — имя специалиста → его userId. Без id запись на окно уходила бы «в
+// никуда»: сервер спрашивает, к кому записываемся, а имя ему ни о чём не говорит.
+export type TherapistStore = { list: string[]; removed: string[]; active: string | null; ids: Record<string, number> };
 
 export function loadTherapists(): TherapistStore {
-  const base: TherapistStore = { list: [], removed: [], active: null };
+  const base: TherapistStore = { list: [], removed: [], active: null, ids: {} };
   if (typeof window === "undefined") return base;
   try {
     const raw = localStorage.getItem(THERAPISTS_KEY);
@@ -22,12 +24,18 @@ export function saveTherapists(store: TherapistStore) {
 }
 
 // Прикрепить терапевта. Возвращает true, если добавили (false — уже был).
-export function attachTherapist(name: string): boolean {
+export function attachTherapist(name: string, psyId?: number): boolean {
   const store = loadTherapists();
   const removed = store.removed.filter((n) => n !== name);
-  if (store.list.includes(name)) { saveTherapists({ ...store, removed, active: store.active ?? name }); return false; }
-  saveTherapists({ list: [...store.list, name], removed, active: store.active ?? name });
+  const ids = psyId ? { ...store.ids, [name]: psyId } : store.ids;
+  if (store.list.includes(name)) { saveTherapists({ ...store, ids, removed, active: store.active ?? name }); return false; }
+  saveTherapists({ ...store, ids, list: [...store.list, name], removed, active: store.active ?? name });
   return true;
+}
+
+/** id специалиста по имени: из прикреплённых, иначе из уже сделанных записей. */
+export function therapistId(name: string, bookings: { psyName: string; psychologistId?: number }[] = []): number | undefined {
+  return loadTherapists().ids[name] ?? bookings.find((b) => b.psyName === name && b.psychologistId)?.psychologistId;
 }
 
 export function isAttached(name: string): boolean {
@@ -48,6 +56,7 @@ export function detachTherapist(name: string): TherapistStore {
   const store = loadTherapists();
   const list = store.list.filter((item) => item !== name);
   const next: TherapistStore = {
+    ids: store.ids,
     list,
     removed: [...new Set([...store.removed, name])],
     active: store.active === name ? list[0] ?? null : store.active,

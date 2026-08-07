@@ -86,7 +86,7 @@ export function ClientDetail() {
   // Считается это на сервере за 60 дней вперёд — самый дорогой запрос карточки,
   // а нужен он только после нажатия «Записать на окно». SlotPicker внутри
   // спрашивает тот же ключ, так что запрос не добавляется, а переносится.
-  const { data: avail } = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false), enabled: bookOpen });
+  const { data: avail } = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability(), enabled: bookOpen });
   const firstFree = useMemo(() => {
     if (!avail) return undefined;
     const today = ymdLocal(new Date());

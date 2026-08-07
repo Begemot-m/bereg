@@ -26,6 +26,7 @@ import {
   filterCatalog,
   formatLabel,
   nextSlotLabel,
+  getCatalogPsy,
   OWN_PROFILE_ID,
   personalSelection,
   profileToCatalogPsy,
@@ -104,7 +105,14 @@ export default function CatalogPage() {
     // из профиля, иначе приглашение вело бы в пустоту.
     const psy = PSYS.find((item) => item.id === id)
       ?? (id === OWN_PROFILE_ID && profile?.name ? profileToCatalogPsy(profile) : undefined);
-    if (psy) { setSelected(psy); setSurveyOpen(false); }
+    if (psy) { setSelected(psy); setSurveyOpen(false); return; }
+    // Боевой каталог живёт на сервере: по ссылке приходит настоящий id, и
+    // карточку надо забрать оттуда, а не искать в демо-списке.
+    let alive = true;
+    getCatalogPsy(id)
+      .then((row) => { if (alive && row) { setSelected(row); setSurveyOpen(false); } })
+      .catch(() => { /* карточки нет — остаёмся в общем каталоге */ });
+    return () => { alive = false; };
   }, [profile]);
 
   useEffect(() => {
@@ -383,7 +391,7 @@ function Fact({ icon, text }: { icon: IconName; text: string }) {
 // раскрытая — выбор дня и времени.
 function BookingMini({ psy, tone, onDone }: { psy: Psy; tone: { bg: string; soft: string; edge: string }; onDone: () => void }) {
   const [open, setOpen] = useState(false);
-  const { data: avail } = useQuery({ queryKey: ["month-avail", true], queryFn: () => getMonthAvailability(true) });
+  const { data: avail } = useQuery({ queryKey: ["month-avail", psy.id], queryFn: () => getMonthAvailability(psy.id) });
   const nearest = useMemo(() => {
     if (!avail) return null;
     const today = ymdLocal(new Date());
@@ -646,12 +654,11 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
 }
 
 function BookFlow({ psy, onDone }: { psy: Psy; onDone: () => void }) {
-  const psyName = psy.name;
   const qc = useQueryClient();
   const [done, setDone] = useState<{ at: string; format: string } | null>(null);
-  const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psyName, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
+  const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psy, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
   if (done) return <BookedNext psy={psy} at={done.at} format={done.format} onDone={onDone} />;
-  return <><p className="t-micro mb-2">День и окно</p><SlotPicker forClient variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
+  return <><p className="t-micro mb-2">День и окно</p><SlotPicker psyId={psy.id} variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
 }
 
 // Что делать сразу после записи. Для новичка это первый экран приложения:
@@ -662,7 +669,7 @@ function BookedNext({ psy, at, format, onDone }: { psy: Psy; at: string; format:
   const date = new Date(at);
   const place = [psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : ""].filter(Boolean).join(" · ");
   const finishFastEntry = () => window.dispatchEvent(new CustomEvent("bereg-fast-entry-complete"));
-  const attach = () => { success(); attachTherapist(psyName); setAttached(true); };
+  const attach = () => { success(); attachTherapist(psyName, psy.id); setAttached(true); };
 
   return (
     <div>

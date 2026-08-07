@@ -33,7 +33,7 @@ import { createClient, listClients } from "@/lib/clients";
 import { ProPaywall } from "@/components/pro-sell";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { useRole } from "@/lib/role";
-import { getMonthAvailability, getOverrides, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
+import { getMonthAvailability, getOverrides, getWorkHours, saveWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
@@ -96,7 +96,7 @@ function PsySessions() {
   const [scheduleReady, setScheduleReady] = useState(false);
 
   const appointmentsQuery = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
-  const availabilityQuery = useQuery({ queryKey: ["month-avail", false], queryFn: () => getMonthAvailability(false) });
+  const availabilityQuery = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability() });
   const workQuery = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const overridesQuery = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
   const appts = appointmentsQuery.data ?? [];
@@ -367,8 +367,18 @@ function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, on
 }
 
 // Запрет отмены сессий — правило приёма, переехало из кабинета.
+// Хранится вместе с рабочими часами: клиент читает его с сервера, поэтому
+// правило действует и на чужом устройстве.
 function CancelLockRow() {
-  const [days, setDays] = useCancelLockDays();
+  const qc = useQueryClient();
+  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
+  const [local, setLocal] = useCancelLockDays();
+  const days = work?.cancelLockDays ?? local;
+  const save = useMutation({
+    mutationFn: (next: number) => saveWorkHours({ cancelLockDays: next }),
+    onSuccess: (next) => qc.setQueryData(["work-hours"], next),
+  });
+  const setDays = (next: number) => { setLocal(next); save.mutate(next); };
   return (
     <div style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 12 }}>
       <div className="flex items-center justify-between gap-2">

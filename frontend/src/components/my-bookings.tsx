@@ -22,7 +22,10 @@ const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric"
 export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking; onChange: () => void; defaultOpen?: boolean }) {
   const [manage, setManage] = useState(defaultOpen);
   const [resch, setResch] = useState(false);
-  const [lockDays] = useCancelLockDays();
+  // Правило приезжает вместе с записью. Локальное значение — запасной вариант
+  // для демо, где обе роли живут в одном браузере.
+  const [localLock] = useCancelLockDays();
+  const lockDays = b.cancelLockDays ?? localLock;
   const date = new Date(b.startsAt);
   const past = date.getTime() < Date.now();
   const locked = !past && !canCancel(b.startsAt, lockDays);
@@ -58,7 +61,7 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
           {resch ? (
             <div className="card-soft p-2.5">
               <p className="t-micro mb-2">Новое окно</p>
-              <SlotPicker forClient variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
+              <SlotPicker psyId={b.psychologistId} variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
               <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
             </div>
           ) : locked ? (

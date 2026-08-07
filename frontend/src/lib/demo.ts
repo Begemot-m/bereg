@@ -50,6 +50,7 @@ type WorkHours = {
   // По дням недели (0=Пн..6=Вс)
   hours: Record<number, WorkSlot[]>;
   sessionMinutes: number;
+  cancelLockDays?: number;
 };
 
 // Корректировки конкретных дат поверх шаблона: убрать окно / сменить формат
@@ -732,6 +733,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   if (clean === "/work-hours" && method === "PATCH") {
     if (body.hours) db.work.hours = body.hours as WorkHours["hours"];
     if (body.sessionMinutes) db.work.sessionMinutes = Number(body.sessionMinutes);
+    if (body.cancelLockDays !== undefined) db.work.cancelLockDays = Number(body.cancelLockDays);
     save(db);
     return delay(db.work as T);
   }

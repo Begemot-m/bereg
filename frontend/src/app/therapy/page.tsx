@@ -28,7 +28,7 @@ import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState,
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, type TherapistStore } from "@/lib/therapists";
+import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, therapistId, type TherapistStore } from "@/lib/therapists";
 import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
 
 const ME = 1; // в демо клиент «я» — карточка №1
@@ -36,7 +36,7 @@ const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "nume
 
 // Прикреплённые терапевты: общий стор (каталог добавляет) + автодобавление из записей.
 function useMyTherapists(bookingNames: string[], onDetach: (name: string) => void) {
-  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null });
+  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null, ids: {} });
   const sync = () => {
     const base = loadTherapists();
     const next = mergeWithBookings(base, bookingNames);
@@ -218,8 +218,10 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
   const [booked, setBooked] = useState<{ at: string; format: string } | null>(null);
   const qc = useQueryClient();
   const invBookings = () => { for (const k of ["my-bookings", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); };
+  // К кому записываемся. Имени серверу мало — нужен id специалиста.
+  const psyId = useMemo(() => therapistId(name, bookings), [name, bookings]);
   const book = useMutation({
-    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(name, iso, format),
+    mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot({ id: psyId, name }, iso, format),
     onSuccess: (b) => { success(); setBooked({ at: b.startsAt, format: b.format }); invBookings(); },
   });
 
@@ -229,7 +231,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
     [bookings, name],
   );
   // Нет записей — календарь открываем на ближайшем дне со свободным окном.
-  const { data: avail } = useQuery({ queryKey: ["month-avail", true], queryFn: () => getMonthAvailability(true) });
+  const { data: avail } = useQuery({ queryKey: ["month-avail", psyId ?? null], queryFn: () => getMonthAvailability(psyId) });
   const firstFree = useMemo(() => {
     if (!avail) return undefined;
     const today = ymdLocal(new Date());
@@ -316,7 +318,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
             <>
               <p className="t-micro mb-1 px-1">Свободные окна</p>
               <p className="t-cap mb-2 flex items-center gap-1.5 px-1"><Icon name="calendar" width={12} weight="bold" color="currentColor" />{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
-              <SlotPicker forClient variant="calendar" calendarTone="blend" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
+              <SlotPicker psyId={psyId} variant="calendar" calendarTone="blend" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
               {mine.length > 0 && <button onClick={() => { tap(); setPickSlot(false); }} className="back-link mt-2 w-full justify-center">Назад к моим записям</button>}
             </>
           )}

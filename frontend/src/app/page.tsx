@@ -92,7 +92,7 @@ function PersonHome({ guest }: { guest: boolean }) {
 
   // Терапевты — тот же стор и та же склейка с записями, что в разделе «Терапия»:
   // открепили специалиста там — здесь сразу подбор, а не запись к нему.
-  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null });
+  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null, ids: {} });
   useEffect(() => {
     const sync = () => setStore(loadTherapists());
     sync();

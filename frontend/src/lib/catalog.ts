@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import type { PsyProfile } from "@/lib/profile";
 import type { Subscription } from "@/lib/subscription";
 
@@ -195,6 +196,58 @@ export function profileToCatalogPsy(profile: PsyProfile): Psy {
     quote: profile.quote?.trim() || undefined,
     helps: profile.topics.filter(Boolean).slice(0, 3).join(", ") || undefined,
     avoids: (profile.avoids ?? []).map((t) => t.trim()).filter(Boolean),
+  };
+}
+
+/** Одна анкета с сервера по id — карточка для ссылки-приглашения. */
+export async function getCatalogPsy(id: number): Promise<Psy | null> {
+  const rows = await apiFetch<CatalogApiPsy[]>(`/catalog?id=${id}`);
+  return rows[0] ? apiPsyToCatalogPsy(rows[0]) : null;
+}
+
+/** Анкета из /api/catalog в карточку каталога. Публичных полей меньше, чем в
+ *  своей анкете, — остальное заполняем нейтральными значениями. */
+type CatalogApiPsy = Partial<Record<keyof Psy, unknown>> & { id: number; name: string };
+export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
+  const list = (v: unknown) => (Array.isArray(v) ? (v as string[]).filter(Boolean) : []);
+  const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const photos = list(row.photos).slice(0, 3);
+  return {
+    id: row.id,
+    name: text(row.name),
+    portrait: text(row.portrait) || photos[0] || "",
+    photos,
+    tone: "purple",
+    verified: true,
+    rating: 0,
+    reviews: 0,
+    method: text(row.method),
+    methods: list(row.methods),
+    specialistTypes: list(row.specialistTypes),
+    topics: list(row.topics),
+    price: Number(row.price) || 0,
+    minutes: Number(row.minutes) || 50,
+    format: (row.format as Psy["format"]) ?? "online",
+    city: text(row.city),
+    district: text(row.district) || undefined,
+    metro: text(row.metro) || undefined,
+    gender: "unspecified",
+    languages: list(row.languages),
+    years: Number(row.years) || 0,
+    sessions: 0,
+    clients: 0,
+    responseHrs: 24,
+    nextDays: 7,
+    availableTimes: ["day"],
+    exposure: 0,
+    newcomer: true,
+    tg: "",
+    about: text(row.about),
+    firstSession: text(row.firstSession) || undefined,
+    education: list(row.education),
+    style: text(row.style) || undefined,
+    quote: text(row.quote) || undefined,
+    avoids: list(row.avoids),
   };
 }
 

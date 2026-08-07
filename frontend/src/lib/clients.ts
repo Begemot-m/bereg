@@ -100,5 +100,5 @@ export const deleteHomework = (id: number) =>
 
 export const listMoods = (clientId: number) => apiFetch<Mood[]>(`/clients/${clientId}/moods`);
 
-export type MyBooking = { id: number; psyName: string; startsAt: string; durationMin: number; format: "online" | "offline" };
+export type MyBooking = { id: number; psychologistId?: number; psyName: string; startsAt: string; durationMin: number; format: "online" | "offline"; cancelLockDays?: number };
 export const listMyBookings = () => apiFetch<MyBooking[]>("/my/appointments");

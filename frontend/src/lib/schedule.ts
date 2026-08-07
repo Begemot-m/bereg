@@ -5,6 +5,8 @@ export type WorkSlot = { t: string; d: number; fmt: SlotFormat };
 export type WorkHours = {
   hours: Record<number, WorkSlot[]>;
   sessionMinutes: number;
+  /** За сколько дней до встречи клиент уже не может её отменить. 0 — без ограничения. */
+  cancelLockDays: number;
 };
 
 export type Slot = { start: string; taken: boolean; fmt: SlotFormat };
@@ -13,13 +15,14 @@ export const getWorkHours = () => apiFetch<WorkHours>("/work-hours");
 export const saveWorkHours = (patch: Partial<WorkHours>) =>
   apiFetch<WorkHours>("/work-hours", { method: "PATCH", body: JSON.stringify(patch) });
 
-// dateStr = YYYY-MM-DD; forClient=true → слоты специалиста для записи клиента
-export const getSlots = (dateStr: string, forClient = false) =>
-  apiFetch<Slot[]>(`/slots?date=${dateStr}${forClient ? "&psy=1" : ""}`);
+// dateStr = YYYY-MM-DD. psyId — чьи окна смотрим: без него это своё расписание,
+// с ним — расписание специалиста, к которому записывается клиент.
+export const getSlots = (dateStr: string, psyId?: number | null) =>
+  apiFetch<Slot[]>(`/slots?date=${dateStr}${psyId ? `&psy=${psyId}` : ""}`);
 
 export type DayAvail = "free" | "full";
-export const getMonthAvailability = (forClient = false) =>
-  apiFetch<Record<string, DayAvail>>(`/month-availability${forClient ? "?psy=1" : ""}`);
+export const getMonthAvailability = (psyId?: number | null) =>
+  apiFetch<Record<string, DayAvail>>(`/month-availability${psyId ? `?psy=${psyId}` : ""}`);
 
 // Корректировки конкретных дат поверх шаблона
 export type SlotOverride = { removed?: boolean; fmt?: SlotFormat };
