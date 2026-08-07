@@ -29,6 +29,7 @@ import {
   Star,
   Question,
   PaperPlaneTilt,
+  ShareNetwork,
   LockSimple,
   MapPinLine,
   X,
@@ -69,6 +70,7 @@ export type IconName =
   | "star"
   | "question"
   | "telegram"
+  | "share"
   | "lock"
   | "route"
   | "close"
@@ -108,6 +110,7 @@ const MAP: Record<IconName, PhIcon> = {
   // Базовый самолётик вместо фирменного логотипа: иконка про «отправить»,
   // а не про конкретный мессенджер.
   telegram: PaperPlaneTilt,
+  share: ShareNetwork,
   lock: LockSimple,
   route: MapPinLine,
   close: X,

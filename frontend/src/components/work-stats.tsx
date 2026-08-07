@@ -80,7 +80,7 @@ export function WorkStats({ items, title = "Статистика работы" }
         <p className="t-micro">{title}</p>
         <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1">
           {(["week", "month", "all"] as const).map((p) => (
-            <button key={p} onClick={() => { select(); setPeriod(p); }} className="rounded-full px-2.5 py-1 text-[11px] font-black transition-colors" style={period === p ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{p === "week" ? "Неделя" : p === "month" ? "Месяц" : "Всё"}</button>
+            <button key={p} onClick={() => { select(); setPeriod(p); }} className="rounded-full px-2.5 py-1 text-[11px] font-black transition-colors" style={period === p ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{p === "week" ? "Неделя" : p === "month" ? "Месяц" : "Всего"}</button>
           ))}
         </div>
       </div>

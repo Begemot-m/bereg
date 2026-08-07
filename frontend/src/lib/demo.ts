@@ -83,7 +83,7 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v11";
+const KEY = "psy_demo_db_v12";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const d = new Date();
@@ -92,70 +92,20 @@ function iso(daysFromNow: number, hour = 12, min = 0): string {
   return d.toISOString();
 }
 
-function day(offset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  d.setHours(12, 0, 0, 0);
-  return d.toISOString();
-}
-
 function seed(): DB {
   const now = new Date().toISOString();
+  // Демо стартует чистым: два клиента, ни одной записи, пустые статистика,
+  // настроение, домашки и колесо баланса — всё наполняется руками.
   const clients: Client[] = [
-    { id: 1, name: "Марина Соколова", contact: "@marina", note: "Тревога, границы.", status: "therapy", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
+    { id: 1, name: "Марина Соколова", contact: "@marina", note: "", status: "new", link: "none", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
     { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
-    { id: 3, name: "Алёна Ким", contact: "@alena_kim", note: "Выгорание, ресурс.", status: "therapy", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
-    { id: 4, name: "Пётр Ланской", contact: "+7 916 200-14-08", note: "Пауза до осени по его инициативе.", status: "paused", link: "joined", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
   ];
-  const appts: Appointment[] = [
-    { id: 11, clientId: 1, startsAt: iso(0, 18, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
-    { id: 12, clientId: 3, startsAt: iso(1, 11, 0), durationMin: 50, status: "scheduled", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
-    { id: 13, clientId: 1, startsAt: iso(-7, 18, 0), durationMin: 60, status: "done", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
-    { id: 14, clientId: 1, startsAt: iso(-14, 18, 0), durationMin: 60, status: "done", note: "", format: "online", client: { id: 1, name: "Марина Соколова" } },
-    { id: 15, clientId: 3, startsAt: iso(-6, 11, 0), durationMin: 50, status: "done", note: "", format: "offline", client: { id: 3, name: "Алёна Ким" } },
-    { id: 16, clientId: 2, startsAt: iso(3, 13, 0), durationMin: 60, status: "scheduled", note: "", format: "online", client: { id: 2, name: "Дмитрий Орлов" } },
-  ];
-  const homework: Homework[] = [
-    { id: 51, clientId: 1, text: "Дневник тревоги: 3 записи за неделю.", status: "done", sentAt: iso(-6, 19, 0) },
-    { id: 52, clientId: 1, text: "Практика «5-4-3-2-1» при нарастании тревоги.", status: "doing", sentAt: iso(-2, 10, 0) },
-    { id: 53, clientId: 3, text: "Список источников энергии — минимум 10 пунктов.", status: "assigned", sentAt: iso(-1, 12, 0) },
-  ];
-  // 30 дней отметок с эмоциями — чтобы динамика и календарь были живыми
-  const moodSeries = (values: number[], sets: string[][]): Mood[] =>
-    values.map((mood, i) => ({ date: day(i - values.length + 1), mood, emotions: sets[i % sets.length] }));
-  const moods: Record<number, Mood[]> = {
-    1: moodSeries(
-      [2, 3, 2, 3, 3, 4, 3, 2, 3, 4, 4, 3, 3, 2, 3, 4, 4, 5, 4, 3, 3, 4, 4, 4, 3, 4, 5, 4, 4, 4],
-      [["тревога", "напряжение"], ["спокойствие"], ["усталость", "скука"], ["интерес", "благодарность"], ["радость", "опора"]],
-    ),
-    3: moodSeries(
-      [3, 2, 2, 3, 2, 2, 3, 3, 2, 2, 3, 2, 3, 3, 2, 3, 2, 2, 3, 3, 3, 2, 3, 3, 2, 3, 3, 2, 3, 2],
-      [["опустошение", "усталость"], ["раздражение"], ["грусть", "одиночество"], ["сосредоточенность"], ["тревога"]],
-    ),
-  };
-  // Заметки «что хорошего» — за вчера и раньше, чтобы сегодняшний день оставался открытым.
-  const goodNotes: Record<number, { date: string; text: string }[]> = {
-    1: [
-      { date: day(-4), text: "Дошла до конца дня без самокритики" },
-      { date: day(-3), text: "Позвонила сестре, смеялись полчаса" },
-      { date: day(-2), text: "Утро без спешки, кофе на балконе" },
-      { date: day(-1), text: "Сказала «нет» лишней задаче — и ничего не рухнуло" },
-    ],
-  };
-  const wheel: Record<number, WheelResult | null> = {
-    1: null,
-    3: { answers: {
-      health: [6, 5, 6], emotions: [4, 3, 5], relationships: [7, 8, 7], family: [6, 6, 5],
-      social: [5, 4, 5], work: [3, 3, 4], finance: [5, 5, 4], growth: [7, 6, 7],
-      leisure: [4, 4, 5], environment: [6, 7, 6],
-    }, completedAt: day(-4) },
-  };
-  const reflections: Record<number, SessionReflection[]> = {
-    1: [
-      { appointmentId: 13, startsAt: iso(-7, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Обсудить тревогу перед разговором с руководителем.", takeaway: "Не нужно заранее угадывать реакцию другого человека. Подготовлю две спокойные формулировки.", feeling: 8, updatedAt: iso(-7, 19, 10) },
-      { appointmentId: 14, startsAt: iso(-14, 18, 0), status: "done", therapistName: "Ирина Верещагина", preparation: "Почему мне трудно отказывать, даже когда нет сил?", takeaway: "Отказ не делает меня плохим человеком. Попробую взять паузу перед ответом.", feeling: 6, updatedAt: iso(-14, 19, 10) },
-    ],
-  };
+  const appts: Appointment[] = [];
+  const homework: Homework[] = [];
+  const moods: Record<number, Mood[]> = {};
+  const goodNotes: Record<number, { date: string; text: string }[]> = {};
+  const wheel: Record<number, WheelResult | null> = {};
+  const reflections: Record<number, SessionReflection[]> = {};
   return {
     seq: 100,
     clients,
@@ -163,15 +113,11 @@ function seed(): DB {
     homework,
     moods,
     goodNotes,
-    board: { 1: "" },
+    board: {},
     wheel,
     therapyTutorialSeen: false,
     reflections,
-    myBookings: [
-      { id: 14, psyName: "Ирина Верещагина", startsAt: iso(-14, 18, 0), durationMin: 60, format: "online" },
-      { id: 13, psyName: "Ирина Верещагина", startsAt: iso(-7, 18, 0), durationMin: 60, format: "online" },
-      { id: 11, psyName: "Ирина Верещагина", startsAt: iso(0, 18, 0), durationMin: 60, format: "online" },
-    ],
+    myBookings: [],
     // Без рабочих часов записывать клиента некуда — в демо шаблон недели
     // задан сразу, и времена демо-сессий совпадают с окнами.
     work: {
