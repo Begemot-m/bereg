@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 
-import { decryptField, encryptField, encryptionReady } from "./crypto";
+import { decryptBytes, decryptField, encryptBytes, encryptField, encryptionReady } from "./crypto";
 
 // Ключ теста, не боевой.
 beforeAll(() => {
@@ -44,5 +44,33 @@ describe("шифрование чувствительных полей", () => {
 
   test("готовность определяется наличием ключа", () => {
     expect(encryptionReady()).toBe(true);
+  });
+});
+
+describe("шифрование файлов документов", () => {
+  test("байты возвращаются без изменений", () => {
+    const file = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0xff, 0x10, 0x7f]); // «PDF» с нулями и старшими битами
+    expect(decryptBytes(encryptBytes(file)).equals(file)).toBe(true);
+  });
+
+  test("на диск не попадает исходное содержимое", () => {
+    const file = Buffer.from("диплом Иванова", "utf8");
+    const stored = encryptBytes(file);
+    expect(stored.includes(file)).toBe(false);
+    expect(stored.length).toBe(file.length + 29); // версия + iv + tag
+  });
+
+  test("подменённый байт файла ломает расшифровку", () => {
+    const stored = encryptBytes(Buffer.from("скан документа"));
+    stored[stored.length - 1] ^= 0xff;
+    expect(() => decryptBytes(stored)).toThrow();
+  });
+
+  test("чужой формат файла не расшифровывается молча", () => {
+    expect(() => decryptBytes(Buffer.from("просто файл на диске"))).toThrow();
+  });
+
+  test("пустой файл шифруется и читается", () => {
+    expect(decryptBytes(encryptBytes(Buffer.alloc(0))).length).toBe(0);
   });
 });

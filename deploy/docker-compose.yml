@@ -11,6 +11,12 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
+      UPLOAD_DIR: /data/uploads
+    # Дипломы психологов. Каталог хоста, а не анонимный том: файлы должны
+    # переживать пересоздание контейнера и попадать в бэкап вместе с /opt/bereg.
+    # На диске они лежат зашифрованными ключом DATA_KEY.
+    volumes:
+      - ./uploads:/data/uploads
     expose:
       - "3000"
     healthcheck:
