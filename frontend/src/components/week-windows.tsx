@@ -196,8 +196,8 @@ function ClientChips({ onPick }: { onPick: (id: number) => void }) {
           className={FIELD}
           style={THIN}
         />
-        <button onClick={() => { tap(); setAdding(true); }} className="btn btn-accent shrink-0 px-2.5 py-2 text-[11px]">
-          <Icon name="plus" width={13} weight="bold" color="#fff" /> Новый клиент
+        <button onClick={() => { tap(); setAdding(true); }} className="inline-flex shrink-0 items-center gap-1 px-1 py-2 text-[11.5px] font-black" style={{ color: "var(--olive-edge)" }}>
+          <Icon name="plus" width={13} weight="bold" color="var(--olive-edge)" /> Новый клиент
         </button>
       </div>
       <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
@@ -287,7 +287,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
 
           {/* Строка 2 — длительность ползунком */}
           <label className="flex items-center gap-2.5">
-            <span className="t-micro shrink-0">Длительность</span>
+            <span className="t-micro inline-flex shrink-0 items-center gap-1"><Icon name="clock" width={11} weight="bold" color="var(--muted)" />Длительность</span>
             <input
               type="range" min={30} max={120} step={5} value={dur}
               onChange={(e) => { select(); setDur(Number(e.target.value)); }}
@@ -331,9 +331,14 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
         <span className={`tnum font-black leading-none ${active ? "text-[17px]" : "text-[13.5px]"} ${slot.past ? "line-through" : ""}`}>{slot.t}</span>
         <span className={`min-w-0 ${active ? "flex-1" : "max-w-full"}`}>
           {/* В раскрытом окне дата и время — чернилами, а не тоном окна */}
-          <span className={`block break-words font-bold leading-[1.05] ${active ? "text-[12.5px]" : "text-[9.5px]"}`} style={{ color: active ? "var(--ink)" : st.labelColor }}>
-            {active ? `${slot.dur} мин · ${cap(dLong.format(new Date(slot.iso)))}` : st.label}
-          </span>
+          {active ? (
+            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] font-bold leading-[1.05] text-[var(--ink)]">
+              <span className="inline-flex items-center gap-1"><Icon name="clock" width={12} weight="bold" color="var(--muted)" />{slot.dur} мин</span>
+              <span className="inline-flex items-center gap-1"><Icon name="calendar" width={12} weight="bold" color="var(--muted)" />{cap(dLong.format(new Date(slot.iso)))}</span>
+            </span>
+          ) : (
+            <span className="block break-words text-[9.5px] font-bold leading-[1.05]" style={{ color: st.labelColor }}>{st.label}</span>
+          )}
         </span>
         {!active && (
           <>
@@ -394,25 +399,27 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
     return (
       <div className="space-y-2.5">
         {/* Имя сверху, действия — строкой под ним */}
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-[17px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
-          <span className="min-w-0 break-words text-[16px] font-black leading-tight">{slot.appt.client.name}</span>
+        <div className="flex items-center gap-3">
+          <span className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-[16px] text-[21px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
+          <span className="min-w-0 break-words text-[19px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button onClick={() => setResch(true)} className="btn btn-accent px-3 py-0.5 text-[11px]" style={THIN_BTN}>Перенести</button>
+        {/* Кнопки во всю ширину блока и низкие: действия равные по весу,
+            высоту им добавлять незачем. */}
+        <div className={`grid gap-1.5 ${slot.past ? "grid-cols-2" : "grid-cols-3"}`}>
+          <button onClick={() => setResch(true)} className="btn btn-accent w-full px-2 py-0 text-[11px]" style={THIN_BTN}>Перенести</button>
           {/* Написать — прямо в личный чат Telegram, если контакт это username. */}
           {tgLink ? (
-            <a href={tgLink} target="_blank" rel="noreferrer" className="btn px-3 py-0.5 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
+            <a href={tgLink} target="_blank" rel="noreferrer" className="btn w-full px-2 py-0 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
               <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
             </a>
           ) : (
-            <Link href={`/clients/${slot.appt.client.id}`} className="btn px-3 py-0.5 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
+            <Link href={`/clients/${slot.appt.client.id}`} className="btn w-full px-2 py-0 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
               <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
             </Link>
           )}
           {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-          {!slot.past && <button onClick={() => cancel.mutate()} className="btn px-3 py-0.5 text-[11px]" style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>Освободить</button>}
+          {!slot.past && <button onClick={() => cancel.mutate()} className="btn w-full px-2 py-0 text-[11px]" style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}><Icon name="close" width={12} weight="bold" color="var(--ink)" /> Освободить</button>}
         </div>
       </div>
     );
@@ -425,9 +432,13 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
       </div>
       <ClientChips onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
-      {/* Удаление — текстом внизу: разрушающее действие не должно спорить по
-          весу с основным сценарием «кого записать». */}
-      <button onClick={() => closeWin.mutate()} className="pt-0.5 text-[12px] font-black" style={{ color: "var(--danger)" }}>Удалить окно</button>
+      {/* Удаление — текстом в правом нижнем углу: разрушающее действие не должно
+          спорить по весу с основным сценарием «кого записать». */}
+      <div className="flex justify-end pt-0.5">
+        <button onClick={() => closeWin.mutate()} className="inline-flex items-center gap-1 text-[12px] font-black" style={{ color: "var(--danger)" }}>
+          <Icon name="close" width={11} weight="bold" color="var(--danger)" /> Удалить окно
+        </button>
+      </div>
     </div>
   );
 }

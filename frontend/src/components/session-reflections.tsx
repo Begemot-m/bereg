@@ -81,12 +81,12 @@ export function ClientNotesDetail({ meetings, reflections, module, saving, onSav
     <section data-accent="tiffany" className="space-y-3">
       {module.enabled ? (
         <>
+          <SharingControl module={module} saving={saving} onChange={onModuleChange} />
           {current ? (
             <SessionNoteEditor current={current} upcoming={upcoming} saved={Boolean(reflection)} preparation={preparation} takeaway={takeaway} rating={rating} saving={saving} onPreparation={setPreparation} onTakeaway={setTakeaway} onRating={setRating} onSave={save} />
           ) : <div className="card p-4 text-center"><p className="t-head">Встреч пока нет</p><p className="t-cap mt-1">После записи здесь появятся заметки к сессии.</p></div>}
 
           <NotesSummary meetings={meetings} reflections={reflections} />
-          <SharingControl module={module} saving={saving} onChange={onModuleChange} />
           <MeetingDynamics meetings={meetings} reflections={reflections} />
           <ReflectionHistory reflections={reflections} />
         </>
@@ -174,12 +174,14 @@ function SummaryStat({ value, label }: { value: string | number; label: string }
 
 function SharingControl({ module, saving, onChange }: { module: NotesModuleState; saving?: boolean; onChange: (patch: { enabled?: boolean; shared?: boolean }) => void }) {
   return (
-    <div className="card p-3">
+    // Над блоком заметок и без рамки: это настройка видимости, а не отдельный
+    // блок — переключатель и мелкая подпись под ним.
+    <div>
       <div className="grid grid-cols-2 gap-1 rounded-[12px] bg-[var(--head-soft)] p-1">
-        <button disabled={saving} onClick={() => { tap(); onChange({ shared: false }); }} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${!module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Только мне</button>
-        <button disabled={saving} onClick={() => { tap(); onChange({ shared: true }); }} className={`rounded-[10px] px-2 py-2 text-[11px] font-black ${module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Психологу</button>
+        <button disabled={saving} onClick={() => { tap(); onChange({ shared: false }); }} className={`rounded-[10px] px-2 py-1.5 text-[11px] font-black ${!module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Только мне</button>
+        <button disabled={saving} onClick={() => { tap(); onChange({ shared: true }); }} className={`rounded-[10px] px-2 py-1.5 text-[11px] font-black ${module.shared ? "bg-[var(--edge)] text-white" : "text-[var(--muted)]"}`}>Психологу</button>
       </div>
-      <p className="t-cap px-2 pt-2 text-center">{module.shared ? module.psychologistEnabled ? "Записи видит ваш психолог" : "Передача начнётся после подключения психолога" : "Записи остаются только у вас"}</p>
+      <p className="mt-1 text-center text-[9.5px] font-semibold leading-tight text-[var(--muted-2)]">{module.shared ? module.psychologistEnabled ? "Записи видит ваш психолог" : "Передача начнётся после подключения психолога" : "Записи остаются только у вас"}</p>
     </div>
   );
 }

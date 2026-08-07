@@ -186,13 +186,17 @@ function plural(n: number, one: string, few: string, many: string): string {
   return many;
 }
 
-// Барабан минут как в будильнике: крутим список, выбранное значение стоит в
-// окне по центру. Три кнопки давали ровно три варианта и выглядели формой.
-const WHEEL_H = 44;
+// Барабан минут в духе системных пикеров: без коробки и заливки — цифры сами
+// уходят в туман к краям, выбранное стоит на оси между двумя волосяными линиями,
+// «мин» подписано один раз и не едет вместе со списком.
+const WHEEL_H = 40;
+const WHEEL_ROWS = 5;
 function MinutesWheel({ value, onChange, edge }: { value: number; onChange: (n: number) => void; edge: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const settle = useRef<number | null>(null);
   const items = useMemo(() => Array.from({ length: 15 }, (_, i) => i + 1), []);
+  const [top, setTop] = useState((value - 1) * WHEEL_H);
+  const pad = ((WHEEL_ROWS - 1) / 2) * WHEEL_H;
 
   useEffect(() => {
     const el = ref.current;
@@ -204,37 +208,57 @@ function MinutesWheel({ value, onChange, edge }: { value: number; onChange: (n: 
   const onScroll = () => {
     const el = ref.current;
     if (!el) return;
+    setTop(el.scrollTop);
     const next = clamp(Math.round(el.scrollTop / WHEEL_H) + 1, 1, items.length);
     if (next !== value) { select(); onChange(next); }
-    // Палец отпущен — доводим ближайшее значение точно в окно.
+    // Палец отпущен — доводим ближайшее значение точно на ось.
     if (settle.current) window.clearTimeout(settle.current);
     settle.current = window.setTimeout(() => {
       el.scrollTo({ top: (next - 1) * WHEEL_H, behavior: "smooth" });
-    }, 140);
+    }, 120);
   };
 
+  const goto = (m: number) => { select(); onChange(m); ref.current?.scrollTo({ top: (m - 1) * WHEEL_H, behavior: "smooth" }); };
+
   return (
-    <div className="relative mx-auto w-full max-w-[240px] overflow-hidden rounded-[16px] bg-white" style={{ height: WHEEL_H * 3, border: "var(--bw) solid var(--edge-neutral)" }}>
-      <div aria-hidden className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 rounded-[12px]" style={{ height: WHEEL_H, background: "var(--head-soft)", border: `var(--bw) solid ${edge}` }} />
-      {/* Затемнение краёв — ощущение барабана, а не списка */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[2]" style={{ height: WHEEL_H, background: "linear-gradient(#fff, rgba(255,255,255,0))" }} />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[2]" style={{ height: WHEEL_H, background: "linear-gradient(rgba(255,255,255,0), #fff)" }} />
+    <div className="relative mx-auto w-full max-w-[220px]" style={{ height: WHEEL_H * WHEEL_ROWS }}>
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2" style={{ height: WHEEL_H, borderTop: `1px solid ${edge}38`, borderBottom: `1px solid ${edge}38` }} />
+      <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -translate-y-1/2 pl-2.5 text-[13px] font-black text-[var(--muted-2)]">мин</span>
       <div
         ref={ref}
         onScroll={onScroll}
-        className="relative z-[1] h-full snap-y snap-mandatory overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: "none", paddingTop: WHEEL_H, paddingBottom: WHEEL_H }}
+        className="h-full snap-y snap-mandatory overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
+        style={{
+          scrollbarWidth: "none",
+          paddingTop: pad,
+          paddingBottom: pad,
+          maskImage: "linear-gradient(to bottom, transparent 2%, #000 32%, #000 68%, transparent 98%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 2%, #000 32%, #000 68%, transparent 98%)",
+        }}
       >
-        {items.map((m) => (
-          <button
-            key={m}
-            onClick={() => { select(); onChange(m); ref.current?.scrollTo({ top: (m - 1) * WHEEL_H, behavior: "smooth" }); }}
-            className="tnum flex w-full snap-center items-center justify-center text-[16px] font-black transition-opacity"
-            style={{ height: WHEEL_H, color: m === value ? "var(--ink)" : "var(--muted-2)", opacity: m === value ? 1 : 0.45 }}
-          >
-            {m} мин
-          </button>
-        ))}
+        {items.map((m, i) => {
+          const d = Math.min(Math.abs(i - top / WHEEL_H), 2.4);
+          return (
+            <button
+              key={m}
+              onClick={() => goto(m)}
+              className="flex w-full snap-center items-center"
+              style={{ height: WHEEL_H }}
+            >
+              <span
+                className="tnum w-1/2 pr-2 text-right text-[24px] font-black leading-none"
+                style={{
+                  color: m === value ? "var(--ink)" : "var(--muted-2)",
+                  opacity: 1 - d * 0.33,
+                  transform: `scale(${1 - d * 0.13})`,
+                  transformOrigin: "right center",
+                }}
+              >
+                {m}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
