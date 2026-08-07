@@ -85,14 +85,11 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const full = percent === 100;
 
   return (
-    <div data-tour="profile-progress" className="flex items-center gap-3 rounded-[16px] p-3" style={{ background: "var(--tiffany-soft)" }}>
+    <div data-tour="profile-progress" className="flex items-center gap-3 rounded-[16px] bg-white p-3 stroke">
       <Icon name="user" width={38} weight="fill" color="var(--tiffany)" />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[13px] font-black leading-tight">Профиль заполнен на {percent}%</p>
-          <span className="tnum text-[12px] font-black">{done}/{steps.length}</span>
-        </div>
-        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white">
+        <p className="text-[13px] font-black leading-tight">Профиль заполнен на <span className="tnum" style={{ color: "var(--tiffany-edge)" }}>{percent}%</span></p>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white" style={{ border: "1px solid var(--tiffany-edge)" }}>
           <motion.div className="h-full rounded-full" style={{ background: "var(--tiffany-edge)" }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
         </div>
         {full && <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">Вас находят по всем фильтрам каталога</p>}

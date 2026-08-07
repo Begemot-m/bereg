@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 
 import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon, type IconName } from "@/components/icons";
+import { ProCta } from "@/components/pro-sell";
 import { Disclosure } from "@/components/ui";
 import { CATALOG_FREE_DAYS, catalogDaysLeft, FREE_CLIENT_LIMIT, getSubscription, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
 import { tap } from "@/lib/haptics";
@@ -133,7 +134,6 @@ function bannerPitch(sub: Subscription | undefined): string {
 
 export function SubscriptionBanner() {
   const [open, setOpen] = useState(false);
-  const [demo, setDemo] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const rows = COMPARE;
   const title = "Хроника PRO";
@@ -173,26 +173,10 @@ export function SubscriptionBanner() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => { tap(); setDemo(true); }}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[13px] py-3 text-[13px] font-black text-white transition-transform active:scale-[0.98]"
-              style={{ background: "var(--ink)" }}
-            >
-              <Icon name="spark" width={15} weight="fill" color="#fff" /> Посмотреть, как это выглядит
-            </button>
-            <div className="mt-3"><SubscriptionBlock compact /></div>
+            {sub?.status !== "active" && <div className="mt-3"><ProCta label="Подключить" note={false} /></div>}
           </div>
         </div>
       </div>
-      {demo && (
-        <HelpDeck
-          title="Возможности Хроника PRO"
-          pages={PRO_BENEFITS}
-          onClose={() => setDemo(false)}
-          doneLabel="Понятно"
-          onDone={() => setDemo(false)}
-        />
-      )}
     </div>
   );
 }

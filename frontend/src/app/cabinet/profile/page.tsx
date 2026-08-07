@@ -7,7 +7,7 @@ import { VerificationPrompt } from "@/components/verification-prompt";
 export default function CabinetProfilePage() {
   return (
     <div>
-      <PageHead title="Профиль специалиста" icon="user" back="/cabinet" />
+      <PageHead title="Профиль специалиста" icon="user" back="/cabinet" backLight />
       <div className="sheet">
         {/* Подсказка о проверке — до анкеты: заполнять её имеет смысл, зная,
             что дальше документы и модерация. */}

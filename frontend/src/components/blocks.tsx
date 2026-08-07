@@ -9,13 +9,13 @@ import { tap } from "@/lib/haptics";
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
-export function PageHead({ title, sub, subIcon, icon, back, right, children }: { title: string; sub?: string; subIcon?: IconName; icon?: IconName; back?: string; right?: ReactNode; children?: ReactNode }) {
+export function PageHead({ title, sub, subIcon, icon, back, backLight, right, children }: { title: string; sub?: string; subIcon?: IconName; icon?: IconName; back?: string; backLight?: boolean; right?: ReactNode; children?: ReactNode }) {
   return (
     <div
       className="mb-5 -mx-4 px-5 pb-3 pt-1 @md:mx-0 @md:px-1 @md:pt-4"
       style={{ background: "var(--page)" }}
     >
-      {back && <Link href={back} onClick={tap} className="back-link mb-1">Назад</Link>}
+      {back && <Link href={back} onClick={tap} className="back-link mb-1" style={backLight ? { color: "#fff" } : undefined}>Назад</Link>}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {/* Пружина на иконке заставляла дрожать соседний заголовок: каждый
