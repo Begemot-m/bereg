@@ -74,13 +74,11 @@ type DB = {
   accountEmail: { email: string; verified: boolean } | null;
   reminderSettings: { reminder2h: boolean };
   sub: {
-    status: "trial" | "active" | "pending" | "expired";
+    status: "free" | "trial" | "active" | "pending" | "expired";
     trialEndsAt: string | null;
     currentPeriodEnd: string | null;
-    tools: boolean;
-    promo: boolean;
-    clientPro: boolean;
-    pendingPlan: "tools" | "catalog" | "client" | null;
+    pro: boolean;
+    pendingPlan: "pro" | null;
     pendingSince: number | null;
   };
 };
@@ -195,7 +193,7 @@ function seed(): DB {
     accountEmail: null,
     reminderSettings: { reminder2h: false },
     // Демо стартует на бесплатном тарифе — виден лимит 3 клиента и пейволл PRO.
-    sub: { status: "expired", trialEndsAt: null, currentPeriodEnd: null, tools: false, promo: false, clientPro: false, pendingPlan: null, pendingSince: null },
+    sub: { status: "free", trialEndsAt: null, currentPeriodEnd: null, pro: false, pendingPlan: null, pendingSince: null },
   };
 }
 
@@ -224,8 +222,9 @@ function load(): DB {
       if (!db.goodNotes) db.goodNotes = s.goodNotes;
       if (!db.board) db.board = s.board;
       if (!db.wheel) db.wheel = s.wheel;
-      if (!db.sub || (db.sub as { trialEndsAt?: string }).trialEndsAt === undefined) db.sub = s.sub;
-      if (db.sub.clientPro === undefined) db.sub.clientPro = false;
+      // Форма подписки сменилась на единый PRO: у старых снимков вместо `pro`
+      // лежали tools/promo/clientPro — такие сбрасываем на бесплатный тариф.
+      if (!db.sub || db.sub.pro === undefined) db.sub = s.sub;
       if (!db.notifications) db.notifications = s.notifications;
       if (db.therapyTutorialSeen === undefined) db.therapyTutorialSeen = false;
       if (!db.reflections) db.reflections = s.reflections;
@@ -283,28 +282,83 @@ function notify(db: DB, forRole: NotifRole, kind: string, text: string) {
   db.notifications.push({ id: ++db.seq, forRole, kind, text, createdAt: new Date().toISOString(), read: false });
 }
 
+// Те же правила, что в lib/server/access.ts: пробный PRO идёт 14 дней от первой
+// проведённой сессии, каталог бесплатен 30 дней после одобрения анкеты.
+const TRIAL_DAYS = 14;
+const CATALOG_FREE_DAYS = 30;
+const addDays = (from: number, days: number) => new Date(from + days * 86_400_000);
+
+/** Момент первой проведённой сессии — с него стартует триал. */
+function firstSessionAt(db: DB): number | null {
+  const now = Date.now();
+  const past = db.appts
+    .filter((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() <= now)
+    .map((a) => new Date(a.startsAt).getTime())
+    .sort((a, b) => a - b);
+  return past[0] ?? null;
+}
+
+/**
+ * Когда анкету одобрили. В демо модерация проходит сама через 6 секунд после
+ * подачи; если записи о верификации нет — это готовая демо-практика, считаем
+ * её одобренной только что, чтобы бесплатные 30 дней были видны в работе.
+ */
+function approvedAt(): number | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem("psy_verification");
+  if (!raw) return Date.now();
+  const v = JSON.parse(raw) as { status?: string; submittedAt?: string | null };
+  if (!v.submittedAt) return null;
+  const submitted = new Date(v.submittedAt).getTime();
+  if (v.status === "approved") return submitted;
+  return Date.now() - submitted > 6000 ? submitted : null;
+}
+
 function resolveSub(db: DB) {
   const s = db.sub;
+  const now = Date.now();
   // Оплата «подтверждается» через ~2.5с после возврата с ЮKassa.
-  if (s.status === "pending" && s.pendingSince && Date.now() - s.pendingSince > 2500) {
-    const end = new Date();
-    end.setDate(end.getDate() + 30);
-    if (s.pendingPlan === "tools") { s.tools = true; s.promo = true; } // PRO включает каталог
-    else if (s.pendingPlan === "catalog") s.promo = true;
-    else if (s.pendingPlan === "client") s.clientPro = true;
+  if (s.status === "pending" && s.pendingSince && now - s.pendingSince > 2500) {
     s.status = "active";
-    s.currentPeriodEnd = end.toISOString();
+    s.pro = true;
+    s.currentPeriodEnd = addDays(now, 30).toISOString();
     s.trialEndsAt = null;
     s.pendingPlan = null;
     s.pendingSince = null;
     save(db);
   }
-  // Истёкший триал (в демо триал длинный, но обрабатываем честно).
-  if (s.status === "trial" && s.trialEndsAt && new Date(s.trialEndsAt).getTime() < Date.now()) {
-    s.status = "expired";
-    s.tools = false;
+
+  if (s.status === "pending" || s.status === "active") return;
+
+  // Подписки нет: считаем триал от первой сессии.
+  const started = firstSessionAt(db);
+  const trialEndsAt = started === null ? null : addDays(started, TRIAL_DAYS);
+  const trialActive = Boolean(trialEndsAt && trialEndsAt.getTime() > now);
+  const nextStatus = trialActive ? "trial" : started === null ? "free" : "expired";
+  const nextEnds = trialActive ? trialEndsAt!.toISOString() : null;
+  if (s.status !== nextStatus || s.trialEndsAt !== nextEnds || s.pro !== trialActive) {
+    s.status = nextStatus;
+    s.trialEndsAt = nextEnds;
+    s.pro = trialActive;
     save(db);
   }
+}
+
+/** Ответ /subscription в демо: подписка + окно бесплатного каталога. */
+function subPayload(db: DB) {
+  const approved = approvedAt();
+  const catalogUntil = approved === null ? null : addDays(approved, CATALOG_FREE_DAYS);
+  const { status, trialEndsAt, currentPeriodEnd, pro, pendingPlan } = db.sub;
+  return {
+    status,
+    trialEndsAt,
+    trialStarted: firstSessionAt(db) !== null,
+    currentPeriodEnd,
+    pro,
+    catalog: pro || Boolean(catalogUntil && catalogUntil.getTime() > Date.now()),
+    catalogUntil: catalogUntil?.toISOString() ?? null,
+    pendingPlan,
+  };
 }
 
 // Демо-симуляция: спустя ~6с после приглашения клиент «заходит и подключает профиль».
@@ -827,12 +881,10 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // subscription / billing
   if (clean === "/subscription" && method === "GET") {
     resolveSub(db);
-    const { status, trialEndsAt, currentPeriodEnd, tools, promo, clientPro, pendingPlan } = db.sub;
-    return delay({ status, trialEndsAt, currentPeriodEnd, tools, promo, clientPro, pendingPlan } as T);
+    return delay(subPayload(db) as T);
   }
   if (clean === "/billing/subscribe" && method === "POST") {
-    const plan = (["tools", "catalog", "client"].includes(String(body.plan)) ? body.plan : "tools") as "tools" | "catalog" | "client";
-    db.sub = { ...db.sub, status: "pending", pendingPlan: plan, pendingSince: Date.now() };
+    db.sub = { ...db.sub, status: "pending", pendingPlan: "pro", pendingSince: Date.now() };
     save(db);
     return delay({ confirmation_url: "/billing/return" } as T);
   }

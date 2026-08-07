@@ -134,12 +134,12 @@ const PUBLIC_PSYS = PSYS.filter((psy) => psy.verified).map((psy) => ({
 /** Своя анкета в каталоге: по этому id ведёт ссылка-приглашение на запись. */
 export const OWN_PROFILE_ID = 100_001;
 
+// Карточка стоит в каталоге, если есть PRO либо ещё идут бесплатные 30 дней
+// после одобрения анкеты.
 export function hasCatalogPlacement(subscription: Subscription | null | undefined, now = Date.now()): boolean {
   if (!subscription) return false;
-  if (subscription.status === "trial") {
-    return Boolean(subscription.trialEndsAt && new Date(subscription.trialEndsAt).getTime() > now);
-  }
-  return subscription.status === "active" && subscription.promo;
+  if (subscription.pro) return true;
+  return Boolean(subscription.catalogUntil && new Date(subscription.catalogUntil).getTime() > now);
 }
 
 export function isCatalogProfileReady(profile: PsyProfile | null | undefined): profile is PsyProfile {

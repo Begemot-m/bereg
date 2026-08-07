@@ -60,7 +60,7 @@ export default function CabinetPage() {
         <div className="space-y-3">
           <SectionTitle>{psy ? "Практика" : "Забота о себе"}</SectionTitle>
           {psy ? (
-            <SubscriptionBanner variant="psy" />
+            <SubscriptionBanner />
           ) : (
             <div className="card-soft flex items-start gap-3 p-4" style={{ background: "var(--purple-soft)" }}>
               <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="spark" width={21} weight="bold" color="var(--purple-edge)" /></span>

@@ -1,19 +1,32 @@
-import { describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 type Row = { status: string } | null;
 
 let row: Row = null;
 // Статус переехал к пользователю; анкета осталась запасным источником на время
 // перехода, поэтому в тесте есть обе таблицы.
-let userRow: { psyStatus: string } | null = null;
+let userRow: { psyStatus?: string; createdAt?: Date } | null = null;
+let psyRow: { status: string; reviewedAt: Date | null } | null = null;
+let subRow: { status: string; plan?: string; currentPeriodEnd: Date | null; grantedBy?: number | null } | null = null;
+let firstAppt: { startsAt: Date } | null = null;
+
 mock.module("./prisma", () => ({
   prisma: {
-    psyProfile: { findUnique: async () => row },
+    // psyApproved читает анкету одним select, access — другим; различаем по
+    // тому, спрашивают ли reviewedAt.
+    psyProfile: {
+      findUnique: async (args: { select?: Record<string, boolean> }) =>
+        args?.select?.reviewedAt ? psyRow : row,
+    },
     user: { findUnique: async () => userRow },
+    subscription: { findUnique: async () => subRow },
+    appointment: { findFirst: async () => firstAppt },
   },
 }));
 
-const { psyApproved } = await import("./access");
+const { access, psyApproved } = await import("./access");
+
+const days = (n: number) => new Date(Date.now() + n * 86_400_000);
 
 describe("гейт на приём клиентов", () => {
   test("без анкеты клиентов брать нельзя", async () => {
@@ -49,5 +62,96 @@ describe("гейт на приём клиентов", () => {
     row = { status: "approved" };
     userRow = { psyStatus: "none" };
     expect(await psyApproved(1)).toBe(true);
+  });
+});
+
+describe("пробный PRO", () => {
+  beforeEach(() => {
+    userRow = { createdAt: days(-200) };
+    psyRow = null;
+    subRow = null;
+    firstAppt = null;
+  });
+
+  test("без проведённой сессии триал не начат, но и не сгорел", async () => {
+    // Регистрация была давно; раньше триал отсчитывался от неё и к первой
+    // сессии успевал кончиться.
+    const acc = await access(1);
+    expect(acc.pro).toBe(false);
+    expect(acc.trialStarted).toBe(false);
+    expect(acc.trialEndsAt).toBeNull();
+  });
+
+  test("первая проведённая сессия включает 14 дней PRO", async () => {
+    firstAppt = { startsAt: days(-1) };
+    const acc = await access(1);
+    expect(acc.pro).toBe(true);
+    expect(acc.reason).toBe("trial");
+    expect(acc.trialStarted).toBe(true);
+    expect(acc.trialEndsAt!.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  test("через 14 дней после первой сессии триал кончается", async () => {
+    firstAppt = { startsAt: days(-15) };
+    const acc = await access(1);
+    expect(acc.pro).toBe(false);
+    expect(acc.reason).toBe("none");
+    expect(acc.trialStarted).toBe(true);
+  });
+
+  test("после подписки триал не возвращается", async () => {
+    // Истёкшая подписка не должна отправлять человека обратно в бесплатный
+    // пробный период по кругу.
+    firstAppt = { startsAt: days(-1) };
+    subRow = { status: "expired", currentPeriodEnd: days(-3) };
+    const acc = await access(1);
+    expect(acc.pro).toBe(false);
+    expect(acc.reason).toBe("none");
+  });
+
+  test("оплаченная подписка даёт PRO", async () => {
+    subRow = { status: "active", currentPeriodEnd: days(20) };
+    const acc = await access(1);
+    expect(acc.pro).toBe(true);
+    expect(acc.reason).toBe("paid");
+  });
+
+  test("выданный вручную доступ помечен granted", async () => {
+    subRow = { status: "active", currentPeriodEnd: days(20), grantedBy: 1 };
+    expect((await access(1)).reason).toBe("granted");
+  });
+});
+
+describe("бесплатное размещение в каталоге", () => {
+  beforeEach(() => {
+    userRow = { createdAt: days(-200) };
+    psyRow = null;
+    subRow = null;
+    firstAppt = null;
+  });
+
+  test("до одобрения анкеты каталога нет", async () => {
+    psyRow = { status: "review", reviewedAt: null };
+    const acc = await access(1);
+    expect(acc.catalog).toBe(false);
+    expect(acc.catalogUntil).toBeNull();
+  });
+
+  test("30 дней после одобрения карточка стоит бесплатно", async () => {
+    psyRow = { status: "approved", reviewedAt: days(-5) };
+    const acc = await access(1);
+    expect(acc.catalog).toBe(true);
+    expect(acc.pro).toBe(false);
+  });
+
+  test("после 30 дней без PRO карточка снимается", async () => {
+    psyRow = { status: "approved", reviewedAt: days(-31) };
+    expect((await access(1)).catalog).toBe(false);
+  });
+
+  test("PRO держит карточку и после бесплатных дней", async () => {
+    psyRow = { status: "approved", reviewedAt: days(-90) };
+    subRow = { status: "active", currentPeriodEnd: days(20) };
+    expect((await access(1)).catalog).toBe(true);
   });
 });

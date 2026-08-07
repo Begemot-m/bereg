@@ -6,7 +6,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { Icon } from "@/components/icons";
 import { tap } from "@/lib/haptics";
-import { FREE_CLIENT_LIMIT, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
+import { CATALOG_FREE_DAYS, FREE_CLIENT_LIMIT, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
 
 // PRO отличается от бесплатного двумя вещами: масштаб и новые клиенты.
 // Весь функционал по клиенту (карточка, настроение, домашки, аналитика,
@@ -19,7 +19,7 @@ export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: {
     ["Записи и расписание", "всё", "всё"],
     ["Задания и заметки", "всё", "всё"],
     ["Статистика работы", "всё", "всё"],
-    ["Размещение в каталоге специалистов", "—", "включено"],
+    ["Размещение в каталоге специалистов", `${CATALOG_FREE_DAYS} дней`, "постоянно"],
   ];
   return (
     <div>
@@ -43,13 +43,13 @@ export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: {
 export function ProCta({ label = "Подключить PRO", note = true }: { label?: string; note?: boolean }) {
   const qc = useQueryClient();
   const subscribe = useMutation({
-    mutationFn: () => startSubscription("tools"),
+    mutationFn: () => startSubscription("pro"),
     onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; else qc.invalidateQueries({ queryKey: ["subscription"] }); },
   });
   return (
     <div>
       <button onClick={() => { tap(); subscribe.mutate(); }} disabled={subscribe.isPending} className="btn w-full py-3.5 text-[14px]">
-        {subscribe.isPending ? "Готовим оплату…" : `${label} · ${rub(PLAN_PRICE.tools)}/мес`}
+        {subscribe.isPending ? "Готовим оплату…" : `${label} · ${rub(PLAN_PRICE.pro)}/мес`}
       </button>
       {note && <p className="mt-2 text-center text-[10.5px] font-semibold text-[var(--muted)]">Отмена в любой момент · комиссии за запись нет</p>}
     </div>
