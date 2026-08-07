@@ -1,12 +1,16 @@
 "use client";
 
-import { motion } from "motion/react";
-import { type ReactNode, type UIEvent, useState } from "react";
+import { AnimatePresence, motion, useMotionValue, useTransform, type MotionValue } from "motion/react";
+import Image from "next/image";
+import { type ReactNode, type UIEvent, useEffect, useRef, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { AUDIENCE, FEATURES, VALUE } from "@/components/landing";
 import { WebLogin } from "@/components/web-login";
+import { asset } from "@/lib/asset";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
+
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 const BOT_URL = botDeepLink("site");
 
@@ -22,7 +26,8 @@ const TOPICS = [
   "Панические атаки", "Гештальт", "Травма", "ACT", "Подростки", "Расставание",
 ];
 
-// Крупные блоки: боль → что делает платформа → чем это видно в интерфейсе.
+// Крупные блоки: боль → что делает платформа → как это выглядит на экране.
+// Метрики намеренно счётные: процентов роста, которых мы не измеряли, тут нет.
 const SHOWCASE: {
   eyebrow: string;
   title: string;
@@ -31,32 +36,98 @@ const SHOWCASE: {
   icon: IconName;
   tone: string;
   edge: string;
-  panel: string[];
+  shot: string;
+  stats: { value: string; label: string }[];
 }[] = [
   {
     eyebrow: "Клиенты",
-    title: "История клиента вместо памяти и переписок",
-    text: "Карточка собирает всё, что нужно к началу встречи: контакты, статус, прошлые сессии, заметки, домашние задания и динамику состояния.",
-    points: ["Заметки к каждой встрече", "Статистика по терапии", "Домашние задания и ответы"],
+    title: "Вся история клиента — под рукой",
+    text: "Карточка собирает то, что раньше жило в блокноте и переписках: контакты, статус, прошлые встречи, заметки, домашние задания и динамику состояния. Вы открываете её за минуту до сессии и уже всё помните.",
+    points: ["Заметки к каждой встрече", "Хронология сессий и статистика по терапии", "Домашние задания и ответы клиента", "Динамика настроения между встречами"],
     icon: "users", tone: "var(--green-soft)", edge: "var(--green-edge)",
-    panel: ["Марина · 12 сессий", "Заметка к встрече 14 мая", "Домашнее задание выполнено"],
+    shot: "clients",
+    stats: [{ value: "1", label: "карточка вместо блокнота и чата" }, { value: "0", label: "таблиц, которые надо вести руками" }],
   },
   {
     eyebrow: "Расписание",
-    title: "Запись, переносы и напоминания без ручной работы",
-    text: "Вы задаёте рабочие часы по дням недели — дальше клиент сам занимает свободное окно, получает напоминание и переносит встречу, не отвлекая вас.",
-    points: ["Окна по часам недели", "Онлайн и очный формат", "Напоминания в Telegram"],
+    title: "Расписание, которое работает за вас",
+    text: "Забудьте переписку «когда вам удобно?». Вы задаёте рабочие часы по дням недели — клиент сам занимает свободное окно, получает напоминание и переносит встречу, не отвлекая вас.",
+    points: ["Окна по часам недели", "Клиент записывается сам", "Онлайн и очный формат", "Напоминания в Telegram без вашего участия"],
     icon: "calendar", tone: "var(--purple-soft)", edge: "var(--purple-edge)",
-    panel: ["Вторник · 11:00 свободно", "Четверг · 18:00 занято", "Напоминание за час"],
+    shot: "sessions",
+    stats: [{ value: "24/7", label: "запись открыта, пока вы спите" }, { value: "0", label: "сообщений на согласование времени" }],
   },
   {
     eyebrow: "Каталог",
     title: "Люди находят вас по запросу, а не по репосту",
-    text: "Анкета проходит проверку и попадает в каталог. Подбор идёт по запросу, методу, формату, городу и бюджету — к вам приходят те, кому вы подходите.",
-    points: ["Проверенная анкета", "Фильтры по методу и цене", "Запись сразу в свободное окно"],
+    text: "Анкета проходит проверку руками и попадает в каталог. Подбор идёт по запросу, методу, формату, городу и бюджету — к вам приходят те, кому вы действительно подходите.",
+    points: ["Анкета с проверкой, а не автопубликация", "Фильтры по запросу и методу", "Цена и формат видны сразу", "Запись прямо в свободное окно"],
     icon: "compass", tone: "var(--amber-soft)", edge: "var(--amber-edge)",
-    panel: ["Запрос: тревога", "Метод: КПТ", "Формат: онлайн"],
+    shot: "catalog",
+    stats: [{ value: "5", label: "фильтров подбора: запрос, метод, формат, город, бюджет" }, { value: "0 ₽", label: "стоит попасть в каталог" }],
   },
+];
+
+// Вкладки «как это выглядит»: реальные экраны приложения, снятые с демо-данных.
+const TABS: { key: string; label: string; icon: IconName; title: string; text: string; points: string[]; tone: string; edge: string }[] = [
+  {
+    key: "home-psy", label: "Кабинет", icon: "home",
+    title: "День психолога на одном экране",
+    text: "Ближайшая встреча, статистика недели и разделы — без поиска по вкладкам.",
+    points: ["Ближайшая сессия сверху", "Сессии и часы за неделю", "Быстрый переход в разделы"],
+    tone: "var(--amber-soft)", edge: "var(--amber-edge)",
+  },
+  {
+    key: "sessions", label: "Сессии", icon: "calendar",
+    title: "Неделя, окна и записи",
+    text: "Календарь на две недели вперёд, свободные окна и все встречи в одном списке.",
+    points: ["Рабочие часы по дням", "Онлайн и очно", "Переносы и отмены"],
+    tone: "var(--purple-soft)", edge: "var(--purple-edge)",
+  },
+  {
+    key: "clients", label: "Клиенты", icon: "users",
+    title: "Список клиентов и их статусы",
+    text: "Кто в работе, кто на паузе, когда была последняя встреча и что осталось на следующую.",
+    points: ["Статусы и теги", "История сессий", "Заметки только для вас"],
+    tone: "var(--green-soft)", edge: "var(--green-edge)",
+  },
+  {
+    key: "therapy", label: "Терапия", icon: "pulse",
+    title: "Что происходит между встречами",
+    text: "Сторона клиента: настроение, домашние задания, рефлексии и ближайшая запись.",
+    points: ["Чек-ин настроения", "Домашние задания", "Колесо баланса"],
+    tone: "var(--coral-soft)", edge: "var(--coral)",
+  },
+  {
+    key: "catalog", label: "Каталог", icon: "compass",
+    title: "Подбор специалиста по запросу",
+    text: "Персональная подборка и фильтры вместо ленты случайных рекомендаций.",
+    points: ["Проверенные анкеты", "Фильтры по методу и цене", "Запись в свободное окно"],
+    tone: "var(--green-soft)", edge: "var(--green-edge)",
+  },
+  {
+    key: "tools", label: "Инструменты", icon: "spark",
+    title: "Короткая помощь в трудный момент",
+    text: "Практики, которые доступны без записи и без специалиста — бесплатно.",
+    points: ["Дыхание и заземление", "Без регистрации в кабинете", "Доступно всегда"],
+    tone: "var(--purple-soft)", edge: "var(--purple-edge)",
+  },
+];
+
+// Счётные факты. Ничего, что нельзя проверить, открыв приложение.
+const METRICS: { value: string; label: string }[] = [
+  { value: "8", label: "разделов уже работают" },
+  { value: "1", label: "касание до входа" },
+  { value: "0", label: "установок и паролей" },
+  { value: "2", label: "роли: психолог и клиент" },
+];
+
+// Плавающие маскоты из дневника настроения — те же, что видит клиент в приложении.
+const MASCOTS: { src: string; className: string; size: number; drift: number; delay: number }[] = [
+  { src: "/mascots/fox-great.webp", className: "left-[3%] top-[14%]", size: 96, drift: -70, delay: 0 },
+  { src: "/mascots/owl-good.webp", className: "right-[4%] top-[10%]", size: 84, drift: -110, delay: 0.6 },
+  { src: "/mascots/cat-great.webp", className: "left-[9%] bottom-[6%]", size: 76, drift: -40, delay: 1.1 },
+  { src: "/mascots/panda-good.webp", className: "right-[8%] bottom-[10%]", size: 92, drift: -85, delay: 0.3 },
 ];
 
 /**
@@ -66,11 +137,18 @@ const SHOWCASE: {
 export function WebLanding() {
   const [login, setLogin] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // Позиция скролла живёт в motion value: иначе параллакс перерисовывал бы
+  // весь лендинг на каждом кадре колеса.
+  const scrollY = useMotionValue(0);
 
   return (
     <div
       className="fixed inset-0 z-[95] overflow-y-auto"
-      onScroll={(e: UIEvent<HTMLDivElement>) => setScrolled(e.currentTarget.scrollTop > 12)}
+      onScroll={(e: UIEvent<HTMLDivElement>) => {
+        const top = e.currentTarget.scrollTop;
+        scrollY.set(top);
+        setScrolled((was) => (was === top > 12 ? was : top > 12));
+      }}
       style={{ background: "radial-gradient(120% 60% at 50% -12%, #fffdf7 0%, var(--bg) 58%)" }}
     >
       <header className="sticky top-0 z-20 px-3 pt-[max(env(safe-area-inset-top),12px)] md:px-6 md:pt-4">
@@ -114,7 +192,8 @@ export function WebLanding() {
       </header>
 
       <main className="w-full">
-        <section className="mx-auto w-full max-w-[1180px] px-5 pt-12 text-center md:px-8 md:pt-24">
+        <section className="relative mx-auto w-full max-w-[1180px] px-5 pt-12 text-center md:px-8 md:pt-24">
+          <HeroMascots scrollY={scrollY} />
           <motion.span
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,7 +210,8 @@ export function WebLanding() {
             transition={{ duration: 0.6, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
             className="font-tight mx-auto mt-5 max-w-[900px] text-[42px] font-black leading-[1.02] tracking-[-0.035em] md:mt-7 md:text-[76px]"
           >
-            Практика психолога,<br />собранная в одном месте
+            Всё, что нужно<br />для практики.<br />
+            <span className="text-[var(--muted)]">В одном месте.</span>
           </motion.h1>
 
           <motion.p
@@ -140,8 +220,8 @@ export function WebLanding() {
             transition={{ duration: 0.6, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
             className="mx-auto mt-5 max-w-[620px] text-[16px] font-semibold leading-relaxed text-[var(--muted)] md:mt-6 md:text-[19px]"
           >
-            Расписание, карточки клиентов, домашние задания и динамика состояния живут
-            вместе — а не в семи разных приложениях и блокноте.
+            Восемь разделов вместо пяти сервисов, блокнота и переписок. Расписание, клиенты,
+            домашние задания и динамика состояния — внутри Telegram, без установки и паролей.
           </motion.p>
 
           <motion.div
@@ -177,9 +257,27 @@ export function WebLanding() {
             Ни установки, ни паролей · Создано в центре{" "}
             <a href={CENTER_URL} target="_blank" rel="noreferrer" className="underline decoration-[1.5px] underline-offset-2 hover:text-[var(--muted)]">{CENTER}</a>
           </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.42, ease: EASE }}
+            className="mt-10 flex flex-wrap items-center justify-center gap-2.5 md:mt-14 md:gap-3"
+          >
+            {TABS.map((tab) => (
+              <span
+                key={tab.key}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-black md:text-[14px]"
+                style={{ border: "var(--bw) solid var(--ink)" }}
+              >
+                <Icon name={tab.icon} width={15} weight="bold" color={tab.edge} /> {tab.label}
+              </span>
+            ))}
+          </motion.div>
         </section>
 
         <Marquee />
+
+        <ProductTabs />
 
         <div className="mx-auto w-full max-w-[1180px] px-5 pb-20 md:px-8 md:pb-28">
           <Section id="value" eyebrow="Зачем это нужно" title="Четыре вещи, ради которых платформу заводят">
@@ -232,29 +330,31 @@ export function WebLanding() {
                           </li>
                         ))}
                       </ul>
+
+                      <div className="mt-8 flex flex-wrap gap-3">
+                        {block.stats.map((stat) => (
+                          <div
+                            key={stat.label}
+                            className="min-w-[150px] flex-1 rounded-[20px] p-4"
+                            style={{ background: block.tone, border: "var(--bw) solid var(--ink)" }}
+                          >
+                            <p className="font-tight text-[30px] font-black leading-none tracking-[-0.03em] md:text-[36px]" style={{ color: block.edge }}>
+                              {stat.value}
+                            </p>
+                            <p className="mt-1.5 text-[12.5px] font-bold leading-snug text-[var(--muted)]">{stat.label}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div
-                      className="relative flex min-h-[240px] flex-col justify-center gap-3 rounded-[26px] p-6 md:min-h-[320px] md:p-8"
+                      className="relative flex items-center justify-center rounded-[26px] p-8 md:p-10"
                       style={{ background: block.tone, border: "var(--bw) solid var(--ink)" }}
                     >
-                      <span className="absolute right-6 top-6 opacity-25 md:right-8 md:top-8">
+                      <span className="absolute right-6 top-6 opacity-20 md:right-8 md:top-8">
                         <Icon name={block.icon} width={64} weight="bold" color={block.edge} />
                       </span>
-                      {block.panel.map((row, r) => (
-                        <motion.div
-                          key={row}
-                          initial={{ opacity: 0, x: -14 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true, margin: "-80px" }}
-                          transition={{ duration: 0.5, delay: 0.12 + r * 0.09, ease: [0.16, 1, 0.3, 1] }}
-                          className="flex items-center gap-3 rounded-[16px] bg-white px-4 py-3.5"
-                          style={{ border: "var(--bw) solid var(--ink)" }}
-                        >
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: block.edge }} />
-                          <span className="text-[13.5px] font-black md:text-[14.5px]">{row}</span>
-                        </motion.div>
-                      ))}
+                      <Phone shot={block.shot} lift />
                     </div>
                   </article>
                 </Rise>
@@ -309,6 +409,20 @@ export function WebLanding() {
               ))}
             </div>
           </Section>
+
+          <Rise>
+            <div
+              className="mt-24 grid grid-cols-2 gap-px overflow-hidden rounded-[30px] md:mt-36 md:grid-cols-4"
+              style={{ background: "var(--ink)", border: "var(--bw-lg) solid var(--ink)" }}
+            >
+              {METRICS.map((metric) => (
+                <div key={metric.label} className="bg-white p-6 text-center md:p-8">
+                  <p className="font-tight text-[42px] font-black leading-none tracking-[-0.04em] md:text-[56px]">{metric.value}</p>
+                  <p className="mt-2.5 text-[12.5px] font-bold leading-snug text-[var(--muted)] md:text-[13.5px]">{metric.label}</p>
+                </div>
+              ))}
+            </div>
+          </Rise>
 
           <Section eyebrow="Как войти" title="Три шага, и вы внутри">
             <div className="grid gap-3.5 md:grid-cols-3 md:gap-5">
@@ -440,6 +554,169 @@ function Section({ id, eyebrow, title, children }: { id?: string; eyebrow: strin
       <h2 className="font-tight mt-3 max-w-[800px] text-[32px] font-black leading-[1.04] tracking-[-0.03em] md:text-[52px]">{title}</h2>
       <div className="mt-10 md:mt-14">{children}</div>
     </section>
+  );
+}
+
+/**
+ * Экран приложения в рамке телефона. Скриншоты сняты с демо-режима
+ * (`scripts` → Playwright, 390×844, dpr 2) и лежат в `public/shots`.
+ */
+function Phone({ shot, lift = false }: { shot: string; lift?: boolean }) {
+  return (
+    <motion.div
+      whileHover={lift ? { y: -8, rotate: -1 } : undefined}
+      transition={{ duration: 0.35, ease: EASE }}
+      className="relative w-full max-w-[268px] overflow-hidden rounded-[34px] bg-white md:max-w-[290px]"
+      style={{ border: "var(--bw-lg) solid var(--ink)", boxShadow: "0 18px 0 -10px rgba(32,28,24,.14)" }}
+    >
+      <span className="absolute left-1/2 top-2.5 z-10 h-1.5 w-16 -translate-x-1/2 rounded-full bg-[rgba(32,28,24,.18)]" />
+      <Image
+        src={asset(`/shots/${shot}.png`)}
+        alt=""
+        width={390}
+        height={844}
+        className="block h-auto w-full"
+        unoptimized
+      />
+    </motion.div>
+  );
+}
+
+/**
+ * «Как это выглядит»: вкладки с реальными экранами. Пока человек не выбрал
+ * вкладку сам, панель листается по кругу — иначе первый экран так и остаётся
+ * единственным, который кто-либо видел.
+ */
+function ProductTabs() {
+  const [active, setActive] = useState(0);
+  const touched = useRef(false);
+
+  useEffect(() => {
+    if (touched.current) return;
+    const id = setInterval(() => {
+      if (touched.current) return;
+      setActive((i) => (i + 1) % TABS.length);
+    }, 4600);
+    return () => clearInterval(id);
+  }, []);
+
+  const tab = TABS[active];
+
+  return (
+    <section className="mx-auto w-full max-w-[1180px] px-5 pt-24 md:px-8 md:pt-36">
+      <p className="text-[12.5px] font-black uppercase tracking-[.12em] text-[var(--muted-2)]">Как это выглядит</p>
+      <h2 className="font-tight mt-3 max-w-[800px] text-[32px] font-black leading-[1.04] tracking-[-0.03em] md:text-[52px]">
+        Не макеты, а живые экраны
+      </h2>
+
+      <div className="mt-8 -mx-5 overflow-x-auto px-5 pb-2 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max gap-2 rounded-full p-1.5" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--ink)" }}>
+          {TABS.map((item, i) => (
+            <button
+              key={item.key}
+              onClick={() => {
+                touched.current = true;
+                setActive(i);
+              }}
+              className="relative rounded-full px-4 py-2.5 text-[13.5px] font-black whitespace-nowrap transition-colors md:px-5 md:text-[14.5px]"
+              style={{ color: i === active ? "var(--ink)" : "var(--muted)" }}
+            >
+              {i === active && (
+                <motion.span
+                  layoutId="tab-pill"
+                  className="absolute inset-0 rounded-full bg-white"
+                  style={{ border: "var(--bw) solid var(--ink)" }}
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center gap-2">
+                <Icon name={item.icon} width={15} weight="bold" color={i === active ? item.edge : "var(--muted-2)"} />
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className="mt-6 grid items-center gap-8 overflow-hidden rounded-[34px] bg-white p-6 md:mt-8 md:gap-12 md:p-12 lg:grid-cols-[1fr_auto]"
+        style={{ border: "var(--bw-lg) solid var(--ink)" }}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${tab.key}-text`}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.32, ease: EASE }}
+          >
+            <span className="chip" style={{ background: tab.tone, color: tab.edge }}>
+              <Icon name={tab.icon} width={13} weight="bold" color={tab.edge} /> {tab.label}
+            </span>
+            <h3 className="font-tight mt-4 text-[26px] font-black leading-[1.08] tracking-[-0.025em] md:text-[38px]">{tab.title}</h3>
+            <p className="mt-4 max-w-[480px] text-[14.5px] font-semibold leading-relaxed text-[var(--muted)] md:text-[16.5px]">{tab.text}</p>
+            <ul className="mt-6 space-y-3">
+              {tab.points.map((point) => (
+                <li key={point} className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: tab.tone }}>
+                    <Icon name="check" width={13} weight="bold" color={tab.edge} />
+                  </span>
+                  <span className="text-[14px] font-bold md:text-[15px]">{point}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="flex justify-center rounded-[26px] p-6 md:p-8" style={{ background: tab.tone, border: "var(--bw) solid var(--ink)" }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab.key}
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -18, scale: 0.98 }}
+              transition={{ duration: 0.4, ease: EASE }}
+              className="w-full max-w-[268px] md:max-w-[290px]"
+            >
+              <Phone shot={tab.key} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Маскоты дневника настроения летают над hero и отстают от скролла. */
+function HeroMascots({ scrollY }: { scrollY: MotionValue<number> }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 hidden overflow-visible lg:block">
+      {MASCOTS.map((mascot) => (
+        <Mascot key={mascot.src} scrollY={scrollY} {...mascot} />
+      ))}
+    </div>
+  );
+}
+
+function Mascot({
+  scrollY, src, className, size, drift, delay,
+}: { scrollY: MotionValue<number>; src: string; className: string; size: number; drift: number; delay: number }) {
+  const y = useTransform(scrollY, [0, 900], [0, drift]);
+  return (
+    <motion.div className={`absolute ${className}`} style={{ y }}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.7 }}
+        animate={{ opacity: 1, scale: 1, y: [0, -12, 0], rotate: [-3, 3, -3] }}
+        transition={{
+          opacity: { duration: 0.6, delay: 0.3 + delay, ease: EASE },
+          scale: { duration: 0.6, delay: 0.3 + delay, ease: EASE },
+          y: { duration: 6 + delay, repeat: Infinity, ease: "easeInOut" },
+          rotate: { duration: 9 + delay, repeat: Infinity, ease: "easeInOut" },
+        }}
+      >
+        <Image src={asset(src)} alt="" width={size} height={size} className="select-none" unoptimized />
+      </motion.div>
+    </motion.div>
   );
 }
 
