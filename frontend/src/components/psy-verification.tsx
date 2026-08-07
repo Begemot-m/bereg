@@ -8,14 +8,15 @@ import { success, tap } from "@/lib/haptics";
 import { profileCompletionPercent } from "@/components/profile-editor";
 import { displayName, displayPhoto, useProfile } from "@/lib/profile";
 import {
-  CATALOG_MIN_PERCENT, useSubmitCatalogVerification, useVerification, type DiplomaFile,
+  demoPrimaryDocument, MAX_DOCUMENT_MB, MAX_DOCUMENTS, useDeleteDocument, usePsyDocuments, useUploadDocument,
+} from "@/lib/psy-documents";
+import {
+  CATALOG_MIN_PERCENT, useSubmitCatalogVerification, useVerification,
 } from "@/lib/psy-verification";
 
 // Прежняя короткая анкета «подтверждение практики» удалена: путь к проверке
 // теперь один — /cabinet/verification с чек-листом и документом. Две формы с
 // разными требованиями и были той самой путаницей в статусах.
-
-const MAX_DIPLOMA_MB = 5;
 
 // Заявка на размещение в каталоге. Отдельно от «подтверждения практики»:
 // здесь проверяют не человека, а готовность карточки — заполненность,
@@ -24,7 +25,9 @@ export function CatalogVerification() {
   const profile = useProfile();
   const { data: verification } = useVerification();
   const submit = useSubmitCatalogVerification();
-  const [diploma, setDiploma] = useState<DiplomaFile | null>(null);
+  const { data: documents = [] } = usePsyDocuments();
+  const upload = useUploadDocument();
+  const removeDocument = useDeleteDocument();
   const [fileError, setFileError] = useState("");
 
   const percent = profileCompletionPercent(profile);
@@ -36,11 +39,11 @@ export function CatalogVerification() {
     { ok: percent >= CATALOG_MIN_PERCENT, title: `Профиль заполнен на ${CATALOG_MIN_PERCENT}%`, note: `Сейчас ${percent}%` },
     { ok: Boolean(photo), title: "Фотография", note: photo ? "Загружена" : "Добавьте фото в шаге «Фото и основное»" },
     { ok: price > 0, title: "Стоимость сессии", note: price > 0 ? `${price.toLocaleString("ru-RU")} ₽` : "Укажите цену в шаге «Условия встречи»" },
-    { ok: Boolean(diploma), title: "Подтверждение образования", note: diploma ? diploma.name : "Диплом или сертификат — фото или PDF" },
+    { ok: documents.length > 0, title: "Подтверждение образования", note: documents.length ? `${documents.length} ${documents.length === 1 ? "документ" : documents.length < 5 ? "документа" : "документов"}` : "Диплом или сертификат — фото или PDF" },
   ];
   const ready = checks.every((item) => item.ok);
 
-  const pickFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const pickFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -48,11 +51,16 @@ export function CatalogVerification() {
     const isImage = file.type.startsWith("image/");
     const isPdf = file.type === "application/pdf";
     if (!isImage && !isPdf) { setFileError("Подойдёт фото (JPG, PNG, HEIC) или PDF."); return; }
-    if (file.size > MAX_DIPLOMA_MB * 1024 * 1024) { setFileError(`Файл больше ${MAX_DIPLOMA_MB} МБ — сожмите или сфотографируйте заново.`); return; }
-    const reader = new FileReader();
-    reader.onload = () => { setDiploma({ name: file.name, type: file.type, size: file.size, dataUrl: String(reader.result) }); tap(); };
-    reader.onerror = () => setFileError("Не удалось прочитать файл. Попробуйте другой.");
-    reader.readAsDataURL(file);
+    if (file.size > MAX_DOCUMENT_MB * 1024 * 1024) { setFileError(`Файл больше ${MAX_DOCUMENT_MB} МБ — сожмите или сфотографируйте заново.`); return; }
+    if (documents.length >= MAX_DOCUMENTS) { setFileError(`Больше ${MAX_DOCUMENTS} документов не нужно — уберите лишний.`); return; }
+    try {
+      // Файл уезжает сразу, а не ждёт отправки анкеты: до сервера он идёт
+      // отдельным запросом, и держать мегабайты в форме незачем.
+      await upload.mutateAsync({ file, kind: documents.length ? "certificate" : "diploma" });
+      tap();
+    } catch {
+      setFileError("Не удалось загрузить файл. Попробуйте ещё раз.");
+    }
   };
 
   const send = () => {
@@ -70,7 +78,10 @@ export function CatalogVerification() {
       about: profile.about,
       photo,
       profilePercent: percent,
-      diploma,
+      // В бою документы уже лежат на сервере и подтягиваются к анкете по
+      // владельцу. В демо сервера нет — кладём первый файл в саму заявку,
+      // иначе модератору в демо-админке нечего открыть.
+      diploma: demoPrimaryDocument(),
     });
   };
 
@@ -123,19 +134,19 @@ export function CatalogVerification() {
 
           <label className="btn btn-white mt-3 w-full cursor-pointer py-2.5 text-[12px]">
             <Icon name="plus" width={14} weight="bold" color="var(--ink)" />
-            {diploma ? "Заменить документ" : "Приложить диплом — фото или PDF"}
-            <input type="file" accept="image/*,application/pdf" onChange={pickFile} className="hidden" />
+            {upload.isPending ? "Загружаем…" : documents.length ? "Приложить ещё документ" : "Приложить диплом — фото или PDF"}
+            <input type="file" accept="image/*,application/pdf" onChange={pickFile} disabled={upload.isPending} className="hidden" />
           </label>
-          {diploma && (
-            <div className="card-soft mt-2 flex items-center gap-2.5 p-2.5">
+          {documents.map((doc) => (
+            <div key={doc.id} className="card-soft mt-2 flex items-center gap-2.5 p-2.5">
               <span className="ico h-8 w-8 shrink-0"><Icon name="book" width={15} weight="bold" /></span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12px] font-black">{diploma.name}</span>
-                <span className="t-cap block">{Math.round(diploma.size / 1024)} КБ</span>
+                <span className="block truncate text-[12px] font-black">{doc.name}</span>
+                <span className="t-cap block">{doc.kind === "diploma" ? "Диплом" : "Сертификат"} · {Math.round(doc.size / 1024)} КБ</span>
               </span>
-              <button onClick={() => { tap(); setDiploma(null); }} className="x-close h-7 w-7 text-[15px]" aria-label="Убрать файл">✕</button>
+              <button onClick={() => { tap(); removeDocument.mutate(doc.id); }} className="x-close h-7 w-7 text-[15px]" aria-label={`Убрать ${doc.name}`}>✕</button>
             </div>
-          )}
+          ))}
           {fileError && <p className="card-soft mt-2 p-2.5 text-[12px] font-bold" style={{ background: "var(--salmon-soft)" }}>{fileError}</p>}
 
           <Button className="mt-3 w-full" disabled={!ready || submit.isPending} onClick={send}>

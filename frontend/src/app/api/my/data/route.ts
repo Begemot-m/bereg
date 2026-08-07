@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { audit } from "@/lib/server/audit";
+import { deleteStoredFile } from "@/lib/server/files";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 
@@ -28,7 +29,14 @@ export async function DELETE(req: NextRequest) {
     const cardIds = cards.map((c) => c.id);
     const where = { clientId: { in: cardIds } };
 
+    // Дипломы лежат файлами на диске: строку в базе снесёт транзакция ниже, а
+    // сам файл — только этот проход. Забыть его — значит оставить ПД на
+    // сервере после того, как человек попросил всё стереть.
+    const docs = await prisma.psyDocument.findMany({ where: { userId: user.id }, select: { storageKey: true } });
+    for (const doc of docs) await deleteStoredFile(doc.storageKey);
+
     await prisma.$transaction([
+      prisma.psyDocument.deleteMany({ where: { userId: user.id } }),
       prisma.mood.deleteMany({ where }),
       prisma.goodNote.deleteMany({ where }),
       prisma.therapyProfile.deleteMany({ where }),

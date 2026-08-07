@@ -61,6 +61,32 @@ export function decryptField(stored: string): string {
   }
 }
 
+/**
+ * То же самое для файла. Через base64 гонять нельзя: диплом на 5 МБ раздуется
+ * до 6,7 МБ и целиком осядет в памяти строкой. Формат тот же, но заголовок
+ * лежит в самом файле: v1 | iv(12) | tag(16) | шифротекст.
+ */
+const BIN_VERSION = 1;
+export function encryptBytes(plain: Buffer): Buffer {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", dataKey(), iv);
+  const data = Buffer.concat([cipher.update(plain), cipher.final()]);
+  return Buffer.concat([Buffer.from([BIN_VERSION]), iv, cipher.getAuthTag(), data]);
+}
+
+export function decryptBytes(stored: Buffer): Buffer {
+  if (stored.length < 29 || stored[0] !== BIN_VERSION) {
+    throw new Error("Файл не в формате хранилища: чужой ключ или повреждение");
+  }
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", dataKey(), stored.subarray(1, 13));
+    decipher.setAuthTag(stored.subarray(13, 29));
+    return Buffer.concat([decipher.update(stored.subarray(29)), decipher.final()]);
+  } catch {
+    throw new Error("Не удалось расшифровать файл: неверный ключ или данные повреждены");
+  }
+}
+
 /** Удобные обёртки для полей, которых может не быть. */
 export const encryptNullable = (v: string | null | undefined) => (v == null ? v : encryptField(v));
 export const decryptNullable = (v: string | null | undefined) => (v == null ? v : decryptField(v));

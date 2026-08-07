@@ -12,6 +12,7 @@ import {
   type FunnelRow, type PsyApplication, type Series, type SupportRow,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
+import { documentHref } from "@/lib/psy-documents";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "2-digit" });
 const timeF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -425,11 +426,19 @@ function Application({ a, busy, onApprove, onReject }: {
       {/* Подтверждение образования — то, ради чего заявка вообще проверяется */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {typeof a.profilePercent === "number" && <span className="chip">профиль {a.profilePercent}%</span>}
-        {a.diploma
-          ? a.diploma.dataUrl
-            ? <a href={a.diploma.dataUrl} target="_blank" rel="noreferrer" download={a.diploma.name} className="chip chip-strong">Диплом · {a.diploma.name}</a>
-            : <span className="chip">Диплом «{a.diploma.name}» не поместился в хранилище демо</span>
-          : <span className="chip">диплом не приложен</span>}
+        {/* Новые заявки держат файлы в хранилище — открываем по ссылке роута.
+            Старые несут диплом data-URL'ом внутри самой анкеты. */}
+        {a.documents?.length
+          ? a.documents.map((doc) => (
+              <a key={doc.id} href={documentHref(doc.id)} target="_blank" rel="noreferrer" className="chip chip-strong">
+                {doc.kind === "diploma" ? "Диплом" : "Сертификат"} · {doc.name}
+              </a>
+            ))
+          : a.diploma
+            ? a.diploma.dataUrl
+              ? <a href={a.diploma.dataUrl} target="_blank" rel="noreferrer" download={a.diploma.name} className="chip chip-strong">Диплом · {a.diploma.name}</a>
+              : <span className="chip">Диплом «{a.diploma.name}» не поместился в хранилище демо</span>
+            : <span className="chip">диплом не приложен</span>}
       </div>
 
       <div className="mt-2.5 flex flex-wrap gap-1.5">

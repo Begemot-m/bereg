@@ -2,699 +2,360 @@
 
 import { AnimatePresence, motion, useMotionValue, useTransform, type MotionValue } from "motion/react";
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { type ReactNode, type UIEvent, useEffect, useRef, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { AUDIENCE, FEATURES, VALUE } from "@/components/landing";
 import { WebLogin } from "@/components/web-login";
 import { asset } from "@/lib/asset";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
 
+const BOT_URL = botDeepLink("site");
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-const BOT_URL = botDeepLink("site");
+const NAV = [
+  ["Возможности", "#features"],
+  ["Разделы", "#screens"],
+  ["Вопросы", "#faq"],
+  ["Для кого", "#who"],
+] as const;
 
-const STEPS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "telegram", title: "Открыть бота с телефона", text: `Ссылка t.me/${BOT_NAME} — приложение запускается прямо внутри Telegram` },
-  { icon: "lock", title: "Вход одним касанием", text: "Аккаунт Telegram и есть вход: ни паролей, ни писем, ни установки" },
-  { icon: "spark", title: "Выбрать роль", text: "Психолог ведёт практику, клиент записывается и отмечает состояние" },
+/** Вкладки над большим экраном: реальные страницы приложения. */
+const TABS: { key: string; label: string; icon: IconName; tone: string }[] = [
+  { key: "sessions", label: "Сессии", icon: "calendar", tone: "var(--green-soft)" },
+  { key: "clients", label: "Клиенты", icon: "users", tone: "var(--purple-soft)" },
+  { key: "therapy", label: "Терапия", icon: "pulse", tone: "var(--coral-soft)" },
+  { key: "catalog", label: "Каталог", icon: "compass", tone: "var(--amber-soft)" },
+  { key: "tools", label: "Инструменты", icon: "spark", tone: "var(--tiffany-soft)" },
 ];
 
-// Лента запросов — те же фильтры, по которым каталог подбирает специалиста.
-const TOPICS = [
-  "Тревога", "КПТ", "Выгорание", "Отношения", "Схема-терапия", "Самооценка",
-  "Панические атаки", "Гештальт", "Травма", "ACT", "Подростки", "Расставание",
+const TRIO: { mascot: string; title: string; text: string }[] = [
+  {
+    mascot: "/mascots/fox-great.webp",
+    title: "Экономит время",
+    text: "Запись, переносы и напоминания уходят из переписки. Вы занимаетесь встречами, а не согласованием времени.",
+  },
+  {
+    mascot: "/mascots/owl-good.webp",
+    title: "Приводит клиентов",
+    text: "Проверенная анкета попадает в каталог, и люди находят вас по запросу, методу и бюджету — а не по случайному репосту.",
+  },
+  {
+    mascot: "/mascots/panda-good.webp",
+    title: "Держит всё под контролем",
+    text: "История клиента, домашние задания и динамика состояния собраны в одном месте. К началу сессии вы уже всё помните.",
+  },
 ];
 
-// Крупные блоки: боль → что делает платформа → как это выглядит на экране.
-// Метрики намеренно счётные: процентов роста, которых мы не измеряли, тут нет.
-const SHOWCASE: {
-  eyebrow: string;
+/** С чем приходят: те же фильтры, по которым каталог подбирает специалиста. */
+const TOPICS: { icon: IconName; label: string }[] = [
+  { icon: "pulse", label: "Тревога" },
+  { icon: "clock", label: "Выгорание" },
+  { icon: "heart", label: "Отношения" },
+  { icon: "user", label: "Самооценка" },
+  { icon: "spark", label: "Панические атаки" },
+  { icon: "therapy", label: "Травма" },
+  { icon: "users", label: "Подростки" },
+  { icon: "route", label: "Расставание" },
+];
+
+const FEATURES: {
   title: string;
   text: string;
-  points: string[];
-  icon: IconName;
-  tone: string;
-  edge: string;
+  tags: { icon: IconName; label: string }[];
   shot: string;
-  stats: { value: string; label: string }[];
+  tone: string;
 }[] = [
   {
-    eyebrow: "Клиенты",
-    title: "Вся история клиента — под рукой",
-    text: "Карточка собирает то, что раньше жило в блокноте и переписках: контакты, статус, прошлые встречи, заметки, домашние задания и динамику состояния. Вы открываете её за минуту до сессии и уже всё помните.",
-    points: ["Заметки к каждой встрече", "Хронология сессий и статистика по терапии", "Домашние задания и ответы клиента", "Динамика настроения между встречами"],
-    icon: "users", tone: "var(--green-soft)", edge: "var(--green-edge)",
+    title: "Клиенты и история",
+    text: "Карточка на каждого: контакты, статус, прошлые встречи, заметки, домашние задания и динамика состояния. Ничего не приходится держать в голове и в переписках.",
+    tags: [
+      { icon: "users", label: "Карточки" },
+      { icon: "note", label: "Заметки к встрече" },
+      { icon: "chalkboard", label: "Домашние задания" },
+      { icon: "chart", label: "Статистика терапии" },
+    ],
     shot: "clients",
-    stats: [{ value: "1", label: "карточка вместо блокнота и чата" }, { value: "0", label: "таблиц, которые надо вести руками" }],
+    tone: "var(--purple-soft)",
   },
   {
-    eyebrow: "Расписание",
-    title: "Расписание, которое работает за вас",
-    text: "Забудьте переписку «когда вам удобно?». Вы задаёте рабочие часы по дням недели — клиент сам занимает свободное окно, получает напоминание и переносит встречу, не отвлекая вас.",
-    points: ["Окна по часам недели", "Клиент записывается сам", "Онлайн и очный формат", "Напоминания в Telegram без вашего участия"],
-    icon: "calendar", tone: "var(--purple-soft)", edge: "var(--purple-edge)",
+    title: "Расписание и записи",
+    text: "Вы задаёте рабочие часы по дням недели — дальше клиент сам занимает свободное окно, получает напоминание и переносит встречу, не отвлекая вас.",
+    tags: [
+      { icon: "calendar", label: "Окна по часам" },
+      { icon: "plus", label: "Запись клиента" },
+      { icon: "swap", label: "Переносы" },
+      { icon: "bell", label: "Напоминания" },
+    ],
     shot: "sessions",
-    stats: [{ value: "24/7", label: "запись открыта, пока вы спите" }, { value: "0", label: "сообщений на согласование времени" }],
+    tone: "var(--green-soft)",
   },
   {
-    eyebrow: "Каталог",
-    title: "Люди находят вас по запросу, а не по репосту",
-    text: "Анкета проходит проверку руками и попадает в каталог. Подбор идёт по запросу, методу, формату, городу и бюджету — к вам приходят те, кому вы действительно подходите.",
-    points: ["Анкета с проверкой, а не автопубликация", "Фильтры по запросу и методу", "Цена и формат видны сразу", "Запись прямо в свободное окно"],
-    icon: "compass", tone: "var(--amber-soft)", edge: "var(--amber-edge)",
+    title: "Каталог и подбор",
+    text: "Анкета проходит проверку руками и попадает в каталог. Подбор идёт по запросу, методу, формату, городу и бюджету — к вам приходят те, кому вы подходите.",
+    tags: [
+      { icon: "compass", label: "Анкета с проверкой" },
+      { icon: "filter", label: "Фильтры подбора" },
+      { icon: "video", label: "Онлайн и очно" },
+      { icon: "star", label: "Цена и метод" },
+    ],
     shot: "catalog",
-    stats: [{ value: "5", label: "фильтров подбора: запрос, метод, формат, город, бюджет" }, { value: "0 ₽", label: "стоит попасть в каталог" }],
+    tone: "var(--amber-soft)",
   },
 ];
 
-// Вкладки «как это выглядит»: реальные экраны приложения, снятые с демо-данных.
-const TABS: { key: string; label: string; icon: IconName; title: string; text: string; points: string[]; tone: string; edge: string }[] = [
+const FAQ: { q: string; a: string; icon: IconName }[] = [
+  { q: "Нужно что-то устанавливать?", a: "Нет. Приложение открывается внутри Telegram по ссылке, аккаунт мессенджера и есть вход.", icon: "telegram" },
+  { q: "А если я работаю с компьютера?", a: "Привяжите почту в кабинете — и заходите в браузере по коду из письма. Данные те же.", icon: "lock" },
+  { q: "Что видит клиент?", a: "Свою запись, домашние задания и дневник состояния. Ваши заметки к встрече — только ваши.", icon: "user" },
+  { q: "Сколько это стоит?", a: "Основные разделы бесплатны. Платными будут расширенные модули, о них скажем заранее.", icon: "chart" },
+  { q: "Как клиенты меня находят?", a: "Через каталог: анкету смотрят руками, дальше подбор по запросу, методу, формату и бюджету.", icon: "compass" },
+  { q: "Можно попробовать без клиентов?", a: "Да. Демо работает на тестовых данных прямо в браузере — ничего не сломается.", icon: "spark" },
+];
+
+/** Кольцо интеграций: разделы, которые обычно живут в разных приложениях. */
+const ORBIT: { icon: IconName; x: number; y: number; size: number }[] = [
+  { icon: "calendar", x: 18, y: 62, size: 56 },
+  { icon: "users", x: 30, y: 34, size: 52 },
+  { icon: "note", x: 50, y: 22, size: 60 },
+  { icon: "mood", x: 70, y: 34, size: 52 },
+  { icon: "compass", x: 82, y: 62, size: 56 },
+  { icon: "bell", x: 10, y: 84, size: 48 },
+  { icon: "balance", x: 90, y: 84, size: 48 },
+  { icon: "chart", x: 50, y: 52, size: 46 },
+];
+
+const WHO: { who: string; icon: IconName; tone: string; points: string[] }[] = [
   {
-    key: "home-psy", label: "Кабинет", icon: "home",
-    title: "День психолога на одном экране",
-    text: "Ближайшая встреча, статистика недели и разделы — без поиска по вкладкам.",
-    points: ["Ближайшая сессия сверху", "Сессии и часы за неделю", "Быстрый переход в разделы"],
-    tone: "var(--amber-soft)", edge: "var(--amber-edge)",
+    who: "Психологу", icon: "therapy", tone: "var(--green-soft)",
+    points: [
+      "Практика перестаёт жить в блокноте и переписках",
+      "Запись, напоминания и переносы — без ручной работы",
+      "Видно динамику клиента, а не только последнюю встречу",
+      "Проверенная анкета в каталоге приводит новых людей",
+    ],
   },
   {
-    key: "sessions", label: "Сессии", icon: "calendar",
-    title: "Неделя, окна и записи",
-    text: "Календарь на две недели вперёд, свободные окна и все встречи в одном списке.",
-    points: ["Рабочие часы по дням", "Онлайн и очно", "Переносы и отмены"],
-    tone: "var(--purple-soft)", edge: "var(--purple-edge)",
-  },
-  {
-    key: "clients", label: "Клиенты", icon: "users",
-    title: "Список клиентов и их статусы",
-    text: "Кто в работе, кто на паузе, когда была последняя встреча и что осталось на следующую.",
-    points: ["Статусы и теги", "История сессий", "Заметки только для вас"],
-    tone: "var(--green-soft)", edge: "var(--green-edge)",
-  },
-  {
-    key: "therapy", label: "Терапия", icon: "pulse",
-    title: "Что происходит между встречами",
-    text: "Сторона клиента: настроение, домашние задания, рефлексии и ближайшая запись.",
-    points: ["Чек-ин настроения", "Домашние задания", "Колесо баланса"],
-    tone: "var(--coral-soft)", edge: "var(--coral)",
-  },
-  {
-    key: "catalog", label: "Каталог", icon: "compass",
-    title: "Подбор специалиста по запросу",
-    text: "Персональная подборка и фильтры вместо ленты случайных рекомендаций.",
-    points: ["Проверенные анкеты", "Фильтры по методу и цене", "Запись в свободное окно"],
-    tone: "var(--green-soft)", edge: "var(--green-edge)",
-  },
-  {
-    key: "tools", label: "Инструменты", icon: "spark",
-    title: "Короткая помощь в трудный момент",
-    text: "Практики, которые доступны без записи и без специалиста — бесплатно.",
-    points: ["Дыхание и заземление", "Без регистрации в кабинете", "Доступно всегда"],
-    tone: "var(--purple-soft)", edge: "var(--purple-edge)",
+    who: "Клиенту", icon: "heart", tone: "var(--purple-soft)",
+    points: [
+      "Подобрать специалиста по своему запросу и бюджету",
+      "Записаться в свободное окно за пару касаний",
+      "Отмечать состояние и видеть, как оно меняется",
+      "Практики для трудного момента — бесплатно и без записи",
+    ],
   },
 ];
 
-// Счётные факты. Ничего, что нельзя проверить, открыв приложение.
-const METRICS: { value: string; label: string }[] = [
-  { value: "8", label: "разделов уже работают" },
-  { value: "1", label: "касание до входа" },
-  { value: "0", label: "установок и паролей" },
-  { value: "2", label: "роли: психолог и клиент" },
-];
-
-// Плавающие маскоты из дневника настроения — те же, что видит клиент в приложении.
 const MASCOTS: { src: string; className: string; size: number; drift: number; delay: number }[] = [
-  { src: "/mascots/fox-great.webp", className: "left-[3%] top-[14%]", size: 96, drift: -70, delay: 0 },
-  { src: "/mascots/owl-good.webp", className: "right-[4%] top-[10%]", size: 84, drift: -110, delay: 0.6 },
-  { src: "/mascots/cat-great.webp", className: "left-[9%] bottom-[6%]", size: 76, drift: -40, delay: 1.1 },
-  { src: "/mascots/panda-good.webp", className: "right-[8%] bottom-[10%]", size: 92, drift: -85, delay: 0.3 },
+  { src: "/mascots/fox-great.webp", className: "left-[3%] top-[14%]", size: 156, drift: -80, delay: 0 },
+  { src: "/mascots/butterfly-great.webp", className: "right-[4%] top-[9%]", size: 148, drift: -124, delay: 0.5 },
+  { src: "/mascots/frog-good.webp", className: "left-[11%] bottom-[6%]", size: 112, drift: -44, delay: 1 },
+  { src: "/mascots/panda-good.webp", className: "right-[9%] bottom-[9%]", size: 132, drift: -98, delay: 0.3 },
 ];
 
 /**
- * Лендинг боевого сайта: что это за платформа и как в неё попасть. Гость идёт
- * в Telegram, а у кого аккаунт уже есть — входит здесь по почте.
+ * Лендинг chronika.space. Живёт порталом в body: демо-обёртка вокруг
+ * приложения рисует рамку телефона с `transform`, а внутри трансформированного
+ * предка `position: fixed` считается от рамки — лендинг оказывался зажат в
+ * телефон со своей полосой прокрутки.
  */
 export function WebLanding() {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setHost(document.body), []);
+  const page = <LandingPage />;
+  return host ? createPortal(page, host) : page;
+}
+
+function LandingPage() {
   const [login, setLogin] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  // Позиция скролла живёт в motion value: иначе параллакс перерисовывал бы
-  // весь лендинг на каждом кадре колеса.
+  // Позиция скролла в motion value: иначе параллакс перерисовывал бы страницу
+  // на каждом кадре колеса.
   const scrollY = useMotionValue(0);
 
   return (
     <div
-      className="fixed inset-0 z-[95] overflow-y-auto"
+      className="fixed inset-0 z-[95] overflow-y-auto overflow-x-hidden"
+      style={{ background: "var(--bg)", color: "var(--ink)" }}
       onScroll={(e: UIEvent<HTMLDivElement>) => {
         const top = e.currentTarget.scrollTop;
         scrollY.set(top);
-        setScrolled((was) => (was === top > 12 ? was : top > 12));
+        setScrolled((was) => (was === top > 16 ? was : top > 16));
       }}
-      style={{ background: "radial-gradient(120% 60% at 50% -12%, #fffdf7 0%, var(--bg) 58%)" }}
     >
-      <header className="sticky top-0 z-20 px-3 pt-[max(env(safe-area-inset-top),12px)] md:px-6 md:pt-4">
-        <div
-          className="mx-auto flex w-full max-w-[1180px] items-center justify-between rounded-full px-3 py-2.5 transition-all duration-300 md:px-4"
-          style={{
-            background: scrolled ? "rgba(255,253,247,.82)" : "transparent",
-            backdropFilter: scrolled ? "blur(14px)" : "none",
-            border: `var(--bw) solid ${scrolled ? "var(--ink)" : "transparent"}`,
-            boxShadow: scrolled ? "0 6px 0 -3px rgba(32,28,24,.1)" : "none",
-          }}
-        >
-          <span className="inline-flex items-center gap-2.5 pl-1">
-            <span className="flex h-9 w-9 items-center justify-center rounded-[11px] text-[17px] font-black text-[var(--bg)]" style={{ background: "var(--ink)" }}>
-              {APP_NAME.charAt(0)}
-            </span>
-            <span className="font-tight text-[21px] font-black tracking-[-0.02em]">{APP_NAME}</span>
-          </span>
-          <nav className="hidden items-center gap-7 lg:flex">
-            {[["Возможности", "#value"], ["Как устроено", "#how"], ["Для кого", "#who"], ["Вход", "#enter"]].map(([label, href]) => (
-              <a key={href} href={href} className="text-[14px] font-bold text-[var(--muted)] transition-colors hover:text-[var(--ink)]">
-                {label}
-              </a>
-            ))}
-          </nav>
-          <span className="flex items-center gap-2">
-            <button onClick={() => setLogin(true)} className="rounded-full px-4 py-2.5 text-[13.5px] font-black text-[var(--ink)] transition-colors hover:bg-[rgba(32,28,24,.06)]">
-              Войти
-            </button>
-            <a
-              href={BOT_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-black text-white transition-transform duration-200 hover:scale-[1.03] active:scale-[.97]"
-              style={{ background: "var(--ink)" }}
-            >
-              <Icon name="telegram" width={15} weight="bold" color="#fff" /> В Telegram
-            </a>
-          </span>
-        </div>
-      </header>
+      <Nav scrolled={scrolled} onLogin={() => setLogin(true)} />
 
-      <main className="w-full">
-        <section className="relative mx-auto w-full max-w-[1180px] px-5 pt-12 text-center md:px-8 md:pt-24">
-          <HeroMascots scrollY={scrollY} />
-          <motion.span
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="chip inline-flex"
-            style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}
-          >
-            <Icon name="check" width={12} weight="bold" color="var(--green-edge)" /> Работает прямо в Telegram
-          </motion.span>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
-            className="font-tight mx-auto mt-5 max-w-[900px] text-[42px] font-black leading-[1.02] tracking-[-0.035em] md:mt-7 md:text-[76px]"
-          >
-            Всё, что нужно<br />для практики.<br />
-            <span className="text-[var(--muted)]">В одном месте.</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className="mx-auto mt-5 max-w-[620px] text-[16px] font-semibold leading-relaxed text-[var(--muted)] md:mt-6 md:text-[19px]"
-          >
-            Восемь разделов вместо пяти сервисов, блокнота и переписок. Расписание, клиенты,
-            домашние задания и динамика состояния — внутри Telegram, без установки и паролей.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-8 flex flex-wrap items-center justify-center gap-3 md:mt-10"
-          >
-            <a
-              href={BOT_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2.5 rounded-full px-7 py-4 text-[15px] font-black text-white transition-transform duration-200 hover:scale-[1.03] active:scale-[.97] md:text-[16px]"
-              style={{ background: "var(--ink)" }}
-            >
-              <Icon name="telegram" width={18} weight="bold" color="#fff" /> Открыть в Telegram
-            </a>
-            <a
-              href="#how"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-[15px] font-black text-[var(--ink)] transition-transform duration-200 hover:scale-[1.03] active:scale-[.97] md:text-[16px]"
-              style={{ border: "var(--bw) solid var(--ink)" }}
-            >
-              Как это устроено
-            </a>
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.34 }}
-            className="mt-5 text-[13px] font-bold text-[var(--muted-2)]"
-          >
-            Ни установки, ни паролей · Создано в центре{" "}
-            <a href={CENTER_URL} target="_blank" rel="noreferrer" className="underline decoration-[1.5px] underline-offset-2 hover:text-[var(--muted)]">{CENTER}</a>
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.42, ease: EASE }}
-            className="mt-10 flex flex-wrap items-center justify-center gap-2.5 md:mt-14 md:gap-3"
-          >
-            {TABS.map((tab) => (
-              <span
-                key={tab.key}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-black md:text-[14px]"
-                style={{ border: "var(--bw) solid var(--ink)" }}
-              >
-                <Icon name={tab.icon} width={15} weight="bold" color={tab.edge} /> {tab.label}
-              </span>
-            ))}
-          </motion.div>
-        </section>
-
-        <Marquee />
-
-        <ProductTabs />
-
-        <div className="mx-auto w-full max-w-[1180px] px-5 pb-20 md:px-8 md:pb-28">
-          <Section id="value" eyebrow="Зачем это нужно" title="Четыре вещи, ради которых платформу заводят">
-            <div className="grid gap-3.5 md:grid-cols-2 md:gap-5">
-              {VALUE.map((item, i) => (
-                <Rise key={item.title} delay={i * 0.06}>
-                  <motion.article
-                    whileHover={{ y: -5 }}
-                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex h-full flex-col rounded-[30px] p-6 md:p-8"
-                    style={{ background: item.tone, border: "var(--bw-lg) solid var(--ink)" }}
-                  >
-                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-white" style={{ border: "var(--bw) solid var(--ink)" }}>
-                      <Icon name={item.icon} width={26} weight="bold" color={item.edge} />
-                    </span>
-                    <h3 className="font-tight mt-5 text-[22px] font-black leading-[1.12] tracking-[-0.02em] md:text-[27px]">{item.title}</h3>
-                    <p className="mt-3 text-[14px] font-semibold leading-relaxed text-[var(--muted)] md:text-[15.5px]">{item.text}</p>
-                  </motion.article>
-                </Rise>
-              ))}
-            </div>
-          </Section>
-
-          <section id="how" className="mt-24 scroll-mt-24 md:mt-36">
-            <p className="text-[12.5px] font-black uppercase tracking-[.12em] text-[var(--muted-2)]">Как устроено</p>
-            <h2 className="font-tight mt-3 max-w-[800px] text-[32px] font-black leading-[1.04] tracking-[-0.03em] md:text-[52px]">
-              Три части, которые обычно живут порознь
-            </h2>
-
-            <div className="mt-12 space-y-5 md:mt-16 md:space-y-8">
-              {SHOWCASE.map((block, i) => (
-                <Rise key={block.eyebrow} delay={0.04}>
-                  <article
-                    className="grid items-center gap-8 overflow-hidden rounded-[34px] bg-white p-6 md:gap-12 md:p-12 lg:grid-cols-2"
-                    style={{ border: "var(--bw-lg) solid var(--ink)" }}
-                  >
-                    <div className={i % 2 === 1 ? "lg:order-2" : undefined}>
-                      <span className="chip" style={{ background: block.tone, color: block.edge }}>
-                        <Icon name={block.icon} width={13} weight="bold" color={block.edge} /> {block.eyebrow}
-                      </span>
-                      <h3 className="font-tight mt-4 text-[26px] font-black leading-[1.08] tracking-[-0.025em] md:text-[38px]">{block.title}</h3>
-                      <p className="mt-4 max-w-[520px] text-[14.5px] font-semibold leading-relaxed text-[var(--muted)] md:text-[16.5px]">{block.text}</p>
-                      <ul className="mt-6 space-y-3">
-                        {block.points.map((point) => (
-                          <li key={point} className="flex items-center gap-3">
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: block.tone }}>
-                              <Icon name="check" width={13} weight="bold" color={block.edge} />
-                            </span>
-                            <span className="text-[14px] font-bold md:text-[15px]">{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <div className="mt-8 flex flex-wrap gap-3">
-                        {block.stats.map((stat) => (
-                          <div
-                            key={stat.label}
-                            className="min-w-[150px] flex-1 rounded-[20px] p-4"
-                            style={{ background: block.tone, border: "var(--bw) solid var(--ink)" }}
-                          >
-                            <p className="font-tight text-[30px] font-black leading-none tracking-[-0.03em] md:text-[36px]" style={{ color: block.edge }}>
-                              {stat.value}
-                            </p>
-                            <p className="mt-1.5 text-[12.5px] font-bold leading-snug text-[var(--muted)]">{stat.label}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div
-                      className="relative flex items-center justify-center rounded-[26px] p-8 md:p-10"
-                      style={{ background: block.tone, border: "var(--bw) solid var(--ink)" }}
-                    >
-                      <span className="absolute right-6 top-6 opacity-20 md:right-8 md:top-8">
-                        <Icon name={block.icon} width={64} weight="bold" color={block.edge} />
-                      </span>
-                      <Phone shot={block.shot} lift />
-                    </div>
-                  </article>
-                </Rise>
-              ))}
-            </div>
-          </section>
-
-          <Section eyebrow="Функции" title="Что уже работает">
-            <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4 lg:gap-4">
-              {FEATURES.map((item, i) => (
-                <Rise key={item.title} delay={i * 0.04}>
-                  <motion.div
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex h-full flex-col rounded-[24px] bg-white p-5 md:p-6"
-                    style={{ border: "var(--bw) solid var(--ink)" }}
-                  >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--head-soft)" }}>
-                      <Icon name={item.icon} width={20} weight="bold" color="var(--edge)" />
-                    </span>
-                    <p className="font-tight mt-4 text-[16px] font-black leading-tight tracking-[-0.015em] md:text-[17.5px]">{item.title}</p>
-                    <p className="mt-2 text-[13px] font-semibold leading-snug text-[var(--muted)] md:text-[13.5px]">{item.text}</p>
-                  </motion.div>
-                </Rise>
-              ))}
-            </div>
-          </Section>
-
-          <Section id="who" eyebrow="Для кого" title="Две стороны одной встречи">
-            <div className="grid gap-3.5 md:grid-cols-2 md:gap-5">
-              {AUDIENCE.map((item, i) => (
-                <Rise key={item.who} delay={i * 0.08}>
-                  <article className="h-full rounded-[30px] p-6 md:p-9" style={{ background: item.tone, border: "var(--bw-lg) solid var(--ink)" }}>
-                    <div className="flex items-center gap-4">
-                      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-white" style={{ border: "var(--bw) solid var(--ink)" }}>
-                        <Icon name={item.icon} width={25} weight="bold" color={item.edge} />
-                      </span>
-                      <h3 className="font-tight text-[26px] font-black tracking-[-0.02em] md:text-[32px]">{item.who}</h3>
-                    </div>
-                    <ul className="mt-6 space-y-3.5">
-                      {item.points.map((point) => (
-                        <li key={point} className="flex items-start gap-3">
-                          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white">
-                            <Icon name="check" width={13} weight="bold" color={item.edge} />
-                          </span>
-                          <span className="text-[14.5px] font-semibold leading-snug md:text-[15.5px]">{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </article>
-                </Rise>
-              ))}
-            </div>
-          </Section>
-
-          <Rise>
-            <div
-              className="mt-24 grid grid-cols-2 gap-px overflow-hidden rounded-[30px] md:mt-36 md:grid-cols-4"
-              style={{ background: "var(--ink)", border: "var(--bw-lg) solid var(--ink)" }}
-            >
-              {METRICS.map((metric) => (
-                <div key={metric.label} className="bg-white p-6 text-center md:p-8">
-                  <p className="font-tight text-[42px] font-black leading-none tracking-[-0.04em] md:text-[56px]">{metric.value}</p>
-                  <p className="mt-2.5 text-[12.5px] font-bold leading-snug text-[var(--muted)] md:text-[13.5px]">{metric.label}</p>
-                </div>
-              ))}
-            </div>
-          </Rise>
-
-          <Section eyebrow="Как войти" title="Три шага, и вы внутри">
-            <div className="grid gap-3.5 md:grid-cols-3 md:gap-5">
-              {STEPS.map((step, i) => (
-                <Rise key={step.title} delay={i * 0.07}>
-                  <div className="flex h-full flex-col rounded-[26px] bg-white p-6 md:p-7" style={{ border: "var(--bw) solid var(--ink)" }}>
-                    <div className="flex items-center justify-between">
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px]" style={{ background: "var(--head-soft)" }}>
-                        <Icon name={step.icon} width={22} weight="bold" color="var(--edge)" />
-                      </span>
-                      <span className="font-tight text-[40px] font-black leading-none text-[var(--muted-2)] md:text-[48px]">{i + 1}</span>
-                    </div>
-                    <p className="font-tight mt-5 text-[18px] font-black leading-tight tracking-[-0.015em] md:text-[20px]">{step.title}</p>
-                    <p className="mt-2 text-[13.5px] font-semibold leading-snug text-[var(--muted)] md:text-[14.5px]">{step.text}</p>
-                  </div>
-                </Rise>
-              ))}
-            </div>
-          </Section>
-
-          {/* Порядок именно такой: аккаунт заводится в Telegram, почта — второй
-              ключ к нему же. Обещать вход «без телефона» нельзя: сервер по
-              незнакомой почте аккаунтов не создаёт. */}
-          <Rise>
-            <section id="enter" className="mt-24 scroll-mt-24 overflow-hidden rounded-[36px] bg-[var(--ink)] text-white md:mt-36">
-              <div className="flex items-center gap-12 p-8 md:p-14">
-                <div className="min-w-0 flex-1">
-                  <span className="chip uppercase" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }}>
-                    <Icon name="lock" width={12} weight="bold" color="#fff" /> Вход с компьютера
-                  </span>
-                  <h2 className="font-tight mt-5 text-[30px] font-black leading-[1.04] tracking-[-0.03em] md:text-[48px]">
-                    С компьютера — по коду из письма
-                  </h2>
-                  <p className="mt-4 max-w-[600px] text-[15px] font-semibold leading-relaxed text-white/75 md:text-[17px]">
-                    Аккаунт заводится в Telegram: одно касание, устанавливать ничего не нужно. Там же
-                    в кабинете привязывается почта — и после этого в браузер можно войти по коду.
-                    Расписание, клиенты и записи открываются те же.
-                  </p>
-                  <div className="mt-8 flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={() => setLogin(true)}
-                      className="inline-flex items-center gap-2.5 rounded-full bg-white px-7 py-4 text-[15px] font-black text-[var(--ink)] transition-transform duration-200 hover:scale-[1.03] active:scale-[.97] md:text-[16px]"
-                    >
-                      <Icon name="lock" width={18} weight="bold" color="var(--ink)" /> Войти по почте
-                    </button>
-                    <a
-                      href={BOT_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2.5 rounded-full px-7 py-4 text-[15px] font-black text-white transition-transform duration-200 hover:scale-[1.03] active:scale-[.97] md:text-[16px]"
-                      style={{ background: "rgba(255,255,255,.16)" }}
-                    >
-                      <Icon name="telegram" width={18} weight="bold" color="#fff" /> Перейти в бота
-                    </a>
-                    <span className="text-[13px] font-bold text-white/55">t.me/{BOT_NAME}</span>
-                  </div>
-                </div>
-                <span className="hidden h-32 w-32 shrink-0 items-center justify-center rounded-[32px] lg:flex" style={{ background: "rgba(255,255,255,.14)" }}>
-                  <Icon name="telegram" width={62} weight="bold" color="#fff" />
-                </span>
-              </div>
-            </section>
-          </Rise>
-
-          <footer className="mt-16 md:mt-24">
-            <div className="flex flex-wrap items-end justify-between gap-8 border-t pt-10" style={{ borderColor: "var(--edge-neutral)" }}>
-              <div className="min-w-0">
-                <span className="font-tight text-[44px] font-black leading-none tracking-[-0.04em] md:text-[64px]">{APP_NAME}</span>
-                <p className="mt-3 max-w-[420px] text-[13.5px] font-semibold text-[var(--muted)]">
-                  {TAGLINE}. Создано в центре{" "}
-                  <a href={CENTER_URL} target="_blank" rel="noreferrer" className="font-black underline">{CENTER}</a>.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-x-12 gap-y-6">
-                <nav className="flex flex-col gap-2.5">
-                  <p className="text-[11.5px] font-black uppercase tracking-[.12em] text-[var(--muted-2)]">Платформа</p>
-                  <a href="#value" className="text-[14px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Возможности</a>
-                  <a href="#how" className="text-[14px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Как устроено</a>
-                  <a href="#who" className="text-[14px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Для кого</a>
-                </nav>
-                <nav className="flex flex-col gap-2.5">
-                  <p className="text-[11.5px] font-black uppercase tracking-[.12em] text-[var(--muted-2)]">Начать</p>
-                  <a href={BOT_URL} target="_blank" rel="noreferrer" className="text-[14px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Открыть в Telegram</a>
-                  <button onClick={() => setLogin(true)} className="text-left text-[14px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Войти по почте</button>
-                  <a href="/policy" className="text-[14px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Политика и условия</a>
-                </nav>
-              </div>
-            </div>
-            <p className="mt-10 pb-[max(env(safe-area-inset-bottom),20px)] text-[12.5px] font-semibold text-[var(--muted-2)]">
-              Платформа не оказывает экстренную и медицинскую помощь.
-            </p>
-          </footer>
-        </div>
+      <main>
+        <Hero scrollY={scrollY} onLogin={() => setLogin(true)} />
+        <ScreensTabs />
+        <Trio />
+        <Topics />
+        <Features />
+        <Faq />
+        <Orbit />
+        <Who />
+        <Cta />
       </main>
+
+      <Footer onLogin={() => setLogin(true)} />
 
       {login && <WebLogin onClose={() => setLogin(false)} />}
     </div>
   );
 }
 
-/** Бесконечная лента запросов: показывает объём каталога без выдуманных цифр. */
-function Marquee() {
-  const row = [...TOPICS, ...TOPICS];
+/* ─────────────────────────── общие детали ─────────────────────────── */
+
+/** Чёрная круглая стрелка — та самая кнопка, что держит весь макет. */
+function Arrow({ size = 36, bg = "var(--ink)", color = "#fff" }: { size?: number; bg?: string; color?: string }) {
   return (
-    <div className="relative mt-14 overflow-hidden py-6 md:mt-20" style={{ borderTop: "var(--bw) solid var(--ink)", borderBottom: "var(--bw) solid var(--ink)", background: "var(--surface-2)" }}>
-      <motion.div
-        className="flex w-max gap-3"
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{ duration: 34, repeat: Infinity, ease: "linear" }}
-      >
-        {row.map((topic, i) => (
-          <span
-            key={`${topic}-${i}`}
-            className="shrink-0 rounded-full bg-white px-5 py-2.5 text-[14px] font-black whitespace-nowrap md:text-[15px]"
-            style={{ border: "var(--bw) solid var(--ink)" }}
-          >
-            {topic}
-          </span>
-        ))}
-      </motion.div>
-    </div>
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:translate-x-0.5"
+      style={{ width: size, height: size, background: bg }}
+    >
+      <svg width={size * 0.36} height={size * 0.36} viewBox="0 0 16 16" fill="none">
+        <path d="M5 3l5 5-5 5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
   );
 }
 
-function Section({ id, eyebrow, title, children }: { id?: string; eyebrow: string; title: string; children: ReactNode }) {
-  return (
-    <section id={id} className="mt-24 scroll-mt-24 md:mt-36">
-      <p className="text-[12.5px] font-black uppercase tracking-[.12em] text-[var(--muted-2)]">{eyebrow}</p>
-      <h2 className="font-tight mt-3 max-w-[800px] text-[32px] font-black leading-[1.04] tracking-[-0.03em] md:text-[52px]">{title}</h2>
-      <div className="mt-10 md:mt-14">{children}</div>
-    </section>
+function ArrowLink({ href, children, onClick }: { href?: string; children: ReactNode; onClick?: () => void }) {
+  const inner = (
+    <>
+      <Arrow />
+      <span className="text-[15px] font-semibold">{children}</span>
+    </>
+  );
+  const cls = "group inline-flex items-center gap-3 rounded-full pr-4 transition-opacity duration-200 hover:opacity-70";
+  return href ? (
+    <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className={cls}>{inner}</a>
+  ) : (
+    <button onClick={onClick} className={cls}>{inner}</button>
   );
 }
 
-/**
- * Экран приложения в рамке телефона. Скриншоты сняты с демо-режима
- * (`scripts` → Playwright, 390×844, dpr 2) и лежат в `public/shots`.
- */
-function Phone({ shot, lift = false }: { shot: string; lift?: boolean }) {
+function SoftButton({ children, onClick, href }: { children: ReactNode; onClick?: () => void; href?: string }) {
+  const cls =
+    "inline-flex items-center justify-center rounded-full px-6 py-3 text-[15px] font-semibold transition-colors duration-200 hover:bg-[rgba(32,28,24,.11)]";
+  const style = { background: "rgba(32,28,24,.07)", color: "var(--ink)" };
+  return href ? (
+    <a href={href} className={cls} style={style}>{children}</a>
+  ) : (
+    <button onClick={onClick} className={cls} style={style}>{children}</button>
+  );
+}
+
+function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   return (
     <motion.div
-      whileHover={lift ? { y: -8, rotate: -1 } : undefined}
-      transition={{ duration: 0.35, ease: EASE }}
-      className="relative w-full max-w-[268px] overflow-hidden rounded-[34px] bg-white md:max-w-[290px]"
-      style={{ border: "var(--bw-lg) solid var(--ink)", boxShadow: "0 18px 0 -10px rgba(32,28,24,.14)" }}
+      className={className}
+      initial={{ opacity: 0, y: 26 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.7, delay, ease: EASE }}
     >
-      <span className="absolute left-1/2 top-2.5 z-10 h-1.5 w-16 -translate-x-1/2 rounded-full bg-[rgba(32,28,24,.18)]" />
-      <Image
-        src={asset(`/shots/${shot}.png`)}
-        alt=""
-        width={390}
-        height={844}
-        className="block h-auto w-full"
-        unoptimized
-      />
+      {children}
     </motion.div>
   );
 }
 
-/**
- * «Как это выглядит»: вкладки с реальными экранами. Пока человек не выбрал
- * вкладку сам, панель листается по кругу — иначе первый экран так и остаётся
- * единственным, который кто-либо видел.
- */
-function ProductTabs() {
-  const [active, setActive] = useState(0);
-  const touched = useRef(false);
+const WRAP = "mx-auto w-full max-w-[1200px] px-5 md:px-10";
+const FOOT_LINK = "text-[14px] font-medium text-[var(--muted)] transition-opacity hover:opacity-60";
 
-  useEffect(() => {
-    if (touched.current) return;
-    const id = setInterval(() => {
-      if (touched.current) return;
-      setActive((i) => (i + 1) % TABS.length);
-    }, 4600);
-    return () => clearInterval(id);
-  }, []);
+/* ─────────────────────────── шапка ─────────────────────────── */
 
-  const tab = TABS[active];
-
+function Nav({ scrolled, onLogin }: { scrolled: boolean; onLogin: () => void }) {
   return (
-    <section className="mx-auto w-full max-w-[1180px] px-5 pt-24 md:px-8 md:pt-36">
-      <p className="text-[12.5px] font-black uppercase tracking-[.12em] text-[var(--muted-2)]">Как это выглядит</p>
-      <h2 className="font-tight mt-3 max-w-[800px] text-[32px] font-black leading-[1.04] tracking-[-0.03em] md:text-[52px]">
-        Не макеты, а живые экраны
-      </h2>
+    <header
+      className="sticky top-0 z-40 transition-all duration-300"
+      style={{
+        background: scrolled ? "color-mix(in srgb, var(--bg) 82%, transparent)" : "transparent",
+        backdropFilter: scrolled ? "blur(16px)" : "none",
+        borderBottom: `1px solid ${scrolled ? "var(--hairline)" : "transparent"}`,
+      }}
+    >
+      <div className={`${WRAP} flex h-[80px] items-center justify-between gap-6`}>
+        <a href="#top" className="font-tight text-[24px] font-black tracking-[-0.03em]">{APP_NAME}</a>
 
-      <div className="mt-8 -mx-5 overflow-x-auto px-5 pb-2 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max gap-2 rounded-full p-1.5" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--ink)" }}>
-          {TABS.map((item, i) => (
-            <button
-              key={item.key}
-              onClick={() => {
-                touched.current = true;
-                setActive(i);
-              }}
-              className="relative rounded-full px-4 py-2.5 text-[13.5px] font-black whitespace-nowrap transition-colors md:px-5 md:text-[14.5px]"
-              style={{ color: i === active ? "var(--ink)" : "var(--muted)" }}
-            >
-              {i === active && (
-                <motion.span
-                  layoutId="tab-pill"
-                  className="absolute inset-0 rounded-full bg-white"
-                  style={{ border: "var(--bw) solid var(--ink)" }}
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                />
-              )}
-              <span className="relative z-10 inline-flex items-center gap-2">
-                <Icon name={item.icon} width={15} weight="bold" color={i === active ? item.edge : "var(--muted-2)"} />
-                {item.label}
-              </span>
-            </button>
+        <nav className="hidden items-center gap-7 lg:flex">
+          {NAV.map(([label, href]) => (
+            <a key={href} href={href} className="text-[15px] font-medium text-[var(--ink)] transition-opacity hover:opacity-60">
+              {label}
+            </a>
           ))}
-        </div>
-      </div>
+        </nav>
 
-      <div
-        className="mt-6 grid items-center gap-8 overflow-hidden rounded-[34px] bg-white p-6 md:mt-8 md:gap-12 md:p-12 lg:grid-cols-[1fr_auto]"
-        style={{ border: "var(--bw-lg) solid var(--ink)" }}
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${tab.key}-text`}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.32, ease: EASE }}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={onLogin}
+            className="rounded-full px-5 py-2.5 text-[14.5px] font-semibold transition-colors hover:bg-[rgba(32,28,24,.11)]"
+            style={{ background: "rgba(32,28,24,.07)" }}
           >
-            <span className="chip" style={{ background: tab.tone, color: tab.edge }}>
-              <Icon name={tab.icon} width={13} weight="bold" color={tab.edge} /> {tab.label}
-            </span>
-            <h3 className="font-tight mt-4 text-[26px] font-black leading-[1.08] tracking-[-0.025em] md:text-[38px]">{tab.title}</h3>
-            <p className="mt-4 max-w-[480px] text-[14.5px] font-semibold leading-relaxed text-[var(--muted)] md:text-[16.5px]">{tab.text}</p>
-            <ul className="mt-6 space-y-3">
-              {tab.points.map((point) => (
-                <li key={point} className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: tab.tone }}>
-                    <Icon name="check" width={13} weight="bold" color={tab.edge} />
-                  </span>
-                  <span className="text-[14px] font-bold md:text-[15px]">{point}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="flex justify-center rounded-[26px] p-6 md:p-8" style={{ background: tab.tone, border: "var(--bw) solid var(--ink)" }}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={tab.key}
-              initial={{ opacity: 0, y: 24, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -18, scale: 0.98 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-[268px] md:max-w-[290px]"
-            >
-              <Phone shot={tab.key} />
-            </motion.div>
-          </AnimatePresence>
+            Войти
+          </button>
+          <a href={BOT_URL} target="_blank" rel="noreferrer" className="group inline-flex items-center gap-2.5 pr-1">
+            <Arrow size={38} />
+            <span className="hidden text-[14.5px] font-semibold sm:block">В Telegram</span>
+          </a>
         </div>
       </div>
-    </section>
+    </header>
   );
 }
 
-/** Маскоты дневника настроения летают над hero и отстают от скролла. */
-function HeroMascots({ scrollY }: { scrollY: MotionValue<number> }) {
+/* ─────────────────────────── герой ─────────────────────────── */
+
+function Hero({ scrollY, onLogin }: { scrollY: MotionValue<number>; onLogin: () => void }) {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 hidden overflow-visible lg:block">
-      {MASCOTS.map((mascot) => (
-        <Mascot key={mascot.src} scrollY={scrollY} {...mascot} />
-      ))}
-    </div>
+    <section id="top" className="relative overflow-hidden pb-6 pt-16 md:pb-10 md:pt-24">
+      <div className="pointer-events-none absolute inset-0 hidden lg:block">
+        {MASCOTS.map((m) => (
+          <Mascot key={m.src} scrollY={scrollY} {...m} />
+        ))}
+      </div>
+
+      <div className={`${WRAP} relative text-center`}>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="inline-flex items-center gap-2 text-[15px] font-medium text-[var(--muted)]"
+        >
+          <Icon name="check" width={15} weight="bold" color="var(--green-edge)" />
+          Работает прямо в Telegram
+        </motion.p>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.06, ease: EASE }}
+          className="font-tight mx-auto mt-5 max-w-[1020px] text-[42px] font-black leading-[1.05] tracking-[-0.035em] md:text-[68px]"
+        >
+          Практика психолога,<br className="hidden md:block" /> собранная в одном месте
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.14, ease: EASE }}
+          className="mx-auto mt-6 max-w-[620px] text-[17px] font-medium leading-[1.5] text-[var(--muted)] md:text-[19px]"
+        >
+          Расписание, клиенты, домашние задания и динамика состояния — в одном приложении,
+          а не в пяти сервисах и блокноте.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.22, ease: EASE }}
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+        >
+          <ArrowLink href={BOT_URL}>Открыть в Telegram</ArrowLink>
+          <SoftButton onClick={onLogin}>Войти по почте</SoftButton>
+        </motion.div>
+      </div>
+    </section>
   );
 }
 
@@ -705,11 +366,11 @@ function Mascot({
   return (
     <motion.div className={`absolute ${className}`} style={{ y }}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.7 }}
-        animate={{ opacity: 1, scale: 1, y: [0, -12, 0], rotate: [-3, 3, -3] }}
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1, y: [0, -14, 0], rotate: [-4, 4, -4] }}
         transition={{
-          opacity: { duration: 0.6, delay: 0.3 + delay, ease: EASE },
-          scale: { duration: 0.6, delay: 0.3 + delay, ease: EASE },
+          opacity: { duration: 0.7, delay: 0.3 + delay, ease: EASE },
+          scale: { duration: 0.7, delay: 0.3 + delay, ease: EASE },
           y: { duration: 6 + delay, repeat: Infinity, ease: "easeInOut" },
           rotate: { duration: 9 + delay, repeat: Infinity, ease: "easeInOut" },
         }}
@@ -720,16 +381,439 @@ function Mascot({
   );
 }
 
-function Rise({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+/* ─────────────── вкладки с большим экраном приложения ─────────────── */
+
+function ScreensTabs() {
+  const [active, setActive] = useState(0);
+  const touched = useRef(false);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (touched.current) return;
+      setActive((i) => (i + 1) % TABS.length);
+    }, 4600);
+    return () => clearInterval(id);
+  }, []);
+
+  const tab = TABS[active];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-70px" }}
-      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="h-full"
-    >
+    <section id="screens" className="pb-14 md:pb-24">
+      <div className={`${WRAP} flex justify-center`}>
+        <div className="-mx-5 flex max-w-full gap-1 overflow-x-auto px-5 pb-1 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {TABS.map((item, i) => (
+            <button
+              key={item.key}
+              onClick={() => {
+                touched.current = true;
+                setActive(i);
+              }}
+              className="relative shrink-0 rounded-full px-5 py-3 text-[15px] font-medium whitespace-nowrap transition-colors"
+              style={{ color: i === active ? "var(--ink)" : "var(--muted)" }}
+            >
+              {i === active && (
+                <motion.span
+                  layoutId="screens-pill"
+                  className="absolute inset-0 rounded-full"
+                  style={{ background: "rgba(32,28,24,.07)" }}
+                  transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center gap-2">
+                <Icon name={item.icon} width={17} weight="regular" color="currentColor" />
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={`${WRAP} mt-6 md:mt-8`}>
+        <motion.div
+          className="relative overflow-hidden rounded-[28px] px-4 pt-4 md:rounded-[36px] md:px-10 md:pt-10"
+          animate={{ backgroundColor: tab.tone }}
+          transition={{ duration: 0.5, ease: EASE }}
+          style={{ height: "clamp(280px, 46vw, 620px)" }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab.key}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.45, ease: EASE }}
+              className="mx-auto h-full w-full max-w-[1040px] overflow-hidden rounded-t-[16px] bg-white md:rounded-t-[22px]"
+              style={{ boxShadow: "0 -2px 40px rgba(32,28,24,.12)" }}
+            >
+              <Image
+                src={asset(`/shots/d-${tab.key}.png`)}
+                alt={`Экран «${tab.label}» в Хронике`}
+                width={2560}
+                height={1600}
+                className="block w-full"
+                unoptimized
+                priority={active === 0}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── три карточки ─────────────────────────── */
+
+function Trio() {
+  return (
+    <section className={`${WRAP} pb-16 md:pb-28`}>
+      <div className="grid gap-4 md:grid-cols-3">
+        {TRIO.map((card, i) => (
+          <Reveal key={card.title} delay={i * 0.08}>
+            <motion.article
+              whileHover={{ y: -6 }}
+              transition={{ duration: 0.3, ease: EASE }}
+              className="flex h-full flex-col rounded-[26px] bg-[var(--surface)] p-7 md:p-8"
+              style={{ border: "1px solid var(--hairline)" }}
+            >
+              <Image src={asset(card.mascot)} alt="" width={68} height={68} className="select-none" unoptimized />
+              <h3 className="font-tight mt-6 text-[25px] font-black leading-tight tracking-[-0.02em]">{card.title}</h3>
+              <p className="mt-3 text-[15px] font-medium leading-[1.55] text-[var(--muted)]">{card.text}</p>
+            </motion.article>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── запросы ─────────────────────────── */
+
+function Topics() {
+  return (
+    <section className={`${WRAP} pb-20 md:pb-32`}>
+      <Reveal>
+        <p className="text-center text-[19px] font-medium text-[var(--muted)]">
+          С чем к психологам приходят чаще всего
+        </p>
+      </Reveal>
+      <div className="mt-12 grid grid-cols-2 gap-y-10 md:grid-cols-4">
+        {TOPICS.map((topic, i) => (
+          <Reveal key={topic.label} delay={(i % 4) * 0.06}>
+            <div className="flex items-center justify-center gap-2.5">
+              <Icon name={topic.icon} width={26} weight="regular" color="var(--ink)" />
+              <span className="font-tight text-[19px] font-black tracking-[-0.02em] md:text-[22px]">{topic.label}</span>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── возможности ─────────────────────────── */
+
+function Features() {
+  return (
+    <section id="features" className={`${WRAP} pb-16 md:pb-24`}>
+      <Reveal>
+        <h2 className="font-tight max-w-[760px] text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
+          Ведите практику ясно и без хаоса
+        </h2>
+      </Reveal>
+
+      <div className="mt-10 space-y-4 md:mt-14 md:space-y-5">
+        {FEATURES.map((block, i) => (
+          <Reveal key={block.title} delay={0.05}>
+            <article
+              className="grid items-stretch gap-8 overflow-hidden rounded-[30px] p-7 md:grid-cols-2 md:gap-10 md:p-12 md:pr-0"
+              style={{ background: "rgba(32,28,24,.045)" }}
+            >
+              <div className="flex flex-col">
+                <h3 className="font-tight text-[28px] font-black leading-[1.08] tracking-[-0.025em] md:text-[40px]">{block.title}</h3>
+                <p className="mt-4 max-w-[460px] text-[15px] font-medium leading-[1.55] text-[var(--muted)] md:text-[16.5px]">{block.text}</p>
+
+                <div className="mt-7 flex flex-wrap gap-2.5">
+                  {block.tags.map((tag) => (
+                    <span
+                      key={tag.label}
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-4 py-2.5 text-[14px] font-medium"
+                      style={{ border: "1px solid var(--hairline)" }}
+                    >
+                      <Icon name={tag.icon} width={16} weight="regular" color="var(--ink)" />
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-auto pt-9">
+                  <ArrowLink href={BOT_URL}>Открыть в Telegram</ArrowLink>
+                </div>
+              </div>
+
+              <div
+                className="relative -mb-7 min-h-[240px] overflow-hidden rounded-[22px] md:-mb-12 md:mr-0 md:min-h-[380px] md:rounded-r-none"
+                style={{ background: block.tone }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, x: 40 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.8, delay: 0.15, ease: EASE }}
+                  className="absolute left-6 top-8 w-[130%] overflow-hidden rounded-[14px] bg-white md:left-10 md:top-12"
+                  style={{ boxShadow: "0 20px 60px rgba(32,28,24,.16)" }}
+                >
+                  <Image
+                    src={asset(`/shots/d-${block.shot}.png`)}
+                    alt={`Экран «${block.title}» в Хронике`}
+                    width={2560}
+                    height={1600}
+                    className="block w-full"
+                    unoptimized
+                  />
+                </motion.div>
+              </div>
+            </article>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── вопросы ─────────────────────────── */
+
+function Faq() {
+  return (
+    <section id="faq" className={`${WRAP} py-16 md:py-28`}>
+      <Reveal>
+        <h2 className="font-tight mx-auto max-w-[820px] text-center text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
+          Вопросы, которые задают чаще всего
+        </h2>
+      </Reveal>
+
+      <div className="mt-12 grid gap-4 md:mt-16 md:grid-cols-3">
+        {FAQ.map((item, i) => (
+          <Reveal key={item.q} delay={(i % 3) * 0.07} className={i % 3 === 1 ? "md:-translate-y-6" : undefined}>
+            <motion.article
+              whileHover={{ y: -5 }}
+              transition={{ duration: 0.3, ease: EASE }}
+              className="relative flex h-full min-h-[240px] flex-col rounded-[26px] bg-[var(--surface)] p-7"
+              style={{ border: "1px solid var(--hairline)" }}
+            >
+              <span className="absolute right-6 top-6 font-tight text-[46px] leading-none text-[rgba(32,28,24,.08)]">”</span>
+              <p className="max-w-[85%] text-[17px] font-semibold leading-[1.4]">{item.q}</p>
+              <p className="mt-4 text-[14.5px] font-medium leading-[1.5] text-[var(--muted)]">{item.a}</p>
+              <span className="mt-auto flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "rgba(32,28,24,.06)" }}>
+                <Icon name={item.icon} width={19} weight="regular" color="var(--ink)" />
+              </span>
+            </motion.article>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── кольцо разделов ─────────────────────────── */
+
+function Orbit() {
+  return (
+    <section className="relative overflow-hidden pt-16 md:pt-24" style={{ background: "rgba(32,28,24,.03)" }}>
+      <div className={`${WRAP} text-center`}>
+        <Reveal>
+          <h2 className="font-tight mx-auto max-w-[760px] text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
+            Работайте спокойнее: всё в одном месте
+          </h2>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <div className="mt-8 flex justify-center">
+            <ArrowLink href={BOT_URL}>Открыть в Telegram</ArrowLink>
+          </div>
+        </Reveal>
+      </div>
+
+      <div className="relative mx-auto mt-12 h-[300px] w-full max-w-[1100px] md:mt-16 md:h-[420px]">
+        {[0, 1].map((ring) => (
+          <span
+            key={ring}
+            className="absolute left-1/2 bottom-0 -translate-x-1/2 rounded-t-full"
+            style={{
+              width: ring === 0 ? "94%" : "64%",
+              height: ring === 0 ? "100%" : "68%",
+              background: ring === 0 ? "rgba(32,28,24,.035)" : "rgba(32,28,24,.045)",
+            }}
+          />
+        ))}
+
+        {ORBIT.map((chip, i) => (
+          <motion.span
+            key={chip.icon + i}
+            initial={{ opacity: 0, scale: 0.5 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5, delay: i * 0.07, ease: EASE }}
+            className="absolute flex -translate-x-1/2 items-center justify-center rounded-full bg-[var(--surface)]"
+            style={{
+              left: `${chip.x}%`,
+              top: `${chip.y}%`,
+              width: chip.size,
+              height: chip.size,
+              boxShadow: "0 8px 24px rgba(32,28,24,.1)",
+            }}
+          >
+            <Icon name={chip.icon} width={chip.size * 0.42} weight="regular" color="var(--ink)" />
+          </motion.span>
+        ))}
+
+        <motion.div
+          initial={{ opacity: 0, y: 60 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.9, ease: EASE }}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[26%]"
+        >
+          <Image src={asset("/mascots/bee-great.webp")} alt="" width={230} height={230} className="select-none" unoptimized />
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── для кого ─────────────────────────── */
+
+function Who() {
+  return (
+    <section id="who" className={`${WRAP} py-16 md:py-28`}>
+      <Reveal>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <h2 className="font-tight max-w-[720px] text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
+            Две стороны одной встречи.{" "}
+            <span className="text-[var(--muted)]">Приложение одно.</span>
+          </h2>
+          <SoftButton href={BOT_URL}>Посмотреть в Telegram</SoftButton>
+        </div>
+      </Reveal>
+
+      <div className="mt-10 grid gap-4 md:mt-14 md:grid-cols-2">
+        {WHO.map((side, i) => (
+          <Reveal key={side.who} delay={i * 0.08}>
+            <motion.article
+              whileHover={{ y: -6 }}
+              transition={{ duration: 0.3, ease: EASE }}
+              className="h-full rounded-[28px] p-8 md:p-10"
+              style={{ background: side.tone }}
+            >
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface)]">
+                <Icon name={side.icon} width={26} weight="regular" color="var(--ink)" />
+              </span>
+              <h3 className="font-tight mt-6 text-[30px] font-black tracking-[-0.025em] md:text-[36px]">{side.who}</h3>
+              <ul className="mt-6 space-y-3.5">
+                {side.points.map((point) => (
+                  <li key={point} className="flex items-start gap-3">
+                    <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--surface)]">
+                      <Icon name="check" width={11} weight="bold" color="var(--ink)" />
+                    </span>
+                    <span className="text-[15px] font-medium leading-[1.5]">{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </motion.article>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── финальный призыв ─────────────────────────── */
+
+function Cta() {
+  return (
+    <section className="relative overflow-hidden pb-24 pt-32 md:pb-32 md:pt-56">
+      <span className="pointer-events-none absolute right-[-6%] top-0 h-[300px] w-[520px] rounded-full" style={{ background: "rgba(32,28,24,.045)" }} />
+      <motion.div
+        animate={{ y: [0, -16, 0], rotate: [-4, 4, -4] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute left-[16%] top-[6%] hidden lg:block"
+      >
+        <Image src={asset("/mascots/cat-great.webp")} alt="" width={96} height={96} unoptimized />
+      </motion.div>
+      <motion.div
+        animate={{ y: [0, 14, 0], rotate: [3, -3, 3] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute bottom-[10%] right-[14%] hidden lg:block"
+      >
+        <Image src={asset("/mascots/rabbit-good.webp")} alt="" width={104} height={104} unoptimized />
+      </motion.div>
+
+      <div className={`${WRAP} relative text-center`}>
+        <Reveal>
+          <h2 className="font-tight mx-auto max-w-[820px] text-[40px] font-black leading-[1.05] tracking-[-0.035em] md:text-[64px]">
+            Начните вести практику спокойнее
+          </h2>
+        </Reveal>
+        <Reveal delay={0.08}>
+          <p className="mx-auto mt-5 max-w-[560px] text-[17px] font-medium text-[var(--muted)] md:text-[19px]">
+            Открывается в Telegram за одно касание. Ни установки, ни паролей.
+          </p>
+        </Reveal>
+        <Reveal delay={0.16}>
+          <div className="mt-9 flex justify-center">
+            <ArrowLink href={BOT_URL}>Начать бесплатно</ArrowLink>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── подвал ─────────────────────────── */
+
+function Footer({ onLogin }: { onLogin: () => void }) {
+  return (
+    <footer className={`${WRAP} pb-10`}>
+      <div className="rounded-[30px] p-8 md:p-10" style={{ background: "rgba(255,255,255,.7)", border: "1px solid var(--hairline)" }}>
+        <div className="flex flex-wrap justify-between gap-10">
+          <div className="min-w-[240px] max-w-[320px]">
+            <p className="font-tight text-[26px] font-black tracking-[-0.03em]">{APP_NAME}</p>
+            <p className="mt-3 text-[14px] font-medium leading-[1.5] text-[var(--muted)]">
+              {TAGLINE}. Создано в центре{" "}
+              <a href={CENTER_URL} target="_blank" rel="noreferrer" className="underline underline-offset-2">{CENTER}</a>.
+            </p>
+          </div>
+
+          <FooterCol title="Платформа">
+            <a href="#features" className={FOOT_LINK}>Возможности</a>
+            <a href="#screens" className={FOOT_LINK}>Разделы</a>
+            <a href="#who" className={FOOT_LINK}>Для кого</a>
+          </FooterCol>
+
+          <FooterCol title="Начать">
+            <a href={BOT_URL} target="_blank" rel="noreferrer" className={FOOT_LINK}>Открыть в Telegram</a>
+            <button onClick={onLogin} className={`${FOOT_LINK} text-left`}>Войти по почте</button>
+            <span className="text-[14px] font-medium text-[var(--muted-2)]">t.me/{BOT_NAME}</span>
+          </FooterCol>
+
+          <FooterCol title="Документы">
+            <a href="/policy" className={FOOT_LINK}>Политика и условия</a>
+            <a href="#faq" className={FOOT_LINK}>Частые вопросы</a>
+          </FooterCol>
+        </div>
+
+        <p className="mt-10 border-t pt-6 text-[13px] font-medium text-[var(--muted-2)]" style={{ borderColor: "var(--hairline)" }}>
+          Платформа не оказывает экстренную и медицинскую помощь.
+        </p>
+      </div>
+    </footer>
+  );
+}
+
+function FooterCol({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <nav className="flex flex-col gap-3">
+      <p className="text-[12px] font-bold uppercase tracking-[.12em] text-[var(--muted-2)]">{title}</p>
       {children}
-    </motion.div>
+    </nav>
   );
 }

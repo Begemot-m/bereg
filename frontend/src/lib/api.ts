@@ -22,11 +22,14 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   // В демо не ходим в сеть — отвечаем из мок-хранилища.
   if (DEMO) return mockFetch<T>(path, init);
 
+  // У FormData свой content-type с boundary: подставим json — сервер не
+  // разберёт форму и вернёт 422 на каждую загрузку файла.
+  const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
   const doRequest = () => {
     return fetch(`${API_URL}${path}`, {
       ...init,
       headers: {
-        "Content-Type": "application/json",
+        ...(isForm ? {} : { "Content-Type": "application/json" }),
         ...init.headers,
       },
     });

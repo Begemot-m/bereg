@@ -46,6 +46,28 @@ model User {
   telegramDeliveries TelegramDelivery[]
   supportRequests    SupportRequest[]
   payments           Payment[]
+  psyDocuments       PsyDocument[]
+}
+
+/// Диплом или сертификат психолога. Отдельной таблицей, а не полем в
+/// PsyProfile.data: из Json их больно выковыривать при требовании об удалении
+/// ПД, а список анкет в админке не должен тащить мегабайты вложений.
+/// Сам файл лежит на диске сервера зашифрованным (см. lib/server/files.ts);
+/// в базе — только метаданные и имя файла в хранилище.
+model PsyDocument {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// diploma — основной документ об образовании, certificate — всё остальное.
+  kind      String   @default("diploma")
+  name      String
+  mime      String
+  size      Int
+  /// Имя файла в UPLOAD_DIR. Случайное: по нему нельзя угадать чужой документ.
+  storageKey String  @unique
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 /// Шаблон рабочих часов: по одной записи на психолога.

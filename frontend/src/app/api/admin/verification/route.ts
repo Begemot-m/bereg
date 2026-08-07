@@ -17,7 +17,10 @@ function row(p: {
   sessionPrice: number; city: string; format: string; status: string;
   rejectReason: string | null; submittedAt: Date | null; reviewedAt: Date | null;
   data: unknown;
-  user: { username: string | null; firstName: string | null; email: string | null; createdAt: Date };
+  user: {
+    username: string | null; firstName: string | null; email: string | null; createdAt: Date;
+    psyDocuments: { id: number; kind: string; name: string; mime: string; size: number }[];
+  };
 }) {
   const v = ((p.data as { verification?: Verification } | null)?.verification ?? {}) as Verification;
   return {
@@ -39,7 +42,11 @@ function row(p: {
     publicLink: v.publicLink ?? "",
     about: v.about ?? "",
     profilePercent: v.profilePercent ?? 0,
+    // diploma — старые анкеты, где файл лежал data-URL'ом прямо в Json.
+    // Новые кладут документы в PsyDocument; поле остаётся, пока такие анкеты
+    // не разошлись по модерации.
     diploma: v.diploma ?? null,
+    documents: p.user.psyDocuments,
   };
 }
 
@@ -47,7 +54,14 @@ const select = {
   userId: true, name: true, primaryMethod: true, experienceYears: true,
   sessionPrice: true, city: true, format: true, status: true,
   rejectReason: true, submittedAt: true, reviewedAt: true, data: true,
-  user: { select: { username: true, firstName: true, email: true, createdAt: true } },
+  user: {
+    select: {
+      username: true, firstName: true, email: true, createdAt: true,
+      // Сам файл не тащим — только метаданные и id, по которому модератор
+      // откроет документ отдельным запросом.
+      psyDocuments: { select: { id: true, kind: true, name: true, mime: true, size: true }, orderBy: { createdAt: "asc" } },
+    },
+  },
 } as const;
 
 /**

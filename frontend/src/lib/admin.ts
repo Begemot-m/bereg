@@ -27,6 +27,8 @@ export type PsyApplication = {
   photo?: string | null;
   profilePercent?: number;
   diploma?: { name: string; type: string; size: number; dataUrl: string } | null;
+  /** Документы из хранилища: метаданные, файл открывается роутом по id. */
+  documents?: { id: number; kind: string; name: string; mime: string; size: number }[];
 };
 
 export type VerificationQueue = { queue: PsyApplication[]; recent: PsyApplication[] };
