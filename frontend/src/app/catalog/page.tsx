@@ -8,7 +8,7 @@ import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { syncTelegramChrome } from "@/components/telegram-init";
 
@@ -520,7 +520,6 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
 function TelegramPoster({ psy }: { psy: Psy }) {
   return (
     <div className="relative overflow-hidden rounded-[20px] p-5" style={{ background: "var(--head)" }}>
-      <span aria-hidden className="float-y absolute -right-7 -top-8 h-24 w-24 rounded-full bg-white/20" style={{ "--float-shift": "8px", "--float-time": "5s" } as CSSProperties} />
       <div className="relative flex items-start gap-3.5">
         <span className="ico ico-white h-12 w-12 shrink-0"><Icon name="telegram" width={23} weight="fill" color="var(--edge)" /></span>
         <div><h3 className="font-tight text-[18px] font-black leading-tight">Остались уточняющие вопросы?</h3><p className="mt-1 text-[11.5px] font-bold text-[var(--muted)]">Можете написать специалисту напрямую.</p></div>

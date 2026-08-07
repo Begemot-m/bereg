@@ -20,8 +20,6 @@ const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.g
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pl = (n: number, one: string, few: string, many: string) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
 
-const MORPH = { type: "spring" as const, stiffness: 420, damping: 34 };
-
 export type Slot = { iso: string; hour: number; t: string; dur: number; fmt: ApptFormat; past: boolean; appt?: Appointment; removed: boolean };
 
 // Окна дня собираются из графика + записей, которые в график не попали.
@@ -85,7 +83,7 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
             : busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : free > 0 ? `${free} свободно` : "окон нет"}
         </p>
       </div>
-      <motion.div layout transition={MORPH} className="grid grid-cols-3 items-start gap-2">
+      <div className="grid grid-cols-3 items-start gap-2">
         {slots.map((s) => (
           <SlotCell
             key={s.iso}
@@ -104,7 +102,7 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
             onClose={() => setOpen(null)}
           />
         )}
-      </motion.div>
+      </div>
     </section>
   );
 }
@@ -137,8 +135,10 @@ function look(s: Slot): Look {
 // прямо отсюда — чтобы не уходить в раздел «Клиенты» посреди записи.
 const FIELD = "min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]";
 const THIN = { border: "1px solid var(--edge)" } as const;
-// Кнопки в раскрытом окне: узкая обводка, чтобы строка не росла по высоте.
-const THIN_BTN = { borderWidth: 1, minHeight: 0 } as const;
+// Кнопки в раскрытом окне: узкая обводка и фиксированная низкая высота, текст
+// в одну строку — иначе на узком экране слова переносятся и плитка распухает.
+const THIN_BTN = { borderWidth: 1, minHeight: 0, lineHeight: 1 } as const;
+const FLAT_BTN = "btn h-7 w-full whitespace-nowrap px-1.5 py-0 text-[10.5px]";
 
 function ClientChips({ onPick }: { onPick: (id: number) => void }) {
   const qc = useQueryClient();
@@ -177,8 +177,8 @@ function ClientChips({ onPick }: { onPick: (id: number) => void }) {
         <input autoFocus value={fullName} onChange={(e) => changeFullName(e.target.value)} onFocus={keepVisible} placeholder="Имя и фамилия" enterKeyHint="next" autoComplete="off" className={`${FIELD} w-full [caret-color:var(--ink)]`} style={THIN} />
         <input value={contact} onChange={(e) => setContact(e.target.value)} onFocus={keepVisible} placeholder="Телефон или Telegram" enterKeyHint="done" autoComplete="off" className={`${FIELD} w-full [caret-color:var(--ink)]`} style={THIN} />
         <div className="flex gap-2">
-          <button type="button" onClick={() => { tap(); setAdding(false); }} className="btn btn-white flex-1 py-2 text-[12px]">Отмена</button>
-          <button type="submit" disabled={!first.trim() || create.isPending} className="btn btn-accent flex-1 py-2 text-[12px]">Создать и записать</button>
+          <button type="button" onClick={() => { tap(); setAdding(false); }} className="btn btn-white h-8 flex-1 whitespace-nowrap py-0 text-[11.5px]" style={THIN_BTN}>Отмена</button>
+          <button type="submit" disabled={!first.trim() || create.isPending} className="btn btn-accent h-8 flex-1 whitespace-nowrap py-0 text-[11.5px]" style={THIN_BTN}>Создать и записать</button>
         </div>
       </form>
     );
@@ -251,9 +251,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
 
   if (!active) {
     return (
-      <motion.button
-        layout
-        transition={MORPH}
+      <button
         onClick={onTap}
         className="flex h-[54px] w-full flex-col items-center justify-center gap-0.5 rounded-[13px]"
         style={{ background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--edge-neutral)" }}
@@ -261,12 +259,12 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
       >
         <Icon name="plus" width={18} weight="bold" color="var(--muted)" />
         <span className="text-[9.5px] font-bold">добавить</span>
-      </motion.button>
+      </button>
     );
   }
 
   return (
-    <motion.div layout transition={MORPH} className="col-span-3 rounded-[13px] p-3.5" style={{ background: "var(--surface-2)" }}>
+    <div className="col-span-3 rounded-[13px] p-3.5" style={{ background: "var(--surface-2)" }}>
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[12.5px] font-black">Новая сессия</p>
         <button onClick={() => { setIso(null); onClose(); }} className="x-close text-[15px]" aria-label="Закрыть">✕</button>
@@ -301,16 +299,14 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
           <ClientChips onPick={(clientId) => book.mutate({ clientId })} />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
 function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolean; onTap: () => void; onClose: () => void }) {
   const st = look(slot);
   return (
-    <motion.div
-      layout
-      transition={MORPH}
+    <div
       className={active ? "col-span-3" : ""}
       style={{
         borderRadius: 13,
@@ -321,8 +317,7 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
         zIndex: active ? 2 : 1,
       }}
     >
-      <motion.button
-        layout="position"
+      <button
         onClick={onTap}
         disabled={slot.past && !slot.appt && !active}
         className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : "relative flex min-h-[60px] w-full flex-col items-center justify-center gap-0.5 px-1 py-2"}
@@ -350,7 +345,7 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
           </>
         )}
         {active && <span className="x-close text-[15px]">✕</span>}
-      </motion.button>
+      </button>
 
       <AnimatePresence initial={false}>
         {active && (
@@ -365,7 +360,7 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
@@ -407,19 +402,19 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         {/* Кнопки во всю ширину блока и низкие: действия равные по весу,
             высоту им добавлять незачем. */}
         <div className={`grid gap-1.5 ${slot.past ? "grid-cols-2" : "grid-cols-3"}`}>
-          <button onClick={() => setResch(true)} className="btn btn-accent w-full px-2 py-0 text-[11px]" style={THIN_BTN}>Перенести</button>
+          <button onClick={() => setResch(true)} className={`${FLAT_BTN} btn-accent`} style={THIN_BTN}>Перенести</button>
           {/* Написать — прямо в личный чат Telegram, если контакт это username. */}
           {tgLink ? (
-            <a href={tgLink} target="_blank" rel="noreferrer" className="btn w-full px-2 py-0 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
-              <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
+            <a href={tgLink} target="_blank" rel="noreferrer" className={FLAT_BTN} style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
+              <Icon name="telegram" width={12} weight="fill" color="var(--edge)" /> Написать
             </a>
           ) : (
-            <Link href={`/clients/${slot.appt.client.id}`} className="btn w-full px-2 py-0 text-[11px]" style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
-              <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Написать
+            <Link href={`/clients/${slot.appt.client.id}`} className={FLAT_BTN} style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
+              <Icon name="telegram" width={12} weight="fill" color="var(--edge)" /> Написать
             </Link>
           )}
           {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-          {!slot.past && <button onClick={() => cancel.mutate()} className="btn w-full px-2 py-0 text-[11px]" style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}><Icon name="close" width={12} weight="bold" color="var(--ink)" /> Освободить</button>}
+          {!slot.past && <button onClick={() => cancel.mutate()} className={FLAT_BTN} style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}><Icon name="close" width={11} weight="bold" color="var(--ink)" /> Освободить</button>}
         </div>
       </div>
     );

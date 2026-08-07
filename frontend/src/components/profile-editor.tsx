@@ -82,19 +82,14 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const steps = STEPS.slice(0, -1);
   const done = steps.filter((item) => isComplete(item.id, merged)).length;
   const percent = Math.round((done / steps.length) * 100);
-  const gap = steps.find((item) => !isComplete(item.id, merged));
   const full = percent === 100;
   const tone = full ? "green" : "amber";
 
   return (
     <button data-tour="profile-progress" onClick={onContinue} className="flex w-full items-center gap-3 rounded-[16px] p-3 text-left transition-transform active:scale-[.99]" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
-      <motion.span
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white stroke"
-        animate={full ? { scale: [1, 1.08, 1] } : { rotate: [0, -8, 8, 0] }}
-        transition={{ duration: full ? 2.4 : 3.6, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <Icon name={full ? "check" : "spark"} width={20} weight="bold" color={`var(--${tone}-edge)`} />
-      </motion.span>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white">
+        <Icon name="user" width={20} weight="bold" color={`var(--${tone}-edge)`} />
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[13px] font-black leading-tight">{full ? "Профиль заполнен" : `Профиль на ${percent}%`}</p>
@@ -103,7 +98,7 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
           <motion.div className="h-full rounded-full" style={{ background: `var(--${tone})` }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
         </div>
-        <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">{full ? "Вас находят по всем фильтрам каталога" : gap ? `Дальше: ${gap.title.toLowerCase()}` : "Продолжить заполнение"}</p>
+        {full && <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">Вас находят по всем фильтрам каталога</p>}
       </div>
       <Arrow />
     </button>
@@ -348,9 +343,9 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
 
     <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
       <div className="flex gap-2">
-        <button className="back-link disabled:opacity-0" onClick={back} disabled={index === 0}>Назад</button>
+        <button className="btn px-5 disabled:opacity-0" onClick={back} disabled={index === 0} style={{ background: "transparent", color: "var(--ink)", borderColor: "var(--ink)" }}>Назад</button>
         {index === flowSteps.length - 1
-          ? <Button className="flex-1" onClick={save}>Опубликовать профиль</Button>
+          ? <Button className="flex-1" onClick={save}>Завершить</Button>
           : <Button className="flex-1" onClick={next}>Далее</Button>}
       </div>
       {savedAt && <p className="t-cap mt-1 text-center">Сохранено в {savedAt}</p>}
@@ -548,7 +543,7 @@ function ChipInput({ placeholder, onAdd }: { placeholder: string; onAdd: (value:
   const commit = () => { const v = value.trim(); if (!v) return; onAdd(v); setValue(""); tap(); };
   return (
     <div className="flex items-center gap-2">
-      <div className="flex flex-1 items-center gap-2 rounded-[13px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }} placeholder={placeholder} className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
+      <div className="flex flex-1 items-center gap-2 rounded-[13px] bg-white px-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><Icon name="plus" width={15} color="var(--muted-2)" /><input value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }} placeholder={placeholder} className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
       <button onClick={commit} disabled={!value.trim()} className="shrink-0 rounded-[12px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
     </div>
   );

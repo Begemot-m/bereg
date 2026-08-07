@@ -45,7 +45,7 @@ export type CatalogSubmission = {
 
 // Порог, ниже которого заявку не принимаем: неполная карточка в каталоге
 // бесполезна и клиенту, и самому специалисту.
-export const CATALOG_MIN_PERCENT = 90;
+export const CATALOG_MIN_PERCENT = 60;
 
 export const EMPTY_FORM: VerificationForm = {
   fullName: "",

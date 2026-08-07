@@ -100,10 +100,9 @@ export function CatalogVerification() {
   return (
     <section className="chunk mt-4 p-4">
       <div className="flex items-start gap-3">
-        <span className="ico h-10 w-10 shrink-0" style={{ background: "#fff" }}><Icon name="therapy" width={19} weight="bold" color="var(--edge)" /></span>
+        <span className="ico h-10 w-10 shrink-0" style={{ background: "#fff" }}><Icon name="check" width={19} weight="bold" color="var(--green)" /></span>
         <div className="min-w-0 flex-1">
           <p className="font-tight text-[17px] font-black leading-tight">Пройти верификацию для размещения в каталоге</p>
-          <p className="t-sub mt-1">Мы проверяем заявку вручную. Обычно это занимает пару дней.</p>
         </div>
       </div>
 

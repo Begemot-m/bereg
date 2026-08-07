@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/icons";
 import { APP_NAME, botDeepLink } from "@/lib/brand";
@@ -52,7 +52,6 @@ export function InviteBanner({ variant }: { variant: Variant }) {
     <>
       {/* Салатовый — в тон блоку настроения дня */}
       <button onClick={() => { tap(); setOpen(true); }} className="card-soft relative w-full overflow-hidden p-5 text-left transition-transform active:scale-[0.99]" style={{ background: "var(--olive-soft)" }}>
-        <span aria-hidden className="float-y absolute -bottom-6 right-14 h-14 w-14 rounded-full" style={{ background: "rgba(255,255,255,.35)", "--float-shift": "-8px", "--float-time": "4.4s" } as CSSProperties} />
         {psy ? (
           <div className="relative min-h-[84px] pr-[88px]">
             <GiftArt />
@@ -133,7 +132,6 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
       <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-md overflow-y-auto p-0" style={{ background: "var(--surface)" }}>
         {/* Герой */}
         <div className="relative overflow-hidden p-5" style={{ background: "var(--head)" }}>
-          <span aria-hidden className="float-y absolute -right-8 -top-10 h-28 w-28 rounded-full" style={{ background: "rgba(255,255,255,.3)" }} />
           <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
           {!psy && <span className="ico ico-white relative h-12 w-12"><Icon name="spark" width={24} weight="fill" color="var(--edge)" /></span>}
           <h3 className={`font-tight relative text-[20px] font-black leading-tight ${psy ? "pr-10" : "mt-3"}`}>{c.title}</h3>

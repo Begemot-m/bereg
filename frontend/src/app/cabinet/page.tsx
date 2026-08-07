@@ -18,6 +18,7 @@ import { SubscriptionBanner } from "@/components/subscription-block";
 import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch } from "@/lib/api";
+import { CENTER_SITE, CENTER_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
@@ -91,20 +92,11 @@ export default function CabinetPage() {
         {/* Приватность и данные */}
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
-          <div className="card-soft mb-3 flex items-start gap-3 p-4">
-            <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="lock" width={21} weight="bold" color="var(--edge)" /></span>
-            <p className="t-body">Ваши данные конфиденциальны. Чувствительные сведения хранятся в зашифрованном виде. При желании вы можете удалить все сведения о себе и использовании сервиса.</p>
-          </div>
-          <Card className="space-y-1">
-            <ActionRow
-              icon="book"
-              title="Политика обработки данных"
-              sub="Что храним, зачем и сколько"
-              onClick={() => router.push("/policy")}
-            />
-            <ActionRow icon="compass" title="Пройти знакомство заново" sub="Онбординг и экскурсия по разделам" onClick={() => { resetTours(); resetOnboarding(); }} />
+          <div className="space-y-1">
+            <ActionRow icon="book" title="Политика обработки данных" onClick={() => router.push("/policy")} />
+            <ActionRow icon="compass" title="Пройти знакомство заново" onClick={() => { resetTours(); resetOnboarding(); }} />
             <WipeDataRow />
-          </Card>
+          </div>
         </div>
 
         {/* Приглашения */}
@@ -113,11 +105,8 @@ export default function CabinetPage() {
           <InviteBanner variant={psy ? "psy" : "client"} />
         </div>
 
-        {/* Отдел заботы — центр-создатель + связь */}
-        <div>
-          <SectionTitle>Отдел заботы</SectionTitle>
-          <CareModule />
-        </div>
+        {/* Связь с командой */}
+        <CareModule />
 
         {/* Роль психолога — только для тех, кто выбрал клиента в онбординге */}
         <PsyRoleRequest />
@@ -128,8 +117,8 @@ export default function CabinetPage() {
           <Card className="flex items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}><Icon name="therapy" width={22} weight="bold" /></span>
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-black">Хроника</p>
-              <p className="text-[11.5px] font-semibold text-[var(--muted)]">Платформа центра «Амур и Психея».</p>
+              <p className="text-[13px] font-bold leading-snug">Платформа создана центром «Амур и Психея»</p>
+              <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={tap} className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-black underline-offset-2 hover:underline">{CENTER_SITE} <ArrowGlyph /></a>
               <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Сборка от {buildLabel()}</p>
             </div>
           </Card>
@@ -168,7 +157,6 @@ function WipeDataRow() {
       <ActionRow
         icon="gear"
         title={busy ? "Удаляем…" : "Удалить мои данные"}
-        sub="Стирает сведения о себе, доступ остаётся"
         danger
         onClick={() => { tap(); setConfirming(true); }}
       />
@@ -533,15 +521,11 @@ function Foldable({ icon, title, subtitle, children, defaultOpen = false, tone }
 }
 
 // Строка-действие в списке настроек: иконка + заголовок/описание + шеврон.
-function ActionRow({ icon, title, sub, onClick, danger }: { icon: IconName; title: string; sub: string; onClick: () => void; danger?: boolean }) {
+function ActionRow({ icon, title, onClick, danger }: { icon: IconName; title: string; onClick: () => void; danger?: boolean }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-[12px] px-1.5 py-2 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
+    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-[12px] px-1.5 py-2.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
       <span className="ico h-9 w-9 shrink-0" style={danger ? { background: "var(--salmon)" } : undefined}><Icon name={icon} width={17} color={danger ? "#fff" : "var(--edge)"} /></span>
-      <span className="min-w-0 flex-1">
-        <span className={`font-tight block text-[13.5px] font-bold ${danger ? "text-[var(--salmon-edge)]" : ""}`}>{title}</span>
-        <span className="t-cap block">{sub}</span>
-      </span>
-      <Arrow />
+      <span className={`font-tight min-w-0 flex-1 text-[13.5px] font-bold ${danger ? "text-[var(--salmon-edge)]" : ""}`}>{title}</span>
     </button>
   );
 }
