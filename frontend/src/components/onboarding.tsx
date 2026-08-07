@@ -44,9 +44,9 @@ const INTRO: Intro[] = [
     mock: <ToolsMock />,
   },
   {
-    key: "psy", kicker: "для психологов", title: "Клиент и специалист — в одном пространстве",
+    key: "psy", kicker: "для психологов", title: "Клиент и специалист — в едином пространстве",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
-    points: ["Общение с клиентом между сессиями", "Статистика работы: сессии, часы, клиенты", "Заметки и динамика прогресса по каждому"],
+    points: ["Удобная форма записи с напоминаниями о встрече", "Подробная статистика и метрики по терапии", "Заметки по каждой сессии и динамика прогресса"],
     mock: <ClientProgressMock />,
   },
 ];
@@ -170,25 +170,25 @@ export function Onboarding() {
 
 // Приветствие: текст проявляется по очереди — заголовок, подзаголовок, кнопка.
 function Welcome({ onNext }: { onNext: () => void }) {
-  // Чистое проявление, без сдвига: текст набирает плотность на месте.
-  // Без анимации filter — блюр на каждом кадре роняет вебвью Telegram.
+  // Тот же подъём, что у Reveal на остальных экранах: opacity + сдвиг по y.
+  // Анимируем только transform и opacity — блюр на каждом кадре роняет вебвью Telegram.
   const rise = (delay: number) => ({
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    transition: { delay, duration: 0.9, ease: EASE },
+    initial: { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay, duration: 0.5, ease: EASE },
   });
   return (
     <div className="flex flex-1 flex-col justify-center py-10">
-      <motion.p {...rise(0.15)} className="text-[11px] font-black uppercase tracking-[.18em]" style={{ color: "var(--purple-edge)" }}>
+      <motion.p {...rise(0.1)} className="text-[11px] font-black uppercase tracking-[.18em]" style={{ color: "var(--purple-edge)" }}>
         Платформа психологической поддержки
       </motion.p>
-      <motion.h1 {...rise(0.4)} className="font-tight mt-3 text-[clamp(30px,10vw,40px)] font-black leading-[1.02] text-[var(--ink)]">
-        Добро пожаловать<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME}</span>
+      <motion.h1 {...rise(0.25)} className="font-tight mt-3 text-[clamp(30px,10vw,40px)] font-black leading-[1.02] text-[var(--ink)]">
+        Добро пожаловать<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME}</span>.
       </motion.h1>
-      <motion.p {...rise(0.95)} className="mt-4 max-w-[300px] text-[15px] font-bold leading-snug" style={{ color: "rgba(32,28,24,.7)" }}>
-        Платформа психологической поддержки: специалисты, сессии и практики в одном месте.
+      <motion.p {...rise(0.45)} className="mt-4 max-w-[320px] text-[15px] font-bold leading-snug" style={{ color: "rgba(32,28,24,.7)" }}>
+        Цифровые инструменты для самостоятельной психологической поддержки и эффективного прогресса терапии
       </motion.p>
-      <motion.div {...rise(1.5)} className="mt-8">
+      <motion.div {...rise(0.65)} className="mt-8">
         <button onClick={onNext} className="btn btn-accent w-full py-3.5 text-[14px]">Начать знакомство</button>
       </motion.div>
     </div>
@@ -280,9 +280,9 @@ function PsySell({ onStart }: { onStart: () => void }) {
   );
 }
 
-const ROLE_OPTIONS: { role: Role; title: string; text: string; icon: IconName; features: { icon: IconName; title: string; text: string }[] }[] = [
+const ROLE_OPTIONS: { role: Role; title: string; icon: IconName; features: { icon: IconName; title: string; text: string }[] }[] = [
   {
-    role: "psychologist", title: "Я психолог", text: "Клиенты, записи, расписание и статистика практики", icon: "users",
+    role: "psychologist", title: "Я психолог", icon: "users",
     features: [
       { icon: "calendar", title: "Расписание и записи", text: "Рабочие часы, свободные окна, напоминания клиентам" },
       { icon: "users", title: "Карточки клиентов", text: "Настроение, задания и заметки по каждому в одном месте" },
@@ -290,14 +290,43 @@ const ROLE_OPTIONS: { role: Role; title: string; text: string; icon: IconName; f
     ],
   },
   {
-    role: "client", title: "Я пользователь", text: "Подбор специалиста, сессии и практики для себя", icon: "heart",
+    role: "client", title: "Я пользователь", icon: "heart",
     features: [
-      { icon: "compass", title: "Поиск специалиста", text: "Подбор по запросу, методу и цене — и запись в удобное окно" },
-      { icon: "chart", title: "Динамика и прогресс встреч", text: "Настроение, колесо баланса и итоги каждой сессии" },
-      { icon: "tools", title: "Самостоятельные практики", text: "Дыхание и упражнения между встречами — в своём темпе" },
+      { icon: "compass", title: "Поиск специалиста", text: "Универсальный фильтр под ваши требования с возможностью быстрой записи" },
+      { icon: "chart", title: "Динамика и прогресс встреч", text: "Вы можете делать пометки о своём состоянии между встречами, чтобы увидеть динамику терапии на всей дистанции" },
+      { icon: "tools", title: "Самостоятельные практики", text: "Платформа будет наполняться цифровыми инструментами для самостоятельной диагностики и работы без участия терапевта" },
     ],
   },
 ];
+
+const SOON: { icon: IconName; label: string }[] = [
+  { icon: "book", label: "База знаний" },
+  { icon: "spark", label: "AI-помощник" },
+  { icon: "question", label: "Тесты для самодиагностики" },
+];
+
+// Мини-баннер о наполнении платформы: показывает, что дальше будет больше.
+function SoonBanner() {
+  return (
+    <div className="mt-6 rounded-[18px] p-3.5" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
+      <div className="flex items-center gap-2">
+        <span className="rounded-full bg-white px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[.1em]" style={{ color: "var(--purple-edge)" }}>Скоро</span>
+        <p className="text-[12.5px] font-black leading-tight text-[var(--ink)]">Платформа растёт</p>
+      </div>
+      <p className="mt-2 text-[11.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>
+        Готовим базу знаний, AI-помощника и тесты для самодиагностики — чтобы усилить терапевтическую практику.
+      </p>
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {SOON.map((item) => (
+          <span key={item.label} className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-black" style={{ color: "var(--ink)" }}>
+            <Icon name={item.icon} width={13} weight="bold" color="var(--purple-edge)" />
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
   const [index, setIndex] = useState(1); // по умолчанию — пользователь
@@ -308,7 +337,7 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[var(--purple-edge)]"><Icon name="therapy" width={24} weight="fill" color="#fff" /></span>
         <h1 className="font-tight text-[25px] font-black leading-[1.06] text-[var(--ink)]">{firstName ? `${firstName}, с чего начнём?` : "С чего начнём?"}</h1>
       </div>
-      <p className="mt-3 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Покажем то, что важно именно вам. Роль можно сменить в любой момент.</p>
+      <p className="mt-3 text-[13px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>Выберите роль. Позже её можно будет сменить.</p>
 
       {/* Свитч: лавандовая плашка едет к выбранной половине */}
       <div className="relative mt-6 grid grid-cols-2 rounded-full bg-white p-1" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
@@ -340,11 +369,11 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
           transition={{ duration: 0.24, ease: EASE }}
           className="mt-4"
         >
-          <p className="text-[13.5px] font-bold leading-snug text-[var(--ink)]">{active.text}</p>
+          <p className="t-micro" style={{ color: "var(--purple-edge)" }}>Возможности платформы</p>
           {/* Список возможностей роли — иначе низ экрана оставался пустым */}
-          <div className="mt-4 space-y-2">
+          <div className="mt-3 space-y-3.5">
             {active.features.map((item) => (
-              <div key={item.title} className="flex items-start gap-3 rounded-[16px] bg-white p-3" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+              <div key={item.title} className="flex items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-[var(--purple-soft)]"><Icon name={item.icon} width={18} weight="bold" color="var(--purple-edge)" /></span>
                 <span className="min-w-0">
                   <span className="block text-[13px] font-black leading-tight">{item.title}</span>
@@ -355,6 +384,8 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
           </div>
         </motion.div>
       </AnimatePresence>
+
+      <SoonBanner />
 
       <div className="mt-auto pt-6">
         <button onClick={() => onPick(active.role)} className="btn btn-accent w-full py-3.5 text-[14px]">Продолжить</button>
