@@ -26,6 +26,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       startsAt?: string;
       durationMin?: number;
       note?: string;
+      format?: string;
     };
 
     if (body.status && !STATUSES.includes(body.status)) {
@@ -43,6 +44,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
           status: body.status ?? undefined,
           startsAt,
           durationMin: body.durationMin ?? undefined,
+          format: body.format === "online" || body.format === "offline" ? body.format : undefined,
           note: body.note ?? undefined,
           ...(startsAt ? { reminderSent: false } : {}),
         },

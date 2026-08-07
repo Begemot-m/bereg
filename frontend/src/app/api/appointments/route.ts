@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       startsAt?: string;
       durationMin?: number;
       note?: string;
+      format?: string;
     };
     const clientId = body.clientId;
 
@@ -78,6 +79,7 @@ export async function POST(req: NextRequest) {
           clientId,
           startsAt,
           durationMin: body.durationMin ?? 60,
+          format: body.format === "offline" ? "offline" : "online",
           note: body.note ?? "",
         },
         include: { client: { select: { id: true, name: true } } },

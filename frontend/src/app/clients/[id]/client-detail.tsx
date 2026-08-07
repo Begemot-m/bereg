@@ -54,6 +54,10 @@ export function ClientDetail() {
     qc.invalidateQueries({ queryKey: ["client", id] });
     qc.invalidateQueries({ queryKey: ["clients"] });
     qc.invalidateQueries({ queryKey: ["appointments"] });
+    // Запись из карточки занимает окно — календарь и слоты обязаны это увидеть,
+    // иначе только что занятое время остаётся зелёным до перезагрузки.
+    qc.invalidateQueries({ queryKey: ["slots"] });
+    qc.invalidateQueries({ queryKey: ["month-avail"] });
     qc.invalidateQueries({ queryKey: ["homework", id] });
   };
 
