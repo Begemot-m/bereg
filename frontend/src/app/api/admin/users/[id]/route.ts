@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { isAdmin } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
+import { grantPsychologist, revokePsychologist, setPsyStatus } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
@@ -81,7 +82,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     }
 
     if (body.role && body.role !== target.role) {
-      await prisma.user.update({ where: { id: userId }, data: { role: body.role } });
+      if (body.role === "psychologist") await grantPsychologist(userId);
+      else await revokePsychologist(userId);
 
       // Каталог смотрит на анкету, а не на роль: оставить одобренную анкету
       // у бывшего психолога — значит держать в каталоге человека, который
@@ -92,6 +94,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
             data: { status: "draft", reviewedAt: null },
           })).count > 0
         : false;
+      if (unpublished) await setPsyStatus(userId, "draft");
 
       await prisma.notification.create({
         data: {

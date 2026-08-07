@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { audit } from "@/lib/server/audit";
 import { prisma } from "@/lib/server/prisma";
+import { grantPsychologist, setPsyStatus } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -82,9 +83,8 @@ export async function POST(req: NextRequest) {
 
     // Один аккаунт, две роли: подача заявки открывает переключатель кабинетов,
     // приём клиентов остаётся закрытым до approved.
-    if (user.role !== "psychologist") {
-      await prisma.user.update({ where: { id: user.id }, data: { role: "psychologist" } });
-    }
+    await grantPsychologist(user.id);
+    await setPsyStatus(user.id, "review");
 
     await audit(req, { userId: user.id, action: "psy.verification.submit" });
     return NextResponse.json({ status: "review" });

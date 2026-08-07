@@ -5,6 +5,7 @@ import { z } from "zod";
 import { audit } from "@/lib/server/audit";
 import { isAdmin } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
+import { grantPsychologist, setPsyStatus } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
@@ -46,12 +47,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     });
 
     // Роль могли не переключить, если анкету заводили не через кабинет.
-    if (approve) {
-      await prisma.user.updateMany({
-        where: { id: userId, role: { not: "psychologist" } },
-        data: { role: "psychologist" },
-      });
-    }
+    if (approve) await grantPsychologist(userId);
+    // Статус живёт и рядом с ролью: права читают его оттуда, не поднимая анкету.
+    await setPsyStatus(userId, approve ? "approved" : "rejected");
 
     await prisma.notification.create({
       data: {

@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
         WITH base AS (
           SELECT u.id FROM "User" u
           WHERE u."deletedAt" IS NULL
-            AND u.role <> 'psychologist'
+            AND NOT ('psychologist' = ANY(u."roles"))
             AND NOT EXISTS (SELECT 1 FROM "PsyProfile" p WHERE p."userId" = u.id)
             AND NOT EXISTS (
               SELECT 1 FROM "Client" c WHERE c."userId" = u.id AND c."invitedAt" IS NOT NULL

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       prisma.user.count({ where: { deletedAt: null } }),
       prisma.user.count({ where: { deletedAt: null, createdAt: { gte: weekAgo } } }),
-      prisma.user.count({ where: { deletedAt: null, role: "psychologist" } }),
+      prisma.user.count({ where: { deletedAt: null, roles: { has: "psychologist" } } }),
       prisma.user.count({ where: { blockedAt: { not: null } } }),
       prisma.subscription.count({ where: { status: "active", grantedBy: null } }),
       prisma.subscription.count({ where: { status: "active", grantedBy: { not: null } } }),

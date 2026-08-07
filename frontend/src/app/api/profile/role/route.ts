@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { audit } from "@/lib/server/audit";
-import { prisma } from "@/lib/server/prisma";
+import { grantPsychologist, hasRole, rolesOf } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -14,11 +14,11 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    if (user.role !== "psychologist") {
-      await prisma.user.update({ where: { id: user.id }, data: { role: "psychologist" } });
+    if (!hasRole(user, "psychologist")) {
+      await grantPsychologist(user.id);
       await audit(req, { userId: user.id, action: "psy.role.claim" });
     }
-    return NextResponse.json({ role: "psychologist" });
+    return NextResponse.json({ role: "psychologist", roles: [...new Set([...rolesOf(user), "psychologist"])] });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

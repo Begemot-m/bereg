@@ -74,6 +74,12 @@ export async function canAddClient(userId: number): Promise<{ ok: boolean; used:
  * ради чего дозаполняет заявку.
  */
 export async function psyApproved(userId: number): Promise<boolean> {
+  // Статус лежит рядом с ролью, чтобы проверка прав не поднимала анкету. Пока
+  // идёт переход, у старых записей поле пустое — тогда смотрим в анкету, она
+  // и была источником правды.
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { psyStatus: true } });
+  if (user?.psyStatus && user.psyStatus !== "none") return user.psyStatus === "approved";
+
   const psy = await prisma.psyProfile.findUnique({ where: { userId }, select: { status: true } });
   return psy?.status === "approved";
 }
