@@ -1,10 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { AUDIENCE, FEATURES, VALUE } from "@/components/landing";
+import { WebLogin } from "@/components/web-login";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
 
 const BOT_URL = botDeepLink("site");
@@ -16,10 +17,11 @@ const STEPS: { icon: IconName; title: string; text: string }[] = [
 ];
 
 /**
- * Лендинг боевого сайта. Веб-кабинета пока нет, поэтому вместо пустого замка
- * «Откройте в Telegram» человек видит, что это за платформа и как в неё войти.
+ * Лендинг боевого сайта: что это за платформа и как в неё попасть. Гость идёт
+ * в Telegram, а у кого аккаунт уже есть — входит здесь по почте.
  */
 export function WebLanding() {
+  const [login, setLogin] = useState(false);
   return (
     <div
       className="fixed inset-0 z-[95] overflow-y-auto"
@@ -32,9 +34,12 @@ export function WebLanding() {
           </span>
           <span className="font-tight text-xl font-extrabold">{APP_NAME}</span>
         </span>
-        <a href={BOT_URL} target="_blank" rel="noreferrer" className="btn btn-accent px-4 py-2.5 text-[13px]">
-          <Icon name="telegram" width={15} weight="bold" color="#fff" /> В Telegram
-        </a>
+        <span className="flex items-center gap-2">
+          <button onClick={() => setLogin(true)} className="btn btn-white px-4 py-2.5 text-[13px]">Войти</button>
+          <a href={BOT_URL} target="_blank" rel="noreferrer" className="btn btn-accent px-4 py-2.5 text-[13px]">
+            <Icon name="telegram" width={15} weight="bold" color="#fff" /> В Telegram
+          </a>
+        </span>
       </header>
 
       <main className="mx-auto w-full max-w-[1180px] px-5 pb-16 md:px-8 md:pb-24">
@@ -59,11 +64,12 @@ export function WebLanding() {
 
           <div className="card-soft mt-6 flex max-w-[560px] items-start gap-3 p-4" style={{ background: "var(--surface)" }}>
             <span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}>
-              <Icon name="clock" width={17} weight="bold" color="var(--edge)" />
+              <Icon name="lock" width={17} weight="bold" color="var(--edge)" />
             </span>
             <p className="text-[13px] font-semibold leading-snug text-[var(--muted)]">
-              Версия для компьютера пока в разработке. Чтобы попасть на платформу,
-              откройте бота в Telegram с телефона — там уже работает всё.
+              Уже пользуетесь {APP_NAME}?{" "}
+              <button onClick={() => setLogin(true)} className="font-black text-[var(--ink)] underline">Войдите по почте</button>{" "}
+              — той, что привязана в кабинете внутри Telegram. Аккаунт заводится там же, с телефона.
             </p>
           </div>
         </section>
@@ -146,31 +152,39 @@ export function WebLanding() {
           </div>
         </Section>
 
-        {/* Честно про десктоп: веб-кабинета пока нет, и обещать его «вот-вот»
-            хуже, чем сразу отправить туда, где всё работает. */}
+        {/* Порядок именно такой: аккаунт заводится в Telegram, почта — второй
+            ключ к нему же. Обещать вход «без телефона» нельзя: сервер по
+            незнакомой почте аккаунтов не создаёт. */}
         <Rise>
           <section className="mt-16 overflow-hidden rounded-[27px] bg-[var(--ink)] text-white md:mt-20">
             <div className="flex items-center gap-10 p-6 md:p-10">
               <div className="min-w-0 flex-1">
                 <span className="chip uppercase" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }}>
-                  <Icon name="clock" width={12} weight="bold" color="#fff" /> В разработке
+                  <Icon name="lock" width={12} weight="bold" color="#fff" /> Вход с компьютера
                 </span>
                 <h2 className="font-tight mt-4 text-[26px] font-black leading-[1.06] md:text-[34px]">
-                  Десктопная версия пока в работе
+                  С компьютера — по коду из письма
                 </h2>
                 <p className="mt-3 max-w-[560px] text-[14px] font-semibold leading-relaxed text-white/75 md:text-[15px]">
-                  Полноценный кабинет для браузера мы ещё собираем. Всё остальное уже работает —
-                  в Telegram, на телефоне. Откройте бота с мобильного: регистрация занимает одно
-                  касание, устанавливать ничего не нужно.
+                  Аккаунт заводится в Telegram: одно касание, устанавливать ничего не нужно. Там же
+                  в кабинете привязывается почта — и после этого в браузер можно войти по коду.
+                  Расписание, клиенты и записи открываются те же.
                 </p>
                 <div className="mt-7 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setLogin(true)}
+                    className="inline-flex items-center gap-2 rounded-[15px] bg-white px-6 py-3.5 text-[15px] font-black text-[var(--ink)] transition-transform duration-200 hover:scale-[1.02] active:scale-[.98]"
+                  >
+                    <Icon name="lock" width={18} weight="bold" color="var(--ink)" /> Войти по почте
+                  </button>
                   <a
                     href={BOT_URL}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-[15px] bg-white px-6 py-3.5 text-[15px] font-black text-[var(--ink)] transition-transform duration-200 hover:scale-[1.02] active:scale-[.98]"
+                    className="inline-flex items-center gap-2 rounded-[15px] px-6 py-3.5 text-[15px] font-black text-white transition-transform duration-200 hover:scale-[1.02] active:scale-[.98]"
+                    style={{ background: "rgba(255,255,255,.16)" }}
                   >
-                    <Icon name="telegram" width={18} weight="bold" color="var(--ink)" /> Перейти в бота
+                    <Icon name="telegram" width={18} weight="bold" color="#fff" /> Перейти в бота
                   </a>
                   <span className="text-[13px] font-bold text-white/55">t.me/{BOT_NAME}</span>
                 </div>
@@ -192,6 +206,8 @@ export function WebLanding() {
           </p>
         </footer>
       </main>
+
+      {login && <WebLogin onClose={() => setLogin(false)} />}
     </div>
   );
 }

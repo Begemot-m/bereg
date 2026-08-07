@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { hasLiveSession, loginWithInitData, LoginError, type LoginFailure } from "@/lib/api";
-import { DEMO } from "@/lib/demo";
+import { DEMO, isDemoWebGuest } from "@/lib/demo";
 import { getInitData, getTelegramWebApp, isTelegramMiniApp } from "@/lib/telegram";
 
 export type Env = "tma" | "desktop";
@@ -18,9 +18,12 @@ export function useAuth() {
 
   useEffect(() => {
     // Демо: сразу авторизованы, показываем как в Telegram-приложении.
+    // Исключение — ссылка `?web=1`: иначе лендинг и вход по почте на Pages
+    // не посмотреть вовсе, там любой посетитель уже «внутри».
     if (DEMO) {
-      setEnv("tma");
-      setState("authed");
+      const guest = isDemoWebGuest();
+      setEnv(guest ? "desktop" : "tma");
+      setState(guest ? "anon" : "authed");
       return;
     }
 

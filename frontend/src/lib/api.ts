@@ -65,6 +65,42 @@ export class LoginError extends Error {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Ручки входа отвечают человеческим текстом в поле `error` — его и показываем.
+ * Через `apiFetch` это не проходит: он склеивает статус с телом и превращает
+ * «Код истёк» в «API 401: {…}».
+ */
+async function authPost(path: string, body: Record<string, string>): Promise<void> {
+  if (DEMO) {
+    await mockFetch(path, { method: "POST", body: JSON.stringify(body) });
+    return;
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new LoginError("offline", "Сервер не отвечает — попробуйте ещё раз", String(error));
+  }
+  if (res.ok) return;
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  const message = data.error ?? (res.status === 429 ? "Слишком часто. Подождите минуту" : `Не получилось (${res.status})`);
+  throw new LoginError(res.status >= 500 ? "offline" : "rejected", message, `${res.status}`);
+}
+
+/**
+ * Код на почту для входа из браузера. Ответ одинаковый для знакомого и
+ * незнакомого адреса — это сделано на сервере намеренно, поэтому «код
+ * отправлен» здесь не означает, что почта привязана к аккаунту.
+ */
+export const requestEmailCode = (email: string) => authPost("/auth/email/request", { email });
+
+/** Проверка кода: сервер ставит куки сессии, дальше приложение открывается само. */
+export const loginWithEmail = (email: string, code: string) => authPost("/auth/email/verify", { email, code });
+
+/**
  * Вход по данным Telegram. Одна неудачная попытка — ещё не отказ: холодный
  * старт сервера, обрыв мобильной сети и 429 от лимитера проходят сами, если
  * подождать. Насовсем сдаёмся только когда сервер осознанно отверг подпись.

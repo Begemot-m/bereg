@@ -417,12 +417,41 @@ function demoApproved(): boolean {
   return v.status === "review" && Boolean(v.submittedAt) && Date.now() - new Date(v.submittedAt!).getTime() > 6000;
 }
 
+const WEB_GUEST_KEY = "bereg_demo_web";
+/** Код, которым в демо открывается вход по почте: писем тут никто не шлёт. */
+export const DEMO_EMAIL_CODE = "000000";
+
+/**
+ * В демо человек всегда «внутри Telegram» и всегда авторизован, поэтому
+ * лендинг и вход из браузера иначе не пощупать. Флаг ставится ссылкой
+ * `?web=1`, снимается `?web=0` и удачным входом.
+ */
+export function isDemoWebGuest(): boolean {
+  if (typeof window === "undefined") return false;
+  const q = new URLSearchParams(window.location.search).get("web");
+  if (q === "1") localStorage.setItem(WEB_GUEST_KEY, "1");
+  if (q === "0") localStorage.removeItem(WEB_GUEST_KEY);
+  return localStorage.getItem(WEB_GUEST_KEY) === "1";
+}
+
+export function leaveDemoWebGuest() {
+  localStorage.removeItem(WEB_GUEST_KEY);
+}
+
 export async function mockFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const db = load();
   const method = (init.method ?? "GET").toUpperCase();
   const body = init.body ? (JSON.parse(init.body as string) as Record<string, unknown>) : {};
   const clean = path.split("?")[0];
   const q = new URLSearchParams(path.split("?")[1] ?? "");
+
+  if (clean === "/auth/email/request") return delay(({ ok: true }) as T);
+
+  if (clean === "/auth/email/verify") {
+    const code = String(body.code ?? "").replace(/\D/g, "");
+    if (code !== DEMO_EMAIL_CODE) throw new Error("Неверный код");
+    return delay(({ ok: true }) as T);
+  }
 
   if (clean === "/my/email") {
     if (method === "GET") return delay(({ email: db.accountEmail?.email ?? null, verified: Boolean(db.accountEmail?.verified), canConfirm: Boolean(db.accountEmail && !db.accountEmail.verified) }) as T);
