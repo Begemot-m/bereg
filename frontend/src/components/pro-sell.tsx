@@ -6,29 +6,29 @@ import { useEffect, type ReactNode } from "react";
 
 import { Icon } from "@/components/icons";
 import { tap } from "@/lib/haptics";
-import { CATALOG_FREE_DAYS, FREE_CLIENT_LIMIT, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
+import { FREE_CLIENT_LIMIT, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
 
-// PRO отличается от бесплатного двумя вещами: масштаб и новые клиенты.
-// Весь функционал по клиенту (карточка, настроение, домашки, аналитика,
-// сводка недели, шаблоны) доступен и бесплатно — на первых трёх.
+// PRO отличается от бесплатного двумя вещами: масштаб практики и место
+// в каталоге. Само размещение бесплатно всем, кто прошёл верификацию, —
+// продаётся приоритет в подборке и снятый лимит клиентов.
 // Продающий контент PRO — используется в онбординге, кабинете и пейволле.
 export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: { art?: string; artTone?: string }) {
   void art; void artTone;
   const rows = [
+    ["Размещение в каталоге", "бесплатно", "бесплатно"],
+    ["Место в подборке", "по метрикам", "приоритет"],
+    ["Метка PRO у анкеты", "—", "есть"],
     ["Клиенты", `до ${FREE_CLIENT_LIMIT}`, "без лимита"],
-    ["Записи и расписание", "всё", "всё"],
-    ["Задания и заметки", "всё", "всё"],
-    ["Статистика работы", "всё", "всё"],
-    ["Размещение в каталоге специалистов", `${CATALOG_FREE_DAYS} дней`, "постоянно"],
+    ["Записи, заметки, статистика", "всё", "всё"],
   ];
   return (
     <div>
       <p className="t-micro" style={{ color: "var(--edge)" }}>Хроника PRO</p>
-      <h2 className="t-title mt-1">Больше клиентов —<br /><span className="text-[var(--purple-edge)]">без лимитов</span></h2>
+      <h2 className="t-title mt-1">Выше в каталоге —<br /><span className="text-[var(--purple-edge)]">и без лимита клиентов</span></h2>
 
       <div className="card-soft mt-3 flex items-start gap-3 p-3.5" style={{ background: "var(--purple-soft)" }}>
         <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" /></span>
-        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента бесплатно</b><br />Все функции доступны сразу. Карта не нужна.</p>
+        <p className="t-sub"><b className="t-head">Каталог бесплатный навсегда</b><br />Анкета публикуется сразу после верификации. PRO поднимает её в подборке.</p>
       </div>
 
       <div className="mt-3 overflow-hidden rounded-[18px] bg-white stroke">

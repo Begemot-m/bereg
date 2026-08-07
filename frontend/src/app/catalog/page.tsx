@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowGlyph } from "@/components/blocks";
+import { ArrowGlyph, ProMark } from "@/components/blocks";
 import { AnimatePresence, motion } from "motion/react";
 
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
@@ -191,6 +191,7 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
           <div className="flex items-center gap-1.5">
             <h3 className="t-head min-w-0">{psy.name}</h3>
             {psy.verified && <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" title="Профиль подтверждён"><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>}
+            {psy.priority && <ProMark compact />}
           </div>
            <p className="t-body mt-1.5"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
            {psy.quote && <p className="t-sub mt-2 pl-2.5 italic" style={{ borderLeft: "2px solid var(--edge)" }}>«{psy.quote}»</p>}
@@ -261,7 +262,7 @@ function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} tone={tone} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-1.5"><h1 className="t-title">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}</div>
+          <div className="flex items-start gap-1.5"><h1 className="t-title">{psy.name}</h1>{psy.verified && <Icon name="check" width={18} weight="fill" color="var(--green-edge)" />}{psy.priority && <ProMark />}</div>
           <p className="t-cap mt-1">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="chip" style={{ background: "#fff" }}>

@@ -6,18 +6,15 @@ let row: Row = null;
 // Статус переехал к пользователю; анкета осталась запасным источником на время
 // перехода, поэтому в тесте есть обе таблицы.
 let userRow: { psyStatus?: string; createdAt?: Date } | null = null;
-let psyRow: { status: string; reviewedAt: Date | null } | null = null;
+let psyRow: { status: string } | null = null;
 let subRow: { status: string; plan?: string; currentPeriodEnd: Date | null; grantedBy?: number | null } | null = null;
 let firstAppt: { startsAt: Date } | null = null;
 
 mock.module("./prisma", () => ({
   prisma: {
-    // psyApproved читает анкету одним select, access — другим; различаем по
-    // тому, спрашивают ли reviewedAt.
-    psyProfile: {
-      findUnique: async (args: { select?: Record<string, boolean> }) =>
-        args?.select?.reviewedAt ? psyRow : row,
-    },
+    // psyApproved и access читают анкету одинаковым select, поэтому у тестов
+    // про каталог своя строка: она перекрывает общую, если задана.
+    psyProfile: { findUnique: async () => psyRow ?? row },
     user: { findUnique: async () => userRow },
     subscription: { findUnique: async () => subRow },
     appointment: { findFirst: async () => firstAppt },
@@ -122,36 +119,43 @@ describe("пробный PRO", () => {
   });
 });
 
-describe("бесплатное размещение в каталоге", () => {
+describe("размещение в каталоге и приоритет", () => {
   beforeEach(() => {
     userRow = { createdAt: days(-200) };
+    row = null;
     psyRow = null;
     subRow = null;
     firstAppt = null;
   });
 
   test("до одобрения анкеты каталога нет", async () => {
-    psyRow = { status: "review", reviewedAt: null };
+    psyRow = { status: "review" };
     const acc = await access(1);
     expect(acc.catalog).toBe(false);
-    expect(acc.catalogUntil).toBeNull();
+    expect(acc.priority).toBe(false);
   });
 
-  test("30 дней после одобрения карточка стоит бесплатно", async () => {
-    psyRow = { status: "approved", reviewedAt: days(-5) };
+  test("после одобрения карточка стоит бесплатно и бессрочно", async () => {
+    psyRow = { status: "approved" };
     const acc = await access(1);
     expect(acc.catalog).toBe(true);
     expect(acc.pro).toBe(false);
+    expect(acc.priority).toBe(false);
   });
 
-  test("после 30 дней без PRO карточка снимается", async () => {
-    psyRow = { status: "approved", reviewedAt: days(-31) };
-    expect((await access(1)).catalog).toBe(false);
-  });
-
-  test("PRO держит карточку и после бесплатных дней", async () => {
-    psyRow = { status: "approved", reviewedAt: days(-90) };
+  test("PRO добавляет приоритет в выдаче", async () => {
+    psyRow = { status: "approved" };
     subRow = { status: "active", currentPeriodEnd: days(20) };
-    expect((await access(1)).catalog).toBe(true);
+    const acc = await access(1);
+    expect(acc.catalog).toBe(true);
+    expect(acc.priority).toBe(true);
+  });
+
+  test("PRO без верификации приоритета не даёт", async () => {
+    psyRow = { status: "review" };
+    subRow = { status: "active", currentPeriodEnd: days(20) };
+    const acc = await access(1);
+    expect(acc.pro).toBe(true);
+    expect(acc.priority).toBe(false);
   });
 });

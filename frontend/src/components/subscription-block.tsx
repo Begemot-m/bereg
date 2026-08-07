@@ -8,7 +8,7 @@ import { useState, type ReactNode } from "react";
 import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon, type IconName } from "@/components/icons";
 import { Disclosure } from "@/components/ui";
-import { CATALOG_FREE_DAYS, catalogDaysLeft, FREE_CLIENT_LIMIT, getSubscription, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
+import { FREE_CLIENT_LIMIT, getSubscription, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
 import { tap } from "@/lib/haptics";
 
 const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
@@ -18,13 +18,13 @@ const PSY_PLANS: Plan[] = [
   {
     id: "pro",
     name: "Хроника PRO",
-    tag: "безлимит + размещение",
+    tag: "приоритет + безлимит",
     best: true,
     perks: [
+      "Приоритетное место в подборке каталога",
+      "Метка PRO у анкеты — её видно в списке и в профиле",
       `Клиенты без лимита (бесплатно — ${FREE_CLIENT_LIMIT}, со всем функционалом)`,
-      `Каталог специалистов дальше первых ${CATALOG_FREE_DAYS} дней — честная выдача`,
-      "Комиссии за запись нет",
-      "Весь функционал по клиенту доступен и бесплатно",
+      "Размещение в каталоге бесплатное и без подписки",
     ],
   },
 ];
@@ -36,11 +36,12 @@ const NewTag = () => <span className="rounded-full bg-[var(--coral)] px-1.5 py-0
 
 // Что входит в бесплатную версию, а что — в PRO.
 const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[] = [
+  { label: "Размещение в каталоге", free: true, pro: true },
+  { label: "Место в подборке", free: "по метрикам", pro: "приоритет" },
+  { label: "Метка PRO у анкеты", free: false, pro: true },
   { label: "Клиенты", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
   { label: "Записи, график, карточки", free: true, pro: true },
-  { label: "Настроение, домашки, шаблоны", free: true, pro: true },
   { label: "Аналитика и сводка недели", free: true, pro: true },
-  { label: "Размещение в каталоге специалистов", free: `${CATALOG_FREE_DAYS} дней`, pro: "постоянно" },
   { label: "Комиссия за запись", free: "нет", pro: "нет" },
 ];
 
@@ -96,14 +97,14 @@ export const PRO_BENEFITS: HelpPage[] = [
         <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><motion.div className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7 }} style={{ background: c as string }} /></div></div>
     ))}</BFrame>
   ) },
-  { title: "Профиль появляется в каталоге", text: `Первые ${CATALOG_FREE_DAYS} дней после верификации анкета стоит в каталоге бесплатно, дальше её держит PRO. Место в выдаче купить нельзя — подборки собираются по совпадению с запросом.`, illo: (
+  { title: "Каталог бесплатный, приоритет — платный", text: "Анкета публикуется сразу после верификации и остаётся в каталоге бесплатно, без подписки. PRO поднимает её в приоритетную часть подборки: дальше порядок всё равно считают метрики — совпадение с запросом, отзывы и скорость ответа.", illo: (
     <BFrame>
-      <div className="flex items-center gap-2 rounded-[9px] bg-[var(--green-soft)] px-2.5 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
-        <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-white" style={{ border: "1px solid var(--green-edge)" }}><Icon name="check" width={15} weight="bold" /></span>
-        <span className="flex-1 text-[10px] font-black">Профиль опубликован</span>
-        <span className="text-[8px] font-black uppercase text-[var(--muted)]">на равных</span>
+      <div className="flex items-center gap-2 rounded-[9px] bg-white px-2.5 py-2" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+        <span className="flex h-7 w-7 items-center justify-center rounded-[8px]" style={{ background: "var(--ink)" }}><Icon name="spark" width={14} weight="fill" color="var(--purple)" /></span>
+        <span className="flex-1 text-[10px] font-black">Ваша анкета · PRO</span>
+        <span className="text-[8px] font-black uppercase text-[var(--purple-edge)]">приоритет</span>
       </div>
-      {["Совпадение с запросом", "Рейтинг после сессий"].map((t) => <div key={t} className="rounded-[9px] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>{t}</div>)}
+      {["Анкета без PRO — тоже в каталоге", "Дальше сортируют отзывы и метрики"].map((t) => <div key={t} className="rounded-[9px] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>{t}</div>)}
     </BFrame>
   ) },
 ];
@@ -113,22 +114,21 @@ export const PRO_BENEFITS: HelpPage[] = [
 // Что сказать про тариф прямо в свёрнутом баннере: до оплаты человек видит
 // именно эту строку, поэтому она говорит про срок, а не про список функций.
 function bannerPitch(sub: Subscription | undefined): string {
-  if (!sub) return "Клиенты без лимита и место в каталоге, когда бесплатные дни вышли.";
-  if (sub.status === "active") return "Подписка активна — лимитов нет, карточка в каталоге.";
+  if (!sub) return "Приоритет в каталоге и клиенты без лимита.";
+  if (sub.status === "active") return "Подписка активна — приоритет в каталоге, лимитов нет.";
   if (sub.status === "pending") return "Ждём подтверждение платежа.";
-  const cat = catalogDaysLeft(sub);
   if (sub.status === "trial") {
     const d = trialDaysLeft(sub);
-    return `Пробный PRO: осталось ${d} ${plural(d, "день", "дня", "дней")}.`;
+    return `Пробный PRO: осталось ${d} ${plural(d, "день", "дня", "дней")} приоритета в каталоге.`;
   }
   if (sub.status === "free") {
-    return cat > 0
-      ? `Каталог бесплатно ещё ${cat} ${plural(cat, "день", "дня", "дней")}. ${TRIAL_DAYS} дней PRO включатся после первой сессии.`
+    return sub.catalog
+      ? `Анкета в каталоге бесплатно. ${TRIAL_DAYS} дней PRO включатся после первой сессии.`
       : `${TRIAL_DAYS} дней PRO включатся сами после первой проведённой сессии.`;
   }
-  return cat > 0
-    ? `Карточка в каталоге ещё ${cat} ${plural(cat, "день", "дня", "дней")} — дальше её держит PRO.`
-    : "Клиенты без лимита и место в каталоге специалистов.";
+  return sub.catalog
+    ? "Анкета остаётся в каталоге. PRO поднимает её в подборке."
+    : "Приоритет в каталоге и клиенты без лимита.";
 }
 
 export function SubscriptionBanner() {
@@ -286,29 +286,27 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     };
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
-  if (sub.status === "active") return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Хроника PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
+  if (sub.status === "active") return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Хроника PRO активен", subtitle: `Анкета идёт в приоритете каталога. Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
 
   // Триал ещё не начинался: он включится сам, когда пройдёт первая сессия.
   // Про это важно сказать вслух, иначе бесплатный тариф выглядит как отказ.
   if (sub.status === "free") {
-    const days = catalogDaysLeft(sub);
     return {
       badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>🎁 {TRIAL_DAYS} дней впереди</span>,
       title: "Бесплатный тариф",
-      subtitle: days > 0
-        ? `${FREE_CLIENT_LIMIT} клиента со всем функционалом, карточка в каталоге ещё ${days} ${plural(days, "день", "дня", "дней")}. ${TRIAL_DAYS} дней PRO включатся сами после первой проведённой сессии.`
+      subtitle: sub.catalog
+        ? `${FREE_CLIENT_LIMIT} клиента со всем функционалом, анкета в каталоге бесплатно. ${TRIAL_DAYS} дней PRO включатся сами после первой проведённой сессии.`
         : `${FREE_CLIENT_LIMIT} клиента со всем функционалом. ${TRIAL_DAYS} дней PRO включатся сами после первой проведённой сессии.`,
       progress: null,
     };
   }
 
-  const days = catalogDaysLeft(sub);
   return {
     badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{rub(PLAN_PRICE.pro)}/мес</span>,
     title: "Бесплатный тариф",
-    subtitle: days > 0
-      ? `${FREE_CLIENT_LIMIT} клиента со всем функционалом, карточка в каталоге ещё ${days} ${plural(days, "день", "дня", "дней")}. PRO снимает лимит и оставляет вас в каталоге.`
-      : `${FREE_CLIENT_LIMIT} клиента со всем функционалом. PRO — клиенты без лимита и место в каталоге специалистов.`,
+    subtitle: sub.catalog
+      ? `${FREE_CLIENT_LIMIT} клиента со всем функционалом, анкета остаётся в каталоге. PRO снимает лимит и поднимает её в подборке.`
+      : `${FREE_CLIENT_LIMIT} клиента со всем функционалом. PRO — приоритет в каталоге и клиенты без лимита.`,
     progress: null,
   };
 }
