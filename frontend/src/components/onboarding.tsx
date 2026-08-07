@@ -228,11 +228,11 @@ function SilkWaves() {
 // После выбора «психолог» — продающий экран PRO с бесплатным стартом.
 function PsySell({ onStart }: { onStart: () => void }) {
   const rows: { icon: IconName; label: string; free: string; pro: string }[] = [
-    { icon: "compass", label: "Размещение в каталоге", free: "бесплатно", pro: "бесплатно" },
-    { icon: "spark", label: "Место в подборке", free: "по метрикам", pro: "приоритет" },
-    { icon: "star", label: "Метка PRO у анкеты", free: "—", pro: "есть" },
     { icon: "users", label: "Клиенты", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
-    { icon: "note", label: "Записи, заметки, статистика", free: "всё", pro: "всё" },
+    { icon: "calendar", label: "Записи и расписание", free: "всё", pro: "всё" },
+    { icon: "note", label: "Задания и заметки", free: "всё", pro: "всё" },
+    { icon: "chart", label: "Статистика работы", free: "всё", pro: "всё" },
+    { icon: "compass", label: "Размещение в каталоге специалистов", free: "—", pro: "включено" },
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -242,7 +242,7 @@ function PsySell({ onStart }: { onStart: () => void }) {
           <div className="min-w-0">
             <p className="t-micro" style={{ color: "var(--purple-edge)" }}>Для психологов</p>
             <h1 className="font-tight mt-1 text-[clamp(22px,6vw,26px)] font-black leading-[1.04] text-[var(--ink)]">
-              Каталог <span style={{ color: "var(--purple-edge)" }}>бесплатно</span> после верификации
+              Больше клиентов <span style={{ color: "var(--purple-edge)" }}>без лимитов</span>
             </h1>
           </div>
         </div>
@@ -251,8 +251,8 @@ function PsySell({ onStart }: { onStart: () => void }) {
           <div className="flex items-start gap-3">
             <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" color="#fff" /></span>
             <div>
-              <p className="t-head text-[var(--ink)]">Анкета публикуется бесплатно</p>
-              <p className="t-sub mt-0.5">{FREE_CLIENT_LIMIT} клиента со всеми функциями. PRO поднимает анкету в подборке.</p>
+              <p className="t-head text-[var(--ink)]">{FREE_CLIENT_LIMIT} клиента бесплатно</p>
+              <p className="t-sub mt-0.5">Все функции доступны сразу. Карта не нужна.</p>
             </div>
           </div>
         </div>

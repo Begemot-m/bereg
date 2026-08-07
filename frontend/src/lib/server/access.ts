@@ -17,6 +17,9 @@ export const FREE_CLIENT_LIMIT = 3;
  */
 const TRIAL_DAYS = 14;
 
+/** Сколько анкета стоит в каталоге бесплатно после одобрения. */
+const CATALOG_FREE_DAYS = 30;
+
 export type Access = {
   pro: boolean;
   reason: "trial" | "paid" | "granted" | "none";
@@ -25,10 +28,10 @@ export type Access = {
   /** Была ли первая проведённая сессия, то есть запущен ли отсчёт триала. */
   trialStarted: boolean;
   currentPeriodEnd: Date | null;
-  /** Показывать ли анкету в каталоге. Даёт верификация, а не подписка. */
+  /** До какого момента карточка стоит в каталоге бесплатно. */
+  catalogUntil: Date | null;
+  /** Показывать ли анкету в каталоге прямо сейчас. */
   catalog: boolean;
-  /** Приоритетная выдача в каталоге — за неё и платят. */
-  priority: boolean;
 };
 
 const NO_ACCESS: Access = {
@@ -37,8 +40,8 @@ const NO_ACCESS: Access = {
   trialEndsAt: null,
   trialStarted: false,
   currentPeriodEnd: null,
+  catalogUntil: null,
   catalog: false,
-  priority: false,
 };
 
 /**
@@ -57,23 +60,27 @@ async function firstSessionAt(userId: number): Promise<Date | null> {
 /**
  * Есть ли у психолога доступ PRO. Три пути: идёт триал, оплачена подписка,
  * либо доступ выдан вручную из админки (тот же `status: active`, но с
- * пометкой `grantedBy`). Размещение в каталоге к подписке не привязано: его
- * открывает верификация анкеты и обратно оно не закрывается. PRO поднимает
- * карточку в приоритетную выдачу.
+ * пометкой `grantedBy`). Размещение в каталоге входит в PRO, а до него —
+ * первые 30 дней после одобрения анкеты.
  */
 export async function access(userId: number): Promise<Access> {
   const [user, sub, psy] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
     prisma.subscription.findUnique({ where: { psychologistId: userId } }),
-    prisma.psyProfile.findUnique({ where: { userId }, select: { status: true } }),
+    prisma.psyProfile.findUnique({ where: { userId }, select: { status: true, reviewedAt: true } }),
   ]);
   if (!user) return NO_ACCESS;
 
   const now = Date.now();
 
-  // Каталог открывает верификация и ничего больше: пустой каталог никому не
-  // продать, поэтому размещение бесплатно и бессрочно.
-  const catalog = psy?.status === "approved";
+  // Бесплатные 30 дней в каталоге идут от одобрения анкеты и не зависят от
+  // подписки: пока они не вышли, карточка стоит даже на бесплатном тарифе.
+  let catalogUntil: Date | null = null;
+  if (psy?.status === "approved" && psy.reviewedAt) {
+    catalogUntil = new Date(psy.reviewedAt);
+    catalogUntil.setDate(catalogUntil.getDate() + CATALOG_FREE_DAYS);
+  }
+  const catalogFree = Boolean(catalogUntil && catalogUntil.getTime() > now);
 
   const paidActive = sub?.status === "active" && (!sub.currentPeriodEnd || sub.currentPeriodEnd.getTime() > now);
   if (paidActive) {
@@ -83,8 +90,8 @@ export async function access(userId: number): Promise<Access> {
       trialEndsAt: null,
       trialStarted: true,
       currentPeriodEnd: sub?.currentPeriodEnd ?? null,
-      catalog,
-      priority: catalog,
+      catalogUntil,
+      catalog: true,
     };
   }
 
@@ -104,8 +111,8 @@ export async function access(userId: number): Promise<Access> {
     trialEndsAt: trialActive ? trialEndsAt : null,
     trialStarted: Boolean(startedAt),
     currentPeriodEnd: sub?.currentPeriodEnd ?? null,
-    catalog,
-    priority: catalog && trialActive,
+    catalogUntil,
+    catalog: catalogFree,
   };
 }
 

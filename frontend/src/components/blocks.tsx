@@ -68,27 +68,6 @@ export function DailyDot({ size = 22, className, label = "Задание дня 
 }
 
 /**
- * Метка PRO у анкеты в каталоге. Размещение бесплатное для всех, поэтому
- * значок говорит не «этот лучше», а «этот платит за приоритет» — искра в
- * тёмной пилюле, чтобы читалось на любой обложке карточки.
- */
-export function ProMark({ compact = false, className }: { compact?: boolean; className?: string }) {
-  const label = "PRO — приоритетное место в подборке";
-  if (compact) {
-    return (
-      <span role="img" aria-label={label} title={label} className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${className ?? ""}`} style={{ background: "var(--ink)" }}>
-        <Icon name="spark" width={11} weight="fill" color="var(--purple)" />
-      </span>
-    );
-  }
-  return (
-    <span title={label} className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[.08em] text-white ${className ?? ""}`} style={{ background: "var(--ink)" }}>
-      <Icon name="spark" width={10} weight="fill" color="var(--purple)" />PRO
-    </span>
-  );
-}
-
-/**
  * Форма стрелки. Одна на весь проект: линия с наконечником.
  * Поворотом получаем «назад» (180°), «вниз»/«раскрыть» (90°).
  */

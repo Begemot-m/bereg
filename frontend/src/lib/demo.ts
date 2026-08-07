@@ -283,8 +283,9 @@ function notify(db: DB, forRole: NotifRole, kind: string, text: string) {
 }
 
 // Те же правила, что в lib/server/access.ts: пробный PRO идёт 14 дней от первой
-// проведённой сессии, каталог открывает верификация — бесплатно и навсегда.
+// проведённой сессии, каталог бесплатен 30 дней после одобрения анкеты.
 const TRIAL_DAYS = 14;
+const CATALOG_FREE_DAYS = 30;
 const addDays = (from: number, days: number) => new Date(from + days * 86_400_000);
 
 /** Момент первой проведённой сессии — с него стартует триал. */
@@ -300,7 +301,7 @@ function firstSessionAt(db: DB): number | null {
 /**
  * Когда анкету одобрили. В демо модерация проходит сама через 6 секунд после
  * подачи; если записи о верификации нет — это готовая демо-практика, считаем
- * её одобренной, чтобы карточка сразу стояла в каталоге.
+ * её одобренной только что, чтобы бесплатные 30 дней были видны в работе.
  */
 function approvedAt(): number | null {
   if (typeof window === "undefined") return null;
@@ -343,9 +344,10 @@ function resolveSub(db: DB) {
   }
 }
 
-/** Ответ /subscription в демо: подписка + размещение и приоритет в каталоге. */
+/** Ответ /subscription в демо: подписка + окно бесплатного каталога. */
 function subPayload(db: DB) {
-  const catalog = approvedAt() !== null;
+  const approved = approvedAt();
+  const catalogUntil = approved === null ? null : addDays(approved, CATALOG_FREE_DAYS);
   const { status, trialEndsAt, currentPeriodEnd, pro, pendingPlan } = db.sub;
   return {
     status,
@@ -353,8 +355,8 @@ function subPayload(db: DB) {
     trialStarted: firstSessionAt(db) !== null,
     currentPeriodEnd,
     pro,
-    catalog,
-    priority: catalog && pro,
+    catalog: pro || Boolean(catalogUntil && catalogUntil.getTime() > Date.now()),
+    catalogUntil: catalogUntil?.toISOString() ?? null,
     pendingPlan,
   };
 }

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       currentPeriodEnd: acc.currentPeriodEnd,
       pro: acc.pro,
       catalog: acc.catalog,
-      priority: acc.priority,
+      catalogUntil: acc.catalogUntil?.toISOString() ?? null,
       pendingPlan: sub?.status === "pending" ? "pro" : null,
     });
   } catch (e) {
