@@ -2,9 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { botDeepLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
@@ -15,6 +14,7 @@ import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
 const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const MSG_KEY = "bereg_invite_message";
 
 /**
  * Ссылка-приглашение на запись. Ведёт в бота: Telegram открывает мини-приложение
@@ -33,11 +33,10 @@ export function SessionInviteButton() {
     <>
       <button
         onClick={() => { tap(); setOpen(true); }}
-        className="card-soft mb-4 flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]"
+        className="card-soft mt-4 flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]"
       >
         <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="telegram" width={21} weight="fill" color="var(--edge)" /></span>
-        <span className="t-head min-w-0 flex-1 leading-tight">Направить приглашение на сессию</span>
-        <span className="btn shrink-0 px-3 py-2 text-[12px]">Отправить <ArrowGlyph /></span>
+        <span className="font-tight min-w-0 flex-1 text-[15px] font-black leading-tight">Направить приглашение на сессию</span>
       </button>
       <AnimatePresence>{open && <SessionInviteSheet onClose={() => setOpen(false)} />}</AnimatePresence>
     </>
@@ -68,11 +67,32 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
   const name = profile?.name?.trim();
 
   // Текст, который человек прочитает в мессенджере. Без давления и канцелярита.
-  const message = [
+  const suggested = [
     name ? `Здравствуйте! Это ${name.split(" ")[0]}.` : "Здравствуйте!",
     dayLabel && times ? `Ближайшие свободные окна: ${dayLabel} — ${times}.` : "У меня открылись свободные окна для записи.",
     "Выбрать удобное время и записаться можно здесь:",
   ].join(" ");
+
+  // Свой текст приглашения хранится локально: психолог правит его один раз,
+  // дальше кнопка отправки берёт сохранённый вариант.
+  const [saved, setSaved] = useState<string | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+  useEffect(() => { setSaved(localStorage.getItem(MSG_KEY)); }, []);
+
+  const message = saved ?? suggested;
+  const text = draft ?? message;
+  const dirty = draft !== null && draft.trim() !== message.trim();
+
+  const saveMessage = () => {
+    const next = (draft ?? "").trim();
+    if (!next) return;
+    localStorage.setItem(MSG_KEY, next);
+    setSaved(next); setDraft(null); success();
+    setJustSaved(true); setTimeout(() => setJustSaved(false), 1600);
+  };
+  const resetMessage = () => { tap(); localStorage.removeItem(MSG_KEY); setSaved(null); setDraft(null); };
+
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`;
 
   const copy = async () => {
@@ -94,18 +114,33 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
       >
         <div className="relative p-5" style={{ background: "var(--head)" }}>
           <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
-          <span className="ico ico-white h-12 w-12"><Icon name="calendar" width={24} weight="bold" color="var(--edge)" /></span>
-          <h3 className="font-tight mt-3 text-[20px] font-black leading-tight">Позвать клиента на сессию</h3>
-          <p className="t-sub mt-1">Ссылка открывает вашу страницу с расписанием — человек выбирает окно и записывается сам.</p>
+          {/* Заголовок стоит справа от иконки и не спорит с ней размером */}
+          <div className="flex items-center gap-3 pr-10">
+            <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="calendar" width={21} weight="bold" color="var(--edge)" /></span>
+            <h3 className="font-tight min-w-0 text-[15px] font-black leading-tight">Позвать клиента на сессию</h3>
+          </div>
+          <p className="t-sub mt-2.5">По данной ссылке пользователь сможет перейти в ваш профиль и выбрать удобное время. Вы получите уведомление, если он запишется к вам.</p>
         </div>
 
         <div className="space-y-4 p-5">
-          {/* Что именно уйдёт в мессенджер */}
+          {/* Что именно уйдёт в мессенджер — текст правится прямо здесь */}
           <div>
             <p className="t-micro mb-1.5">Сообщение</p>
-            <div className="card-soft p-3.5">
-              <p className="t-body">{message}</p>
-              <p className="t-cap mt-1.5 truncate" style={{ color: "var(--edge)" }}>{link.replace(/^https?:\/\//, "")}</p>
+            <div className="card-soft p-3">
+              <textarea
+                value={text}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={4}
+                className="t-body w-full resize-none bg-transparent outline-none"
+                aria-label="Текст приглашения"
+              />
+              <p className="t-cap mt-1 truncate" style={{ color: "var(--edge)" }}>{link.replace(/^https?:\/\//, "")}</p>
+            </div>
+            <div className="mt-1.5 flex items-center justify-end gap-1.5">
+              {(saved || dirty) && (
+                <button onClick={resetMessage} className="btn btn-white px-2.5 py-1 text-[10.5px]">Вернуть текст</button>
+              )}
+              <button disabled={!dirty} onClick={saveMessage} className="btn px-2.5 py-1 text-[10.5px]">{justSaved ? "Сохранено ✓" : "Сохранить"}</button>
             </div>
           </div>
 
@@ -124,12 +159,14 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => success()} className="btn w-full py-3">
-            <Icon name="telegram" width={17} weight="fill" color="#fff" /> Отправить в Telegram
-          </a>
-          <button onClick={copy} className="btn btn-white w-full py-2.5">{copied ? "Ссылка скопирована" : "Скопировать ссылку"}</button>
+          <div className="flex items-center gap-1.5">
+            <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => success()} className="btn flex-1 px-3 py-1.5 text-[11.5px]">
+              <Icon name="telegram" width={13} weight="fill" color="#fff" /> Отправить в Telegram
+            </a>
+            <button onClick={copy} className="btn btn-white shrink-0 px-3 py-1.5 text-[11.5px]">{copied ? "Скопировано ✓" : "Копировать"}</button>
+          </div>
 
-          <p className="t-cap">Клиент попадёт сразу на запись. После неё приложение предложит добавить вас в «Терапию» — так у него будут видны встречи, задания и прогресс.</p>
+          <p className="t-cap">Клиент добавит вас в раздел «Терапия», где вы продолжите совместную работу и станете отслеживать прогресс.</p>
         </div>
       </motion.div>
     </motion.div>

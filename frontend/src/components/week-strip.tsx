@@ -37,7 +37,7 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
             key={key}
             ref={active ? selRef : undefined}
             onClick={onSelect ? () => { select(); onSelect(key); } : undefined}
-            className="keep-ring flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-full py-1.5"
+            className="keep-ring flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-full py-1.5 pb-2"
             style={{
               scrollSnapAlign: "center",
               // Выбранный день без заливки капсулы: остаётся только кружок с
@@ -47,15 +47,15 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
             }}
           >
             <span className="text-[10px] font-bold uppercase" style={{ color: "rgba(32,28,24,.55)" }}>{WEEKDAYS[wd]}</span>
+            {/* День с записями помечен крохотной точкой справа сверху от
+                цифры — как степень у числа, а не отдельной строкой снизу. */}
             <span
-              className="flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-extrabold"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-extrabold"
               style={active ? { background: "var(--head)", color: "var(--ink)" } : isToday ? { background: "color-mix(in srgb, var(--head) 45%, transparent)", color: "var(--ink)" } : { color: "var(--ink)" }}
             >
               {d.getDate()}
+              {marked?.has(key) && <span className="absolute right-[7px] top-[7px] h-[4px] w-[4px] rounded-full" style={{ background: "var(--edge)" }} />}
             </span>
-            {/* Точка и обводка — в цвет кружка выделенного дня: раньше на
-                активном дне точка чернела и спорила с ним. */}
-            <span className="flex h-1.5 items-center justify-center">{marked?.has(key) && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--edge)" }} />}</span>
           </button>
         );
       })}

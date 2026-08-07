@@ -46,9 +46,8 @@ function ClientTools() {
             </div>
           </section>
 
-          <div className="mb-2 mt-6 flex items-end justify-between">
+          <div className="mb-2 mt-6">
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики</p>
-            <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           {/* items-stretch + h-full по всей цепочке: иначе обёртка Reveal
               тянется на всю строку, а кнопка внутри живёт по своему тексту —
@@ -89,9 +88,8 @@ function ClientTools() {
             ))}
           </div>
 
-          <div className="mb-2 mt-6 flex items-end justify-between">
+          <div className="mb-2 mt-6">
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Улучшить терапию</p>
-            <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}><Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Бесплатно</span>
           </div>
           <div className="grid grid-cols-2 items-stretch gap-2.5">
             {/* Иконка и подпись идут подряд: mt-auto с min-h раздвигал их

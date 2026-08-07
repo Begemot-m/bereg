@@ -256,7 +256,7 @@ function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy
           </span>
         </div>
       ) : (
-        <button onClick={onBack} className="back-link mb-3">{backLabel}</button>
+        <button onClick={onBack} className="back-link mb-3 mt-3">{backLabel}</button>
       )}
       <div className="flex items-center gap-3">
         <Portrait psy={psy} size={98} tone={tone} />

@@ -12,7 +12,7 @@ export default function CabinetProfilePage() {
     <div>
       <PageHead title="Профиль специалиста" sub="Заполняйте анкету и сразу смотрите, как её увидит клиент" />
       <div className="sheet">
-        <Link href="/cabinet" onClick={tap} className="back-link mb-3">Назад</Link>
+        <Link href="/cabinet" onClick={tap} className="back-link mb-3 mt-3">Назад</Link>
         {/* Подсказка о проверке — до анкеты: заполнять её имеет смысл, зная,
             что дальше документы и модерация. */}
         <VerificationPrompt className="mb-4" />

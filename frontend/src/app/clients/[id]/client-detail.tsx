@@ -131,7 +131,7 @@ export function ClientDetail() {
     <div className="-mx-4 -mt-6 @md:-mx-9">
       {/* Шапка клиента: цвет = фон раздела, ниже скруглённая линия */}
       <header className="bg-[var(--page)] px-4 pb-14 pt-4 @md:px-9">
-        <Link href="/clients" className="back-link mb-3">Все клиенты</Link>
+        <Link href="/clients" className="back-link mb-3 mt-3">Все клиенты</Link>
         <div className="flex items-start gap-3.5">
           {/* Крупная рамка фото */}
           <div className="flex h-[92px] w-[92px] shrink-0 items-center justify-center rounded-[22px] text-[34px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }}>{client.name.charAt(0)}</div>

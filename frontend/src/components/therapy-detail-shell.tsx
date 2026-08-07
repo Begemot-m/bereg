@@ -16,7 +16,7 @@ export function TherapyDetailShell({ backHref, backLabel, title, subtitle, icon,
   return (
     <div data-accent={accent} className="-mx-4 -mt-6 min-h-full @md:-mx-9" style={{ background: "var(--page)" }}>
       <header className="px-4 pb-14 pt-4 @md:px-9">
-        <Link href={backHref} className="back-link mb-4">{backLabel}</Link>
+        <Link href={backHref} className="back-link mb-4 mt-3">{backLabel}</Link>
         <div className="flex items-center gap-3">
           <span className="ico ico-accent h-12 w-12 shrink-0"><Icon name={icon} width={23} weight="bold" /></span>
           <div className="min-w-0"><h1 className="t-display leading-tight">{title}</h1><p className="t-sub mt-1">{subtitle}</p></div>

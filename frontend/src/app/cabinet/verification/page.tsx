@@ -18,7 +18,7 @@ export default function VerificationPage() {
     <div>
       <PageHead title="Верификация" icon="therapy" sub="Проверяем документы вручную — обычно за пару дней" />
       <div className="sheet">
-        <Link href="/cabinet" onClick={tap} className="back-link mb-3">Назад</Link>
+        <Link href="/cabinet" onClick={tap} className="back-link mb-3 mt-3">Назад</Link>
 
         <div className="space-y-1.5">
           {RULES.map((rule) => (
