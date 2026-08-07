@@ -15,11 +15,7 @@ export function PageHead({ title, sub, subIcon, icon, back, right, children }: {
       className="mb-5 -mx-4 px-5 pb-3 pt-1 @md:mx-0 @md:px-1 @md:pt-4"
       style={{ background: "var(--page)" }}
     >
-      {back && (
-        <Link href={back} onClick={tap} aria-label="Назад" className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white transition-transform active:scale-95">
-          <ArrowGlyph size={16} style={{ transform: "rotate(180deg)" }} />
-        </Link>
-      )}
+      {back && <Link href={back} onClick={tap} className="back-link mb-1">Назад</Link>}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {/* Пружина на иконке заставляла дрожать соседний заголовок: каждый

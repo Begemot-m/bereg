@@ -95,9 +95,10 @@ export function completeOnboarding() {
   window.dispatchEvent(new CustomEvent(EVENT));
 }
 
+// Знакомство запускается заново — и только оно. Анкету профиля не трогаем:
+// человек просил показать онбординг, а не стереть заполненные данные.
 export function resetOnboarding() {
   localStorage.removeItem(KEY_ONBOARDED);
-  localStorage.removeItem(KEY_PROFILE);
   window.dispatchEvent(new CustomEvent(EVENT));
 }
 

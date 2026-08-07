@@ -47,7 +47,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <PageHead title="Админка" sub="Платформа целиком" icon="gear" />
+      <PageHead title="Админка" sub="Платформа целиком" icon="gear" back="/cabinet" />
 
       <div className="sheet space-y-6">
         {/* Верификация — первое, что должен видеть владелец: пока анкета висит,

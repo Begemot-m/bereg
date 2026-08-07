@@ -5,6 +5,7 @@ import {
   CalendarDots,
   ChartLineUp,
   CheckCircle,
+  SealCheck,
   Clock,
   Compass,
   GearSix,
@@ -53,6 +54,7 @@ export type IconName =
   | "bell"
   | "clock"
   | "check"
+  | "seal"
   | "note"
   | "edit"
   | "sun"
@@ -91,6 +93,7 @@ const MAP: Record<IconName, PhIcon> = {
   bell: BellRinging,
   clock: Clock,
   check: CheckCircle,
+  seal: SealCheck,
   note: NotePencil,
   edit: NotePencil,
   sun: Sun,

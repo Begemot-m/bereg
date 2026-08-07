@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { Arrow, ArrowGlyph } from "@/components/blocks";
+import { ArrowGlyph } from "@/components/blocks";
 import { VerificationPrompt } from "@/components/verification-prompt";
 import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
@@ -83,25 +83,22 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const done = steps.filter((item) => isComplete(item.id, merged)).length;
   const percent = Math.round((done / steps.length) * 100);
   const full = percent === 100;
-  const tone = full ? "green" : "amber";
 
   return (
-    <button data-tour="profile-progress" onClick={onContinue} className="flex w-full items-center gap-3 rounded-[16px] p-3 text-left transition-transform active:scale-[.99]" style={{ background: `var(--${tone}-soft)`, border: `var(--bw-lg) solid var(--${tone}-edge)` }}>
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white">
-        <Icon name="user" width={20} weight="bold" color={`var(--${tone}-edge)`} />
-      </span>
+    <div data-tour="profile-progress" className="flex items-center gap-3 rounded-[16px] p-3" style={{ background: "var(--tiffany-soft)" }}>
+      <Icon name="user" width={38} weight="fill" color="var(--tiffany)" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[13px] font-black leading-tight">{full ? "Профиль заполнен" : `Профиль на ${percent}%`}</p>
+          <p className="text-[13px] font-black leading-tight">Профиль заполнен на {percent}%</p>
           <span className="tnum text-[12px] font-black">{done}/{steps.length}</span>
         </div>
-        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-          <motion.div className="h-full rounded-full" style={{ background: `var(--${tone})` }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white">
+          <motion.div className="h-full rounded-full" style={{ background: "var(--tiffany-edge)" }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
         </div>
         {full && <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">Вас находят по всем фильтрам каталога</p>}
       </div>
-      <Arrow />
-    </button>
+      <button onClick={onContinue} className="btn shrink-0 px-4 py-2 text-[12px]">Заполнить</button>
+    </div>
   );
 }
 

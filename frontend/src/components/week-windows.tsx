@@ -414,7 +414,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
             </Link>
           )}
           {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-          {!slot.past && <button onClick={() => cancel.mutate()} className={FLAT_BTN} style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}><Icon name="close" width={11} weight="bold" color="var(--ink)" /> Освободить</button>}
+          {!slot.past && <button onClick={() => cancel.mutate()} className={FLAT_BTN} style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}><Icon name="close" width={11} weight="bold" color="#fff" /> Освободить</button>}
         </div>
       </div>
     );
