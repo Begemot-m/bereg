@@ -74,33 +74,36 @@ export type AuditRow = {
 
 export type UserRow = {
   id: number; name: string; username: string | null; email: string | null;
-  role: string; isAdmin: boolean; blocked: boolean; deleted: boolean;
+  roles: string[]; isAdmin: boolean; blocked: boolean; deleted: boolean;
   createdAt: string; pro: boolean; proUntil: string | null; proGranted: boolean;
   clients: number; appointments: number;
 };
 
+/** Психолог всегда остаётся и клиентом: своя терапия у него не отбирается. */
+const rolesFor = (role: string) => (role === "psychologist" ? ["client", "psychologist"] : ["client"]);
+
 const DEMO_USERS: UserRow[] = [
   {
     id: 1, name: "Матвей", username: "mmgorba", email: "m.m.gorba@gmail.com",
-    role: "psychologist", isAdmin: true, blocked: false, deleted: false,
+    roles: rolesFor("psychologist"), isAdmin: true, blocked: false, deleted: false,
     createdAt: "2026-06-01T10:00:00.000Z", pro: true, proUntil: "2027-06-01T10:00:00.000Z",
     proGranted: true, clients: 4, appointments: 26,
   },
   {
     id: 101, name: "Анна Ковалёва", username: "anna_kov", email: "anna@example.com",
-    role: "psychologist", isAdmin: false, blocked: false, deleted: false,
+    roles: rolesFor("psychologist"), isAdmin: false, blocked: false, deleted: false,
     createdAt: "2026-07-28T09:10:00.000Z", pro: true, proUntil: "2026-09-01T00:00:00.000Z",
     proGranted: false, clients: 9, appointments: 41,
   },
   {
     id: 102, name: "Игорь Демьянов", username: null, email: null,
-    role: "psychologist", isAdmin: false, blocked: false, deleted: false,
+    roles: rolesFor("psychologist"), isAdmin: false, blocked: false, deleted: false,
     createdAt: "2026-08-02T18:40:00.000Z", pro: false, proUntil: null,
     proGranted: false, clients: 0, appointments: 0,
   },
   {
     id: 203, name: "Марина", username: "marina_s", email: null,
-    role: "client", isAdmin: false, blocked: false, deleted: false,
+    roles: rolesFor("client"), isAdmin: false, blocked: false, deleted: false,
     createdAt: "2026-07-15T12:00:00.000Z", pro: false, proUntil: null,
     proGranted: false, clients: 0, appointments: 6,
   },
@@ -258,7 +261,7 @@ export function useAdminUsers(q: string, page: number) {
         const needle = q.trim().toLowerCase();
         const roles = demoRoles();
         const items = DEMO_USERS
-          .map((u) => (roles[u.id] ? { ...u, role: roles[u.id] } : u))
+          .map((u) => (roles[u.id] ? { ...u, roles: rolesFor(roles[u.id]) } : u))
           .filter((u) =>
             !needle ||
             u.name.toLowerCase().includes(needle) ||

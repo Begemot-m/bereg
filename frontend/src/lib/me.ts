@@ -9,7 +9,7 @@ export type Me = {
   id: number;
   username: string | null;
   firstName: string | null;
-  role: string;
+  roles: string[];
   isAdmin: boolean;
 };
 
@@ -65,7 +65,7 @@ export function useMe() {
           id: 1,
           username,
           firstName: "Демо",
-          role: "psychologist",
+          roles: ["client", "psychologist"],
           isAdmin: username === DEMO_OWNER,
         };
       }

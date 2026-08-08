@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { isAdmin } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
+import { rolesOf } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
         skip: page * PAGE,
         take: PAGE,
         select: {
-          id: true, username: true, firstName: true, email: true, role: true,
+          id: true, username: true, firstName: true, email: true, roles: true,
           isAdmin: true, blockedAt: true, deletedAt: true, createdAt: true,
           subscription: { select: { status: true, plan: true, currentPeriodEnd: true, grantedBy: true } },
           _count: { select: { clients: true, appointments: true } },
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
         name: u.firstName ?? u.username ?? `#${u.id}`,
         username: u.username,
         email: u.email,
-        role: u.role,
+        roles: rolesOf(u),
         isAdmin: u.isAdmin,
         blocked: Boolean(u.blockedAt),
         deleted: Boolean(u.deletedAt),

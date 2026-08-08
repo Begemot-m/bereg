@@ -354,11 +354,11 @@ function useCanSwitchRole() {
   const [role] = useRole();
 
   const status = verification.data?.status ?? "none";
-  // В демо сервера нет, и `me.role` там всегда «психолог» — заглушка, чтобы
+  // В демо сервера нет, и `me.roles` там всегда с психологом — заглушка, чтобы
   // прототип показывал кабинет специалиста. Верить ей нельзя: иначе тумблер
   // видит и тот, кто выбрал в онбординге клиента. В демо решает только выбор
   // роли и заявка.
-  const isPsy = !DEMO && me.data?.role === "psychologist";
+  const isPsy = !DEMO && Boolean(me.data?.roles?.includes("psychologist"));
   return {
     ready: !me.isLoading && intentReady,
     loaded: Boolean(me.data) && intentReady,

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       await grantPsychologist(user.id);
       await audit(req, { userId: user.id, action: "psy.role.claim" });
     }
-    return NextResponse.json({ role: "psychologist", roles: [...new Set([...rolesOf(user), "psychologist"])] });
+    return NextResponse.json({ roles: [...new Set([...rolesOf(user), "psychologist"])] });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

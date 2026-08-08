@@ -5,6 +5,7 @@ import { env } from "@/lib/server/env";
 import { createAccessToken } from "@/lib/server/jwt";
 import { prisma } from "@/lib/server/prisma";
 import { LIMITS, limited } from "@/lib/server/rate-limit";
+import { rolesOf } from "@/lib/server/roles";
 import { accessCookie, createSession, refreshCookie } from "@/lib/server/sessions";
 import { InitDataError, validateInitData } from "@/lib/server/telegram";
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   // Токены уходят только в httpOnly-куки: из JavaScript их не прочитать,
   // поэтому XSS не превращается в угон аккаунта.
-  const res = NextResponse.json({ ok: true, user: { id: user.id, role: user.role } });
+  const res = NextResponse.json({ ok: true, user: { id: user.id, roles: rolesOf(user) } });
   res.cookies.set(refreshCookie(session.refreshToken, session.expiresAt));
   res.cookies.set(accessCookie(access));
   return res;

@@ -12,8 +12,6 @@ export async function GET(req: NextRequest) {
       id: user.id,
       username: user.username,
       firstName: user.firstName,
-      // role — для старого фронта, пока идёт переход на массив ролей.
-      role: user.role,
       roles: rolesOf(user),
       psyStatus: psyStatusOf(user),
       // Интерфейс по этому флагу решает, показывать ли вход в админку.

@@ -276,7 +276,7 @@ export default function AdminPage() {
                       {u.username ? `@${u.username}` : "без ника"} · {u.email ?? "без почты"} · с {dateF.format(new Date(u.createdAt))}
                     </p>
                     <p className="t-cap mt-0.5">
-                      {u.role === "psychologist" ? "психолог" : "клиент"} · {u.clients} клиентов · {u.appointments} сессий
+                      {u.roles.includes("psychologist") ? "психолог" : "клиент"} · {u.clients} клиентов · {u.appointments} сессий
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
@@ -305,7 +305,7 @@ export default function AdminPage() {
                   )}
                   <button
                     onClick={() => {
-                      const next = u.role === "psychologist" ? "client" : "psychologist";
+                      const next = u.roles.includes("psychologist") ? "client" : "psychologist";
                       const warn = next === "client"
                         ? `Сделать ${u.name} клиентом? Анкета уйдёт из каталога, клиенты и записи останутся.`
                         : `Сделать ${u.name} психологом? В каталог он попадёт только после проверки анкеты.`;
@@ -313,7 +313,7 @@ export default function AdminPage() {
                     }}
                     className="btn btn-white px-3 py-1.5 text-[11px]"
                   >
-                    {u.role === "psychologist" ? "в клиенты" : "в психологи"}
+                    {u.roles.includes("psychologist") ? "в клиенты" : "в психологи"}
                   </button>
                   <button
                     onClick={() => { if (confirm(u.blocked ? `Разблокировать ${u.name}?` : `Заблокировать ${u.name}? Он выйдет из всех сессий.`)) act.mutate({ id: u.id, body: { blocked: !u.blocked } }); }}

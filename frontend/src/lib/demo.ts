@@ -839,7 +839,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
 
   // переход в психологи: в демо роль живёт в localStorage, серверу подтверждать нечего
   if (clean === "/profile/role" && method === "POST") {
-    return delay({ role: "psychologist" } as T);
+    return delay({ roles: ["client", "psychologist"] } as T);
   }
 
   // удаление своих сведений: в демо всё лежит на устройстве, его чистит

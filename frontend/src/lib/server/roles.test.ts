@@ -2,20 +2,20 @@ import { describe, expect, test } from "bun:test";
 
 import { hasRole, psyStatusOf, rolesOf } from "./roles";
 
-// Переход с одиночной строки идёт в два релиза, и всё это время в базе живут
-// записи обоих видов. Фолбэк — единственное, что не даёт им разъехаться.
+// Роль решается только по массиву: старая строка `role` не читается с релиза
+// от 8 августа 2026.
 describe("роли аккаунта", () => {
   test("массив читается как есть", () => {
     expect(rolesOf({ roles: ["client", "psychologist"] })).toEqual(["client", "psychologist"]);
   });
 
-  test("запись без бэкофилла выводится из старой строки", () => {
-    expect(rolesOf({ roles: [], role: "psychologist" })).toEqual(["client", "psychologist"]);
-    expect(rolesOf({ roles: [], role: "client" })).toEqual(["client"]);
+  test("пустой массив — клиент, а не аккаунт без ролей", () => {
+    expect(rolesOf({ roles: [] })).toEqual(["client"]);
+    expect(rolesOf({ roles: null })).toEqual(["client"]);
   });
 
   test("психолог остаётся и клиентом: своя терапия у него не отбирается", () => {
-    expect(hasRole({ role: "psychologist" }, "client")).toBe(true);
+    expect(hasRole({ roles: ["client", "psychologist"] }, "client")).toBe(true);
   });
 
   test("клиент не получает прав психолога", () => {

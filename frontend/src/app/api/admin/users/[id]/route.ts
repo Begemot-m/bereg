@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { isAdmin } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
-import { grantPsychologist, revokePsychologist, setPsyStatus } from "@/lib/server/roles";
+import { grantPsychologist, hasRole, revokePsychologist, setPsyStatus } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
@@ -81,7 +81,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       });
     }
 
-    if (body.role && body.role !== target.role) {
+    const targetIsPsy = hasRole(target, "psychologist");
+    if (body.role && (body.role === "psychologist") !== targetIsPsy) {
       if (body.role === "psychologist") await grantPsychologist(userId);
       else await revokePsychologist(userId);
 
@@ -109,7 +110,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       await prisma.auditLog.create({
         data: {
           userId: admin.id, action: "admin.role.change", entity: "User", entityId: String(userId), ip,
-          meta: { from: target.role, to: body.role, unpublished },
+          meta: { from: targetIsPsy ? "psychologist" : "client", to: body.role, unpublished },
         },
       });
     }

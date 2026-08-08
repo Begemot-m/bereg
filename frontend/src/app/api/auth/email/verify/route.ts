@@ -5,6 +5,7 @@ import { createAccessToken } from "@/lib/server/jwt";
 import { checkCode, looksLikeEmail, normalizeEmail } from "@/lib/server/otp";
 import { prisma } from "@/lib/server/prisma";
 import { LIMITS, limited } from "@/lib/server/rate-limit";
+import { rolesOf } from "@/lib/server/roles";
 import { accessCookie, createSession, refreshCookie } from "@/lib/server/sessions";
 
 export const runtime = "nodejs";
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
   const access = await createAccessToken(user.id, session.sessionId);
   await audit(req, { userId: user.id, action: "login", meta: { via: "email" } });
 
-  const res = NextResponse.json({ ok: true, user: { id: user.id, role: user.role } });
+  const res = NextResponse.json({ ok: true, user: { id: user.id, roles: rolesOf(user) } });
   res.cookies.set(refreshCookie(session.refreshToken, session.expiresAt));
   res.cookies.set(accessCookie(access));
   return res;
