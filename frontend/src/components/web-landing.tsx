@@ -1,9 +1,26 @@
 "use client";
 
-import { AnimatePresence, motion, useMotionValue, useTransform, type MotionValue } from "motion/react";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+  type MotionValue,
+} from "motion/react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { type ReactNode, type UIEvent, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  type RefObject,
+  type UIEvent,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { WebLogin } from "@/components/web-login";
@@ -12,6 +29,25 @@ import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/
 
 const BOT_URL = botDeepLink("site");
 const EASE = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * Лендинг прокручивается не окном, а своим контейнером. Анимациям, привязанным
+ * к скроллу, нужно отдать именно его — иначе прогресс всегда остаётся нулевым.
+ */
+const ScrollBox = createContext<RefObject<HTMLDivElement | null> | null>(null);
+
+/** Стек и параллакс включаются только с планшета: на телефоне блок выше экрана. */
+function useWide() {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return wide;
+}
 
 const NAV = [
   ["Возможности", "#features"],
@@ -172,35 +208,39 @@ function LandingPage() {
   // Позиция скролла в motion value: иначе параллакс перерисовывал бы страницу
   // на каждом кадре колеса.
   const scrollY = useMotionValue(0);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div
-      className="fixed inset-0 z-[95] overflow-y-auto overflow-x-hidden"
-      style={{ background: "var(--bg)", color: "var(--ink)" }}
-      onScroll={(e: UIEvent<HTMLDivElement>) => {
-        const top = e.currentTarget.scrollTop;
-        scrollY.set(top);
-        setScrolled((was) => (was === top > 16 ? was : top > 16));
-      }}
-    >
-      <Nav scrolled={scrolled} onLogin={() => setLogin(true)} />
+    <ScrollBox.Provider value={boxRef}>
+      <div
+        ref={boxRef}
+        className="fixed inset-0 z-[95] overflow-y-auto overflow-x-hidden"
+        style={{ background: "var(--bg)", color: "var(--ink)" }}
+        onScroll={(e: UIEvent<HTMLDivElement>) => {
+          const top = e.currentTarget.scrollTop;
+          scrollY.set(top);
+          setScrolled((was) => (was === top > 16 ? was : top > 16));
+        }}
+      >
+        <Nav scrolled={scrolled} onLogin={() => setLogin(true)} />
 
-      <main>
-        <Hero scrollY={scrollY} onLogin={() => setLogin(true)} />
-        <ScreensTabs />
-        <Trio />
-        <Topics />
-        <Features />
-        <Faq />
-        <Orbit />
-        <Who />
-        <Cta />
-      </main>
+        <main>
+          <Hero scrollY={scrollY} onLogin={() => setLogin(true)} />
+          <ScreensTabs />
+          <Trio />
+          <Topics />
+          <Features />
+          <Faq />
+          <Orbit />
+          <Who />
+          <Cta />
+        </main>
 
-      <Footer onLogin={() => setLogin(true)} />
+        <Footer onLogin={() => setLogin(true)} />
 
-      {login && <WebLogin onClose={() => setLogin(false)} />}
-    </div>
+        {login && <WebLogin onClose={() => setLogin(false)} />}
+      </div>
+    </ScrollBox.Provider>
   );
 }
 
@@ -247,13 +287,14 @@ function SoftButton({ children, onClick, href }: { children: ReactNode; onClick?
 }
 
 function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const calm = useReducedMotion();
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 26 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.7, delay, ease: EASE }}
+      initial={calm ? { opacity: 0 } : { opacity: 0, y: 26, filter: "blur(10px)" }}
+      whileInView={calm ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.75, delay, ease: EASE }}
     >
       {children}
     </motion.div>
@@ -275,7 +316,7 @@ function Nav({ scrolled, onLogin }: { scrolled: boolean; onLogin: () => void }) 
         borderBottom: `1px solid ${scrolled ? "var(--hairline)" : "transparent"}`,
       }}
     >
-      <div className={`${WRAP} flex h-[80px] items-center justify-between gap-6`}>
+      <div className={`${WRAP} flex h-[68px] items-center justify-between gap-4 md:h-[80px] md:gap-6`}>
         <a href="#top" className="font-tight text-[24px] font-black tracking-[-0.03em]">{APP_NAME}</a>
 
         <nav className="hidden items-center gap-7 lg:flex">
@@ -307,15 +348,23 @@ function Nav({ scrolled, onLogin }: { scrolled: boolean; onLogin: () => void }) 
 /* ─────────────────────────── герой ─────────────────────────── */
 
 function Hero({ scrollY, onLogin }: { scrollY: MotionValue<number>; onLogin: () => void }) {
+  const calm = useReducedMotion();
+  const scale = useTransform(scrollY, [0, 560], [1, 0.92]);
+  const fade = useTransform(scrollY, [0, 480], [1, 0]);
+  const lift = useTransform(scrollY, [0, 560], [0, -40]);
+
   return (
-    <section id="top" className="relative overflow-hidden pb-6 pt-16 md:pb-10 md:pt-24">
+    <section id="top" className="relative overflow-hidden pb-6 pt-12 md:pb-10 md:pt-24">
       <div className="pointer-events-none absolute inset-0 hidden lg:block">
         {MASCOTS.map((m) => (
           <Mascot key={m.src} scrollY={scrollY} {...m} />
         ))}
       </div>
 
-      <div className={`${WRAP} relative text-center`}>
+      <motion.div
+        className={`${WRAP} relative text-center`}
+        style={calm ? undefined : { scale, opacity: fade, y: lift, transformOrigin: "top center" }}
+      >
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -330,7 +379,7 @@ function Hero({ scrollY, onLogin }: { scrollY: MotionValue<number>; onLogin: () 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.06, ease: EASE }}
-          className="font-tight mx-auto mt-5 max-w-[1020px] text-[42px] font-black leading-[1.05] tracking-[-0.035em] md:text-[68px]"
+          className="font-tight mx-auto mt-5 max-w-[1020px] text-[38px] font-black leading-[1.05] tracking-[-0.035em] sm:text-[48px] md:text-[68px]"
         >
           Практика психолога,<br className="hidden md:block" /> собранная в одном месте
         </motion.h1>
@@ -354,7 +403,7 @@ function Hero({ scrollY, onLogin }: { scrollY: MotionValue<number>; onLogin: () 
           <ArrowLink href={BOT_URL}>Открыть в Telegram</ArrowLink>
           <SoftButton onClick={onLogin}>Войти по почте</SoftButton>
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -428,12 +477,18 @@ function ScreensTabs() {
         </div>
       </div>
 
-      <div className={`${WRAP} mt-6 md:mt-8`}>
+      <motion.div
+        className={`${WRAP} mt-6 md:mt-8`}
+        initial={{ opacity: 0, scale: 0.94, y: 44 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.9, ease: EASE }}
+      >
         <motion.div
-          className="relative overflow-hidden rounded-[28px] px-4 pt-4 md:rounded-[36px] md:px-10 md:pt-10"
+          className="relative overflow-hidden rounded-[24px] px-3 pt-3 md:rounded-[36px] md:px-10 md:pt-10"
           animate={{ backgroundColor: tab.tone }}
           transition={{ duration: 0.5, ease: EASE }}
-          style={{ height: "clamp(280px, 46vw, 620px)" }}
+          style={{ height: "clamp(230px, 46vw, 620px)" }}
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -457,7 +512,7 @@ function ScreensTabs() {
             </motion.div>
           </AnimatePresence>
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -514,70 +569,121 @@ function Topics() {
 /* ─────────────────────────── возможности ─────────────────────────── */
 
 function Features() {
+  const box = useContext(ScrollBox);
+  const stackRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: stackRef,
+    container: box ?? undefined,
+    offset: ["start start", "end end"],
+  });
+
   return (
     <section id="features" className={`${WRAP} pb-16 md:pb-24`}>
       <Reveal>
-        <h2 className="font-tight max-w-[760px] text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
+        <h2 className="font-tight max-w-[760px] text-[32px] font-black leading-[1.06] tracking-[-0.03em] sm:text-[36px] md:text-[54px]">
           Ведите практику ясно и без хаоса
         </h2>
       </Reveal>
 
-      <div className="mt-10 space-y-4 md:mt-14 md:space-y-5">
+      <div ref={stackRef} className="mt-10 space-y-4 md:mt-14 md:space-y-6">
         {FEATURES.map((block, i) => (
-          <Reveal key={block.title} delay={0.05}>
-            <article
-              className="grid items-stretch gap-8 overflow-hidden rounded-[30px] p-7 md:grid-cols-2 md:gap-10 md:p-12 md:pr-0"
-              style={{ background: "rgba(32,28,24,.045)" }}
-            >
-              <div className="flex flex-col">
-                <h3 className="font-tight text-[28px] font-black leading-[1.08] tracking-[-0.025em] md:text-[40px]">{block.title}</h3>
-                <p className="mt-4 max-w-[460px] text-[15px] font-medium leading-[1.55] text-[var(--muted)] md:text-[16.5px]">{block.text}</p>
-
-                <div className="mt-7 flex flex-wrap gap-2.5">
-                  {block.tags.map((tag) => (
-                    <span
-                      key={tag.label}
-                      className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-4 py-2.5 text-[14px] font-medium"
-                      style={{ border: "1px solid var(--hairline)" }}
-                    >
-                      <Icon name={tag.icon} width={16} weight="regular" color="var(--ink)" />
-                      {tag.label}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-auto pt-9">
-                  <ArrowLink href={BOT_URL}>Открыть в Telegram</ArrowLink>
-                </div>
-              </div>
-
-              <div
-                className="relative -mb-7 min-h-[240px] overflow-hidden rounded-[22px] md:-mb-12 md:mr-0 md:min-h-[380px] md:rounded-r-none"
-                style={{ background: block.tone }}
-              >
-                <motion.div
-                  initial={{ opacity: 0, x: 40 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ duration: 0.8, delay: 0.15, ease: EASE }}
-                  className="absolute left-6 top-8 w-[130%] overflow-hidden rounded-[14px] bg-white md:left-10 md:top-12"
-                  style={{ boxShadow: "0 20px 60px rgba(32,28,24,.16)" }}
-                >
-                  <Image
-                    src={asset(`/shots/d-${block.shot}.png`)}
-                    alt={`Экран «${block.title}» в Хронике`}
-                    width={2560}
-                    height={1600}
-                    className="block w-full"
-                    unoptimized
-                  />
-                </motion.div>
-              </div>
-            </article>
-          </Reveal>
+          <FeatureCard key={block.title} block={block} index={i} total={FEATURES.length} progress={scrollYProgress} />
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Карточка стека: пока следующая наезжает сверху, эта залипает под шапкой,
+ * слегка уменьшается и уходит в фон. На телефоне стек не включаем — блок выше
+ * экрана, залипать нечему, остаётся обычное появление.
+ */
+function FeatureCard({
+  block, index, total, progress,
+}: {
+  block: (typeof FEATURES)[number];
+  index: number;
+  total: number;
+  progress: MotionValue<number>;
+}) {
+  const calm = useReducedMotion();
+  const wide = useWide();
+  const stack = wide && !calm;
+  const last = index === total - 1;
+  const span: [number, number] = [index / total, (index + 1) / total];
+
+  const scale = useTransform(progress, span, [1, last ? 1 : 0.92]);
+  const veil = useTransform(progress, span, [0, last ? 0 : 0.5]);
+  const shotY = useTransform(progress, span, [30, -30]);
+
+  return (
+    <div className="md:sticky" style={{ top: 84 + index * 14 }}>
+      <motion.article
+        initial={calm ? { opacity: 0 } : { opacity: 0, y: 34, filter: "blur(10px)" }}
+        whileInView={calm ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.75, ease: EASE }}
+        className="relative grid items-stretch gap-8 overflow-hidden rounded-[26px] p-6 sm:p-7 md:grid-cols-2 md:gap-10 md:rounded-[30px] md:p-12 md:pr-0"
+        style={{
+          background: "color-mix(in srgb, var(--ink) 5%, var(--bg))",
+          boxShadow: stack ? "0 -26px 70px rgba(32,28,24,.09)" : undefined,
+          ...(stack ? { scale, transformOrigin: "top center" } : null),
+        }}
+      >
+        <div className="flex flex-col">
+          <h3 className="font-tight text-[26px] font-black leading-[1.08] tracking-[-0.025em] sm:text-[28px] md:text-[40px]">{block.title}</h3>
+          <p className="mt-4 max-w-[460px] text-[15px] font-medium leading-[1.55] text-[var(--muted)] md:text-[16.5px]">{block.text}</p>
+
+          <div className="mt-7 flex flex-wrap gap-2.5">
+            {block.tags.map((tag) => (
+              <span
+                key={tag.label}
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-3.5 py-2 text-[13.5px] font-medium sm:px-4 sm:py-2.5 sm:text-[14px]"
+                style={{ border: "1px solid var(--hairline)" }}
+              >
+                <Icon name={tag.icon} width={16} weight="regular" color="var(--ink)" />
+                {tag.label}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-auto pt-8 md:pt-9">
+            <ArrowLink href={BOT_URL}>Открыть в Telegram</ArrowLink>
+          </div>
+        </div>
+
+        <div
+          className="relative -mb-6 min-h-[200px] overflow-hidden rounded-[20px] sm:-mb-7 sm:min-h-[240px] md:-mb-12 md:mr-0 md:min-h-[380px] md:rounded-r-none"
+          style={{ background: block.tone }}
+        >
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, delay: 0.15, ease: EASE }}
+            className="absolute left-5 top-7 w-[130%] overflow-hidden rounded-[14px] bg-white sm:left-6 sm:top-8 md:left-10 md:top-12"
+            style={{ boxShadow: "0 20px 60px rgba(32,28,24,.16)", ...(stack ? { y: shotY } : null) }}
+          >
+            <Image
+              src={asset(`/shots/d-${block.shot}.png`)}
+              alt={`Экран «${block.title}» в Хронике`}
+              width={2560}
+              height={1600}
+              className="block w-full"
+              unoptimized
+            />
+          </motion.div>
+        </div>
+
+        {stack && (
+          <motion.span
+            className="pointer-events-none absolute inset-0 rounded-[26px] md:rounded-[30px]"
+            style={{ background: "var(--bg)", opacity: veil }}
+          />
+        )}
+      </motion.article>
+    </div>
   );
 }
 
@@ -587,7 +693,7 @@ function Faq() {
   return (
     <section id="faq" className={`${WRAP} py-16 md:py-28`}>
       <Reveal>
-        <h2 className="font-tight mx-auto max-w-[820px] text-center text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
+        <h2 className="font-tight mx-auto max-w-[820px] text-center text-[32px] font-black leading-[1.06] tracking-[-0.03em] sm:text-[36px] md:text-[54px]">
           Вопросы, которые задают чаще всего
         </h2>
       </Reveal>
@@ -622,7 +728,7 @@ function Orbit() {
     <section className="relative overflow-hidden pt-16 md:pt-24" style={{ background: "rgba(32,28,24,.03)" }}>
       <div className={`${WRAP} text-center`}>
         <Reveal>
-          <h2 className="font-tight mx-auto max-w-[760px] text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
+          <h2 className="font-tight mx-auto max-w-[760px] text-[32px] font-black leading-[1.06] tracking-[-0.03em] sm:text-[36px] md:text-[54px]">
             Работайте спокойнее: всё в одном месте
           </h2>
         </Reveal>
@@ -633,7 +739,7 @@ function Orbit() {
         </Reveal>
       </div>
 
-      <div className="relative mx-auto mt-12 h-[300px] w-full max-w-[1100px] md:mt-16 md:h-[420px]">
+      <div className="relative mx-auto mt-10 h-[250px] w-full max-w-[1100px] origin-top scale-[.84] sm:mt-12 sm:h-[300px] sm:scale-100 md:mt-16 md:h-[420px]">
         {[0, 1].map((ring) => (
           <span
             key={ring}
@@ -685,23 +791,26 @@ function Orbit() {
 function Who() {
   return (
     <section id="who" className={`${WRAP} py-16 md:py-28`}>
-      <Reveal>
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <h2 className="font-tight max-w-[720px] text-[36px] font-black leading-[1.06] tracking-[-0.03em] md:text-[54px]">
-            Две стороны одной встречи.{" "}
-            <span className="text-[var(--muted)]">Приложение одно.</span>
-          </h2>
-          <SoftButton href={BOT_URL}>Посмотреть в Telegram</SoftButton>
+      <div className="grid gap-8 md:grid-cols-[minmax(0,400px)_1fr] md:gap-14">
+        <div className="md:sticky md:top-[104px] md:self-start">
+          <Reveal>
+            <h2 className="font-tight text-[32px] font-black leading-[1.06] tracking-[-0.03em] sm:text-[36px] md:text-[46px]">
+              Две стороны одной встречи.{" "}
+              <span className="text-[var(--muted)]">Приложение одно.</span>
+            </h2>
+            <div className="mt-7">
+              <SoftButton href={BOT_URL}>Посмотреть в Telegram</SoftButton>
+            </div>
+          </Reveal>
         </div>
-      </Reveal>
 
-      <div className="mt-10 grid gap-4 md:mt-14 md:grid-cols-2">
+        <div className="grid gap-4">
         {WHO.map((side, i) => (
           <Reveal key={side.who} delay={i * 0.08}>
             <motion.article
               whileHover={{ y: -6 }}
               transition={{ duration: 0.3, ease: EASE }}
-              className="h-full rounded-[28px] p-8 md:p-10"
+              className="h-full rounded-[28px] p-7 sm:p-8 md:p-10"
               style={{ background: side.tone }}
             >
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface)]">
@@ -721,6 +830,7 @@ function Who() {
             </motion.article>
           </Reveal>
         ))}
+        </div>
       </div>
     </section>
   );
@@ -749,7 +859,7 @@ function Cta() {
 
       <div className={`${WRAP} relative text-center`}>
         <Reveal>
-          <h2 className="font-tight mx-auto max-w-[820px] text-[40px] font-black leading-[1.05] tracking-[-0.035em] md:text-[64px]">
+          <h2 className="font-tight mx-auto max-w-[820px] text-[34px] font-black leading-[1.05] tracking-[-0.035em] sm:text-[42px] md:text-[64px]">
             Начните вести практику спокойнее
           </h2>
         </Reveal>
