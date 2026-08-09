@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
+import { DAY_TINT_ENDS, slotStyle } from "@/lib/slot-style";
 
 export type HelpPage = { title: string; text: string; illo?: ReactNode; image?: string; imageAlt?: string };
 
@@ -19,13 +20,14 @@ const Pill = ({ bg, bd, children }: { bg: string; bd: string; children: ReactNod
   <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: bg, borderColor: bd }}>{children}</span>
 );
 
-const YEL = { bg: "var(--slot-morn)", bd: "var(--slot-morn-e)" }; // утро в редакторе графика
-const AMB = { bg: "var(--slot-day)", bd: "var(--slot-day-e)" };   // день (персик)
-const PUR = { bg: "var(--purple)", bd: "var(--purple-edge)" };    // вечер
-// Окна дня в сессиях: тот же градиент, что рисует dayTint — утро светло-зелёное,
-// вечер лавандовый.
-const MORN = { bg: "rgb(230, 240, 220)", bd: "rgb(91, 128, 66)" };
-const EVE = { bg: "rgb(214, 203, 236)", bd: "rgb(144, 119, 189)" };
+// Блоки в редакторе графика: тот же градиент, что рисует slotStyle — утро
+// светло-зелёное, вечер лавандовый.
+const YEL = { bg: DAY_TINT_ENDS.morning.bg, bd: DAY_TINT_ENDS.morning.bd };
+const AMB = { bg: slotStyle(14).bg, bd: slotStyle(14).bd };
+const PUR = { bg: DAY_TINT_ENDS.evening.bg, bd: DAY_TINT_ENDS.evening.bd };
+// Окна дня в сессиях: свободное белое в рамке, занятое — заливкой раздела.
+const FREE = { bg: "#fff", bd: "var(--olive-edge)" };
+const BUSY = { bg: "var(--head-soft)", bd: "var(--edge)" };
 
 export const SESSIONS_HELP: HelpPage[] = [
   {
@@ -61,11 +63,11 @@ export const SESSIONS_HELP: HelpPage[] = [
   },
   {
     title: "Записать клиента",
-    text: "Тап по свободному окну раскрывает его, «Выбрать клиента» открывает список — там же заводится новый. Зелёный плюс по центру делает то же самое для любой даты. Свободные окна перетекают по времени суток: утро светло-зелёное, вечер лавандовый.",
+    text: "Тап по свободному окну раскрывает его, «Выбрать клиента» открывает список — там же заводится новый. Зелёный плюс по центру делает то же самое для любой даты. Свободные окна белые в рамке, занятые — с заливкой: пустое от занятого видно сразу.",
     illo: (
       <Frame>
-        <Row bg={MORN.bg} bd={MORN.bd}><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span>☀</span></Row>
-        <Row bg={EVE.bg} bd={EVE.bd}><span className="tnum">19:00</span><span className="flex-1 text-[var(--muted)]">выбрать клиента</span><span>🌙</span></Row>
+        <Row bg={FREE.bg} bd={FREE.bd}><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span>☀</span></Row>
+        <Row bg={BUSY.bg} bd={BUSY.bd}><span className="tnum">19:00</span><span className="flex-1 text-[var(--muted)]">Марина</span><span>🌙</span></Row>
       </Frame>
     ),
   },
@@ -75,7 +77,7 @@ export const SESSIONS_HELP: HelpPage[] = [
     illo: (
       <Frame>
         <div className="rounded-[9px] p-2 stroke" style={{ background: "#fff" }}>
-          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-[7px] stroke" style={{ background: AMB.bg, borderColor: AMB.bd }}>М</span><span className="tnum">14:00</span><span className="flex-1">Марина</span><Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">онлайн ⇄</span></Pill></div>
+          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-[7px] stroke" style={{ background: BUSY.bg, borderColor: BUSY.bd }}>М</span><span className="tnum">14:00</span><span className="flex-1">Марина</span><Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">онлайн ⇄</span></Pill></div>
           <div className="mt-1.5 flex gap-1">
             <Pill bg="var(--head)" bd="var(--edge)">Перенести</Pill>
             <Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">Написать</span></Pill>
@@ -92,7 +94,7 @@ export const SESSIONS_HELP: HelpPage[] = [
     text: "В раскрытом свободном окне внизу справа есть «Удалить окно» — оно уходит с этой даты, а шаблон недели не меняется. «↺ Открыть окна» возвращает его. Кнопка «Действия» над днями делает выходной целиком и переводит все окна в онлайн или очно.",
     illo: (
       <Frame>
-        <Row bg={MORN.bg} bd={MORN.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span className="text-[10px]" style={{ color: "var(--danger)" }}>✕ Удалить окно</span></Row>
+        <Row bg={FREE.bg} bd={FREE.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span className="text-[10px]" style={{ color: "var(--danger)" }}>✕ Удалить окно</span></Row>
         <div className="ml-auto w-44 rounded-[11px] p-1 stroke" style={{ background: "#fff" }}>
           {["⚙ Действия", "🌙 Сделать выходным", "↺ Открыть все окна"].map((t, i) => (
             <div key={t} className="rounded-[8px] px-2 py-1 text-[10px] font-bold" style={i === 0 ? { background: "var(--head-soft)" } : undefined}>{t}</div>
@@ -148,7 +150,7 @@ export const SCHEDULE_HELP: HelpPage[] = [
   },
   {
     title: "Поставить окно",
-    text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Утренние окна жёлтые, дневные персиковые, вечерние лавандовые, с иконкой солнца или луны.",
+    text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Цвет блока перетекает по времени суток: утро светло-зелёное, вечер лавандовый, с иконкой солнца или луны.",
     illo: (
       <Frame>
         <div className="relative h-16 rounded-[9px] stroke" style={{ background: "#fff" }}>

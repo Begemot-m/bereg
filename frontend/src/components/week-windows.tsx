@@ -125,26 +125,13 @@ export function WeekWindows() {
 
 type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
-// Свободные окна красятся по времени суток: утро светло-зелёное, вечер
-// лавандовый. День читается сплошным градиентом сверху вниз, и по цвету плитки
-// видно, к какой части дня она относится, без чтения цифр.
-const MORNING = { fill: [230, 240, 220], edge: [91, 128, 66] };
-const EVENING = { fill: [214, 203, 236], edge: [144, 119, 189] };
-const rgb = (c: number[]) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-const mix = (from: number[], to: number[], k: number) => from.map((v, i) => Math.round(v + (to[i] - v) * k));
-
-export function dayTint(hour: number) {
-  const k = Math.min(1, Math.max(0, (hour - 7) / 14)); // 07:00 — утро, 21:00 — вечер
-  return { fill: rgb(mix(MORNING.fill, EVENING.fill, k)), edge: rgb(mix(MORNING.edge, EVENING.edge, k)) };
-}
-
 function look(s: Slot): Look {
   // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
   // Занятое окно тоже в рамке — плитки дня выглядят одной сеткой.
   if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", ring: "var(--edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
-  // Свободное окно: заливка и рамка по времени суток.
-  const tint = dayTint(s.hour);
-  return { bg: tint.fill, ring: tint.edge, label: "свободно", labelColor: tint.edge };
+  // Свободное окно белое и в тонкой рамке: заливка отличает занятое от пустого,
+  // цвет времени суток живёт в редакторе графика и мешал бы здесь.
+  return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
 }
 
 // Кнопки в раскрытом окне: узкая обводка и фиксированная низкая высота, текст

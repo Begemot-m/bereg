@@ -223,7 +223,7 @@ function SlotBlock({ label, hour, fmt, top, height, onRemove, onToggleFmt, onCom
       initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={SPRING}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onClick={(e) => e.stopPropagation()}
       className="keep-style absolute inset-x-1 flex touch-none items-center justify-center rounded-[9px] text-[12px] font-extrabold"
-      style={{ top: top + dy, height, background: st.bg, border: "1px solid color-mix(in srgb, var(--edge) 48%, transparent)", color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
+      style={{ top: top + dy, height, background: st.bg, border: `1px solid ${st.bd}`, color: "var(--ink)", zIndex: dy ? 5 : 1, cursor: "grab" }}
     >
       <FmtSwitch fmt={fmt} onToggle={onToggleFmt} className="absolute left-1.5 top-1/2 -translate-y-1/2 !text-[9px]" />
       {label}
