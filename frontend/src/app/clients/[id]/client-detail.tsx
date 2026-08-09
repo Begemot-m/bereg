@@ -10,6 +10,7 @@ import { Icon } from "@/components/icons";
 import { MoodStats } from "@/components/mood-stats";
 import { PsychologistHomeworkPreview } from "@/components/psychologist-homework";
 import { PsychologistSessionJourney } from "@/components/session-reflections";
+import { TherapistBoardView } from "@/components/therapy-work";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, Input, Spinner, Textarea } from "@/components/ui";
@@ -232,6 +233,8 @@ export function ClientDetail() {
 
       <main className="-mt-8 space-y-4 rounded-t-[27px] bg-white px-4 pb-10 pt-6 @md:px-9">
         <PsychologistHomeworkPreview items={homework} href={`/clients/homework?id=${id}`} />
+
+        {therapy && <TherapistBoardView value={therapy.board} name={client.name} />}
 
         {therapy && <PsychologistSessionJourney meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutateAsync(!therapy.notesModule.psychologistEnabled)} href={`/clients/notes?id=${id}`} />}
 

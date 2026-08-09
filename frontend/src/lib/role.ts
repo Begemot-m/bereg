@@ -6,7 +6,7 @@ export type Role = "guest" | "client" | "psychologist";
 
 export const ROLE_LABEL: Record<Role, string> = {
   guest: "Гость",
-  client: "Клиент",
+  client: "Пользователь",
   psychologist: "Психолог",
 };
 
