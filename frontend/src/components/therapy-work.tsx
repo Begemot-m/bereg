@@ -141,10 +141,7 @@ export function TherapistBoard({ value, onSave }: { value: string; onSave: (text
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="ico ico-white h-10 w-10 shrink-0"><Icon name="chalkboard" width={20} weight="bold" color="var(--amber-edge)" /></span>
-          <div className="min-w-0">
-            <p className="t-micro">Доска для терапевта</p>
-            <p className="t-head mt-0.5">Что важно не забыть сказать</p>
-          </div>
+          <p className="t-head min-w-0">Доска для терапевта</p>
         </div>
         <AnimatePresence>
           {saved && (
@@ -160,10 +157,9 @@ export function TherapistBoard({ value, onSave }: { value: string; onSave: (text
         onFocus={tap}
         rows={4}
         maxLength={4000}
-        placeholder="Сюда можно писать любые заметки: мысли, вопросы, ситуации недели — всё, что хочется вынести на встречу."
+        placeholder="Любые заметки — терапевт увидит их в любой момент, не только на сессии."
         className="t-body mt-3 w-full resize-none rounded-[14px] bg-white p-3.5 outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]"
       />
-      <p className="t-cap mt-2">Сюда можно писать любые заметки — терапевт увидит их в любой момент, не только на сессии.</p>
     </section>
   );
 }
@@ -175,10 +171,7 @@ export function TherapistBoardView({ value, name }: { value: string; name: strin
     <section className="rounded-[20px] p-4" style={{ background: "var(--amber-soft)" }}>
       <div className="flex min-w-0 items-center gap-3">
         <span className="ico ico-white h-10 w-10 shrink-0"><Icon name="chalkboard" width={20} weight="bold" color="var(--amber-edge)" /></span>
-        <div className="min-w-0">
-          <p className="t-micro">Доска клиента</p>
-          <p className="t-head mt-0.5">Что важно не забыть сказать</p>
-        </div>
+        <p className="t-head min-w-0">Доска клиента</p>
       </div>
       {value.trim() ? (
         <p className="t-body mt-3 whitespace-pre-wrap rounded-[14px] bg-white p-3.5">{value}</p>
