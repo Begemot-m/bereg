@@ -561,7 +561,8 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
 }
 
 // Строка-переключатель настроек анкеты: квадрат-галочка слева по центру,
-// выбранная строка обведена в тон.
+// выбранная строка обведена в тон. Вариант bare («показывать в профиле») —
+// круглая отметка в оранжевой обводке.
 function SettingToggle({ active, title, text, bare = false, bold = true, onToggle }: { active: boolean; title: string; text?: string; bare?: boolean; bold?: boolean; onToggle: () => void }) {
   return (
     <button
@@ -570,8 +571,13 @@ function SettingToggle({ active, title, text, bare = false, bold = true, onToggl
       style={bare ? undefined : { border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}
       aria-pressed={active}
     >
-      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-white" style={{ border: "2px solid var(--ink)" }}>
-        {active && <Icon name="check" width={15} weight="bold" color="var(--ink)" />}
+      <span
+        className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center ${bare ? "rounded-full" : "rounded-[6px]"}`}
+        style={bare
+          ? { border: "2.5px solid var(--peach-edge)", background: active ? "var(--peach-soft)" : "white" }
+          : { border: "2px solid var(--ink)", background: "white" }}
+      >
+        {active && <Icon name="check" width={bare ? 13 : 15} weight="bold" color={bare ? "var(--peach-edge)" : "var(--ink)"} />}
       </span>
       <span className="min-w-0 flex-1">
         <span className={`block leading-snug ${bold ? "text-[13px] font-black" : "text-[12.5px] font-semibold"}`}>{title}</span>
