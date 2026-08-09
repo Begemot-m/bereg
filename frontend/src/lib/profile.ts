@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { DEFAULT_RULES, normalizeRules, type ProfileRules } from "@/lib/profile-rules";
+
 // --- Пользователь из Telegram (initDataUnsafe достаточно для прототипа) ---
 
 type TgUser = { first_name?: string; last_name?: string; username?: string; id?: number; photo_url?: string };
@@ -62,6 +64,10 @@ export type PsyProfile = {
   style: string;               // стиль работы: мягкий / структурный / активный …
   quote: string;               // короткая цитата от первого лица для карточки
   avoids: string[];            // темы, с которыми не работает
+  /** Показывать ли в анкете счётчики платформы: клиенты, сессии, стаж. */
+  showStats: boolean;
+  /** Правила работы: формулировка + отмечено ли «показывать клиенту». */
+  rules: ProfileRules;
   status: "review" | "approved";
 };
 
@@ -129,6 +135,8 @@ export function getPsyProfile(): PsyProfile | null {
     if (!(["online", "offline", "both"] as const).includes(p.format)) p.format = "online";
     if (!(["woman", "man", "unspecified"] as const).includes(p.gender)) p.gender = "unspecified";
     p.location = { ...EMPTY.location, ...(source.location ?? {}) };
+    if (typeof p.showStats !== "boolean") p.showStats = true;
+    p.rules = normalizeRules(source.rules);
     return p;
   } catch {
     return null;
@@ -139,7 +147,8 @@ const EMPTY: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [], status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [],
+  showStats: true, rules: DEFAULT_RULES, status: "review",
 };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).
@@ -150,6 +159,7 @@ export function savePsyProfile(patch: Partial<PsyProfile>) {
     ...cur,
     ...patch,
     location: { ...EMPTY.location, ...(cur?.location ?? {}), ...(patch.location ?? {}) },
+    rules: normalizeRules({ ...(cur?.rules ?? {}), ...(patch.rules ?? {}) }),
     status: patch.status ?? cur?.status ?? "review",
   };
   if (patch.primaryMethod !== undefined) profile.approach = patch.primaryMethod;

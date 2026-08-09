@@ -11,6 +11,7 @@ import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
+import { DEFAULT_RULES, normalizeRules, publicRules, RULE_PRESETS, type RuleId } from "@/lib/profile-rules";
 
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
@@ -19,10 +20,11 @@ const EMPTY_PROFILE: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
   education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [], status: "review",
+  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [],
+  showStats: true, rules: DEFAULT_RULES, status: "review",
 };
 
-type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "preview";
+type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "rules" | "preview";
 type StepDefinition = { id: StepId; title: string; short: string; icon: IconName; tone: string; optional?: boolean };
 
 const STEPS: StepDefinition[] = [
@@ -33,6 +35,7 @@ const STEPS: StepDefinition[] = [
   { id: "conditions", title: "Условия встречи", short: "Цена и длительность", icon: "clock", tone: "var(--amber-soft)" },
   { id: "experience", title: "Опыт и образование", short: "Практика и квалификация", icon: "book", tone: "var(--green-soft)" },
   { id: "story", title: "О вас", short: "Подход и первая встреча", icon: "spark", tone: "var(--coral-soft)" },
+  { id: "rules", title: "Настройки и правила", short: "Статистика в анкете и правила работы", icon: "gear", tone: "var(--amber-soft)" },
   { id: "preview", title: "Предпросмотр", short: "Как профиль увидит клиент", icon: "check", tone: "var(--purple-soft)" },
 ];
 
@@ -142,6 +145,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
     {profile?.about ? <section className="chunk p-4"><SectionTitle icon="spark" title="О специалисте" /><p className="text-[14px] leading-relaxed">{profile.about}</p></section> : <PreviewEmpty text="Добавьте рассказ о себе — он появится здесь." />}
     {profile?.firstSession && <section className="chunk p-4"><SectionTitle icon="compass" title="Как проходит первая встреча" /><p className="text-[14px] leading-relaxed">{profile.firstSession}</p></section>}
     {(profile?.education?.length ?? 0) > 0 && <section className="chunk p-4"><SectionTitle icon="book" title="Образование" /><ul className="space-y-2">{profile!.education.map((item, index) => <li key={`${item}-${index}`} className="flex gap-2 text-[13px]"><Icon name="check" width={16} className="mt-0.5 shrink-0" />{item}</li>)}</ul></section>}
+    {publicRules(profile?.rules).length > 0 && <section className="chunk p-4"><SectionTitle icon="gear" title="Правила работы" /><div className="space-y-2.5">{publicRules(profile?.rules).map((rule) => <div key={rule.id} className="flex items-start gap-2.5"><span className="ico h-8 w-8 shrink-0" style={{ background: `var(--${rule.tone}-edge)` }}><Icon name={rule.icon} width={15} weight="bold" color="#fff" /></span><div><p className="text-[12.5px] font-black">{rule.title}</p><p className="mt-0.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{rule.text}</p></div></div>)}</div></section>}
     {profile?.tg ? <a href={tgLink(profile.tg)} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[.98]"><Icon name="spark" width={16} weight="fill" /> Связаться в Telegram</a> : <div className="rounded-full bg-[var(--surface-2)] py-3 text-center text-[12px] font-semibold text-[var(--muted)] stroke">Добавьте Telegram — здесь появится кнопка связи</div>}
     <Button className="w-full" disabled>Записаться на сессию</Button>
     <p className="text-center text-[11px] text-[var(--muted-2)]">Предпросмотр публичной страницы специалиста.</p>
@@ -329,6 +333,7 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
       {current.id === "conditions" && <ConditionsStep draft={draft} update={update} />}
       {current.id === "experience" && <ExperienceStep draft={draft} update={update} />}
       {current.id === "story" && <StoryStep draft={draft} update={update} />}
+      {current.id === "rules" && <RulesStep draft={draft} update={update} />}
       {current.id === "preview" && <PublicProfilePreview profile={draft} name={draft.name || displayName()} photo={draft.photos[0] ?? displayPhoto()} />}
     </motion.div></AnimatePresence>
     </div>
@@ -525,6 +530,69 @@ function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
     <Field label="О себе и подходе"><Textarea value={draft.about} onChange={(event) => update({ about: event.target.value })} placeholder="Как вы строите работу, что для вас важно в контакте…" rows={5} /><Counter value={draft.about} recommended="400–900 знаков" /></Field>
     <Field label="Как проходит первая встреча"><Textarea value={draft.firstSession} onChange={(event) => update({ firstSession: event.target.value })} placeholder="Что обсудите, как определите запрос и следующий шаг…" rows={5} /><Counter value={draft.firstSession} recommended="250–600 знаков" /></Field>
   </StepCard>;
+}
+
+// Настройки анкеты: что из платформенных цифр показывать и какие правила
+// работы видит клиент в каталоге.
+function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
+  const rules = normalizeRules(draft.rules);
+  const setRule = (id: RuleId, patch: Partial<{ text: string; shown: boolean }>) => update({ rules: { ...rules, [id]: { ...rules[id], ...patch } } });
+  return <StepCard title="Настройки анкеты и правила работы" hint="Всё отсюда видно клиенту в каталоге. Показывать или нет — решаете вы.">
+    <Field label="Статистика в анкете">
+      <SettingToggle
+        active={draft.showStats !== false}
+        title="Показывать счётчики платформы"
+        text="Сколько у вас клиентов, сколько проведено сессий и сколько лет практики."
+        onToggle={() => update({ showStats: draft.showStats === false })}
+      />
+      <p className="mt-1.5 text-[10px] font-semibold text-[var(--muted-2)]">Выключите, если начинаете практику на платформе, — цифры просто не появятся в карточке.</p>
+    </Field>
+
+    {RULE_PRESETS.map((preset) => (
+      <Field key={preset.id} label={preset.title} hint={preset.hint}>
+        <div className="space-y-2">
+          {preset.options.map((option) => (
+            <button
+              key={option}
+              onClick={() => { select(); setRule(preset.id, { text: option }); }}
+              className="flex w-full items-start gap-2.5 rounded-[13px] bg-white p-3 text-left transition-transform active:scale-[.99]"
+              style={{ border: `var(--bw) solid ${rules[preset.id].text === option ? "var(--ink)" : "var(--edge-neutral)"}` }}
+              aria-pressed={rules[preset.id].text === option}
+            >
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full" style={{ border: `2px solid ${rules[preset.id].text === option ? "var(--ink)" : "var(--edge-neutral)"}` }}>
+                {rules[preset.id].text === option && <span className="h-2 w-2 rounded-full bg-[var(--ink)]" />}
+              </span>
+              <span className="text-[12.5px] font-semibold leading-snug">{option}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-2"><ChipInput placeholder="Своя формулировка правила" onAdd={(value) => setRule(preset.id, { text: value })} /></div>
+        <div className="mt-2">
+          <SettingToggle
+            active={rules[preset.id].shown}
+            title="Показывать в профиле"
+            text={rules[preset.id].shown ? "Правило видно клиенту в карточке каталога." : "Правило сохранено, но клиенту не показывается."}
+            onToggle={() => setRule(preset.id, { shown: !rules[preset.id].shown })}
+          />
+        </div>
+      </Field>
+    ))}
+  </StepCard>;
+}
+
+// Строка-переключатель с галочкой: используется для настроек анкеты.
+function SettingToggle({ active, title, text, onToggle }: { active: boolean; title: string; text: string; onToggle: () => void }) {
+  return (
+    <button onClick={() => { select(); onToggle(); }} className="flex w-full items-start gap-3 rounded-[13px] bg-white p-3 text-left transition-transform active:scale-[.99]" style={{ border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }} aria-pressed={active}>
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px]" style={{ background: active ? "var(--tiffany-edge)" : "#fff", border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}>
+        {active && <Icon name="check" width={13} weight="bold" color="#fff" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-black leading-tight">{title}</span>
+        <span className="t-cap mt-0.5 block">{text}</span>
+      </span>
+    </button>
+  );
 }
 
 // Без заливки: шаг анкеты — это список выборов, фон под ним только рябит.

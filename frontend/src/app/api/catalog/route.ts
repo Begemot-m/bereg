@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { availabilityFromWorkHours } from "@/lib/availability";
+import { publicRules } from "@/lib/profile-rules";
 import { prisma } from "@/lib/server/prisma";
 
 export const runtime = "nodejs";
@@ -59,6 +60,10 @@ export async function GET(req: NextRequest) {
       education: data.education ?? [],
       languages: data.languages ?? [],
       specialistTypes: data.specialistTypes ?? [],
+      // Настройки анкеты: счётчики и правила показываются, только если
+      // специалист отметил это у себя в профиле.
+      showStats: data.showStats !== false,
+      rules: publicRules(data.rules),
       style: data.style ?? "",
       quote: data.quote ?? "",
       photos: data.photos ?? [],

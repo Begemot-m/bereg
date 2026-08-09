@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import { availabilityFits, availabilityFromWorkHours, availabilityScore, EMPTY_AVAILABILITY, type Availability, type DayGroup, type ScheduleHours } from "@/lib/availability";
 import type { PsyProfile } from "@/lib/profile";
+import { publicRules, type PublicRule } from "@/lib/profile-rules";
 import type { Subscription } from "@/lib/subscription";
 
 export type Tone = "green" | "amber" | "purple" | "coral" | "salmon" | "sky";
@@ -46,6 +47,10 @@ export type Psy = {
   about: string;
   firstSession?: string;
   education: string[];
+  /** Показывать ли в карточке счётчики платформы. Управляется в анкете. */
+  showStats?: boolean;
+  /** Правила работы, которые специалист отметил как публичные. */
+  rules?: PublicRule[];
   style?: string;      // стиль работы: мягкий / структурный / активный …
   quote?: string;      // человеческий маркер — короткая цитата от первого лица
   helps?: string;      // «помогаю с…» одной живой строкой
@@ -232,6 +237,8 @@ export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | 
     about: profile.about.trim(),
     firstSession: profile.firstSession.trim() || undefined,
     education: profile.education.map((item) => item.trim()).filter(Boolean),
+    showStats: profile.showStats !== false,
+    rules: publicRules(profile.rules),
     style: profile.style?.trim() || undefined,
     quote: profile.quote?.trim() || undefined,
     helps: profile.topics.filter(Boolean).slice(0, 3).join(", ") || undefined,
@@ -286,6 +293,8 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     about: text(row.about),
     firstSession: text(row.firstSession) || undefined,
     education: list(row.education),
+    showStats: row.showStats !== false,
+    rules: Array.isArray(row.rules) ? (row.rules as PublicRule[]) : publicRules(row.rules),
     style: text(row.style) || undefined,
     quote: text(row.quote) || undefined,
     avoids: list(row.avoids),

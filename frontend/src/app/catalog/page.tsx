@@ -42,10 +42,14 @@ import {
   type Tone,
 } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
+import { publicRules } from "@/lib/profile-rules";
 import { bookSlot } from "@/lib/mybookings";
 import { useProfile } from "@/lib/profile";
 import { getSubscription } from "@/lib/subscription";
 import { attachTherapist, isAttached } from "@/lib/therapists";
+
+// Анкеты демо-каталога своих правил не заполняют — показываем базовые.
+const DEFAULT_PUBLIC_RULES = publicRules(undefined);
 
 const PREFS_KEY = "bereg_catalog_prefs_v1";
 const SEEN_KEY = "bereg_catalog_survey_seen_v1";
@@ -351,7 +355,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       <RatingBlock psy={psy} canRate={wasInTherapy} />
 
       {/* Правила отмены и связи между сессиями */}
-      <RulesSection minutes={psy.minutes} />
+      <RulesSection psy={psy} />
 
       {/* Постоянная запись */}
       <TelegramPoster psy={psy} />
@@ -393,11 +397,14 @@ function PricePoster({ psy }: { psy: Psy }) {
         <p className="font-tight tnum text-[38px] font-black leading-none"><CountUp value={psy.price} /> ₽</p>
         <p className="t-sub mb-1">за {psy.minutes} мин</p>
       </div>
-      <div className="relative mt-3.5 flex flex-wrap gap-1.5">
-        <Fact icon="users" text={`${psy.clients} клиентов`} />
-        <Fact icon="calendar" text={`${psy.sessions} сессий`} />
-        <Fact icon="spark" text={`${psy.years} ${yearsWord(psy.years)} практики`} />
-      </div>
+      {/* Счётчики платформы — если специалист разрешил их в анкете */}
+      {psy.showStats !== false && (
+        <div className="relative mt-3.5 flex flex-wrap gap-1.5">
+          <Fact icon="users" text={`${psy.clients} клиентов`} />
+          <Fact icon="calendar" text={`${psy.sessions} сессий`} />
+          <Fact icon="spark" text={`${psy.years} ${yearsWord(psy.years)} практики`} />
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -588,11 +595,13 @@ function EducationBlock({ psy }: { psy: Psy }) {
   );
 }
 
-// Правила отмены и связи между сессиями.
-function RulesSection({ minutes }: { minutes: number }) {
+// Правила отмены и связи между сессиями: специалист выбирает их в анкете и сам
+// решает, показывать ли. Дисклеймер про экстренную помощь — от платформы, он
+// стоит всегда.
+function RulesSection({ psy }: { psy: Psy }) {
+  const own = psy.rules ?? DEFAULT_PUBLIC_RULES;
   const rules: { icon: IconName; tone: string; title: string; text: string }[] = [
-    { icon: "clock", tone: "amber", title: "Отмена и перенос", text: "Бесплатно за 24 часа до встречи. Позже — сессия считается состоявшейся." },
-    { icon: "note", tone: "purple", title: "Связь между сессиями", text: `Короткие сообщения по договорённости, ответ в рабочее время. Разбор вопросов — на встрече (${minutes} мин).` },
+    ...own.map((rule) => ({ icon: rule.icon, tone: rule.tone, title: rule.title, text: rule.text })),
     { icon: "heart", tone: "salmon", title: "Это не экстренная помощь", text: "Чат со специалистом не заменяет кризисную линию. При острой ситуации обратитесь в неотложную службу." },
   ];
   return (
