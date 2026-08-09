@@ -53,6 +53,10 @@ services:
     environment:
       NODE_ENV: production
     command: ["node", "dist/bot.js"]
+    # У бота нет HTTP-порта: проверка живости из образа приложения ему не подходит
+    # и красит рабочий контейнер в unhealthy.
+    healthcheck:
+      disable: true
     depends_on:
       app:
         condition: service_healthy
