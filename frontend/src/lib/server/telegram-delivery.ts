@@ -23,25 +23,6 @@ export async function queueTelegramEvent(db: DeliveryDb, input: {
   });
 }
 
-export async function queueHomeworkEvent(db: DeliveryDb, input: {
-  homeworkId: number;
-  recipientId: number;
-  audience: "psychologist" | "client";
-  kind: "homework_assigned" | "homework_done";
-  payload?: Record<string, string | number | boolean | null>;
-}) {
-  await db.telegramDelivery.create({
-    data: {
-      homeworkId: input.homeworkId,
-      recipientId: input.recipientId,
-      audience: input.audience,
-      kind: input.kind,
-      payload: (input.payload ?? {}) as Prisma.InputJsonValue,
-      scheduledFor: new Date(),
-    },
-  });
-}
-
 /// Пересобирает напоминания по встрече: клиенту за 24 часа (и за 2, если он
 /// включил), психологу — за 2 часа до начала. Старые ждущие напоминания гасим,
 /// иначе при переносе клиент получит напоминание о прошлом времени.

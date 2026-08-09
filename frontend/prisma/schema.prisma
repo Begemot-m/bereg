@@ -272,13 +272,12 @@ model SupportRequest {
 
 /// Домашнее задание от психолога клиенту.
 model Homework {
-  id                 Int                @id @default(autoincrement())
-  client             Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId           Int
-  text               String             @db.Text // шифруется
-  status             String             @default("assigned") // assigned | doing | done
-  sentAt             DateTime           @default(now())
-  telegramDeliveries TelegramDelivery[]
+  id       Int      @id @default(autoincrement())
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId Int
+  text     String   @db.Text // шифруется
+  status   String   @default("assigned") // assigned | doing | done
+  sentAt   DateTime @default(now())
 
   @@index([clientId, sentAt])
 }
@@ -357,19 +356,15 @@ model SessionReflection {
 
 /// Очередь сообщений Telegram. Одна встреча может породить несколько
 /// независимых доставок: событие расписания и напоминания за 24/2 часа.
-/// Доставка привязана либо к встрече, либо к домашнему заданию — текст
-/// сообщения бот собирает по той связи, которая заполнена.
 model TelegramDelivery {
-  id            Int          @id @default(autoincrement())
-  recipient     User         @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  id            Int         @id @default(autoincrement())
+  recipient     User        @relation(fields: [recipientId], references: [id], onDelete: Cascade)
   recipientId   Int
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  appointmentId Int?
-  homework      Homework?    @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
-  homeworkId    Int?
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId Int
   audience      String // psychologist | client
-  kind          String // booking | reschedule | cancel | reminder_24h | reminder_2h | homework_assigned | homework_done | reflection
-  payload       Json         @default("{}")
+  kind          String // booking | reschedule | cancel | reminder_24h | reminder_2h
+  payload       Json        @default("{}")
   scheduledFor  DateTime
   sentAt        DateTime?
   cancelledAt   DateTime?
@@ -379,7 +374,6 @@ model TelegramDelivery {
 
   @@index([scheduledFor, sentAt, cancelledAt])
   @@index([appointmentId, kind])
-  @@index([homeworkId])
   @@index([recipientId, createdAt])
 }
 

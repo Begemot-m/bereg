@@ -56,41 +56,12 @@ function dueDeliveries() {
           psychologist: { select: { firstName: true, psyProfile: { select: { name: true } } } },
         },
       },
-      homework: {
-        include: {
-          client: {
-            select: {
-              id: true,
-              name: true,
-              psychologist: { select: { firstName: true, psyProfile: { select: { name: true } } } },
-            },
-          },
-        },
-      },
     },
   });
 }
 
-type Message = { text: string; keyboard: InlineKeyboard };
-
-// Текст задания зашифрован в базе и в сообщение не попадает: бот зовёт открыть
-// приложение, читать задание человек будет уже там.
-function homeworkMessage(delivery: Delivery, homework: NonNullable<Delivery["homework"]>): Message {
-  const client = firstName(homework.client.name);
-  const psychologist = homework.client.psychologist.psyProfile?.name ?? homework.client.psychologist.firstName ?? "Специалист";
-  const keyboard = new InlineKeyboard();
-  if (delivery.audience === "psychologist") {
-    keyboard.webApp("Карточка клиента", appLink(`/clients?id=${homework.client.id}`));
-    return { text: `${client} выполнил задание\nОтметка стоит в карточке`, keyboard };
-  }
-  keyboard.webApp("Открыть задания", appLink("/therapy"));
-  return { text: `Новое задание от ${psychologist}\nОткройте приложение, чтобы прочитать`, keyboard };
-}
-
-function messageFor(delivery: Delivery): Message | null {
-  if (delivery.homework) return homeworkMessage(delivery, delivery.homework);
+function messageFor(delivery: Delivery): { text: string; keyboard: InlineKeyboard } {
   const appt = delivery.appointment;
-  if (!appt) return null;
   const client = firstName(appt.client.name);
   const psychologist = appt.psychologist.psyProfile?.name ?? appt.psychologist.firstName ?? "специалистом";
   const when = format(appt.startsAt);
@@ -145,13 +116,7 @@ async function sendDueDeliveries() {
   try {
     const due = await dueDeliveries();
     for (const delivery of due) {
-      const message = messageFor(delivery);
-      if (!message) {
-        // Осиротевшая доставка: встречу или задание уже удалили — писать не о чем.
-        await prisma.telegramDelivery.update({ where: { id: delivery.id }, data: { cancelledAt: new Date() } });
-        continue;
-      }
-      const { text, keyboard } = message;
+      const { text, keyboard } = messageFor(delivery);
       try {
         await bot.api.sendMessage(Number(delivery.recipient.telegramId), text, { reply_markup: keyboard });
         await prisma.telegramDelivery.update({ where: { id: delivery.id }, data: { sentAt: new Date(), attempts: { increment: 1 }, lastError: null } });
