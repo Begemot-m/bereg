@@ -548,18 +548,7 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
       <Field key={preset.id} label={preset.title} hint={preset.hint}>
         <div className="space-y-2">
           {preset.options.map((option) => (
-            <button
-              key={option}
-              onClick={() => { select(); setRule(preset.id, { text: option }); }}
-              className="flex w-full items-start gap-2.5 rounded-[13px] bg-white p-3 text-left transition-transform active:scale-[.99]"
-              style={{ border: `var(--bw) solid ${rules[preset.id].text === option ? "var(--ink)" : "var(--edge-neutral)"}` }}
-              aria-pressed={rules[preset.id].text === option}
-            >
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full" style={{ border: `2px solid ${rules[preset.id].text === option ? "var(--ink)" : "var(--edge-neutral)"}` }}>
-                {rules[preset.id].text === option && <span className="h-2 w-2 rounded-full bg-[var(--ink)]" />}
-              </span>
-              <span className="text-[12.5px] font-semibold leading-snug">{option}</span>
-            </button>
+            <SettingToggle key={option} bold={false} active={rules[preset.id].text === option} title={option} onToggle={() => setRule(preset.id, { text: option })} />
           ))}
         </div>
         <div className="mt-2"><ChipInput placeholder="Своя формулировка правила" onAdd={(value) => setRule(preset.id, { text: value })} /></div>
@@ -571,20 +560,21 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
   </StepCard>;
 }
 
-// Строка-переключатель с галочкой: используется для настроек анкеты.
-function SettingToggle({ active, title, text, bare = false, onToggle }: { active: boolean; title: string; text?: string; bare?: boolean; onToggle: () => void }) {
+// Строка-переключатель настроек анкеты: квадрат-галочка слева по центру,
+// выбранная строка обведена в тон.
+function SettingToggle({ active, title, text, bare = false, bold = true, onToggle }: { active: boolean; title: string; text?: string; bare?: boolean; bold?: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={() => { select(); onToggle(); }}
-      className={`flex w-full items-start gap-3 text-left transition-transform active:scale-[.99] ${bare ? "px-0.5 py-1" : "rounded-[13px] bg-white p-3"}`}
+      className={`flex w-full items-center gap-3 text-left transition-transform active:scale-[.99] ${bare ? "px-0.5 py-1" : "rounded-[13px] bg-white p-3"}`}
       style={bare ? undefined : { border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}
       aria-pressed={active}
     >
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px]" style={{ background: active ? "var(--tiffany-edge)" : "#fff", border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}>
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px]" style={{ background: active ? "var(--tiffany-edge)" : "#fff", border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}>
         {active && <Icon name="check" width={13} weight="bold" color="#fff" />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-black leading-tight">{title}</span>
+        <span className={`block leading-snug ${bold ? "text-[13px] font-black" : "text-[12.5px] font-semibold"}`}>{title}</span>
         {text && <span className="t-cap mt-0.5 block">{text}</span>}
       </span>
     </button>
