@@ -94,6 +94,7 @@ export default function CabinetPage() {
           <SectionTitle>Приватность и данные</SectionTitle>
           <div className="space-y-1">
             <ActionRow icon="book" title="Политика обработки данных" onClick={() => router.push("/policy")} />
+            <ActionRow icon="book" title="Документы" onClick={() => router.push("/docs")} />
             <ActionRow icon="compass" title="Пройти знакомство заново" onClick={() => { resetTours(); resetOnboarding(); }} />
             <WipeDataRow />
           </div>

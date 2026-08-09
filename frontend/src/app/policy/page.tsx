@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { LEGAL } from "@/lib/legal";
+
 export const metadata: Metadata = { title: "Политика обработки персональных данных — Хроника" };
 
 const VERSION = process.env.POLICY_VERSION ?? "2026-07-01";
@@ -20,8 +22,10 @@ export default function PolicyPage() {
       </header>
 
       <Section title="Кто обрабатывает данные">
-        Оператор — самозанятый Горбачёв М. М., сервис «Хроника» (murpsy.ru).
-        Связаться: через раздел «Отдел заботы» в приложении.
+        Оператор — {LEGAL.operator}, {LEGAL.status}, ИНН {LEGAL.inn}. Сервис
+        «{LEGAL.service}» — {LEGAL.site} и приложение в Telegram. Связаться:
+        через раздел «Отдел заботы» в приложении или письмом на {LEGAL.email}.
+        Остальные документы — на странице «Документы».
       </Section>
 
       <Section title="Какие данные мы собираем">

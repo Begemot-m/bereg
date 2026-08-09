@@ -11,6 +11,8 @@ import {
 } from "motion/react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
+
+import { LEGAL, LEGAL_DOCS } from "@/lib/legal";
 import {
   createContext,
   type ReactNode,
@@ -906,13 +908,15 @@ function Footer({ onLogin }: { onLogin: () => void }) {
           </FooterCol>
 
           <FooterCol title="Документы">
-            <a href="/policy" className={FOOT_LINK}>Политика и условия</a>
-            <a href="#faq" className={FOOT_LINK}>Частые вопросы</a>
+            {LEGAL_DOCS.map((doc) => (
+              <a key={doc.href} href={doc.href} className={FOOT_LINK}>{doc.title}</a>
+            ))}
           </FooterCol>
         </div>
 
         <p className="mt-10 border-t pt-6 text-[13px] font-medium text-[var(--muted-2)]" style={{ borderColor: "var(--hairline)" }}>
-          Платформа не оказывает экстренную и медицинскую помощь.
+          Платформа не оказывает экстренную и медицинскую помощь.<br />
+          {LEGAL.operator}, {LEGAL.status}, ИНН {LEGAL.inn}. Связь: {LEGAL.email}.
         </p>
       </div>
     </footer>
