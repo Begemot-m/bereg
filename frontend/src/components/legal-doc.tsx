@@ -1,11 +1,13 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { LEGAL } from "@/lib/legal";
 
-export function Doc({ title, children }: { title: string; children: ReactNode }) {
+export function Doc({ title, back = "/docs", children }: { title: string; back?: string; children: ReactNode }) {
   return (
     <article className="mx-auto max-w-2xl space-y-5 pb-16 pt-4">
       <header>
+        <Link href={back} className="back-link mb-1">Назад</Link>
         <h1 className="t-display">{title}</h1>
         <p className="t-cap mt-1.5">Редакция от {LEGAL.version}</p>
       </header>

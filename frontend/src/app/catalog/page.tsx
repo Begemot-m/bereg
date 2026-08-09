@@ -109,8 +109,10 @@ export default function CatalogPage() {
     setInvited(params.get("book") === "1");
     // Своя анкета в каталоге может быть не опубликована — тогда собираем её
     // из профиля, иначе приглашение вело бы в пустоту.
+    // Своя карточка собирается из анкеты всегда: предпросмотр нужен и до
+    // модерации, иначе кнопка из профиля высаживала бы в общий каталог.
     const psy = PSYS.find((item) => item.id === id)
-      ?? (id === OWN_PROFILE_ID && profile?.name ? profileToCatalogPsy(profile) : undefined);
+      ?? (id === OWN_PROFILE_ID && profile ? profileToCatalogPsy(profile) : undefined);
     if (psy) { setSelected(psy); setSurveyOpen(false); return; }
     // Боевой каталог живёт на сервере: по ссылке приходит настоящий id, и
     // карточку надо забрать оттуда, а не искать в демо-списке.
@@ -150,7 +152,7 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={selected.id === OWN_PROFILE_ID && !catalog.some((item) => item.id === OWN_PROFILE_ID)} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
@@ -253,7 +255,7 @@ function AttachTherapistButton({ name }: { name: string }) {
   );
 }
 
-function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy: Psy; prefs: CatalogPrefs; invited?: boolean; backLabel: string; onBack: () => void }) {
+function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel, onBack }: { psy: Psy; prefs: CatalogPrefs; invited?: boolean; pending?: boolean; backLabel: string; onBack: () => void }) {
   const tone = CATALOG_TONE;
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const wasInTherapy = bookings.some((booking) => booking.psyName === psy.name);
@@ -265,6 +267,13 @@ function PsyDetailView({ psy, prefs, invited = false, backLabel, onBack }: { psy
 
   return <div>
     <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
+      {/* Предпросмотр своей анкеты: карточка настоящая, но в каталоге её ещё нет. */}
+      {pending && (
+        <div className="card-plain mb-3 mt-3 flex items-center gap-2.5 p-3">
+          <span className="ico h-9 w-9 shrink-0"><Icon name="clock" width={17} weight="bold" color="var(--amber-edge)" /></span>
+          <span className="t-head min-w-0 leading-tight">Ожидает модерации для размещения в каталог</span>
+        </div>
+      )}
       {invited ? (
         // Пришли по личной ссылке: человек не искал каталог, ему нужен этот специалист.
         <div className="card-plain mb-3 flex items-center gap-3 p-3.5">

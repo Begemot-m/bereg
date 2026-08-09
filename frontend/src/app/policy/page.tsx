@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { LEGAL } from "@/lib/legal";
 
@@ -17,6 +18,7 @@ export default function PolicyPage() {
   return (
     <article className="mx-auto max-w-2xl space-y-5 pb-16 pt-4">
       <header>
+        <Link href="/cabinet" className="back-link mb-1">Назад</Link>
         <h1 className="t-display">Политика обработки персональных данных</h1>
         <p className="t-cap mt-1.5">Редакция от {VERSION}</p>
       </header>
