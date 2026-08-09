@@ -28,14 +28,15 @@ import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role }
 
 const ROLES: Role[] = ["psychologist", "client"];
 
-// Когда собрана эта версия. Если после деплоя тут старая дата — вебвью
-// показывает страницу из кеша, а не новую сборку.
-function buildLabel(): string {
+// Версия = дата сборки в календарном виде. Если после деплоя тут старое число —
+// вебвью показывает страницу из кеша, а не новую сборку.
+function versionLabel(): string {
   const raw = process.env.NEXT_PUBLIC_BUILD;
   if (!raw) return "—";
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`;
 }
 
 export default function CabinetPage() {
@@ -93,9 +94,9 @@ export default function CabinetPage() {
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
           <div className="space-y-1">
-            <ActionRow icon="book" title="Политика обработки данных" onClick={() => router.push("/policy")} />
-            <ActionRow icon="book" title="Документы" onClick={() => router.push("/docs")} />
-            <ActionRow icon="compass" title="Пройти знакомство заново" onClick={() => { resetTours(); resetOnboarding(); }} />
+            <ActionRow icon="book" title="Политика обработки данных" tone="var(--purple-edge)" onClick={() => router.push("/policy")} />
+            <ActionRow icon="book" title="Документы" tone="var(--tiffany-edge)" onClick={() => router.push("/docs")} />
+            <ActionRow icon="compass" title="Пройти знакомство заново" tone="var(--amber-edge)" onClick={() => { resetTours(); resetOnboarding(); }} />
             <WipeDataRow />
           </div>
         </div>
@@ -119,8 +120,9 @@ export default function CabinetPage() {
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}><Icon name="therapy" width={22} weight="bold" /></span>
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-bold leading-snug">Платформа создана центром «Амур и Психея»</p>
-              <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={tap} className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-black underline-offset-2 hover:underline">{CENTER_SITE} <ArrowGlyph /></a>
-              <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Сборка от {buildLabel()}</p>
+              <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={tap} className="mt-0.5 block text-[12px] font-black underline-offset-2 hover:underline" style={{ color: "var(--purple-edge)" }}>{CENTER_SITE}</a>
+              <p className="text-[12px] font-black" style={{ color: "var(--purple-edge)" }}>@mmgorba</p>
+              <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Версия {versionLabel()}</p>
             </div>
           </Card>
         </div>
@@ -312,7 +314,7 @@ function EmailLink() {
 
   return (
     <Card style={{ borderColor: "var(--head)" }}>
-      <p className="t-cap">Привяжите почту, чтобы входить в десктопную версию на других устройствах.</p>
+      <p className="t-cap">Привяжите почту, чтобы входить в десктопную версию на других устройствах</p>
       <div className="mt-2.5 flex gap-2">
         <Input
           type="email"
@@ -522,10 +524,11 @@ function Foldable({ icon, title, subtitle, children, defaultOpen = false, tone }
 }
 
 // Строка-действие в списке настроек: иконка + заголовок/описание + шеврон.
-function ActionRow({ icon, title, onClick, danger }: { icon: IconName; title: string; onClick: () => void; danger?: boolean }) {
+function ActionRow({ icon, title, onClick, danger, tone }: { icon: IconName; title: string; onClick: () => void; danger?: boolean; tone?: string }) {
+  const fill = danger ? "var(--salmon)" : tone;
   return (
     <button onClick={onClick} className="flex w-full items-center gap-3 rounded-[12px] px-1.5 py-2.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
-      <span className="ico ico-white h-9 w-9 shrink-0" style={danger ? { background: "var(--salmon)" } : undefined}><Icon name={icon} width={17} color={danger ? "#fff" : "var(--edge)"} /></span>
+      <span className="ico ico-white h-9 w-9 shrink-0" style={fill ? { background: fill } : undefined}><Icon name={icon} width={17} color={fill ? "#fff" : "var(--edge)"} /></span>
       <span className={`font-tight min-w-0 flex-1 text-[13.5px] font-bold ${danger ? "text-[var(--salmon-edge)]" : ""}`}>{title}</span>
     </button>
   );

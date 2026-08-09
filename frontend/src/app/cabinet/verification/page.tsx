@@ -6,7 +6,7 @@ import { CatalogVerification } from "@/components/psy-verification";
 export default function VerificationPage() {
   return (
     <div>
-      <PageHead title="Верификация" icon="check" back="/cabinet" backLight sub="Мы проверим документы в ближайшее время" />
+      <PageHead title="Верификация" icon="check" back="/cabinet" sub="Мы проверим документы в ближайшее время" />
       <div className="sheet">
         <CatalogVerification />
 

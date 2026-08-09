@@ -98,7 +98,7 @@ export function CatalogVerification() {
   }
 
   return (
-    <section className="chunk mt-4 p-4">
+    <section className="chunk mt-4 p-4" style={{ border: 0 }}>
       <div className="flex items-start gap-3">
         <span className="ico h-10 w-10 shrink-0" style={{ background: "#fff" }}><Icon name="check" width={19} weight="bold" color="var(--green)" /></span>
         <div className="min-w-0 flex-1">

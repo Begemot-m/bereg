@@ -79,10 +79,10 @@ function TechShell({ tech, progress, onClose, children }: { tech: TechKey; progr
       {/* Шапка как в разделах приложения: цветная полоса, на которую наезжает
           белый лист с крупным скруглением. */}
       <header className="shrink-0 px-4 pb-10 pt-[max(22px,calc(var(--top-pad)+10px))]" style={{ background: c.bg }}>
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           <button onClick={() => { tap(); onClose(); }} className="back-link shrink-0" style={{ color: c.edge }}>Назад</button>
-          <div className="min-w-0 flex-1"><p className="truncate font-tight text-[18px] font-black leading-tight">{meta.title}</p><p className="truncate text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">{meta.based}</p></div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
+          <span className="pointer-events-none absolute left-1/2 max-w-[calc(100%-160px)] -translate-x-1/2 truncate rounded-[12px] bg-white px-3 py-1.5 font-tight text-[14px] font-black leading-tight" style={{ color: c.edge }}>{meta.title}</span>
+          <span className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#ffffff]" style={{ border: `var(--bw) solid ${c.edge}` }}><Icon name={meta.icon} width={20} weight="bold" /></span>
         </div>
         <div className="mt-6"><Progress value={progress} tone={meta.tone} /></div>
       </header>

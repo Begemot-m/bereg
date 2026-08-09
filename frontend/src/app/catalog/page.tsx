@@ -60,6 +60,11 @@ const T: Record<Tone, { bg: string; soft: string; edge: string }> = {
 };
 const CATALOG_TONE = { bg: "var(--tiffany)", soft: "var(--tiffany-soft)", edge: "var(--tiffany-edge)" };
 
+// Карточку открывают не только из каталога — ссылка `?from=` говорит, куда
+// вернуть человека и как подписать возврат.
+const RETURN_LABEL: Record<string, string> = { therapy: "вернуться в терапию", profile: "вернуться к профилю" };
+const RETURN_ROUTE: Record<string, string> = { therapy: "/therapy", profile: "/cabinet/profile" };
+
 const SORTS: { value: SortMode; label: string }[] = [
   { value: "recommended", label: "Рекомендованные" },
   { value: "soon", label: "Ближайшая запись" },
@@ -91,13 +96,14 @@ export default function CatalogPage() {
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Psy | null>(null);
-  const [returnToTherapy, setReturnToTherapy] = useState(false);
+  // Откуда пришли: из терапии или из своей анкеты («как выглядит мой профиль»).
+  const [returnTo, setReturnTo] = useState<string | null>(null);
 
   // Пришли по ссылке от специалиста: /catalog?psy=<id>&book=1
   const [invited, setInvited] = useState(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setReturnToTherapy(params.get("from") === "therapy");
+    setReturnTo(params.get("from"));
     const id = Number(params.get("psy"));
     if (!id) return;
     setInvited(params.get("book") === "1");
@@ -144,7 +150,7 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} backLabel={returnToTherapy ? "вернуться в терапию" : "вернуться в каталог"} onBack={() => returnToTherapy ? router.push("/therapy") : setSelected(null)} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
