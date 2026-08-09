@@ -22,6 +22,7 @@ import { CENTER_SITE, CENTER_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
+import { LEGAL } from "@/lib/legal";
 import { resetOnboarding } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
@@ -93,11 +94,36 @@ export default function CabinetPage() {
         {/* Приватность и данные */}
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
-          <div className="space-y-1">
-            <ActionRow icon="book" title="Политика обработки данных" tone="var(--purple-edge)" onClick={() => router.push("/policy")} />
-            <ActionRow icon="book" title="Документы" tone="var(--tiffany-edge)" onClick={() => router.push("/docs")} />
-            <ActionRow icon="compass" title="Пройти знакомство заново" tone="var(--amber-edge)" onClick={() => { resetTours(); resetOnboarding(); }} />
-            <WipeDataRow />
+          <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--tiffany)", border: "var(--bw) solid var(--tiffany-edge)" }}>
+            <div className="flex items-start gap-3 p-4">
+              <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="lock" width={21} weight="bold" color="var(--tiffany-edge)" /></span>
+              <div className="min-w-0">
+                <p className="t-head">Записи видите только вы</p>
+                <p className="t-body mt-1">Настроение, заметки, задания и переписка передаются и хранятся в зашифрованном виде. Мы их не читаем, не передаём третьим лицам, не используем для рекламы и не обучаем на них модели. Доступ есть у вас и у специалиста, которого вы выбрали сами, — больше ни у кого.</p>
+              </div>
+            </div>
+            <div className="space-y-1 border-t px-2.5 py-2" style={{ borderColor: "var(--tiffany-edge)", background: "rgba(255,255,255,.55)" }}>
+              <ActionRow icon="compass" title="Пройти знакомство заново" tone="var(--amber-edge)" onClick={() => { resetTours(); resetOnboarding(); }} />
+              <WipeDataRow />
+            </div>
+          </div>
+        </div>
+
+        {/* Реквизиты */}
+        <div>
+          <SectionTitle>Реквизиты</SectionTitle>
+          <div className="chunk overflow-hidden">
+            <div className="space-y-0.5 p-4">
+              <p className="t-body font-bold">{LEGAL.operator}</p>
+              <p className="t-cap">{LEGAL.status}</p>
+              <p className="t-cap tnum">ИНН {LEGAL.inn}</p>
+              <p className="t-cap">{LEGAL.region}, адрес по запросу</p>
+              <a href={`mailto:${LEGAL.email}`} onClick={tap} className="block pt-0.5 text-[12px] font-black underline-offset-2 hover:underline" style={{ color: "var(--purple-edge)" }}>{LEGAL.email}</a>
+            </div>
+            <div className="space-y-1 border-t px-2.5 py-2" style={{ borderColor: "var(--edge-neutral)" }}>
+              <ActionRow icon="book" title="Политика обработки данных" tone="var(--purple-edge)" onClick={() => router.push("/policy")} />
+              <ActionRow icon="book" title="Документы" tone="var(--tiffany-edge)" onClick={() => router.push("/docs")} />
+            </div>
           </div>
         </div>
 
