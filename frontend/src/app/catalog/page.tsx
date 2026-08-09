@@ -152,7 +152,7 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={selected.id === OWN_PROFILE_ID && !catalog.some((item) => item.id === OWN_PROFILE_ID)} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={returnTo === "profile" && selected.id === OWN_PROFILE_ID && !catalog.some((item) => item.id === OWN_PROFILE_ID)} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
