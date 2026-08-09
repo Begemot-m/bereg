@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { env } from "@/lib/server/env";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { createPayment } from "@/lib/server/yookassa";
@@ -11,7 +12,10 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
     const priceRub = Number(process.env.SUBSCRIPTION_PRICE_RUB ?? 990);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    // Адрес возврата берём из APP_URL — того же, что проверяет Origin и знает
+    // бот. Отдельный NEXT_PUBLIC_APP_URL на проде отставал и уводил плательщика
+    // на отключённый домен.
+    const appUrl = env.appUrl;
 
     const payment = await createPayment({
       amountRub: priceRub,
