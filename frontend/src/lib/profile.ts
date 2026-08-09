@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { DEFAULT_RULES, normalizeRules, type ProfileRules } from "@/lib/profile-rules";
+import { EMPTY_RULES, normalizeRules, type ProfileRules } from "@/lib/profile-rules";
 
 // --- Пользователь из Telegram (initDataUnsafe достаточно для прототипа) ---
 
@@ -44,7 +44,8 @@ export type PsyProfile = {
   topics: string[];
   gender: "woman" | "man" | "unspecified";
   languages: string[];
-  format: "online" | "offline" | "both";
+  /** Пустая строка — специалист ещё не выбрал формат приёма. */
+  format: "online" | "offline" | "both" | "";
   sessionPrice: number;
   location: {
     city: string;
@@ -123,16 +124,16 @@ export function getPsyProfile(): PsyProfile | null {
     if (!Array.isArray(p.education)) p.education = [];
     // миграция: одиночное фото → массив photos
     if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : [];
-    if (typeof p.sessionMinutes !== "number") p.sessionMinutes = 50;
-    if (typeof p.sessionPrice !== "number") p.sessionPrice = 3500;
+    if (typeof p.sessionMinutes !== "number") p.sessionMinutes = 0;
+    if (typeof p.sessionPrice !== "number") p.sessionPrice = 0;
     if (typeof p.tg !== "string") p.tg = "";
     p.primaryMethod = p.primaryMethod || p.approach || "";
     p.approach = p.primaryMethod;
     if (!Array.isArray(p.methods)) p.methods = p.primaryMethod ? [p.primaryMethod] : [];
     if (p.primaryMethod && !p.methods.includes(p.primaryMethod)) p.methods = [p.primaryMethod, ...p.methods];
-    if (!Array.isArray(p.languages) || !p.languages.length) p.languages = ["русский"];
+    if (!Array.isArray(p.languages)) p.languages = [];
     if (!Array.isArray(p.topics)) p.topics = [];
-    if (!(["online", "offline", "both"] as const).includes(p.format)) p.format = "online";
+    if (!(["online", "offline", "both", ""] as const).includes(p.format)) p.format = "";
     if (!(["woman", "man", "unspecified"] as const).includes(p.gender)) p.gender = "unspecified";
     p.location = { ...EMPTY.location, ...(source.location ?? {}) };
     if (typeof p.showStats !== "boolean") p.showStats = true;
@@ -143,12 +144,15 @@ export function getPsyProfile(): PsyProfile | null {
   }
 }
 
+// Анкета заводится полностью пустой: ни языка, ни формата, ни цены заранее.
+// Иначе прогресс стартовал с 38%, а специалист не глядя выкладывал в каталог
+// чужие умолчания — 3500 ₽ за 50 минут онлайн.
 const EMPTY: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
-  education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
+  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [],
-  showStats: true, rules: DEFAULT_RULES, status: "review",
+  photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],
+  showStats: true, rules: EMPTY_RULES, status: "review",
 };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).

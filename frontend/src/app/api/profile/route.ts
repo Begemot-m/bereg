@@ -64,8 +64,11 @@ export async function PUT(req: NextRequest) {
       primaryMethod: String(body.primaryMethod ?? ""),
       experienceYears: Number(body.experienceYears ?? 0) || 0,
       sessionPrice: Number(body.sessionPrice ?? 0) || 0,
-      sessionMinutes: Number(body.sessionMinutes ?? 50) || 50,
-      format: String(body.format ?? "online"),
+      // Ноль и пустая строка — законное «ещё не заполнено»: анкета начинается
+      // пустой, и подставлять за специалиста цену, длительность или формат
+      // нельзя — иначе он выложит в каталог не свои условия.
+      sessionMinutes: Number(body.sessionMinutes ?? 0) || 0,
+      format: String(body.format ?? ""),
       city: String(location.city ?? ""),
       // Статус ставит модерация, не сам психолог: иначе публикация в каталоге
       // была бы вопросом одного запроса из консоли браузера.

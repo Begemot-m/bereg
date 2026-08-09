@@ -11,17 +11,17 @@ import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
-import { DEFAULT_RULES, normalizeRules, publicRules, RULE_PRESETS, type RuleId } from "@/lib/profile-rules";
+import { EMPTY_RULES, normalizeRules, publicRules, RULE_PRESETS, rulesFilled, type RuleId } from "@/lib/profile-rules";
 
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
 
 const EMPTY_PROFILE: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
-  education: [], topics: [], gender: "unspecified", languages: ["русский"], format: "online", sessionPrice: 3500,
+  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0,
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
-  photo: null, photos: [], sessionMinutes: 50, tg: "", specialistTypes: ["Психолог"], links: [], style: "", quote: "", avoids: [],
-  showStats: true, rules: DEFAULT_RULES, status: "review",
+  photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],
+  showStats: true, rules: EMPTY_RULES, status: "review",
 };
 
 type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "rules" | "preview";
@@ -136,8 +136,8 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
         {(profile?.links?.filter((l) => l.url.trim()).length ?? 0) > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{profile!.links.filter((l) => l.url.trim()).map((link, i) => <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white stroke" title={LINK_META[link.kind].label}><Icon name={LINK_META[link.kind].icon} width={15} weight="bold" /></a>)}</div>}
       </div>
       <div className="grid grid-cols-3 gap-2 p-3">
-        <PreviewStat label="Стоимость" value={`${(profile?.sessionPrice ?? 3500).toLocaleString("ru-RU")} ₽`} />
-        <PreviewStat label="Длительность" value={`${profile?.sessionMinutes ?? 50} мин`} />
+        <PreviewStat label="Стоимость" value={profile?.sessionPrice ? `${profile.sessionPrice.toLocaleString("ru-RU")} ₽` : "—"} />
+        <PreviewStat label="Длительность" value={profile?.sessionMinutes ? `${profile.sessionMinutes} мин` : "—"} />
         <PreviewStat label="Формат" value={format} />
       </div>
     </div>
@@ -161,9 +161,9 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
 function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; name: string; photo: string | null }) {
   const topics = profile?.topics ?? [];
   const helps = topics.length ? topics.slice(0, 3).join(", ") : "разными запросами";
-  const price = (profile?.sessionPrice ?? 3500).toLocaleString("ru-RU");
-  const minutes = profile?.sessionMinutes ?? 50;
-  const format = formatLabel(profile?.format ?? "online");
+  const price = profile?.sessionPrice ? profile.sessionPrice.toLocaleString("ru-RU") : "—";
+  const minutes = profile?.sessionMinutes || "—";
+  const format = formatLabel(profile?.format || "online");
   return (
     <div>
       <p className="mb-2 text-[10px] font-black uppercase tracking-[.07em] text-[var(--muted)]">Карточка в каталоге</p>
@@ -517,7 +517,7 @@ function FormatToggle({ active, icon, label, onClick }: { active: boolean; icon:
   );
 }
 
-function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Условия одной встречи" hint="Именно эти значения используются в фильтрах и на карточке каталога."><Field label="Стоимость, ₽"><Input type="number" min={0} step={100} value={draft.sessionPrice} onChange={(event) => update({ sessionPrice: Number(event.target.value) })} /></Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: Math.max(30, draft.sessionMinutes - 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[12px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes} мин</span></div><button onClick={() => { select(); update({ sessionMinutes: Math.min(120, draft.sessionMinutes + 5) }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><p className="t-cap">Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</p></StepCard>; }
+function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Условия одной встречи" hint="Именно эти значения используются в фильтрах и на карточке каталога."><Field label="Стоимость, ₽"><Input type="number" min={0} step={100} value={draft.sessionPrice || ""} placeholder="3500" onChange={(event) => update({ sessionPrice: Number(event.target.value) })} /></Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.max(30, draft.sessionMinutes - 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[12px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes ? `${draft.sessionMinutes} мин` : "не выбрано"}</span></div><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.min(120, draft.sessionMinutes + 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><p className="t-cap">Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</p></StepCard>; }
 
 function ExperienceStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
   const setEducation = (index: number, value: string) => update({ education: draft.education.map((item, itemIndex) => itemIndex === index ? value : item) });
@@ -672,14 +672,18 @@ function validateStep(step: StepId, profile: PsyProfile): string {
     if (!profile.primaryMethod) return "Выберите основной метод работы.";
     if (!profile.methods.length) return "Добавьте хотя бы один метод.";
   }
-  if (step === "format" && profile.format !== "online") {
-    if (!profile.location.city.trim()) return "Для очного приёма укажите город.";
-    if (profile.location.publicExactAddress && !profile.location.address.trim()) return "Введите точный адрес или выключите его публичный показ.";
+  if (step === "format") {
+    if (!profile.format) return "Выберите формат приёма.";
+    if (profile.format !== "online") {
+      if (!profile.location.city.trim()) return "Для очного приёма укажите город.";
+      if (profile.location.publicExactAddress && !profile.location.address.trim()) return "Введите точный адрес или выключите его публичный показ.";
+    }
   }
   if (step === "conditions") {
     if (!Number.isFinite(profile.sessionPrice) || profile.sessionPrice <= 0) return "Укажите стоимость одной встречи.";
     if (profile.sessionMinutes < 30) return "Длительность встречи должна быть не меньше 30 минут.";
   }
+  if (step === "rules" && !rulesFilled(profile.rules)) return "Сформулируйте оба правила — об отмене и о связи между встречами.";
   if (step === "experience") {
     if (profile.experienceYears === "" || Number(profile.experienceYears) < 0) return "Укажите опыт практики в годах.";
     if (!profile.education.some((item) => item.trim())) return "Добавьте хотя бы одно образование или значимую программу.";
