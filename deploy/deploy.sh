@@ -42,7 +42,7 @@ docker run --rm --env-file .env "$IMAGE" \
 [ -n "$CURRENT" ] && echo "$CURRENT" > "$PREV_FILE"
 log "Запускаем $IMAGE"
 sed -i.bak "s|^APP_IMAGE=.*|APP_IMAGE=$IMAGE|" .env || echo "APP_IMAGE=$IMAGE" >> .env
-docker compose up -d app caddy
+docker compose up -d app caddy bot
 
 # 4. Проверка живости: не «контейнер поднялся», а «отвечает и видит базу».
 log "Проверяем health"
@@ -60,7 +60,7 @@ log "HEALTH НЕ ПРОШЁЛ — откатываемся"
 if [ -s "$PREV_FILE" ]; then
   PREV="$(cat "$PREV_FILE")"
   sed -i.bak "s|^APP_IMAGE=.*|APP_IMAGE=$PREV|" .env
-  docker compose up -d app
+  docker compose up -d app bot
   log "Откат на $PREV выполнен"
 else
   log "Предыдущий образ неизвестен — откат вручную"
