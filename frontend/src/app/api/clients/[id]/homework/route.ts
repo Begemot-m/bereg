@@ -4,6 +4,7 @@ import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { z } from "zod";
 
+import { queueHomeworkEvent } from "@/lib/server/telegram-delivery";
 import { decryptText, encryptText, ownedClient } from "@/lib/server/therapy";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
@@ -41,8 +42,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     const body = await parseBody(req, z.object({ text: z.string().trim().min(1, "Текст задания пуст").max(2000) }));
 
-    const created = await prisma.homework.create({
-      data: { clientId: client.id, text: encryptText(body.text) },
+    const created = await prisma.$transaction(async (tx) => {
+      const row = await tx.homework.create({
+        data: { clientId: client.id, text: encryptText(body.text) },
+      });
+      if (client.userId) {
+        await queueHomeworkEvent(tx, {
+          homeworkId: row.id,
+          recipientId: client.userId,
+          audience: "client",
+          kind: "homework_assigned",
+        });
+      }
+      return row;
     });
     return NextResponse.json(toDTO(created), { status: 201 });
   } catch (e) {

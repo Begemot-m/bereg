@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { queueHomeworkEvent } from "@/lib/server/telegram-delivery";
 import { decryptText, encryptText } from "@/lib/server/therapy";
 
 export const runtime = "nodejs";
@@ -34,12 +35,30 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       return NextResponse.json({ error: "invalid status" }, { status: 422 });
     }
 
-    const updated = await prisma.homework.update({
-      where: { id: hw.id },
-      data: {
-        ...(body.text !== undefined ? { text: encryptText(String(body.text).slice(0, 2000)) } : {}),
-        ...(body.status !== undefined ? { status: body.status } : {}),
-      },
+    // О выполнении психолог узнаёт в боте — но только когда отметил сам клиент
+    // и только один раз: повторное сохранение того же статуса ничего не шлёт.
+    const clientMarkedDone = body.status === "done"
+      && hw.status !== "done"
+      && hw.client.userId === user.id
+      && hw.client.psychologistId !== user.id;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const row = await tx.homework.update({
+        where: { id: hw.id },
+        data: {
+          ...(body.text !== undefined ? { text: encryptText(String(body.text).slice(0, 2000)) } : {}),
+          ...(body.status !== undefined ? { status: body.status } : {}),
+        },
+      });
+      if (clientMarkedDone) {
+        await queueHomeworkEvent(tx, {
+          homeworkId: row.id,
+          recipientId: hw.client.psychologistId,
+          audience: "psychologist",
+          kind: "homework_done",
+        });
+      }
+      return row;
     });
     return NextResponse.json({
       id: updated.id,

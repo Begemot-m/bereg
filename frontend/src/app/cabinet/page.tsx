@@ -95,7 +95,7 @@ export default function CabinetPage() {
           <SectionTitle>Приватность и данные</SectionTitle>
           {/* Заливка тиффани только у самого текста о конфиденциальности —
               действия ниже живут на белом, это не часть обещания. */}
-          <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--tiffany)" }}>
+          <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--tiffany-soft)" }}>
             <div className="flex items-start gap-3 p-4">
               <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="lock" width={21} weight="bold" color="var(--tiffany-edge)" /></span>
               <div className="min-w-0">

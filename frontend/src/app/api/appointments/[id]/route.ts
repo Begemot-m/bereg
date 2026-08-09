@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
-import { cancelPendingReminders, queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
+import { cancelPendingReminders, queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
 
 export const runtime = "nodejs";
 
@@ -50,13 +50,25 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         },
         include: { client: { select: { id: true, name: true, userId: true } } },
       });
-      if (row.client.userId && body.status === "cancelled") {
+      if (body.status === "cancelled") {
         await cancelPendingReminders(tx, appt.id);
-        await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: row.client.userId, audience: "client", kind: "cancel" });
-      } else if (row.client.userId && startsAt && startsAt.getTime() !== appt.startsAt.getTime()) {
-        const clientUser = await tx.user.findUnique({ where: { id: row.client.userId }, select: { sessionReminder2h: true } });
-        await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: row.client.userId, audience: "client", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
-        await replaceClientReminders(tx, { appointmentId: appt.id, clientUserId: row.client.userId, startsAt, reminder2h: clientUser?.sessionReminder2h ?? false });
+        if (row.client.userId) {
+          await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: row.client.userId, audience: "client", kind: "cancel" });
+        }
+      } else if (startsAt && startsAt.getTime() !== appt.startsAt.getTime()) {
+        const clientUser = row.client.userId
+          ? await tx.user.findUnique({ where: { id: row.client.userId }, select: { sessionReminder2h: true } })
+          : null;
+        if (row.client.userId) {
+          await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: row.client.userId, audience: "client", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
+        }
+        await replaceReminders(tx, {
+          appointmentId: appt.id,
+          clientUserId: row.client.userId,
+          psychologistUserId: user.id,
+          startsAt,
+          reminder2h: clientUser?.sessionReminder2h ?? false,
+        });
       }
       return row;
     });

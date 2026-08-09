@@ -6,7 +6,7 @@ import { prisma } from "@/lib/server/prisma";
 import { leadBlocked } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
-import { queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
+import { queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
 
 export const runtime = "nodejs";
 
@@ -140,9 +140,10 @@ export async function POST(req: NextRequest) {
         });
         await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: psychologistId, audience: "psychologist", kind: "booking" });
         await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: user.id, audience: "client", kind: "booking" });
-        await replaceClientReminders(tx, {
+        await replaceReminders(tx, {
           appointmentId: created.id,
           clientUserId: user.id,
+          psychologistUserId: psychologistId,
           startsAt,
           reminder2h: user.sessionReminder2h,
         });

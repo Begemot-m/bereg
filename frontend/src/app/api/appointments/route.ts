@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { NOT_APPROVED, psyApproved } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
-import { queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
+import { queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
 
 export const runtime = "nodejs";
 
@@ -84,16 +84,19 @@ export async function POST(req: NextRequest) {
         },
         include: { client: { select: { id: true, name: true } } },
       });
+      const clientUser = client.userId
+        ? await tx.user.findUnique({ where: { id: client.userId }, select: { sessionReminder2h: true } })
+        : null;
       if (client.userId) {
-        const clientUser = await tx.user.findUnique({ where: { id: client.userId }, select: { sessionReminder2h: true } });
         await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: client.userId, audience: "client", kind: "booking" });
-        await replaceClientReminders(tx, {
-          appointmentId: created.id,
-          clientUserId: client.userId,
-          startsAt,
-          reminder2h: clientUser?.sessionReminder2h ?? false,
-        });
       }
+      await replaceReminders(tx, {
+        appointmentId: created.id,
+        clientUserId: client.userId,
+        psychologistUserId: user.id,
+        startsAt,
+        reminder2h: clientUser?.sessionReminder2h ?? false,
+      });
       return created;
     });
     return NextResponse.json(appt, { status: 201 });

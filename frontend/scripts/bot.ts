@@ -56,12 +56,41 @@ function dueDeliveries() {
           psychologist: { select: { firstName: true, psyProfile: { select: { name: true } } } },
         },
       },
+      homework: {
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+              psychologist: { select: { firstName: true, psyProfile: { select: { name: true } } } },
+            },
+          },
+        },
+      },
     },
   });
 }
 
-function messageFor(delivery: Delivery): { text: string; keyboard: InlineKeyboard } {
+type Message = { text: string; keyboard: InlineKeyboard };
+
+// Текст задания зашифрован в базе и в сообщение не попадает: бот зовёт открыть
+// приложение, читать задание человек будет уже там.
+function homeworkMessage(delivery: Delivery, homework: NonNullable<Delivery["homework"]>): Message {
+  const client = firstName(homework.client.name);
+  const psychologist = homework.client.psychologist.psyProfile?.name ?? homework.client.psychologist.firstName ?? "Специалист";
+  const keyboard = new InlineKeyboard();
+  if (delivery.audience === "psychologist") {
+    keyboard.webApp("Карточка клиента", appLink(`/clients?id=${homework.client.id}`));
+    return { text: `${client} выполнил задание\nОтметка стоит в карточке`, keyboard };
+  }
+  keyboard.webApp("Открыть задания", appLink("/therapy"));
+  return { text: `Новое задание от ${psychologist}\nОткройте приложение, чтобы прочитать`, keyboard };
+}
+
+function messageFor(delivery: Delivery): Message | null {
+  if (delivery.homework) return homeworkMessage(delivery, delivery.homework);
   const appt = delivery.appointment;
+  if (!appt) return null;
   const client = firstName(appt.client.name);
   const psychologist = appt.psychologist.psyProfile?.name ?? appt.psychologist.firstName ?? "специалистом";
   const when = format(appt.startsAt);
@@ -81,6 +110,11 @@ function messageFor(delivery: Delivery): { text: string; keyboard: InlineKeyboar
     if (delivery.kind === "reschedule") {
       keyboard.webApp("Открыть новое время", appLink(`/sessions?appointment=${appt.id}`));
       return { text: `Клиент перенёс встречу\n${previous ? `Было: ${previous}\n` : ""}Стало: ${when}\n${client} · ${details}`, keyboard };
+    }
+    if (delivery.kind === "reminder_2h" || delivery.kind === "reminder_24h") {
+      keyboard.webApp("Открыть в сессиях", appLink(`/sessions?appointment=${appt.id}`));
+      const lead = delivery.kind === "reminder_2h" ? "Через 2 часа" : "Завтра";
+      return { text: `${lead} сессия\n${client} · ${when}\n${details}`, keyboard };
     }
     keyboard.webApp("Открыть расписание", appLink(`/sessions?date=${appt.startsAt.toISOString().slice(0, 10)}`));
     return { text: `Клиент отменил встречу\n${client} · ${when}`, keyboard };
@@ -111,7 +145,13 @@ async function sendDueDeliveries() {
   try {
     const due = await dueDeliveries();
     for (const delivery of due) {
-      const { text, keyboard } = messageFor(delivery);
+      const message = messageFor(delivery);
+      if (!message) {
+        // Осиротевшая доставка: встречу или задание уже удалили — писать не о чем.
+        await prisma.telegramDelivery.update({ where: { id: delivery.id }, data: { cancelledAt: new Date() } });
+        continue;
+      }
+      const { text, keyboard } = message;
       try {
         await bot.api.sendMessage(Number(delivery.recipient.telegramId), text, { reply_markup: keyboard });
         await prisma.telegramDelivery.update({ where: { id: delivery.id }, data: { sentAt: new Date(), attempts: { increment: 1 }, lastError: null } });

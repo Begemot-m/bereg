@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
-import { replaceClientReminders } from "@/lib/server/telegram-delivery";
+import { replaceReminders } from "@/lib/server/telegram-delivery";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
@@ -30,12 +30,13 @@ export async function PUT(req: NextRequest) {
       await tx.user.update({ where: { id: user.id }, data: { sessionReminder2h: body.reminder2h } });
       const future = await tx.appointment.findMany({
         where: { client: { userId: user.id }, status: "scheduled", startsAt: { gt: new Date() } },
-        select: { id: true, startsAt: true },
+        select: { id: true, startsAt: true, psychologistId: true },
       });
       for (const appointment of future) {
-        await replaceClientReminders(tx, {
+        await replaceReminders(tx, {
           appointmentId: appointment.id,
           clientUserId: user.id,
+          psychologistUserId: appointment.psychologistId,
           startsAt: appointment.startsAt,
           reminder2h: body.reminder2h,
         });
