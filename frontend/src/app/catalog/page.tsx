@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowGlyph } from "@/components/blocks";
 import { AnimatePresence, motion } from "motion/react";
 
-import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
+import { getMonthAvailability, getWorkHours, ymdLocal } from "@/lib/schedule";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,7 @@ import {
   EMPTY_FILTERS,
   EMPTY_PREFS,
   METHOD_DESCRIPTIONS,
+  normalizePrefs,
   filterCatalog,
   formatLabel,
   nextSlotLabel,
@@ -126,13 +127,16 @@ export default function CatalogPage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(PREFS_KEY);
-      if (saved) setPrefs({ ...EMPTY_PREFS, ...(JSON.parse(saved) as CatalogPrefs) });
+      if (saved) setPrefs(normalizePrefs(JSON.parse(saved)));
       const deep = new URLSearchParams(window.location.search).get("psy");
       if (!deep && !localStorage.getItem(SEEN_KEY)) setTimeout(() => setSurveyOpen(true), 260);
     } catch { setSurveyOpen(true); }
   }, []);
 
-  const catalog = useMemo(() => publishedCatalog(profile, subscription), [profile, subscription]);
+  // Свой график — источник окон для собственной карточки в каталоге: заполнил
+  // расписание, и подборка уже учитывает его дни и время.
+  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours, enabled: Boolean(profile) });
+  const catalog = useMemo(() => publishedCatalog(profile, subscription, work), [profile, subscription, work]);
   const personal = useMemo(() => personalSelection(prefs, catalog), [prefs, catalog]);
   const allFiltered = useMemo(() => sortCatalog(filterCatalog(filters, catalog), sort, prefs), [filters, sort, prefs, catalog]);
   const pageCount = Math.max(1, Math.ceil(allFiltered.length / 10));
@@ -182,7 +186,7 @@ export default function CatalogPage() {
         {mode === "all" && allFiltered.length > 10 && <div className="mt-5 flex items-center justify-between gap-2"><Button variant="soft" disabled={page === 0} onClick={() => { setPage((value) => Math.max(0, value - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Предыдущие 10</Button><span className="tnum text-[11px] font-black text-[var(--muted)]">{page + 1}/{pageCount}</span><Button disabled={page + 1 >= pageCount} onClick={() => { setPage((value) => Math.min(pageCount - 1, value + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Следующие 10</Button></div>}
       </main>
 
-      <CatalogSurvey open={surveyOpen} initial={prefs} onClose={() => setSurveyOpen(false)} onDone={savePrefs} onViewAll={viewAll} />
+      <CatalogSurvey open={surveyOpen} initial={prefs} catalog={catalog} onClose={() => setSurveyOpen(false)} onDone={savePrefs} onViewAll={viewAll} />
       <CatalogFiltersSheet open={filtersOpen} value={filters} resultCount={countFilters} onClose={() => setFiltersOpen(false)} onApply={(next) => { setFilters(next); setFiltersOpen(false); setPage(0); }} />
     </div>
   );

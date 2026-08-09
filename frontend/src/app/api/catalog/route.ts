@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { availabilityFromWorkHours } from "@/lib/availability";
 import { prisma } from "@/lib/server/prisma";
 
 export const runtime = "nodejs";
@@ -28,10 +29,21 @@ export async function GET(req: NextRequest) {
     take: one > 0 ? 1 : 100,
   });
 
+  // Окна для фильтра «когда удобно» берём из графика специалиста: заполнил
+  // расписание — его дни и время сразу участвуют в подборке.
+  const schedules = await prisma.workHours.findMany({
+    where: { userId: { in: rows.map((row) => row.userId) } },
+    select: { userId: true, hours: true },
+  });
+  const scheduleOf = new Map(schedules.map((row) => [row.userId, (row.hours ?? {}) as Record<number, { t: string }[]>]));
+
   const psys = rows.map((row) => {
     const data = (row.data as Record<string, unknown>) ?? {};
     const location = (data.location ?? {}) as Record<string, unknown>;
+    const availability = availabilityFromWorkHours({ hours: scheduleOf.get(row.userId) });
     return {
+      availability: availability.slots ? availability : undefined,
+      availableTimes: availability.times,
       id: row.userId,
       name: row.name,
       method: row.primaryMethod,
