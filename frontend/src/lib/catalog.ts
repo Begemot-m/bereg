@@ -137,12 +137,23 @@ export const METHOD_DESCRIPTIONS: Record<string, string> = {
   "Психоанализ": "Исследование повторяющихся отношений, внутренних конфликтов и влияния прошлого опыта.",
 };
 
-// Витринных анкет в проекте нет: каталог наполняется только реальными
-// специалистами. Пока никто не прошёл верификацию, он пуст — кроме
-// собственной карточки психолога, если у неё есть размещение.
-export const PSYS: Psy[] = [];
+// В боевом режиме витринных анкет нет: каталог наполняется только реальными
+// специалистами, прошедшими проверку. В демо каталог с нуля выглядит поломкой,
+// поэтому там живут две бутафорские карточки — и только там.
+const DEMO_CATALOG = process.env.NEXT_PUBLIC_DEMO === "1";
 
-const PUBLIC_PSYS: Psy[] = PSYS;
+const DEMO_PSYS: Psy[] = [
+  { id: 1, name: "Ирина Верещагина", portrait: "/catalog/irina.webp", tone: "green", verified: true, rating: 4.9, reviews: 128, method: "КПТ", methods: ["КПТ", "EMDR"], topics: ["тревога", "границы", "панические атаки"], price: 3500, minutes: 50, format: "both", city: "Москва", district: "Хамовники", metro: "Фрунзенская", address: "Комсомольский проспект, 28", publicExactAddress: false, gender: "woman", languages: ["русский", "английский"], years: 8, sessions: 1240, clients: 210, responseHrs: 2, nextDays: 1, availableTimes: ["day", "evening"], exposure: 72, newcomer: false, tg: "irina_v", about: "Помогаю справляться с тревогой и вернуть опору. Работаю бережно, в темпе клиента, с опорой на доказательные методы.", firstSession: "На первой встрече уточним, что происходит сейчас, сформулируем реалистичную цель и договоримся о комфортном темпе работы.", education: ["МГУ, факультет психологии", "Сертификация по КПТ, АКБТ", "EMDR Europe, базовый курс"], style: "мягкий, в темпе клиента", quote: "Тревога — не приговор. Разберём её по шагам.", helps: "тревогой, паническими атаками и границами", avoids: ["зависимости", "расстройства пищевого поведения"] },
+  { id: 2, name: "Сергей Домбровский", portrait: "/catalog/sergey.webp", tone: "amber", verified: true, rating: 4.8, reviews: 94, method: "ACT", methods: ["ACT", "DBT"], topics: ["выгорание", "самооценка", "стресс"], price: 4000, minutes: 60, format: "online", city: "Санкт-Петербург", gender: "man", languages: ["русский"], years: 11, sessions: 1980, clients: 340, responseHrs: 3, nextDays: 4, availableTimes: ["morning", "day"], exposure: 84, newcomer: false, tg: "sergey_act", about: "Работаю с выгоранием и самооценкой. Помогаю находить ценности и действовать вопреки тревоге и прокрастинации.", education: ["СПбГУ, клиническая психология", "ACT — Ассоциация контекстно-поведенческой науки"], style: "структурный, через ценности", quote: "Помогу двигаться к важному, даже когда страшно.", helps: "выгоранием, самооценкой и стрессом", avoids: ["работа с парами", "детская терапия"] },
+];
+
+export const PSYS: Psy[] = DEMO_CATALOG ? DEMO_PSYS : [];
+
+const PUBLIC_PSYS: Psy[] = PSYS.map((psy) => ({
+  ...psy,
+  privateAddressAvailable: !psy.publicExactAddress && Boolean(psy.address),
+  address: psy.publicExactAddress ? psy.address : undefined,
+}));
 
 /** Своя анкета в каталоге: по этому id ведёт ссылка-приглашение на запись. */
 export const OWN_PROFILE_ID = 100_001;

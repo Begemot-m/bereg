@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { APP_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
+import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
 
 const BOT_URL = botDeepLink("site");
 
@@ -203,7 +203,7 @@ export function DesktopLandingBody() {
                   >
                     <Icon name="telegram" width={18} weight="bold" color="var(--ink)" /> Перейти в бота
                   </a>
-                  <span className="text-[13px] font-bold text-white/55">t.me/murpsybot</span>
+                  <span className="text-[13px] font-bold text-white/55">t.me/{BOT_NAME}</span>
                 </div>
               </div>
               <span className="ico hidden h-28 w-28 shrink-0 lg:flex" style={{ background: "rgba(255,255,255,.14)" }}>

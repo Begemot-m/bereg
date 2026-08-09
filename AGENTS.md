@@ -73,6 +73,10 @@
 **Фактический продакшен на 30 июля 2026:**
 
 - домен: `https://chronika.space` — единственный адрес приложения, других нет;
+- боевой бот: **`@chronikaspace_bot`** (с 10 августа 2026). Его токен лежит в
+  `/opt/bereg/.env`, старый `.env` сохранён рядом как `.env.bak-bot-migration`.
+  `@murpsybot` больше не боевой — он ведёт на демо, и в коде `BOT_NAME`
+  (`frontend/src/lib/brand.ts`) отдаёт его только в демо-сборке;
 - health: `https://chronika.space/api/health`;
 - VPS Beget: Ubuntu 24.04, Docker, 2 vCPU / 4 ГБ, публичный IP
   `213.139.208.92`, приватный IP `10.16.0.2`;
