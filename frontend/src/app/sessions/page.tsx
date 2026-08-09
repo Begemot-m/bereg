@@ -426,8 +426,7 @@ function LeadDaysRow() {
   ];
   return (
     <div style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 12 }}>
-      <p className="text-[13px] font-black">Предварительная запись</p>
-      <p className="t-cap mt-0.5">За сколько дней клиент должен записаться заранее.</p>
+      <p className="text-[13px] font-black">За сколько дней возможно записаться на встречу</p>
       <div className="mt-2 space-y-2">
         {rows.map((row) => (
           <div key={row.key} className="flex items-center justify-between gap-2">
