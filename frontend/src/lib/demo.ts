@@ -1,6 +1,8 @@
 // Демо-режим: приложение работает без бэкенда, на мок-данных в localStorage.
 // Включается переменной NEXT_PUBLIC_DEMO=1 (команда `bun run demo`).
 
+import { THERAPISTS_KEY } from "@/lib/therapists";
+
 export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
 type Status = "therapy" | "new" | "paused";
@@ -198,6 +200,9 @@ function load(): DB {
   }
   const db = seed();
   localStorage.setItem(KEY, JSON.stringify(db));
+  // Прикреплённые терапевты живут в своём ключе и переживали смену версии
+  // демо-базы: записей уже нет, а специалист висел в «Терапии» как закреплённый.
+  localStorage.removeItem(THERAPISTS_KEY);
   return db;
 }
 

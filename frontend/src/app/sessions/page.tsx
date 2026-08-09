@@ -173,8 +173,8 @@ function PsySessions() {
         icon="calendar"
         sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : undefined) : "Неделя целиком"}
         right={
-          <button onClick={() => { tap(); setHelp(true); }} className="btn h-9 shrink-0 px-3.5 text-[11.5px]">
-            <Icon name="question" width={14} weight="bold" color="#fff" /> Как это работает?
+          <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
+            <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как это работает?
           </button>
         }
       >

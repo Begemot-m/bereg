@@ -21,7 +21,7 @@ const COPY: Record<Variant, { title: string; sub: ReactNode; share: string }> = 
   },
   client: {
     title: "Подарите другу заботу о себе",
-    sub: "",
+    sub: "Дневник настроения, дыхательные практики и колесо баланса — другу они достанутся бесплатно и без записи к специалисту. Через месяц отметок видно, что на самом деле выматывает, а что держит на плаву. А когда захочет говорить с живым человеком — в каталоге есть проверенные терапевты.",
     share: "Забочусь о себе в «Хронике»: настроение, практики, колесо баланса. Попробуй и ты:",
   },
 };
@@ -60,7 +60,7 @@ export function InviteBanner({ variant }: { variant: Variant }) {
           </div>
         ) : (
           <div className="relative flex items-center gap-3.5">
-            <motion.span className="ico ico-white h-14 w-14 shrink-0" animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Icon name="users" width={26} weight="fill" color="var(--olive-edge)" /></motion.span>
+            <span className="ico ico-white h-14 w-14 shrink-0"><Icon name="heart" width={26} weight="fill" color="var(--olive-edge)" /></span>
             <div className="min-w-0 flex-1">
               <p className="t-micro">Приведите друга</p>
               <p className="t-title mt-0.5">Подарите другу заботу о себе</p>
@@ -128,12 +128,12 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 backdrop-blur-[2px] @md:items-center" onClick={onClose}>
-      <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-md overflow-y-auto p-0" style={{ background: "var(--surface)" }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }} className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 @md:items-center" onClick={onClose}>
+      <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }} onClick={(e) => e.stopPropagation()} className="max-h-[min(88dvh,calc(100dvh-var(--top-pad)-24px))] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-[var(--r-block)] p-0" style={{ background: "var(--surface)" }}>
         {/* Герой */}
         <div className="relative overflow-hidden p-5" style={{ background: "var(--olive-soft)" }}>
           <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
-          {!psy && <span className="ico ico-white relative h-12 w-12"><Icon name="spark" width={24} weight="fill" color="var(--edge)" /></span>}
+          {!psy && <span className="ico ico-white relative h-12 w-12"><Icon name="heart" width={24} weight="fill" color="var(--olive-edge)" /></span>}
           <h3 className={`font-tight relative text-[20px] font-black leading-tight ${psy ? "pr-10" : "mt-3"}`}>{c.title}</h3>
           {c.sub && <p className="t-sub relative mt-1.5">{c.sub}</p>}
         </div>
@@ -164,11 +164,6 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
           <button onClick={share} className="btn w-full py-3.5 text-[15px]">
             <Icon name={copied ? "check" : "share"} width={17} weight="fill" color="#fff" /> {copied ? "Ссылка скопирована" : "Поделиться ссылкой"}
           </button>
-
-          <div>
-            {!psy && <p className="t-micro mb-1.5">Ссылка на Telegram-бота</p>}
-            <p className="t-cap break-all text-center">{link.replace(/^https?:\/\//, "")}</p>
-          </div>
 
           {psy && <p className="t-cap text-center">Очко засчитывается, когда коллега перешёл по вашей ссылке, заполнил профиль и отправил его на верификацию.</p>}
         </div>

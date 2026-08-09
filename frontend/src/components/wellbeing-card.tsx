@@ -29,7 +29,7 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
       <div className="flex items-center gap-3">
         <button onClick={onStart ? () => { tap(); onStart(); } : undefined} className="ico ico-accent relative h-14 w-14 shrink-0" aria-label="Колесо баланса">
           <Icon name="balance" width={28} weight="bold" color="#fff" />
-          {!wheel && <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--coral)] text-[16px] font-black">!</span>}
+          {!wheel && <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--danger)] text-[16px] font-black text-white">!</span>}
         </button>
         <div className="min-w-0 flex-1">
           <p className="font-tight text-[18px] font-black text-[var(--ink)]">Колесо баланса</p>

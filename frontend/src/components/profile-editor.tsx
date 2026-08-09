@@ -88,7 +88,12 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const full = percent === 100;
 
   return (
-    <div data-tour="profile-progress" className="flex items-center gap-3 rounded-[16px] bg-white p-3">
+    <button
+      type="button"
+      onClick={onContinue}
+      data-tour="profile-progress"
+      className="flex w-full items-center gap-3 rounded-[16px] bg-white p-3 text-left transition-transform active:scale-[0.99]"
+    >
       <Icon name="user" width={38} weight="fill" color="var(--tiffany)" />
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-black leading-tight">Профиль заполнен на <span className="tnum" style={{ color: "var(--tiffany-edge)" }}>{percent}%</span></p>
@@ -97,8 +102,8 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
         </div>
         {full && <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">Вас находят по всем фильтрам каталога</p>}
       </div>
-      <button onClick={onContinue} className="btn shrink-0 px-4 py-2 text-[12px]">Заполнить</button>
-    </div>
+      <span className="btn shrink-0 px-4 py-2 text-[12px]">Заполнить</span>
+    </button>
   );
 }
 

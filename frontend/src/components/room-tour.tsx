@@ -11,6 +11,8 @@ import type { Role } from "@/lib/role";
 const EASE = [0.16, 1, 0.3, 1] as const;
 const KEY = (role: Role) => `bereg:tour:${role}:v5`;
 
+const VEIL = { duration: 0.22, ease: EASE } as const;
+
 const PAD = 8;      // воздух вокруг подсвеченного элемента
 const CARD = 210;   // примерная высота карточки — решаем, сверху её класть или снизу
 
@@ -110,26 +112,30 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
     if (step && pathname !== step.href) router.push(step.href);
   }, [step, pathname, router]);
 
-  // Ждём появления элемента (после навигации он рисуется не сразу),
-  // подкручиваем к нему и запоминаем положение.
+  // Ждём появления элемента (после навигации он рисуется не сразу).
+  // Если он уже целиком на экране — меряем сразу, без скролла и пауз; иначе
+  // подкручиваем мгновенно и меряем следующим кадром. Плавный скролл с паузой
+  // в 420 мс делал первые шаги в «Сессиях» заметно тормозными.
   useEffect(() => {
     if (!step) return;
-    setRect(null);
-    if (!step.target || pathname !== step.href) return;
+    if (!step.target || pathname !== step.href) { setRect(null); return; }
     let tries = 0;
     let timer = 0;
+    let frame = 0;
     const hunt = () => {
       const el = findTarget(step.target!);
-      if (el) {
-        el.scrollIntoView({ block: "center", behavior: "smooth" });
-        timer = window.setTimeout(measure, 420);
+      if (!el) {
+        if (tries++ < 40) timer = window.setTimeout(hunt, 60);
         return;
       }
-      if (tries++ < 40) timer = window.setTimeout(hunt, 100);
+      const box = el.getBoundingClientRect();
+      if (box.top >= 8 && box.bottom <= window.innerHeight - 8) { setRect(box); return; }
+      el.scrollIntoView({ block: "center", behavior: "auto" });
+      frame = requestAnimationFrame(() => setRect(el.getBoundingClientRect()));
     };
     hunt();
-    return () => window.clearTimeout(timer);
-  }, [step, pathname, measure]);
+    return () => { window.clearTimeout(timer); cancelAnimationFrame(frame); };
+  }, [step, pathname]);
 
   useEffect(() => {
     window.addEventListener("resize", measure);
@@ -163,10 +169,10 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
       {/* Прожектор: дыра в затемнении вокруг элемента. Без подсветки — сплошная вуаль. */}
       {rect ? (
         <>
-          <motion.div className="pointer-events-none absolute inset-x-0 top-0 bg-[rgba(32,28,24,.68)]" animate={{ height: Math.max(0, rect.top - PAD) }} />
-          <motion.div className="pointer-events-none absolute left-0 bg-[rgba(32,28,24,.68)]" animate={{ top: rect.top - PAD, width: Math.max(0, rect.left - PAD), height: rect.height + PAD * 2 }} />
-          <motion.div className="pointer-events-none absolute right-0 bg-[rgba(32,28,24,.68)]" animate={{ top: rect.top - PAD, left: rect.right + PAD, height: rect.height + PAD * 2 }} />
-          <motion.div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[rgba(32,28,24,.68)]" animate={{ top: rect.bottom + PAD }} />
+          <motion.div className="pointer-events-none absolute inset-x-0 top-0 bg-[rgba(32,28,24,.68)]" initial={false} transition={VEIL} animate={{ height: Math.max(0, rect.top - PAD) }} />
+          <motion.div className="pointer-events-none absolute left-0 bg-[rgba(32,28,24,.68)]" initial={false} transition={VEIL} animate={{ top: rect.top - PAD, width: Math.max(0, rect.left - PAD), height: rect.height + PAD * 2 }} />
+          <motion.div className="pointer-events-none absolute right-0 bg-[rgba(32,28,24,.68)]" initial={false} transition={VEIL} animate={{ top: rect.top - PAD, left: rect.right + PAD, height: rect.height + PAD * 2 }} />
+          <motion.div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[rgba(32,28,24,.68)]" initial={false} transition={VEIL} animate={{ top: rect.bottom + PAD }} />
           <motion.div
             className="pointer-events-none absolute rounded-[16px]"
             initial={false}
@@ -214,7 +220,13 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
 
             <div className="mt-3 flex items-center gap-2">
               {index > 0 && (
-                <button onClick={() => { tap(); setIndex(index - 1); }} className="back-link">Назад</button>
+                <button
+                  onClick={() => { tap(); setIndex(index - 1); }}
+                  className="back-link rounded-full px-4"
+                  style={{ border: "var(--bw) solid var(--ink)", color: "var(--ink)" }}
+                >
+                  Назад
+                </button>
               )}
               <button
                 onClick={next}

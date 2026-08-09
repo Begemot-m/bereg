@@ -198,7 +198,7 @@ function FindTherapistBlock() {
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--purple-soft)]"><Icon name="compass" width={24} weight="bold" color="var(--purple-edge)" /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-black">Найти терапевта</span>
-        <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания. Ваша статистика уже собирается ниже.</span>
+        <span className="block text-[11px] font-semibold text-[var(--muted)]">Прикрепите специалиста — здесь появятся встречи и задания.</span>
       </span>
       <span className="btn shrink-0">В каталог</span>
     </Link>
