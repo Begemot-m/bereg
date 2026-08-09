@@ -175,7 +175,7 @@ function PickClient({ onPick }: { onPick: (id: number) => void }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => { tap(); setOpen(true); }} className="btn btn-accent h-9 w-full whitespace-nowrap py-0 text-[12.5px]" style={THIN_BTN}>
+      <button onClick={() => { tap(); setOpen(true); }} className="btn h-9 w-full whitespace-nowrap py-0 text-[12.5px]" style={{ ...THIN_BTN, background: "var(--ink)", borderColor: "var(--ink)", color: "#fff" }}>
         <Icon name="plus" width={13} weight="bold" color="#fff" /> Выбрать клиента
       </button>
       {open && <ClientModal onClose={() => setOpen(false)} onPick={(id) => { setOpen(false); onPick(id); }} />}
@@ -389,10 +389,12 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           <span className="min-w-0 break-words text-[19px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
-        {/* Перенести и «Написать» — строкой, «Освободить» отдельной кнопкой по
-            центру под ними: у отмены свой вес, в общем ряду она терялась. */}
+        {/* Перенести и «Написать» — строкой, «Освободить» под «Перенести»
+            той же шириной: отмена в общей сетке, но своим рядом. */}
         <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => setResch(true)} className={`${FLAT_BTN} btn-accent`} style={THIN_BTN}>Перенести</button>
+          <button onClick={() => setResch(true)} className={`${FLAT_BTN} btn-accent gap-1.5`} style={THIN_BTN}>
+            <Icon name="swap" width={12} weight="bold" color="#fff" /> Перенести
+          </button>
           {/* Написать — прямо в личный чат Telegram, если контакт это username. */}
           {tgLink ? (
             <a href={tgLink} target="_blank" rel="noreferrer" className={FLAT_BTN} style={{ ...THIN_BTN, background: "var(--ink)", borderColor: "var(--ink)", color: "#fff" }}>
@@ -403,15 +405,13 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
               <Icon name="telegram" width={12} weight="fill" color="#fff" /> Написать
             </Link>
           )}
-        </div>
-        {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-        {!slot.past && (
-          <div className="flex justify-center">
-            <button onClick={() => cancel.mutate()} className="btn h-8 justify-center gap-1.5 whitespace-nowrap px-4 py-0 text-[11.5px]" style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>
-              <Icon name="close" width={16} weight="bold" color="#fff" /> Освободить
+          {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
+          {!slot.past && (
+            <button onClick={() => cancel.mutate()} className={`${FLAT_BTN} gap-1.5`} style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)", color: "#fff" }}>
+              <Icon name="close" width={12} weight="bold" color="#fff" /> Освободить
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
