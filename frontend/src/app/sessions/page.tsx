@@ -154,6 +154,7 @@ function PsySessions() {
   };
 
   const todayY = ymdLocal(new Date());
+  const noWorkHours = !!work && !Object.values(work.hours ?? {}).some((list) => (list ?? []).length > 0);
   const markedDays = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
   // Ближайшие дни (сегодня, завтра …) с ещё не прошедшими записями
   const now = Date.now();
@@ -216,8 +217,13 @@ function PsySessions() {
       <div className="sheet">
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           {/* Слева — настройка графика */}
-          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="inline-flex min-h-9 w-fit items-center gap-1.5 text-[12px] font-black text-[var(--edge)]" aria-expanded={scheduleOpen}>
+          <button data-tour="schedule" onClick={() => { tap(); setScheduleOpen((v) => !v); setQuickAdd(false); }} className="relative inline-flex min-h-9 w-fit items-center gap-1.5 text-[12px] font-black text-[var(--edge)]" aria-expanded={scheduleOpen}>
             {scheduleOpen ? <ArrowGlyph size={13} style={{ transform: "rotate(-90deg)" }} /> : <Icon name="gear" width={14} weight="bold" color="var(--edge)" />} {scheduleOpen ? "Свернуть" : "График"}
+            {/* Пустой график — красный ярлычок: без окон клиент не запишется,
+                а понять это по внешнему виду раздела было неоткуда. */}
+            {noWorkHours && !scheduleOpen && (
+              <span className="rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase leading-none tracking-wide text-white" style={{ background: "var(--danger)" }}>не задан</span>
+            )}
           </button>
 
           {/* Центр — весёлый зелёный крестик быстрой записи */}
@@ -260,7 +266,7 @@ function PsySessions() {
             onSaved={() => finishScheduleIntro(false)}
           />
         )}
-        {!calOpen && <Segmented value={view} onChange={(v) => { tap(); setView(v); }} />}
+        {!calOpen && <Segmented value={view} dayPicked={!!selDay} onChange={(v) => { tap(); setView(v); if (v === "soon") setSelDay(null); }} />}
         {help && <HelpDeck title="Как работают сессии" pages={SESSIONS_HELP} onClose={() => setHelp(false)} />}
         {scheduleHelp && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setScheduleHelp(false)} />}
 
@@ -343,7 +349,8 @@ function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, on
         <div className="mt-3 p-4" style={{ background: "var(--surface)", border: "var(--bw-lg) solid var(--edge)", borderRadius: "var(--r-block)" }}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><p className="text-[14px] font-black">Рабочие часы</p></div>
-            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white stroke" aria-label="Как настроить расписание"><Icon name="question" width={17} weight="bold" color="var(--edge)" /></button>}
+            {/* Знак вопроса — чернилами и без обводки: это подсказка, а не кнопка-действие */}
+            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center" aria-label="Как настроить расписание"><Icon name="question" width={19} weight="bold" color="var(--ink)" /></button>}
           </div>
           {/* Правила приёма живут рядом с графиком, а не в кабинете, и одним
               блоком — уходят в хвост редактора, прямо над кнопкой сохранения.
@@ -355,6 +362,7 @@ function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, on
               tail={
                 <div className="space-y-3 pt-1" style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 14 }}>
                   <CancelLockRow />
+                  <LeadDaysRow />
                 </div>
               }
             />
@@ -386,12 +394,49 @@ function CancelLockRow() {
           <p className="text-[13px] font-black">Запрет отмены сессий</p>
           <p className="t-cap mt-0.5">За сколько дней установить запрет на отмену записи.</p>
         </div>
-        {/* Вид не прыгает: меняется только цвет шрифта — выключено серым, включено акцентом */}
-        <div className="keep-style flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5" style={{ background: "#fff", border: "var(--bw) solid var(--edge)" }}>
-          <button onClick={() => { select(); setDays(Math.max(0, days - 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }} aria-label="Меньше">−</button>
-          <span className="tnum w-12 text-center text-[12px] font-black" style={{ color: days ? "var(--edge)" : "var(--muted-2)" }}>{days === 0 ? "выкл" : `${days} дн.`}</span>
-          <button onClick={() => { select(); setDays(Math.min(7, days + 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }} aria-label="Больше">+</button>
-        </div>
+        <DaysStepper value={days} max={7} onChange={setDays} />
+      </div>
+    </div>
+  );
+}
+
+// Вид не прыгает: меняется только цвет шрифта — выключено серым, включено акцентом.
+function DaysStepper({ value, max, onChange }: { value: number; max: number; onChange: (next: number) => void }) {
+  return (
+    <div className="keep-style flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5" style={{ background: "#fff", border: "var(--bw) solid var(--edge)" }}>
+      <button onClick={() => { select(); onChange(Math.max(0, value - 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }} aria-label="Меньше">−</button>
+      <span className="tnum w-12 text-center text-[12px] font-black" style={{ color: value ? "var(--edge)" : "var(--muted-2)" }}>{value === 0 ? "выкл" : `${value} дн.`}</span>
+      <button onClick={() => { select(); onChange(Math.min(max, value + 1)); }} className="px-1 text-[16px] font-black leading-none" style={{ color: "var(--edge)" }} aria-label="Больше">+</button>
+    </div>
+  );
+}
+
+// Обратная сторона запрета отмены: за сколько дней клиент обязан записаться.
+// Очно и онлайн настраиваются порознь — до кабинета нужно доехать, к звонку нет.
+function LeadDaysRow() {
+  const qc = useQueryClient();
+  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
+  const save = useMutation({
+    mutationFn: (patch: { leadDaysOffline?: number; leadDaysOnline?: number }) => saveWorkHours(patch),
+    onSuccess: (next) => qc.setQueryData(["work-hours"], next),
+  });
+  const rows = [
+    { key: "leadDaysOffline" as const, icon: "pin" as const, label: "Очно", days: work?.leadDaysOffline ?? 0 },
+    { key: "leadDaysOnline" as const, icon: "video" as const, label: "Онлайн", days: work?.leadDaysOnline ?? 0 },
+  ];
+  return (
+    <div style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 12 }}>
+      <p className="text-[13px] font-black">Предварительная запись</p>
+      <p className="t-cap mt-0.5">За сколько дней клиент должен записаться заранее.</p>
+      <div className="mt-2 space-y-2">
+        {rows.map((row) => (
+          <div key={row.key} className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-extrabold">
+              <Icon name={row.icon} width={13} weight="fill" color="var(--muted)" />{row.label}
+            </span>
+            <DaysStepper value={row.days} max={30} onChange={(next) => save.mutate({ [row.key]: next })} />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -401,13 +446,26 @@ function BulkItem({ onClick, children }: { onClick: () => void; children: React.
   return <button onClick={onClick} className="flex w-full items-center gap-2 rounded-[9px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">{children}</button>;
 }
 
-function Segmented({ value, onChange }: { value: View; onChange: (v: View) => void }) {
+// dayPicked — сверху выбран день, и «Ближайшие» показывают его, а не ленту
+// вперёд. Кнопка становится контурной: видно, что состояние особое и нажатие
+// вернёт на сегодня, а не переключит вкладку впустую.
+function Segmented({ value, dayPicked, onChange }: { value: View; dayPicked: boolean; onChange: (v: View) => void }) {
   const opts: { v: View; label: string }[] = [{ v: "soon", label: "Ближайшие" }, { v: "week", label: "Неделя" }];
   return (
     <div data-tour="views" className="mb-4 flex gap-1 rounded-full p-1 stroke" style={{ background: "#fff" }}>
-      {opts.map((o) => (
-        <button key={o.v} onClick={() => onChange(o.v)} className="flex-1 rounded-full py-1.5 text-[12.5px] font-extrabold transition-colors" style={value === o.v ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{o.label}</button>
-      ))}
+      {opts.map((o) => {
+        const outlined = o.v === "soon" && dayPicked && value === "soon";
+        const style: React.CSSProperties = outlined
+          ? { background: "#fff", color: "var(--ink)", border: "var(--bw) solid var(--ink)" }
+          : value === o.v
+            ? { background: "var(--ink)", color: "#fff" }
+            : { color: "var(--muted)" };
+        return (
+          <button key={o.v} onClick={() => onChange(o.v)} className="flex-1 rounded-full py-1.5 text-[12.5px] font-extrabold transition-colors" style={style}>
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -436,8 +494,6 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription, enabled: open });
   const atCap = !isPro(sub) && clients.length >= FREE_CLIENT_LIMIT;
   const [client, setClient] = useState<{ id: number; name: string } | null>(null);
-  // «+ новый клиент» из шапки открывает ту же форму, что и пункт внутри списка.
-  const [addingClient, setAddingClient] = useState(false);
   // Лимит бесплатного тарифа не прячет кнопку, а объясняет себя через пейволл.
   const [paywall, setPaywall] = useState(false);
   const book = useMutation({
@@ -452,7 +508,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
 
   useEffect(() => {
-    if (!open) { setClient(null); setAddingClient(false); return; }
+    if (!open) { setClient(null); return; }
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
@@ -468,13 +524,14 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
               <p className="text-[13px] font-black uppercase tracking-wide text-[var(--muted)]">Быстрая запись</p>
               <div className="flex items-center gap-3">
                 {client && <button onClick={() => setClient(null)} className="text-[11px] font-black text-[var(--muted)]">← другой</button>}
-                {!client && <button onClick={() => { tap(); if (atCap) { setPaywall(true); return; } setAddingClient(true); }} className="inline-flex items-center gap-1 text-[11px] font-black text-[var(--olive-edge)]"><Icon name="plus" width={12} weight="bold" color="var(--olive-edge)" /> новый клиент</button>}
+                {/* «Новый клиент» живёт внутри списка выбора — у крестика он
+                    стоял вплотную к закрытию и ловил случайные попадания. */}
                 <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full stroke" aria-label="Закрыть">×</button>
               </div>
             </div>
             <div className="overflow-y-auto p-4">
               {!client ? (
-                <ClientPicker key={addingClient ? "add" : "pick"} startAdding={addingClient} clients={sorted} compact={false} onCreateClient={(name, contact) => { if (atCap) { setPaywall(true); return; } create.mutate({ name, contact }); }} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+                <ClientPicker clients={sorted} compact={false} onCreateClient={(name, contact) => { if (atCap) { setPaywall(true); return; } create.mutate({ name, contact }); }} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
               ) : (
                 <div>
                   <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">

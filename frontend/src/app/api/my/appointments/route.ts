@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { prisma } from "@/lib/server/prisma";
+import { leadBlocked } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 import { queueTelegramEvent, replaceClientReminders } from "@/lib/server/telegram-delivery";
@@ -15,6 +16,11 @@ const bookSchema = z.object({
   durationMin: z.coerce.number().int().min(15).max(240).optional(),
   format: z.enum(["online", "offline"]).optional(),
 });
+
+const plDays = (n: number) => {
+  const a = n % 10, b = n % 100;
+  return a === 1 && b !== 11 ? "день" : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? "дня" : "дней";
+};
 
 type ApptRow = {
   id: number;
@@ -77,6 +83,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
     }
 
+    // Предварительная запись: правило психолога, поэтому проверяем здесь, а не
+    // на экране клиента — окно ему мог прислать кто угодно.
+    const format = body.format === "offline" ? "offline" : "online";
+    const work = await prisma.workHours.findUnique({
+      where: { userId: psychologistId },
+      select: { leadDaysOffline: true, leadDaysOnline: true },
+    });
+    const leadDays = format === "offline" ? work?.leadDaysOffline ?? 0 : work?.leadDaysOnline ?? 0;
+    if (leadBlocked(startsAt, leadDays)) {
+      return NextResponse.json(
+        { error: `${format === "offline" ? "Очная запись" : "Онлайн-запись"} — не позже чем за ${leadDays} ${plDays(leadDays)}` },
+        { status: 422 },
+      );
+    }
+
     // Занято? Проверяем на сервере: клиент мог прислать любое время.
     const busy = await prisma.appointment.findFirst({
       where: { psychologistId, startsAt, status: { not: "cancelled" } },
@@ -105,7 +126,7 @@ export async function POST(req: NextRequest) {
             clientId: card.id,
             startsAt,
             durationMin: Number(body.durationMin) || psy.sessionMinutes,
-            format: body.format === "offline" ? "offline" : "online",
+            format,
           },
           include,
         });

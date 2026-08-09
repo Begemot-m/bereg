@@ -94,6 +94,9 @@ export function MonthCalendar({
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 text-[11px] font-bold text-[var(--muted)]">
         <span className="flex items-center gap-1.5"><span className="keep-style day-busy h-3.5 w-3.5 rounded-full" /> день с записями</span>
+        {/* Пустой кружок в календаре ничем не подписан — а это как раз день,
+            куда можно записать: без легенды его читали как «ничего нет». */}
+        <span className="flex items-center gap-1.5"><span className="keep-style h-3.5 w-3.5 rounded-full" style={{ border: "var(--bw) solid var(--edge)" }} /> свободные дни</span>
       </div>
     </div>
   );

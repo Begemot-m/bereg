@@ -53,6 +53,9 @@ type WorkHours = {
   hours: Record<number, WorkSlot[]>;
   sessionMinutes: number;
   cancelLockDays?: number;
+  // Предварительная запись: за сколько дней клиент обязан забронировать окно.
+  leadDaysOffline?: number;
+  leadDaysOnline?: number;
 };
 
 // Корректировки конкретных дат поверх шаблона: убрать окно / сменить формат
@@ -742,6 +745,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     if (body.hours) db.work.hours = body.hours as WorkHours["hours"];
     if (body.sessionMinutes) db.work.sessionMinutes = Number(body.sessionMinutes);
     if (body.cancelLockDays !== undefined) db.work.cancelLockDays = Number(body.cancelLockDays);
+    if (body.leadDaysOffline !== undefined) db.work.leadDaysOffline = Number(body.leadDaysOffline);
+    if (body.leadDaysOnline !== undefined) db.work.leadDaysOnline = Number(body.leadDaysOnline);
     save(db);
     return delay(db.work as T);
   }

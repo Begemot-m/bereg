@@ -12,7 +12,10 @@ export function FmtSwitch({ fmt, onToggle, className = "" }: { fmt: "online" | "
       className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase ${className}`}
       style={{ background: "var(--edge)", color: "#fff" }}
     >
-      {fmt === "online" ? "онлайн" : "очно"}<Icon name="swap" width={9} weight="bold" />
+      {/* Иконка формата слева от слова: сначала видно, что это, потом читается */}
+      <Icon name={fmt === "online" ? "video" : "pin"} width={11} weight="fill" color="#fff" />
+      {fmt === "online" ? "онлайн" : "очно"}
+      <Icon name="swap" width={9} weight="bold" />
     </button>
   );
 }

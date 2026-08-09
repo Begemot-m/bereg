@@ -92,6 +92,10 @@ model WorkHours {
   sessionMinutes Int      @default(50)
   /// За сколько дней до встречи клиент уже не может её отменить. 0 — без ограничения.
   cancelLockDays Int      @default(0)
+  /// За сколько дней клиент обязан записаться заранее. Очно и онлайн считаются
+  /// отдельно: до кабинета нужно доехать, к видеозвонку — нет. 0 — без ограничения.
+  leadDaysOffline Int     @default(0)
+  leadDaysOnline  Int     @default(0)
   updatedAt      DateTime @updatedAt
 }
 

@@ -6,21 +6,45 @@ import { prisma } from "@/lib/server/prisma";
 
 export type SlotFormat = "online" | "offline";
 export type WorkSlot = { t: string; d: number; fmt: SlotFormat };
-export type WorkHoursDTO = { hours: Record<number, WorkSlot[]>; sessionMinutes: number; cancelLockDays: number };
+export type WorkHoursDTO = {
+  hours: Record<number, WorkSlot[]>;
+  sessionMinutes: number;
+  cancelLockDays: number;
+  leadDaysOffline: number;
+  leadDaysOnline: number;
+};
 export type SlotDTO = { start: string; taken: boolean; fmt: SlotFormat };
 /** Занятый интервал психолога: начало записи и её длительность. */
 export type Busy = { start: string; minutes: number };
 export type OverrideDTO = { removed?: boolean; fmt?: SlotFormat };
 
-const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50, cancelLockDays: 0 };
+const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50, cancelLockDays: 0, leadDaysOffline: 0, leadDaysOnline: 0 };
 
 /** Запрет отмены — целое число дней от 0 (без ограничения) до недели. */
 const clampLock = (days: number) => Math.min(7, Math.max(0, Math.trunc(days) || 0));
+/** Предварительная запись — до месяца вперёд; дальше это уже не «заранее». */
+export const clampLead = (days: number) => Math.min(30, Math.max(0, Math.trunc(days) || 0));
+
+type WorkHoursRow = {
+  hours: unknown;
+  sessionMinutes: number;
+  cancelLockDays: number;
+  leadDaysOffline: number;
+  leadDaysOnline: number;
+};
+
+const toDTO = (row: WorkHoursRow): WorkHoursDTO => ({
+  hours: (row.hours as WorkHoursDTO["hours"]) ?? {},
+  sessionMinutes: row.sessionMinutes,
+  cancelLockDays: row.cancelLockDays,
+  leadDaysOffline: row.leadDaysOffline,
+  leadDaysOnline: row.leadDaysOnline,
+});
 
 export async function getWorkHours(userId: number): Promise<WorkHoursDTO> {
   const row = await prisma.workHours.findUnique({ where: { userId } });
   if (!row) return DEFAULT_HOURS;
-  return { hours: (row.hours as WorkHoursDTO["hours"]) ?? {}, sessionMinutes: row.sessionMinutes, cancelLockDays: row.cancelLockDays };
+  return toDTO(row);
 }
 
 export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>): Promise<WorkHoursDTO> {
@@ -28,12 +52,15 @@ export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>
   const hours = patch.hours ?? current.hours;
   const sessionMinutes = patch.sessionMinutes ?? current.sessionMinutes;
   const cancelLockDays = patch.cancelLockDays === undefined ? current.cancelLockDays : clampLock(patch.cancelLockDays);
+  const leadDaysOffline = patch.leadDaysOffline === undefined ? current.leadDaysOffline : clampLead(patch.leadDaysOffline);
+  const leadDaysOnline = patch.leadDaysOnline === undefined ? current.leadDaysOnline : clampLead(patch.leadDaysOnline);
+  const data = { hours, sessionMinutes, cancelLockDays, leadDaysOffline, leadDaysOnline };
   const row = await prisma.workHours.upsert({
     where: { userId },
-    create: { userId, hours, sessionMinutes, cancelLockDays },
-    update: { hours, sessionMinutes, cancelLockDays },
+    create: { userId, ...data },
+    update: data,
   });
-  return { hours: (row.hours as WorkHoursDTO["hours"]) ?? {}, sessionMinutes: row.sessionMinutes, cancelLockDays: row.cancelLockDays };
+  return toDTO(row);
 }
 
 /**
@@ -108,6 +135,20 @@ export function lockedByPolicy(startsAt: Date, lockDays: number, now = Date.now(
   return (startsAt.getTime() - now) / 86_400_000 < lockDays;
 }
 
+/**
+ * Обратная сторона того же правила: клиент записывается не позже, чем за
+ * leadDays до встречи. Формат берётся из окна — очная запись обычно требует
+ * большего запаса, чем онлайн. 0 — ограничения нет.
+ */
+export function leadBlocked(startsAt: Date, leadDays: number, now = Date.now()): boolean {
+  if (leadDays <= 0) return false;
+  return (startsAt.getTime() - now) / 86_400_000 < leadDays;
+}
+
+/** Сколько дней запаса требует окно этого формата. */
+export const leadDaysFor = (work: Pick<WorkHoursDTO, "leadDaysOffline" | "leadDaysOnline">, fmt: SlotFormat) =>
+  fmt === "offline" ? work.leadDaysOffline : work.leadDaysOnline;
+
 /** Интервалы записей в миллисекундах — с ними сравниваются окна шаблона. */
 export function busyRanges(busy: Busy[], sessionMinutes: number): [number, number][] {
   return busy
@@ -124,6 +165,9 @@ export function slotsFor(
   dateStr: string,
   busy: Busy[],
   overrides: Record<string, OverrideDTO>,
+  // Правило предварительной записи применяется только к чужому расписанию:
+  // психолог должен видеть и ближние окна, иначе он не запишет клиента сам.
+  applyLead = false,
 ): SlotDTO[] {
   const day = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(day.getTime())) return [];
@@ -145,9 +189,11 @@ export function slotsFor(
     const iso = at.toISOString();
     const ov = overrides[iso];
     if (ov?.removed) continue;
+    const fmt = ov?.fmt ?? slot.fmt ?? "online";
+    if (applyLead && leadBlocked(at, leadDaysFor(work, fmt), now)) continue;
     const from = at.getTime();
     const to = from + (slot.d || session) * 60000;
-    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt: ov?.fmt ?? slot.fmt ?? "online" });
+    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt });
   }
   return out;
 }
@@ -162,6 +208,7 @@ export function monthAvailability(
   work: WorkHoursDTO,
   busy: Busy[],
   overrides: Record<string, OverrideDTO>,
+  applyLead = false,
 ): Record<string, "free" | "full"> {
   const out: Record<string, "free" | "full"> = {};
   // День с записью считается занятым, даже если рабочих часов на него не
@@ -173,7 +220,7 @@ export function monthAvailability(
     const d = new Date(base);
     d.setDate(d.getDate() + i);
     const key = ymd(d);
-    const slots = slotsFor(work, key, busy, overrides);
+    const slots = slotsFor(work, key, busy, overrides, applyLead);
     if (slots.length === 0) {
       if (withAppt.has(key)) out[key] = "full";
       continue;

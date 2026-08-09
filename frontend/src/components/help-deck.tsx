@@ -19,9 +19,13 @@ const Pill = ({ bg, bd, children }: { bg: string; bd: string; children: ReactNod
   <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: bg, borderColor: bd }}>{children}</span>
 );
 
-const YEL = { bg: "var(--slot-morn)", bd: "var(--slot-morn-e)" }; // утро
+const YEL = { bg: "var(--slot-morn)", bd: "var(--slot-morn-e)" }; // утро в редакторе графика
 const AMB = { bg: "var(--slot-day)", bd: "var(--slot-day-e)" };   // день (персик)
 const PUR = { bg: "var(--purple)", bd: "var(--purple-edge)" };    // вечер
+// Окна дня в сессиях: тот же градиент, что рисует dayTint — утро светло-зелёное,
+// вечер лавандовый.
+const MORN = { bg: "rgb(230, 240, 220)", bd: "rgb(91, 128, 66)" };
+const EVE = { bg: "rgb(214, 203, 236)", bd: "rgb(144, 119, 189)" };
 
 export const SESSIONS_HELP: HelpPage[] = [
   {
@@ -57,25 +61,27 @@ export const SESSIONS_HELP: HelpPage[] = [
   },
   {
     title: "Записать клиента",
-    text: "Тап по свободному окну — и выбираете, кого записать. Зелёный плюс по центру открывает быструю запись: клиент (можно завести нового) и окно на любую дату. Окна раскрашены по времени суток: утро жёлтое, день персиковый, вечер лавандовый.",
+    text: "Тап по свободному окну раскрывает его, «Выбрать клиента» открывает список — там же заводится новый. Зелёный плюс по центру делает то же самое для любой даты. Свободные окна перетекают по времени суток: утро светло-зелёное, вечер лавандовый.",
     illo: (
       <Frame>
-        <Row bg={YEL.bg} bd={YEL.bd}><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span>☀</span></Row>
-        <Row bg={PUR.bg} bd={PUR.bd}><span className="tnum">19:00</span><span className="flex-1 text-[var(--muted)]">выберите клиента</span><span>🌙</span></Row>
+        <Row bg={MORN.bg} bd={MORN.bd}><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span>☀</span></Row>
+        <Row bg={EVE.bg} bd={EVE.bd}><span className="tnum">19:00</span><span className="flex-1 text-[var(--muted)]">выбрать клиента</span><span>🌙</span></Row>
       </Frame>
     ),
   },
   {
-    title: "Перенести, написать, отменить",
-    text: "Тап по записи (или по шестерёнке) разворачивает действия: «Перенести» — выбор нового окна, «Написать» — чат с клиентом, «Отменить» снимает встречу, а окно остаётся свободным.",
+    title: "Перенести, написать, освободить",
+    text: "Тап по записи разворачивает её на всю ширину: «Перенести» — выбор нового окна, «Написать» — чат с клиентом в Telegram, «Освободить» снимает встречу, а окно остаётся свободным. Формат меняется переключателем справа от имени.",
     illo: (
       <Frame>
         <div className="rounded-[9px] p-2 stroke" style={{ background: "#fff" }}>
-          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-[7px] stroke" style={{ background: AMB.bg, borderColor: AMB.bd }}>М</span><span className="tnum">14:00</span><span className="flex-1">Марина</span><span className="flex h-7 w-7 items-center justify-center rounded-[8px] text-white" style={{ background: "var(--ink)" }}>⚙</span></div>
+          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-[7px] stroke" style={{ background: AMB.bg, borderColor: AMB.bd }}>М</span><span className="tnum">14:00</span><span className="flex-1">Марина</span><Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">онлайн ⇄</span></Pill></div>
           <div className="mt-1.5 flex gap-1">
             <Pill bg="var(--head)" bd="var(--edge)">Перенести</Pill>
-            <Pill bg="#fff" bd="var(--edge-neutral)">Написать</Pill>
-            <Pill bg="var(--salmon-soft)" bd="var(--salmon-edge)">Отменить</Pill>
+            <Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">Написать</span></Pill>
+          </div>
+          <div className="mt-1 flex justify-center">
+            <Pill bg="var(--salmon-edge)" bd="var(--salmon-edge)"><span className="text-white">✕ Освободить</span></Pill>
           </div>
         </div>
       </Frame>
@@ -83,10 +89,10 @@ export const SESSIONS_HELP: HelpPage[] = [
   },
   {
     title: "Выходной и закрытые окна",
-    text: "Крестик ✕ убирает одно окно с этой даты — запись в него уже не придёт, а шаблон не меняется. «↺ Открыть» возвращает окно. Кнопка «Действия» над днём делает выходной целиком и переводит все окна в онлайн или очно.",
+    text: "В раскрытом свободном окне внизу справа есть «Удалить окно» — оно уходит с этой даты, а шаблон недели не меняется. «↺ Открыть окна» возвращает его. Кнопка «Действия» над днями делает выходной целиком и переводит все окна в онлайн или очно.",
     illo: (
       <Frame>
-        <Row bg={AMB.bg} bd={AMB.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободное окно</span><span className="x-close">✕</span></Row>
+        <Row bg={MORN.bg} bd={MORN.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span className="text-[10px]" style={{ color: "var(--danger)" }}>✕ Удалить окно</span></Row>
         <div className="ml-auto w-44 rounded-[11px] p-1 stroke" style={{ background: "#fff" }}>
           {["⚙ Действия", "🌙 Сделать выходным", "↺ Открыть все окна"].map((t, i) => (
             <div key={t} className="rounded-[8px] px-2 py-1 text-[10px] font-bold" style={i === 0 ? { background: "var(--head-soft)" } : undefined}>{t}</div>
@@ -155,11 +161,11 @@ export const SCHEDULE_HELP: HelpPage[] = [
   },
   {
     title: "Формат и удаление",
-    text: "Слева на блоке — тумблер формата (онлайн лавандовый / очно зелёный). Справа персиковый крестик ✕ удаляет окно.",
+    text: "Слева на блоке — переключатель формата: иконка, слово «онлайн» или «очно» и стрелки. Тап меняет одно на другое. Справа крестик ✕ удаляет окно.",
     illo: (
       <Frame>
         <div className="flex items-center gap-2 rounded-[8px] px-2 py-1.5 stroke" style={{ background: AMB.bg, borderColor: AMB.bd }}>
-          <Pill bg="var(--purple-soft)" bd="var(--purple-edge)">онлайн ⇄</Pill>
+          <Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">📹 онлайн ⇄</span></Pill>
           <span className="flex-1 text-center text-[11px] font-extrabold">11:00–11:50</span>
           <span>☀</span>
           <span className="x-close text-[13px]">✕</span>
@@ -169,12 +175,32 @@ export const SCHEDULE_HELP: HelpPage[] = [
   },
   {
     title: "Двигать и копировать",
-    text: "Перетаскиванием блока меняете время. «На будни» повторит день на Пн–Пт, «На все дни» — на неделю. Потом можно поправить каждый день. «Сохранить» — и клиенты записываются в эти окна.",
+    text: "Перетаскиванием блока меняете время. «На будни» повторит день на Пн–Пт, «На выходные» — на Сб и Вс, «Очистить» снимает окна дня. «Сохранить расписание» — и клиенты записываются в эти окна.",
     illo: (
       <Frame>
         <div className="flex gap-2">
           <span className="flex-1 rounded-full py-1.5 text-center text-[11px] font-extrabold stroke" style={{ background: "#fff" }}>На будни</span>
           <span className="flex-1 rounded-full py-1.5 text-center text-[11px] font-extrabold text-white" style={{ background: "var(--ink)" }}>Сохранить</span>
+        </div>
+      </Frame>
+    ),
+  },
+  {
+    title: "Правила приёма",
+    text: "В хвосте настройки два правила для клиентов. «Запрет отмены» — за сколько дней встречу уже не отменить. «Предварительная запись» — за сколько дней до сессии клиент обязан записаться; очно и онлайн настраиваются отдельно. «Выкл» — ограничения нет.",
+    illo: (
+      <Frame>
+        <div className="flex items-center justify-between text-[11px] font-extrabold">
+          <span>Запрет отмены</span>
+          <span className="rounded-full px-2 py-0.5 stroke" style={{ background: "#fff" }}>− 2 дн. +</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] font-extrabold">
+          <span>📍 Очно</span>
+          <span className="rounded-full px-2 py-0.5 stroke" style={{ background: "#fff" }}>− 3 дн. +</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] font-extrabold">
+          <span>📹 Онлайн</span>
+          <span className="rounded-full px-2 py-0.5 text-[var(--muted-2)] stroke" style={{ background: "#fff" }}>− выкл +</span>
         </div>
       </Frame>
     ),

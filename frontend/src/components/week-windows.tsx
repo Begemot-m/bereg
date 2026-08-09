@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
+import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
@@ -123,98 +125,85 @@ export function WeekWindows() {
 
 type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
+// Свободные окна красятся по времени суток: утро светло-зелёное, вечер
+// лавандовый. День читается сплошным градиентом сверху вниз, и по цвету плитки
+// видно, к какой части дня она относится, без чтения цифр.
+const MORNING = { fill: [230, 240, 220], edge: [91, 128, 66] };
+const EVENING = { fill: [214, 203, 236], edge: [144, 119, 189] };
+const rgb = (c: number[]) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+const mix = (from: number[], to: number[], k: number) => from.map((v, i) => Math.round(v + (to[i] - v) * k));
+
+export function dayTint(hour: number) {
+  const k = Math.min(1, Math.max(0, (hour - 7) / 14)); // 07:00 — утро, 21:00 — вечер
+  return { fill: rgb(mix(MORNING.fill, EVENING.fill, k)), edge: rgb(mix(MORNING.edge, EVENING.edge, k)) };
+}
+
 function look(s: Slot): Look {
   // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
   // Занятое окно тоже в рамке — плитки дня выглядят одной сеткой.
   if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", ring: "var(--edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
-  // Свободное окно отмечено тонкой рамкой: сюда можно записать клиента.
-  return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
+  // Свободное окно: заливка и рамка по времени суток.
+  const tint = dayTint(s.hour);
+  return { bg: tint.fill, ring: tint.edge, label: "свободно", labelColor: tint.edge };
 }
 
-// Выбор клиента: чипы недавних, поиск когда их много, и создание нового
-// прямо отсюда — чтобы не уходить в раздел «Клиенты» посреди записи.
-const FIELD = "min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--muted-2)]";
-const THIN = { border: "1px solid var(--edge)" } as const;
 // Кнопки в раскрытом окне: узкая обводка и фиксированная низкая высота, текст
 // в одну строку — иначе на узком экране слова переносятся и плитка распухает.
 const THIN_BTN = { borderWidth: 1, minHeight: 0, lineHeight: 1 } as const;
 const FLAT_BTN = "btn h-7 w-full whitespace-nowrap px-1.5 py-0 text-[10.5px]";
 
-function ClientChips({ onPick }: { onPick: (id: number) => void }) {
+// Крестик закрытия в окнах сессий — зелёный в кружке, а не красный:
+// закрыть плитку не разрушительно, красным здесь пугали зря.
+const CLOSE_ROUND = { background: "#fff", border: "var(--bw) solid var(--olive-edge)", color: "var(--olive-edge)" } as const;
+
+function CloseRound({ onClick, size = 30 }: { onClick: () => void; size?: number }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className="flex shrink-0 items-center justify-center rounded-full text-[15px] font-black leading-none"
+      style={{ width: size, height: size, ...CLOSE_ROUND }}
+      aria-label="Закрыть"
+    >
+      ✕
+    </button>
+  );
+}
+
+// Клиента выбираем в модалке, а не поиском внутри плитки: поле ввода в сетке
+// дня тянуло клавиатуру и перерисовывало всю ленту окон на каждую букву.
+function PickClient({ onPick }: { onPick: (id: number) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => { tap(); setOpen(true); }} className="btn btn-accent h-9 w-full whitespace-nowrap py-0 text-[12.5px]" style={THIN_BTN}>
+        <Icon name="plus" width={13} weight="bold" color="#fff" /> Выбрать клиента
+      </button>
+      {open && <ClientModal onClose={() => setOpen(false)} onPick={(id) => { setOpen(false); onPick(id); }} />}
+    </>
+  );
+}
+
+function ClientModal({ onClose, onPick }: { onClose: () => void; onPick: (id: number) => void }) {
   const qc = useQueryClient();
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const [query, setQuery] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [first, setFirst] = useState("");
-  const [last, setLast] = useState("");
-  const [contact, setContact] = useState("");
-
   const create = useMutation({
-    mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), contact.trim()),
-    onSuccess: (c) => { qc.invalidateQueries({ queryKey: ["clients"] }); setAdding(false); setFirst(""); setLast(""); setContact(""); onPick(c.id); },
+    mutationFn: ({ name, contact }: { name: string; contact: string }) => createClient(name, contact),
+    onSuccess: (c) => { qc.invalidateQueries({ queryKey: ["clients"] }); onPick(c.id); },
   });
-
-  // В мини-приложении клавиатура закрывает низ экрана — держим поле в виду.
-  const keepVisible = (e: React.FocusEvent<HTMLInputElement>) => {
-    const el = e.currentTarget;
-    setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
-  };
-
-  const q = query.trim().toLowerCase();
-  const list = [...clients]
-    .sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1))
-    .filter((c) => !q || c.name.toLowerCase().includes(q));
-
-  if (adding) {
-    const fullName = [first, last].filter(Boolean).join(" ");
-    const changeFullName = (value: string) => {
-      const [nextFirst = "", ...rest] = value.split(/\s+/);
-      setFirst(nextFirst);
-      setLast(rest.join(" "));
-    };
-    return (
-      <form onSubmit={(e) => { e.preventDefault(); if (first.trim()) create.mutate(); }} className="space-y-2">
-        <input autoFocus value={fullName} onChange={(e) => changeFullName(e.target.value)} onFocus={keepVisible} placeholder="Имя и фамилия" enterKeyHint="next" autoComplete="off" className={`${FIELD} w-full [caret-color:var(--ink)]`} style={THIN} />
-        <input value={contact} onChange={(e) => setContact(e.target.value)} onFocus={keepVisible} placeholder="Телефон или Telegram" enterKeyHint="done" autoComplete="off" className={`${FIELD} w-full [caret-color:var(--ink)]`} style={THIN} />
-        <div className="flex gap-2">
-          <button type="button" onClick={() => { tap(); setAdding(false); }} className="btn btn-white h-8 flex-1 whitespace-nowrap py-0 text-[11.5px]" style={THIN_BTN}>Отмена</button>
-          <button type="submit" disabled={!first.trim() || create.isPending} className="btn btn-accent h-8 flex-1 whitespace-nowrap py-0 text-[11.5px]" style={THIN_BTN}>Создать и записать</button>
+  const sorted = [...clients].sort((a, b) => (a.status === "therapy" ? 0 : 1) - (b.status === "therapy" ? 0 : 1));
+  if (typeof document === "undefined") return null;
+  // Портал: у раскрытого окна свой слой и тени, внутри него шторка обрезалась.
+  return createPortal(
+    <div className="fixed inset-0 z-[90] flex items-end justify-center p-3 @md:items-center" style={{ background: "rgba(32,28,24,.44)" }} onClick={onClose}>
+      <section onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-[18px] p-3 stroke-lg" style={{ background: "var(--surface)", borderColor: "var(--olive-edge)" }}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[13px] font-black uppercase tracking-wide text-[var(--muted)]">Выбрать клиента</p>
+          <CloseRound onClick={onClose} />
         </div>
-      </form>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      {/* Поиск и «новый клиент» — одной строкой, предложения строкой ниже */}
-      <div className="flex items-center gap-2">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={keepVisible}
-          placeholder="Поиск по имени"
-          className={FIELD}
-          style={THIN}
-        />
-        <button onClick={() => { tap(); setAdding(true); }} className="inline-flex shrink-0 items-center gap-1 px-1 py-2 text-[11.5px] font-black" style={{ color: "var(--olive-edge)" }}>
-          <Icon name="plus" width={13} weight="bold" color="var(--olive-edge)" /> Новый клиент
-        </button>
-      </div>
-      <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
-        {list.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => { select(); onPick(c.id); }}
-            className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[12px] font-black"
-            style={{ background: "#fff" }}
-          >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black" style={{ background: c.status === "therapy" ? "var(--olive-soft)" : "var(--surface-2)" }}>{c.name.charAt(0)}</span>
-            <span className="max-w-[180px] whitespace-normal break-words text-left leading-tight">{c.name}</span>
-          </button>
-        ))}
-        {list.length === 0 && <span className="px-1 py-1.5 text-[12px] font-semibold text-[var(--muted-2)]">Никого не нашли</span>}
-      </div>
-    </div>
+        <ClientPicker clients={sorted} compact={false} onPick={onPick} onCreateClient={(name, contact) => create.mutate({ name, contact })} />
+      </section>
+    </div>,
+    document.body,
   );
 }
 
@@ -267,7 +256,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
     <div className="col-span-3 rounded-[13px] p-3.5" style={{ background: "var(--surface-2)" }}>
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[12.5px] font-black">Новая сессия</p>
-        <button onClick={() => { setIso(null); onClose(); }} className="x-close text-[15px]" aria-label="Закрыть">✕</button>
+        <CloseRound onClick={() => { setIso(null); onClose(); }} size={28} />
       </div>
       {times.length === 0 ? (
         <p className="text-[12px] font-semibold text-[var(--muted-2)]">На этот день свободного времени не осталось.</p>
@@ -295,8 +284,8 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
             <span className="tnum shrink-0 text-[12px] font-black">{dur} мин</span>
           </label>
 
-          {/* Строки 3 и 4 — поиск клиента и новый */}
-          <ClientChips onPick={(clientId) => book.mutate({ clientId })} />
+          {/* Строка 3 — клиент, списком в модалке */}
+          <PickClient onPick={(clientId) => book.mutate({ clientId })} />
         </div>
       )}
     </div>
@@ -344,7 +333,8 @@ function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolea
             <span className="absolute right-1.5 top-1.5"><Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>
           </>
         )}
-        {active && <span className="x-close text-[15px]">✕</span>}
+        {/* Не кнопка: вся шапка окна и так сворачивает его по тапу */}
+        {active && <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[15px] font-black leading-none" style={CLOSE_ROUND}>✕</span>}
       </button>
 
       <AnimatePresence initial={false}>
@@ -399,23 +389,29 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           <span className="min-w-0 break-words text-[19px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
-        {/* Кнопки во всю ширину блока и низкие: действия равные по весу,
-            высоту им добавлять незачем. */}
-        <div className={`grid gap-1.5 ${slot.past ? "grid-cols-2" : "grid-cols-3"}`}>
+        {/* Перенести и «Написать» — строкой, «Освободить» отдельной кнопкой по
+            центру под ними: у отмены свой вес, в общем ряду она терялась. */}
+        <div className="grid grid-cols-2 gap-1.5">
           <button onClick={() => setResch(true)} className={`${FLAT_BTN} btn-accent`} style={THIN_BTN}>Перенести</button>
           {/* Написать — прямо в личный чат Telegram, если контакт это username. */}
           {tgLink ? (
-            <a href={tgLink} target="_blank" rel="noreferrer" className={FLAT_BTN} style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
-              <Icon name="telegram" width={12} weight="fill" color="var(--edge)" /> Написать
+            <a href={tgLink} target="_blank" rel="noreferrer" className={FLAT_BTN} style={{ ...THIN_BTN, background: "var(--ink)", borderColor: "var(--ink)", color: "#fff" }}>
+              <Icon name="telegram" width={12} weight="fill" color="#fff" /> Написать
             </a>
           ) : (
-            <Link href={`/clients/${slot.appt.client.id}`} className={FLAT_BTN} style={{ ...THIN_BTN, background: "#fff", color: "var(--ink)" }}>
-              <Icon name="telegram" width={12} weight="fill" color="var(--edge)" /> Написать
+            <Link href={`/clients/${slot.appt.client.id}`} className={FLAT_BTN} style={{ ...THIN_BTN, background: "var(--ink)", borderColor: "var(--ink)", color: "#fff" }}>
+              <Icon name="telegram" width={12} weight="fill" color="#fff" /> Написать
             </Link>
           )}
-          {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
-          {!slot.past && <button onClick={() => cancel.mutate()} className={FLAT_BTN} style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}><Icon name="close" width={11} weight="bold" color="#fff" /> Освободить</button>}
         </div>
+        {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
+        {!slot.past && (
+          <div className="flex justify-center">
+            <button onClick={() => cancel.mutate()} className="btn h-8 justify-center gap-1.5 whitespace-nowrap px-4 py-0 text-[11.5px]" style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)" }}>
+              <Icon name="close" width={16} weight="bold" color="#fff" /> Освободить
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -426,7 +422,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         <p className="t-micro mr-auto">Кого записать?</p>
         <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
       </div>
-      <ClientChips onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
+      <PickClient onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
       {/* Удаление — текстом в правом нижнем углу: разрушающее действие не должно
           спорить по весу с основным сценарием «кого записать». */}
       <div className="flex justify-end pt-0.5">

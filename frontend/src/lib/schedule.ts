@@ -7,6 +7,9 @@ export type WorkHours = {
   sessionMinutes: number;
   /** За сколько дней до встречи клиент уже не может её отменить. 0 — без ограничения. */
   cancelLockDays: number;
+  /** За сколько дней клиент обязан записаться заранее — очно и онлайн отдельно. */
+  leadDaysOffline: number;
+  leadDaysOnline: number;
 };
 
 export type Slot = { start: string; taken: boolean; fmt: SlotFormat };

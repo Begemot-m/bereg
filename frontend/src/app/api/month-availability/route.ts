@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       getOverrides(owner, range),
       takenTimes(owner, range),
     ]);
-    return NextResponse.json(monthAvailability(work, taken, overrides));
+    return NextResponse.json(monthAvailability(work, taken, overrides, owner !== user.id));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
