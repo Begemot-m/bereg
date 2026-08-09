@@ -143,11 +143,13 @@ export default function CabinetPage() {
         <div>
           <SectionTitle>О приложении</SectionTitle>
           <Card className="flex items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--olive-soft)", border: "var(--bw) solid var(--olive-edge)" }}><Icon name="therapy" width={22} weight="bold" /></span>
+            <Icon name="angel" width={26} weight="fill" color="var(--ink)" className="shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-bold leading-snug">Платформа создана центром «Амур и Психея»</p>
-              <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={tap} className="mt-0.5 block text-[12px] font-black underline-offset-2 hover:underline" style={{ color: "var(--purple-edge)" }}>{CENTER_SITE}</a>
-              <p className="text-[12px] font-black" style={{ color: "var(--purple-edge)" }}>@mmgorba</p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] font-black" style={{ color: "var(--purple-edge)" }}>
+                <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={tap} className="underline-offset-2 hover:underline">{CENTER_SITE}</a>
+                <span>@mmgorba</span>
+              </p>
               <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Версия {versionLabel()}</p>
             </div>
           </Card>

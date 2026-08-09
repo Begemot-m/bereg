@@ -35,6 +35,7 @@ import {
   MapPinLine,
   X,
   Chalkboard,
+  Feather,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -76,7 +77,8 @@ export type IconName =
   | "lock"
   | "route"
   | "close"
-  | "chalkboard";
+  | "chalkboard"
+  | "angel";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -118,6 +120,8 @@ const MAP: Record<IconName, PhIcon> = {
   route: MapPinLine,
   close: X,
   chalkboard: Chalkboard,
+  // Ангела в Phosphor нет: за Амура отвечает крыло-перо.
+  angel: Feather,
 };
 
 export function Icon({
