@@ -204,7 +204,6 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
   const [error, setError] = useState("");
   const [published, setPublished] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [savedAt, setSavedAt] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   // Пока пользователь ничего не менял, автосохранение молчит: иначе открытие
   // анкеты само записало бы в профиль значения по умолчанию.
@@ -226,7 +225,6 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* локальное хранилище может быть недоступно */ }
       const stored = getPsyProfile();
       savePsyProfile({ ...draft, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: stored?.status ?? "review" });
-      setSavedAt(new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }));
     }, 400);
     return () => window.clearTimeout(timer);
   }, [draft]);
@@ -347,7 +345,6 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
           ? <Button className="flex-1" onClick={save}>Завершить</Button>
           : <Button className="flex-1" onClick={next}>Далее</Button>}
       </div>
-      {savedAt && <p className="t-cap mt-1 text-center">Сохранено в {savedAt}</p>}
     </div>
     </div>
     {livePreview && (
@@ -537,7 +534,7 @@ function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
 function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
   const rules = normalizeRules(draft.rules);
   const setRule = (id: RuleId, patch: Partial<{ text: string; shown: boolean }>) => update({ rules: { ...rules, [id]: { ...rules[id], ...patch } } });
-  return <StepCard title="Настройки анкеты и правила работы" hint="Всё отсюда видно клиенту в каталоге. Показывать или нет — решаете вы.">
+  return <StepCard title="Настройки анкеты и правила работы">
     <Field label="Статистика в анкете">
       <SettingToggle
         active={draft.showStats !== false}
@@ -545,7 +542,6 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
         text="Сколько у вас клиентов, сколько проведено сессий и сколько лет практики."
         onToggle={() => update({ showStats: draft.showStats === false })}
       />
-      <p className="mt-1.5 text-[10px] font-semibold text-[var(--muted-2)]">Выключите, если начинаете практику на платформе, — цифры просто не появятся в карточке.</p>
     </Field>
 
     {RULE_PRESETS.map((preset) => (
@@ -568,12 +564,7 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
         </div>
         <div className="mt-2"><ChipInput placeholder="Своя формулировка правила" onAdd={(value) => setRule(preset.id, { text: value })} /></div>
         <div className="mt-2">
-          <SettingToggle
-            active={rules[preset.id].shown}
-            title="Показывать в профиле"
-            text={rules[preset.id].shown ? "Правило видно клиенту в карточке каталога." : "Правило сохранено, но клиенту не показывается."}
-            onToggle={() => setRule(preset.id, { shown: !rules[preset.id].shown })}
-          />
+          <SettingToggle bare active={rules[preset.id].shown} title="Показывать в профиле" onToggle={() => setRule(preset.id, { shown: !rules[preset.id].shown })} />
         </div>
       </Field>
     ))}
@@ -581,22 +572,27 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
 }
 
 // Строка-переключатель с галочкой: используется для настроек анкеты.
-function SettingToggle({ active, title, text, onToggle }: { active: boolean; title: string; text: string; onToggle: () => void }) {
+function SettingToggle({ active, title, text, bare = false, onToggle }: { active: boolean; title: string; text?: string; bare?: boolean; onToggle: () => void }) {
   return (
-    <button onClick={() => { select(); onToggle(); }} className="flex w-full items-start gap-3 rounded-[13px] bg-white p-3 text-left transition-transform active:scale-[.99]" style={{ border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }} aria-pressed={active}>
+    <button
+      onClick={() => { select(); onToggle(); }}
+      className={`flex w-full items-start gap-3 text-left transition-transform active:scale-[.99] ${bare ? "px-0.5 py-1" : "rounded-[13px] bg-white p-3"}`}
+      style={bare ? undefined : { border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}
+      aria-pressed={active}
+    >
       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px]" style={{ background: active ? "var(--tiffany-edge)" : "#fff", border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}>
         {active && <Icon name="check" width={13} weight="bold" color="#fff" />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-black leading-tight">{title}</span>
-        <span className="t-cap mt-0.5 block">{text}</span>
+        {text && <span className="t-cap mt-0.5 block">{text}</span>}
       </span>
     </button>
   );
 }
 
 // Без заливки: шаг анкеты — это список выборов, фон под ним только рябит.
-function StepCard({ title, hint, children }: { title: string; hint: string; children: ReactNode }) { return <section className="chunk space-y-4 p-4"><div><h4 className="font-tight text-[18px] font-black">{title}</h4><p className="t-cap mt-1">{hint}</p></div>{children}</section>; }
+function StepCard({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) { return <section className="chunk space-y-4 p-4"><div><h4 className="font-tight text-[18px] font-black">{title}</h4>{hint && <p className="t-cap mt-1">{hint}</p>}</div>{children}</section>; }
 function Choice({ active, onClick, children, tone = "tiffany" }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string }) { return <motion.button layout initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} whileTap={{ scale: 0.9 }} onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black" style={active ? { background: `var(--${tone})`, color: "var(--ink)", border: `var(--bw) solid var(--${tone}-edge)` } : { background: "white", border: "var(--bw) solid var(--edge-neutral)" }}>{children}</motion.button>; }
 
 // Компактный ввод своего варианта — добавляет строку в список по Enter/кнопке.

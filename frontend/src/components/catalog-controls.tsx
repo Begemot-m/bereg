@@ -54,7 +54,7 @@ export function CatalogSurvey({ open, initial, catalog, onClose, onDone, onViewA
           </div>
 
           <div className="border-t px-5 py-4" style={{ borderColor: "var(--edge-neutral)" }}>
-            {step === 0 ? <div className="space-y-2"><Button className="w-full" onClick={next}>Настроить подборку</Button><button onClick={onViewAll} className="w-full py-1 text-[12px] font-extrabold text-[var(--muted)]">Смотреть всех</button></div> : step === total - 1 ? <Button className="w-full" onClick={finish}>{exact > 0 ? `Посмотреть ${exact} ${plural(exact, "специалиста", "специалистов", "специалистов")}` : `Посмотреть похожих (${selection})`}</Button> : <div className="flex gap-2"><button className="back-link" onClick={prev}>Назад</button><Button className="flex-1" onClick={next}>{step === 4 || step === 5 ? "Далее" : "Продолжить"}</Button></div>}
+            {step === 0 ? <div className="space-y-2"><Button className="w-full" onClick={next}>Настроить подборку</Button><button onClick={onViewAll} className="w-full py-1 text-[12px] font-extrabold text-[var(--muted)]">Смотреть всех</button></div> : step === total - 1 ? <Button className="w-full" onClick={finish}>{exact > 0 ? `Посмотреть ${exact} ${plural(exact, "специалиста", "специалистов", "специалистов")}` : `Посмотреть похожих (${selection})`}</Button> : <div className="flex gap-2"><Button variant="soft" className="flex-1" style={{ background: "transparent", borderColor: "var(--ink)", color: "var(--ink)" }} onClick={prev}>Назад</Button><Button className="flex-1" onClick={next}>{step === 4 || step === 5 ? "Далее" : "Продолжить"}</Button></div>}
           </div>
         </motion.div>
       </motion.div>}

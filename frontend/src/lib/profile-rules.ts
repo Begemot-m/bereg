@@ -22,7 +22,7 @@ export const RULE_PRESETS: { id: RuleId; title: string; hint: string; icon: Icon
   {
     id: "contact",
     title: "Связь между сессиями",
-    hint: "Пишут ли вам между встречами и когда вы отвечаете",
+    hint: "",
     icon: "note",
     tone: "purple",
     options: [
