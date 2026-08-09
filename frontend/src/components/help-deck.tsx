@@ -4,121 +4,47 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui";
+import { asset } from "@/lib/asset";
 import { select, tap } from "@/lib/haptics";
-import { DAY_TINT_ENDS, slotStyle } from "@/lib/slot-style";
 
 export type HelpPage = { title: string; text: string; illo?: ReactNode; image?: string; imageAlt?: string };
-
-// Мини-мокапы интерфейса для наглядности
-const Frame = ({ children }: { children: ReactNode }) => (
-  <div className="flex min-h-[104px] flex-col justify-center gap-1.5 rounded-[14px] p-3 stroke" style={{ background: "var(--page)" }}>{children}</div>
-);
-const Row = ({ bg, bd, children, dim }: { bg: string; bd: string; children: ReactNode; dim?: boolean }) => (
-  <div className="flex items-center gap-2 rounded-[9px] px-2.5 py-1.5 text-[11px] font-extrabold stroke" style={{ background: bg, borderColor: bd, opacity: dim ? 0.6 : 1 }}>{children}</div>
-);
-const Pill = ({ bg, bd, children }: { bg: string; bd: string; children: ReactNode }) => (
-  <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase stroke" style={{ background: bg, borderColor: bd }}>{children}</span>
-);
-
-// Блоки в редакторе графика: тот же градиент, что рисует slotStyle — утро
-// светло-зелёное, вечер лавандовый.
-const YEL = { bg: DAY_TINT_ENDS.morning.bg, bd: DAY_TINT_ENDS.morning.bd };
-const AMB = { bg: slotStyle(14).bg, bd: slotStyle(14).bd };
-const PUR = { bg: DAY_TINT_ENDS.evening.bg, bd: DAY_TINT_ENDS.evening.bd };
-// Окна дня в сессиях: свободное белое в рамке, занятое — заливкой раздела.
-const FREE = { bg: "#fff", bd: "var(--olive-edge)" };
-const BUSY = { bg: "var(--head-soft)", bd: "var(--edge)" };
 
 export const SESSIONS_HELP: HelpPage[] = [
   {
     title: "Сначала составьте график",
     text: "Кнопка «График» слева задаёт рабочие дни, часы приёма и длительность сессии. Пока график пуст, записывать некуда: клиент видит только те окна, которые вы открыли.",
-    illo: (
-      <Frame>
-        <div className="flex items-center justify-between text-[11px] font-extrabold">
-          <span className="flex items-center gap-1.5" style={{ color: "var(--edge)" }}>⚙ График</span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-[11px] text-[15px] text-white" style={{ background: "var(--edge)" }}>+</span>
-          <span className="flex items-center gap-1.5" style={{ color: "var(--edge)" }}>Календарь</span>
-        </div>
-        <div className="mt-1 flex justify-center gap-1">
-          {["Пн", "Вт", "Ср", "Чт", "Пт"].map((d) => (
-            <span key={d} className="rounded-[7px] px-1.5 py-1 text-[9.5px] font-extrabold stroke" style={{ background: "#fff" }}>{d}</span>
-          ))}
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/s1-schedule.webp"),
+    imageAlt: "Кнопки «График», плюс и «Календарь» над списком дней",
   },
   {
     title: "Два взгляда на расписание",
     text: "«Ближайшие» — дни, где уже есть записи, с окнами и действиями. «Неделя» — весь график целиком. Кнопка «Календарь» справа открывает любой день месяца.",
-    illo: (
-      <Frame>
-        <div className="flex gap-1 rounded-full p-1 stroke" style={{ background: "#fff" }}>
-          {["Ближайшие", "Неделя"].map((t, i) => (
-            <span key={t} className="flex-1 rounded-full py-1 text-center text-[10px] font-extrabold" style={i === 0 ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{t}</span>
-          ))}
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/s2-views.webp"),
+    imageAlt: "Переключатель «Ближайшие» и «Неделя» над днём с записями",
   },
   {
     title: "Записать клиента",
     text: "Тап по свободному окну раскрывает его, «Выбрать клиента» открывает список — там же заводится новый. Зелёный плюс по центру делает то же самое для любой даты. Свободные окна белые в рамке, занятые — с заливкой: пустое от занятого видно сразу.",
-    illo: (
-      <Frame>
-        <Row bg={FREE.bg} bd={FREE.bd}><span className="tnum">10:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span>☀</span></Row>
-        <Row bg={BUSY.bg} bd={BUSY.bd}><span className="tnum">19:00</span><span className="flex-1 text-[var(--muted)]">Марина</span><span>🌙</span></Row>
-      </Frame>
-    ),
+    image: asset("/help/s5-book.webp"),
+    imageAlt: "Раскрытое свободное окно с кнопкой «Выбрать клиента»",
   },
   {
     title: "Перенести, написать, освободить",
     text: "Тап по записи разворачивает её на всю ширину: «Перенести» — выбор нового окна, «Написать» — чат с клиентом в Telegram, «Освободить» снимает встречу, а окно остаётся свободным. Формат меняется переключателем справа от имени.",
-    illo: (
-      <Frame>
-        <div className="rounded-[9px] p-2 stroke" style={{ background: "#fff" }}>
-          <div className="flex items-center gap-2 text-[11px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-[7px] stroke" style={{ background: BUSY.bg, borderColor: BUSY.bd }}>М</span><span className="tnum">14:00</span><span className="flex-1">Марина</span><Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">онлайн ⇄</span></Pill></div>
-          <div className="mt-1.5 flex gap-1">
-            <Pill bg="var(--head)" bd="var(--edge)">Перенести</Pill>
-            <Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">Написать</span></Pill>
-          </div>
-          <div className="mt-1 flex justify-center">
-            <Pill bg="var(--salmon-edge)" bd="var(--salmon-edge)"><span className="text-white">✕ Освободить</span></Pill>
-          </div>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/s4-appt.webp"),
+    imageAlt: "Раскрытая запись клиента с кнопками «Перенести», «Написать», «Освободить»",
   },
   {
     title: "Выходной и закрытые окна",
     text: "В раскрытом свободном окне внизу справа есть «Удалить окно» — оно уходит с этой даты, а шаблон недели не меняется. «↺ Открыть окна» возвращает его. Кнопка «Действия» над днями делает выходной целиком и переводит все окна в онлайн или очно.",
-    illo: (
-      <Frame>
-        <Row bg={FREE.bg} bd={FREE.bd}><span className="tnum">16:00</span><span className="flex-1 text-[var(--muted)]">свободно</span><span className="text-[10px]" style={{ color: "var(--danger)" }}>✕ Удалить окно</span></Row>
-        <div className="ml-auto w-44 rounded-[11px] p-1 stroke" style={{ background: "#fff" }}>
-          {["⚙ Действия", "🌙 Сделать выходным", "↺ Открыть все окна"].map((t, i) => (
-            <div key={t} className="rounded-[8px] px-2 py-1 text-[10px] font-bold" style={i === 0 ? { background: "var(--head-soft)" } : undefined}>{t}</div>
-          ))}
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/s6-window.webp"),
+    imageAlt: "Ссылка «Удалить окно» в раскрытом свободном окне",
   },
   {
     title: "Отпуск — сразу на много дней",
     text: "Откройте «Календарь», нажмите «Выбор» и отметьте нужные дни. Действия применятся ко всем разом: сделать выходными, вернуть окна, перевести неделю в онлайн. Записи при этом не трогаются — их переносят вручную.",
-    illo: (
-      <Frame>
-        <div className="flex justify-center gap-1">
-          {[12, 13, 14, 15, 16].map((d, i) => (
-            <span key={d} className="tnum flex h-7 w-7 items-center justify-center rounded-[8px] text-[10px] font-extrabold stroke" style={i < 3 ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>{d}</span>
-          ))}
-        </div>
-        <div className="mt-1 flex justify-center gap-1.5">
-          <Pill bg="var(--head)" bd="var(--edge)">Выбор</Pill>
-          <Pill bg="var(--head)" bd="var(--edge)">Действия · 3</Pill>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/s7-vacation.webp"),
+    imageAlt: "Календарь с несколькими выбранными днями и меню массовых действий",
   },
 ];
 
@@ -126,86 +52,38 @@ export const SCHEDULE_HELP: HelpPage[] = [
   {
     title: "Интервал работы",
     text: "Задайте границы дня — «с» и «до». Внутри этого интервала вы ставите окна приёма.",
-    illo: (
-      <Frame>
-        <div className="flex items-center justify-center gap-2 text-[11px] font-extrabold">
-          <span className="text-[var(--muted)]">Работаю</span>
-          <span className="rounded-full px-2 py-0.5 stroke" style={{ background: "#fff" }}>− 09:00 +</span>
-          <span className="rounded-full px-2 py-0.5 stroke" style={{ background: "#fff" }}>− 21:00 +</span>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/w1-hours.webp"),
+    imageAlt: "Строка «Работаю с 09:00 до 21:00» в редакторе графика",
   },
   {
     title: "Длина сессии",
     text: "Ползунком выбираете длительность. Она задаёт размер новых окон и наследуется — следующий блок ставится с тем же форматом, что и предыдущий. Уже поставленные окна не меняются.",
-    illo: (
-      <Frame>
-        <div className="relative h-8">
-          <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full stroke" style={{ background: "var(--head-soft)" }} />
-          <div className="absolute left-[38%] top-1/2 flex h-7 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[11px] font-extrabold text-white" style={{ background: "var(--ink)" }}>50м</div>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/w2-length.webp"),
+    imageAlt: "Ползунок длины сессии на отметке 50 минут",
   },
   {
     title: "Поставить окно",
     text: "Тапните по времени на графике дня — появится блок. Он магнитом прилипает к ровному часу. Цвет блока перетекает по времени суток: утро светло-зелёное, вечер лавандовый, с иконкой солнца или луны.",
-    illo: (
-      <Frame>
-        <div className="relative h-16 rounded-[9px] stroke" style={{ background: "#fff" }}>
-          <div className="absolute inset-x-0 top-1/2 border-t" style={{ borderColor: "var(--edge-neutral)" }} />
-          <div className="absolute left-2 right-2 top-1.5 flex items-center justify-between rounded-[8px] px-2 py-1 text-[11px] font-extrabold stroke" style={{ background: YEL.bg, borderColor: YEL.bd }}><span>10:00</span><span>☀</span></div>
-          <div className="absolute inset-x-2 bottom-1.5 flex items-center justify-between rounded-[8px] px-2 py-1 text-[11px] font-extrabold stroke" style={{ background: PUR.bg, borderColor: PUR.bd }}><span>19:00</span><span>🌙</span></div>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/w3-rail.webp"),
+    imageAlt: "График дня с окнами приёма на шкале времени",
   },
   {
     title: "Формат и удаление",
     text: "Слева на блоке — переключатель формата: иконка, слово «онлайн» или «очно» и стрелки. Тап меняет одно на другое. Справа крестик ✕ удаляет окно.",
-    illo: (
-      <Frame>
-        <div className="flex items-center gap-2 rounded-[8px] px-2 py-1.5 stroke" style={{ background: AMB.bg, borderColor: AMB.bd }}>
-          <Pill bg="var(--ink)" bd="var(--ink)"><span className="text-white">📹 онлайн ⇄</span></Pill>
-          <span className="flex-1 text-center text-[11px] font-extrabold">11:00–11:50</span>
-          <span>☀</span>
-          <span className="x-close text-[13px]">✕</span>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/w4-format.webp"),
+    imageAlt: "Окно приёма с переключателем формата и крестиком удаления",
   },
   {
     title: "Двигать и копировать",
     text: "Перетаскиванием блока меняете время. «На будни» повторит день на Пн–Пт, «На выходные» — на Сб и Вс, «Очистить» снимает окна дня. «Сохранить расписание» — и клиенты записываются в эти окна.",
-    illo: (
-      <Frame>
-        <div className="flex gap-2">
-          <span className="flex-1 rounded-full py-1.5 text-center text-[11px] font-extrabold stroke" style={{ background: "#fff" }}>На будни</span>
-          <span className="flex-1 rounded-full py-1.5 text-center text-[11px] font-extrabold text-white" style={{ background: "var(--ink)" }}>Сохранить</span>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/w5-copy.webp"),
+    imageAlt: "Действия «На будни», «На выходные» и «Очистить» под днями недели",
   },
   {
     title: "Правила приёма",
     text: "В хвосте настройки два правила для клиентов. «Запрет отмены» — за сколько дней встречу уже не отменить. «За сколько дней возможно записаться на встречу» — насколько заранее клиент обязан забронировать окно; очно и онлайн настраиваются отдельно. «Выкл» — ограничения нет.",
-    illo: (
-      <Frame>
-        <div className="flex items-center justify-between text-[11px] font-extrabold">
-          <span>Запрет отмены</span>
-          <span className="rounded-full px-2 py-0.5 stroke" style={{ background: "#fff" }}>− 2 дн. +</span>
-        </div>
-        <div className="flex items-center justify-between text-[11px] font-extrabold">
-          <span>📍 Очно</span>
-          <span className="rounded-full px-2 py-0.5 stroke" style={{ background: "#fff" }}>− 3 дн. +</span>
-        </div>
-        <div className="flex items-center justify-between text-[11px] font-extrabold">
-          <span>📹 Онлайн</span>
-          <span className="rounded-full px-2 py-0.5 text-[var(--muted-2)] stroke" style={{ background: "#fff" }}>− выкл +</span>
-        </div>
-      </Frame>
-    ),
+    image: asset("/help/w6-rules.webp"),
+    imageAlt: "Правила приёма: запрет отмены и предварительная запись очно и онлайн",
   },
 ];
 
