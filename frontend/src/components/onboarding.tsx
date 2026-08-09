@@ -160,7 +160,7 @@ export function Onboarding() {
         {!isWelcome && !isRole && !psySell && (
           <div className="relative z-30 flex items-center gap-2.5">
             <button onClick={back} className="btn btn-outline flex-1 py-3" aria-label="Назад">Назад</button>
-            <button onClick={next} className="btn btn-accent flex-[1.4] py-3" aria-label="Далее">Далее</button>
+            <button onClick={next} className="btn btn-accent flex-1 py-3" aria-label="Далее">Далее</button>
           </div>
         )}
       </div>

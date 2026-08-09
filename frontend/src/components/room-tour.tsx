@@ -218,11 +218,13 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
               ))}
             </div>
 
-            <div className="mt-3 flex items-center gap-2">
+            {/* Обе кнопки одной ширины: в flex «Назад» сжималась по тексту
+                и переносила слово на вторую строку. */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
               {index > 0 && (
                 <button
                   onClick={() => { tap(); setIndex(index - 1); }}
-                  className="back-link rounded-full px-4"
+                  className="rounded-full py-2.5 text-[13.5px] font-black transition-transform active:scale-[0.98]"
                   style={{ border: "var(--bw) solid var(--ink)", color: "var(--ink)" }}
                 >
                   Назад
@@ -230,7 +232,7 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
               )}
               <button
                 onClick={next}
-                className="flex-1 rounded-full py-2.5 text-[13.5px] font-black text-white transition-transform active:scale-[0.98]"
+                className={`rounded-full py-2.5 text-[13.5px] font-black text-white transition-transform active:scale-[0.98] ${index > 0 ? "" : "col-span-2"}`}
                 style={{ background: "var(--ink)" }}
               >
                 {last ? "Всё понятно, начать" : "Дальше"}
