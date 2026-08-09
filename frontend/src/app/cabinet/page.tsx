@@ -487,7 +487,7 @@ function RoleSwitchConfirm({ open, busy, failed, onClose, onConfirm }: { open: b
 // Переключатель роли: скользящая тёмная плашка (layoutId) + иконки.
 function RoleSwitch({ role, onSwitch }: { role: Role; onSwitch: (r: Role) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-[17px] p-1 stroke" style={{ background: "rgba(255,255,255,.5)" }}>
+    <div data-tour="role-switch" className="grid grid-cols-2 gap-1 rounded-[17px] p-1 stroke" style={{ background: "rgba(255,255,255,.5)" }}>
       {ROLES.map((item) => {
         const active = role === item;
         return (

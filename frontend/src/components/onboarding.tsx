@@ -272,6 +272,11 @@ function PsySell({ onStart }: { onStart: () => void }) {
             </div>
           ))}
         </div>
+
+        <p className="t-cap mt-3 flex items-start gap-2 leading-snug">
+          <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: "1.5px solid var(--purple-edge)" }}><Icon name="user" width={11} weight="bold" color="var(--purple-edge)" /></span>
+          Роль клиента тоже открыта: в кабинете переключитесь на неё и посмотрите приложение глазами тех, кого ведёте.
+        </p>
       </div>
       <div className="pt-2">
         <button onClick={() => { tap(); onStart(); }} className="btn btn-accent w-full py-3.5 text-[14px]"><Icon name="spark" width={17} weight="fill" color="#fff" /> Начать бесплатно</button>
