@@ -570,8 +570,8 @@ function SettingToggle({ active, title, text, bare = false, bold = true, onToggl
       style={bare ? undefined : { border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}
       aria-pressed={active}
     >
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px]" style={{ background: active ? "var(--tiffany-edge)" : "#fff", border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}>
-        {active && <Icon name="check" width={13} weight="bold" color="#fff" />}
+      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px]" style={{ background: active ? "var(--ink)" : "#fff", border: `2px solid var(--ink)` }}>
+        {active && <Icon name="check" width={15} weight="bold" color="#fff" />}
       </span>
       <span className="min-w-0 flex-1">
         <span className={`block leading-snug ${bold ? "text-[13px] font-black" : "text-[12.5px] font-semibold"}`}>{title}</span>
