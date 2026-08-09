@@ -85,7 +85,7 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
   const full = percent === 100;
 
   return (
-    <div data-tour="profile-progress" className="flex items-center gap-3 rounded-[16px] bg-white p-3 stroke">
+    <div data-tour="profile-progress" className="flex items-center gap-3 rounded-[16px] bg-white p-3">
       <Icon name="user" width={38} weight="fill" color="var(--tiffany)" />
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-black leading-tight">Профиль заполнен на <span className="tnum" style={{ color: "var(--tiffany-edge)" }}>{percent}%</span></p>
