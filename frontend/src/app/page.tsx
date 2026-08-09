@@ -176,7 +176,7 @@ function SessionWhen({ startsAt, date, format }: { startsAt: string; date: Date;
   return (
     <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
       <span className="tnum flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[12.5px] font-black text-[var(--ink)]">
-        <Icon name="calendar" width={12} weight="bold" color="var(--purple-edge)" />
+        <Icon name="calendar" width={12} weight="bold" color="var(--ink)" />
         {cap(dateTimeF.format(date))} · {format}
       </span>
       {badge && <span className="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.04em]" style={{ background: "var(--purple)", color: "var(--purple-edge)" }}>{badge}</span>}
@@ -282,12 +282,12 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   }
   const date = new Date(appointment.startsAt);
   return (
-    <Link href={`/clients/?id=${appointment.client.id}`} onClick={tap} className="card-lav group relative block overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
+    <Link href={`/clients/?id=${appointment.client.id}&book=1`} onClick={tap} className="card-lav group relative block overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
       <div className="flex items-center gap-3.5">
         <span className="ico ico-white relative h-[80px] w-[80px] shrink-0 text-[32px] font-black" style={{ color: "var(--purple-edge)" }}>
           {appointment.client.name.charAt(0)}
-          {/* пульсирующая точка «скоро» */}
-          <motion.span className="absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
+          {/* пульсирующая точка «скоро» — на своём слое, иначе от неё дрожит соседний текст */}
+          <span className="pulse-dot absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} />
         </span>
         <span className="relative min-w-0 flex-1">
           <span className="t-micro block">Ближайшая сессия</span>

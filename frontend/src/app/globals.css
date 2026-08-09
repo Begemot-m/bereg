@@ -342,8 +342,16 @@ h1, h2, h3, .font-tight {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.06); }
 }
+/* Точка «скоро» на аватаре ближайшей сессии. Отдельный слой: без него
+   бесконечная анимация перерисовывала соседний текст, и он дрожал. */
+.pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
+@keyframes pulse-dot {
+  0%, 100% { transform: translateZ(0) scale(1); }
+  50%      { transform: translateZ(0) scale(1.35); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .silk-wave, .silk-glow, .head-icon { animation: none; }
+  .silk-wave, .silk-glow, .head-icon, .pulse-dot { animation: none; }
 }
 
 /* Ближайшая сессия на главной: лёгкая лавандовая заливка, текст чернильный. */

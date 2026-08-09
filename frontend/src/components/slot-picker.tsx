@@ -22,6 +22,8 @@ export function SlotPicker({
   calendarTone = "card",
   startDay,
   appts = [],
+  bookedStart,
+  bookedLabel,
   onPick,
 }: {
   /** Чьи окна показываем. Без id — своё расписание, с id — расписание специалиста. */
@@ -34,6 +36,9 @@ export function SlotPicker({
   appts?: Appointment[];
   /** День, с которого открываемся: обычно ближайший со свободным окном. */
   startDay?: string;
+  /** Окно текущей записи — показываем его в сетке времён с акцентом. */
+  bookedStart?: string;
+  bookedLabel?: string;
   onPick: (iso: string, format: ApptFormat) => void;
 }) {
   const days = useMemo(() => {
@@ -64,6 +69,9 @@ export function SlotPicker({
   });
 
   const free = slots.filter((s) => !s.taken);
+  // Окно текущей записи занято, в свободные не попадает — показываем его отдельно,
+  // чтобы психолог видел, откуда переносит.
+  const showBooked = !!bookedStart && ymdLocal(new Date(bookedStart)) === active;
 
   return (
     <div>
@@ -98,10 +106,17 @@ export function SlotPicker({
       <div className="mt-4 min-h-[64px]">
         {isLoading ? (
           <Spinner label="Свободные окна" />
-        ) : free.length === 0 ? (
+        ) : free.length === 0 && !showBooked ? (
           <p className="py-3 text-[13px] font-semibold text-[var(--muted-2)]">На этот день свободных окон нет.</p>
         ) : (
           <div className="grid grid-cols-3 gap-2">
+            {showBooked && bookedStart && (
+              <div className="col-span-3 flex items-center justify-center gap-1.5 rounded-[12px] px-3 py-2.5 text-[13px] font-black text-[var(--ink)]" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
+                <Icon name="check" width={13} weight="bold" color="var(--green-edge)" />
+                <span className="truncate">{bookedLabel ?? "Текущая запись"}</span>
+                <span className="tnum">· {timeF.format(new Date(bookedStart))}</span>
+              </div>
+            )}
             {free.map((s: Slot) => (
               <button
                 key={s.start}

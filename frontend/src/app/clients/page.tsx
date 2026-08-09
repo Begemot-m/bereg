@@ -340,7 +340,7 @@ function QuickAddClient({ open, first, last, contact, setFirst, setLast, setCont
       <div className="card mb-4 p-3.5">
         <div className="mb-2.5 flex items-center gap-2">
           <span className="ico h-8 w-8"><Icon name="user" width={16} weight="bold" color="var(--edge)" /></span>
-          <div><p className="text-[13px] font-black leading-none">Новый клиент</p><p className="t-cap mt-0.5">Имя, фамилия и контакт — карточка откроется сразу</p></div>
+          <p className="text-[13px] font-black leading-none">Новый клиент</p>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); onCreate(false); }} className="space-y-2">
           <Input className="[caret-color:var(--ink)]" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Имя и фамилия" autoFocus enterKeyHint="next" />
@@ -351,7 +351,7 @@ function QuickAddClient({ open, first, last, contact, setFirst, setLast, setCont
           <button type="button" disabled={pending || !first.trim()} onClick={() => onCreate(true)} className="btn btn-accent w-full py-2.5">
             <Icon name="telegram" width={15} weight="fill" color="#fff" /> Создать и пригласить в Telegram
           </button>
-          <p className="t-cap text-center">Приглашение открывает Telegram с готовым текстом. Когда клиент подключится, его настроение и задания появятся в карточке.</p>
+          <p className="t-cap text-center">Направьте приглашение, чтобы у клиента синхронизировалась ваша карточка и его учётная запись и он смог заполнять данные.</p>
         </form>
       </div>
     </Disclosure>

@@ -27,8 +27,8 @@ export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: {
       <h2 className="t-title mt-1">Больше клиентов —<br /><span className="text-[var(--purple-edge)]">без лимитов</span></h2>
 
       <div className="card-soft mt-3 flex items-start gap-3 p-3.5" style={{ background: "var(--purple-soft)" }}>
-        <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" /></span>
-        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента бесплатно</b><br />Все функции доступны сразу. Карта не нужна.</p>
+        <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="spark" width={18} weight="fill" /></span>
+        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента <span className="text-[var(--purple-edge)]">бесплатно</span></b><br />Все функции доступны сразу.</p>
       </div>
 
       <div className="mt-3 overflow-hidden rounded-[18px] bg-white stroke">

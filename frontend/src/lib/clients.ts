@@ -14,6 +14,8 @@ export type Client = {
   status: ClientStatus;
   link: ClientLink;
   invitedAt: string | null;
+  /** Имя, которое клиент указал при синхронизации: карточка предлагает им заменить своё. */
+  joinedName?: string | null;
   sessionsDone: number;
   hoursDone: number;
   nextAt: string | null;
@@ -80,9 +82,25 @@ export function formatContact(contact: string): string {
   return c.startsWith("@") ? c : `@${c}`;
 }
 
+// Пола в карточке клиента нет, поэтому род глагола берём по имени: русские
+// женские имена оканчиваются на «а»/«я», кроме короткого списка мужских.
+const MALE_ON_VOWEL = new Set([
+  "никита", "илья", "лёва", "лева", "данила", "савва", "кузьма", "фома", "гаврила",
+  "жора", "серёга", "серега", "миша", "паша", "саша", "женя", "валя", "слава",
+]);
+export function isFeminineName(name: string): boolean {
+  const first = name.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+  if (!first || MALE_ON_VOWEL.has(first)) return false;
+  return /[ая]$/.test(first);
+}
+// «записан» / «записана» — по имени клиента.
+export function verbEnding(name: string, verb: string): string {
+  return isFeminineName(name) ? `${verb}а` : verb;
+}
+
 export const updateClient = (
   id: number,
-  patch: Partial<Pick<Client, "name" | "contact" | "note" | "status">>,
+  patch: Partial<Pick<Client, "name" | "contact" | "note" | "status" | "joinedName">>,
 ) => apiFetch<Client>(`/clients/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 
 export const deleteClient = (id: number) => apiFetch<void>(`/clients/${id}`, { method: "DELETE" });

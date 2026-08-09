@@ -17,6 +17,8 @@ type Client = {
   status: Status;
   link: LinkState;
   invitedAt: string | null;
+  /** Имя из учётной записи клиента после синхронизации — психолог может им заменить своё. */
+  joinedName?: string | null;
   notesModuleEnabled: boolean;
   notesModuleShared: boolean;
   notesModulePsychologist: boolean;
@@ -316,6 +318,11 @@ function resolveClientLinks(db: DB) {
     if (c.link === "invited" && c.invitedAt && Date.now() - new Date(c.invitedAt).getTime() > 6000) {
       c.link = "joined";
       c.updatedAt = new Date().toISOString();
+      // Клиент входит под своей учётной записью: имя из его профиля может
+      // отличаться от того, как психолог подписал карточку.
+      const handle = (c.contact ?? "").replace(/^@/, "").split(/[@\s]/)[0];
+      const fromProfile = handle ? handle.charAt(0).toUpperCase() + handle.slice(1) : "";
+      c.joinedName = fromProfile && fromProfile.toLowerCase() !== c.name.toLowerCase() ? fromProfile : null;
       notify(db, "psychologist", "join", `«${c.name}»: профиль подключён — карточка синхронизирована`);
       changed = true;
     }
@@ -534,6 +541,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       if (body.contact !== undefined) c.contact = (body.contact as string) || null;
       if (body.note !== undefined) c.note = String(body.note);
       if (body.status !== undefined) c.status = body.status as Status;
+      if (body.joinedName !== undefined) c.joinedName = (body.joinedName as string) || null;
       c.updatedAt = new Date().toISOString();
       save(db);
       return delay(withStats(db, c) as T);

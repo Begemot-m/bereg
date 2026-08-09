@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Icon } from "@/components/icons";
 import { APP_NAME, botDeepLink } from "@/lib/brand";
@@ -13,10 +13,10 @@ type Variant = "psy" | "client";
 // Сколько коллег нужно привести до месяца Pro.
 const GOAL = 5;
 
-const COPY: Record<Variant, { title: string; sub: string; share: string }> = {
+const COPY: Record<Variant, { title: string; sub: ReactNode; share: string }> = {
   psy: {
     title: "Подарки за приглашения",
-    sub: "За пять приглашённых коллег, кто заполнит профиль в «Хронике», дарим месяц Pro.",
+    sub: <>За <b className="font-black text-[var(--ink)]">{GOAL}</b> приглашённых коллег, кто заполнит профиль в «Хронике», дарим месяц Pro.</>,
     share: "Приглашаю на цифровую платформу для психологов «Хроника»: клиенты, расписание и заметки в одном месте. Упростите работу с клиентами.",
   },
   client: {
@@ -131,7 +131,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 backdrop-blur-[2px] @md:items-center" onClick={onClose}>
       <motion.div initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 32 }} onClick={(e) => e.stopPropagation()} className="chunk max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-md overflow-y-auto p-0" style={{ background: "var(--surface)" }}>
         {/* Герой */}
-        <div className="relative overflow-hidden p-5" style={{ background: "var(--head)" }}>
+        <div className="relative overflow-hidden p-5" style={{ background: "var(--olive-soft)" }}>
           <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
           {!psy && <span className="ico ico-white relative h-12 w-12"><Icon name="spark" width={24} weight="fill" color="var(--edge)" /></span>}
           <h3 className={`font-tight relative text-[20px] font-black leading-tight ${psy ? "pr-10" : "mt-3"}`}>{c.title}</h3>
@@ -140,7 +140,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
 
         <div className="space-y-4 p-5">
           {/* Счётчик с метками: пять приглашённых — месяц Pro */}
-          {psy && <div className="card-soft p-3.5">
+          {psy && <div className="card-soft p-3.5" style={{ background: "var(--purple-soft)" }}>
             <div className="flex items-end justify-between">
               <div>
                 <p className="t-micro">Приглашено</p>
@@ -150,7 +150,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
             </div>
             <div className="mt-2.5 flex gap-1.5">
               {Array.from({ length: GOAL }).map((_, i) => (
-                <motion.span key={i} className="h-2.5 flex-1 rounded-full" style={{ background: i < invited ? "var(--edge)" : "#fff" }} initial={{ opacity: 0, scaleX: 0.4 }} animate={{ opacity: 1, scaleX: 1 }} transition={{ delay: i * 0.06 }} />
+                <motion.span key={i} className="h-2.5 flex-1 rounded-full" style={{ background: i < invited ? "var(--purple-edge)" : "#fff" }} initial={{ opacity: 0, scaleX: 0.4 }} animate={{ opacity: 1, scaleX: 1 }} transition={{ delay: i * 0.06 }} />
               ))}
             </div>
             <div className="mt-1.5 flex gap-1.5">

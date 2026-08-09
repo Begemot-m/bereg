@@ -23,6 +23,7 @@ import {
   listMoods,
   STATUS_LABEL,
   updateClient,
+  verbEnding,
   type Client,
   type ClientStatus,
   type Mood,
@@ -77,7 +78,8 @@ export function ClientDetail() {
   });
 
   const [note, setNote] = useState("");
-  const [bookOpen, setBookOpen] = useState(false);
+  // С главной («Управление записью») приходим сразу с раскрытым календарём.
+  const [bookOpen, setBookOpen] = useState(() => search.get("book") === "1");
   const [connectOpen, setConnectOpen] = useState(false);
   const [booked, setBooked] = useState<{ at: string; format: "online" | "offline" } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -93,6 +95,7 @@ export function ClientDetail() {
     return Object.keys(avail).filter((day) => day >= today && avail[day] === "free").sort()[0];
   }, [avail]);
   useEffect(() => { if (client) setNote(client.note); }, [client]);
+  useEffect(() => { if (search.get("book") === "1") setBookOpen(true); }, [search]);
 
   // Ближайшая запись нужна и кнопке записи, и шапке — считаем до ранних возвратов.
   const nextAppt = useMemo(
@@ -163,6 +166,16 @@ export function ClientDetail() {
                 </button>
               )}
             </div>
+            {/* Клиент синхронизировался под своим именем — предлагаем заменить подпись карточки */}
+            {client.joinedName && client.joinedName !== client.name && (
+              <div className="mt-1.5 rounded-[12px] px-2.5 py-2" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
+                <p className="text-[11.5px] font-black leading-tight">При синхронизации клиент указал имя «{client.joinedName}»</p>
+                <div className="mt-1.5 flex gap-1.5">
+                  <button onClick={() => { tap(); patch.mutate({ name: client.joinedName as string, joinedName: null }); }} className="btn px-3 py-1 text-[11px]">Заменить</button>
+                  <button onClick={() => { tap(); patch.mutate({ joinedName: null }); }} className="btn btn-white px-3 py-1 text-[11px]">Оставить своё</button>
+                </div>
+              </div>
+            )}
             {/* Ближайшая встреча — как в разделе «Терапия» */}
             <p className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-black" style={{ color: nextAppt ? "var(--ink)" : "var(--muted-2)" }}>
               <Icon name="calendar" width={12} weight="bold" color={nextAppt ? "var(--ink)" : "var(--muted-2)"} />
@@ -189,15 +202,22 @@ export function ClientDetail() {
               <motion.div initial={{ y: -8, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={{ delay: 0.05 }} className="card-plain mt-2.5 p-3">
                 {booked ? (
                   <div className="text-center">
-                    <p className="text-[13px] font-black">{client.name} записан</p>
-                    <p className="t-cap mt-1 capitalize">{dtf.format(new Date(booked.at))} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+                    <p className="inline-flex items-center gap-1.5 text-[13px] font-black">
+                      <Icon name="check" width={14} weight="bold" color="var(--green-edge)" />
+                      {client.name} {verbEnding(client.name, "записан")}
+                    </p>
+                    <p className="tnum mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-black text-[var(--ink)]" style={{ background: "var(--green-soft)" }}>
+                      <Icon name="calendar" width={12} weight="bold" color="var(--ink)" />
+                      <span className="first-letter:uppercase">{dtf.format(new Date(booked.at))}</span> · {booked.format === "online" ? "онлайн" : "очно"}
+                    </p>
+                    <p className="t-cap mt-1.5">Клиент получит уведомление о смене времени.</p>
                     <button onClick={() => { tap(); setBooked(null); setBookOpen(false); }} className="btn mt-2.5 px-4 py-1.5 text-[11px]">Готово</button>
                   </div>
                 ) : (
                   <>
                     <p className="t-micro mb-2">{nextAppt ? "Новое время вместо текущей записи" : "Свободное окно из вашего расписания"}</p>
                     {/* Есть запись — открываемся на её дне, иначе на ближайшем свободном */}
-                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} onPick={(iso, format) => book.mutate({ iso, format })} />
+                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} bookedStart={nextAppt?.startsAt} bookedLabel={`${client.name} ${verbEnding(client.name, "записан")}`} onPick={(iso, format) => book.mutate({ iso, format })} />
                   </>
                 )}
               </motion.div>
