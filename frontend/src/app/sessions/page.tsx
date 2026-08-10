@@ -259,10 +259,11 @@ function PsySessions() {
           <ScheduleSetup
             firstVisit={scheduleFirstVisit}
             open={scheduleOpen}
-            onOpen={() => { tap(); setScheduleOpen(true); }}
+            onOpen={() => { tap(); finishScheduleIntro(true); }}
             onToggle={() => { tap(); setScheduleOpen((value) => !value); }}
             onLater={() => finishScheduleIntro(false)}
             onHelp={() => { tap(); setScheduleHelp(true); }}
+            onIntroHelp={() => { tap(); finishScheduleIntro(true); setScheduleHelp(true); }}
             onSaved={() => finishScheduleIntro(false)}
           />
         )}
@@ -311,7 +312,7 @@ function PsySessions() {
   );
 }
 
-function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, onSaved }: { firstVisit: boolean; open: boolean; onOpen: () => void; onToggle: () => void; onLater: () => void; onHelp: () => void; onSaved: () => void }) {
+function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, onIntroHelp, onSaved }: { firstVisit: boolean; open: boolean; onOpen: () => void; onToggle: () => void; onLater: () => void; onHelp: () => void; onIntroHelp: () => void; onSaved: () => void }) {
   return (
     <div className={open ? "mb-4" : ""}>
       {/* Первый визит — всплывающее окно с приглашением настроить окна */}
@@ -335,7 +336,9 @@ function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, on
               </div>
               <button onClick={onOpen} className="mt-4 w-full rounded-[14px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">Настроить сейчас</button>
               <div className="mt-2 flex items-center justify-between">
-                <button onClick={onHelp} className="px-1 py-1.5 text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Как настроить?</button>
+                {/* Справка (z-60) рисуется под этим окном (z-85): попап надо
+                    сначала закрыть, иначе кнопка выглядит сломанной. */}
+                <button onClick={onIntroHelp} className="px-1 py-1.5 text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Как настроить?</button>
                 <button onClick={onLater} className="px-1 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Позже</button>
               </div>
             </div>
