@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getOverrides, getWorkHours, resolveScheduleOwner, slotsFor, takenTimes } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
+import { addDays, zonedDayStart } from "@/lib/server/zone";
 
 export const runtime = "nodejs";
 
@@ -17,12 +18,12 @@ export async function GET(req: NextRequest) {
     if (!owner) return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
 
     // Окна считаются на один день — читаем сутки вокруг него, а не всю
-    // историю записей и корректировок.
-    const day = new Date(`${date}T00:00:00`);
-    if (Number.isNaN(day.getTime())) return NextResponse.json({ error: "invalid date" }, { status: 422 });
-    const next = new Date(day);
-    next.setDate(next.getDate() + 1);
-    const range = { from: day, to: next };
+    // историю записей и корректировок. Сутки берём по зоне платформы: в
+    // контейнере TZ процесса — UTC, и день съезжал на три часа.
+    const from = zonedDayStart(date);
+    const to = zonedDayStart(addDays(date, 1));
+    if (!from || !to) return NextResponse.json({ error: "invalid date" }, { status: 422 });
+    const range = { from, to };
 
     const [work, overrides, taken] = await Promise.all([
       getWorkHours(owner),

@@ -6,6 +6,7 @@ import { buildAvailability, timeOfDay, type Availability, type DayGroup } from "
 import type { TimeOfDay } from "@/lib/catalog";
 import { canWorkWithPsy } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
+import { addDays, parseYmd, weekdayOf, zonedDayStart, zonedTime, zoneHour, zoneYmd } from "@/lib/server/zone";
 
 export type SlotFormat = "online" | "offline";
 export type WorkSlot = { t: string; d: number; fmt: SlotFormat };
@@ -96,12 +97,11 @@ export type Range = { from: Date; to: Date };
 
 /** Ближайшие N дней от полуночи сегодня — ровно то, что рисует календарь. */
 export function horizon(days = 60, back = 0): Range {
-  const from = new Date();
-  from.setHours(0, 0, 0, 0);
-  from.setDate(from.getDate() - back);
-  const to = new Date(from);
-  to.setDate(to.getDate() + days + back);
-  return { from, to };
+  const today = zoneYmd();
+  return {
+    from: zonedDayStart(addDays(today, -back))!,
+    to: zonedDayStart(addDays(today, days))!,
+  };
 }
 
 export async function getOverrides(userId: number, range?: Range): Promise<Record<string, OverrideDTO>> {
@@ -184,9 +184,9 @@ export function slotsFor(
   // психолог должен видеть и ближние окна, иначе он не запишет клиента сам.
   applyLead = false,
 ): SlotDTO[] {
-  const day = new Date(dateStr + "T00:00:00");
-  if (Number.isNaN(day.getTime())) return [];
-  const weekday = (day.getDay() + 6) % 7;
+  const date = parseYmd(dateStr);
+  if (!date) return [];
+  const weekday = weekdayOf(dateStr);
   const template = [...((work.hours ?? {})[weekday] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
   const session = work.sessionMinutes || 50;
   // Запись занимает окно, даже если её время не совпадает с шаблоном минута
@@ -198,8 +198,9 @@ export function slotsFor(
   const out: SlotDTO[] = [];
   for (const slot of template) {
     const [hh, mm] = slot.t.split(":").map(Number);
-    const at = new Date(day);
-    at.setHours(hh, mm, 0, 0);
+    // Время шаблона — «настенное» время специалиста, поэтому момент считаем в
+    // зоне платформы. Полагаться на TZ процесса нельзя: в контейнере это UTC.
+    const at = zonedTime(date.y, date.m, date.d, hh, mm);
     if (at.getTime() < now) continue; // прошедшие окна не предлагаем
     const iso = at.toISOString();
     const ov = overrides[iso];
@@ -213,11 +214,6 @@ export function slotsFor(
   return out;
 }
 
-const ymd = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-};
-
 /** Занятость по дням на ближайшие два месяца — для точек в календаре. */
 export function monthAvailability(
   work: WorkHoursDTO,
@@ -228,13 +224,10 @@ export function monthAvailability(
   const out: Record<string, "free" | "full"> = {};
   // День с записью считается занятым, даже если рабочих часов на него не
   // задано: сессия есть, а календарь показывал день пустым.
-  const withAppt = new Set(busy.map((b) => ymd(new Date(b.start))));
-  const base = new Date();
-  base.setHours(0, 0, 0, 0);
+  const withAppt = new Set(busy.map((b) => zoneYmd(new Date(b.start))));
+  const today = zoneYmd();
   for (let i = 0; i < 60; i++) {
-    const d = new Date(base);
-    d.setDate(d.getDate() + i);
-    const key = ymd(d);
+    const key = addDays(today, i);
     const slots = slotsFor(work, key, busy, overrides, applyLead);
     if (slots.length === 0) {
       if (withAppt.has(key)) out[key] = "full";
@@ -257,12 +250,9 @@ export function nextFreeSlotDays(
   overrides: Record<string, OverrideDTO>,
   days = 14,
 ): number {
-  const base = new Date();
-  base.setHours(0, 0, 0, 0);
+  const today = zoneYmd();
   for (let i = 0; i < days; i++) {
-    const d = new Date(base);
-    d.setDate(d.getDate() + i);
-    const slots = slotsFor(work, ymd(d), busy, overrides, true);
+    const slots = slotsFor(work, addDays(today, i), busy, overrides, true);
     if (slots.some((s) => !s.taken)) return i === 0 ? 1 : i;
   }
   return days;
@@ -282,17 +272,15 @@ export function freeAvailability(
   const dayGroups = new Set<DayGroup>();
   const times = new Set<TimeOfDay>();
   let slots = 0;
-  const base = new Date();
-  base.setHours(0, 0, 0, 0);
+  const today = zoneYmd();
   for (let i = 0; i < days; i++) {
-    const d = new Date(base);
-    d.setDate(d.getDate() + i);
-    const group: DayGroup = (d.getDay() + 6) % 7 >= 5 ? "weekends" : "weekdays";
-    for (const slot of slotsFor(work, ymd(d), busy, overrides, true)) {
+    const key = addDays(today, i);
+    const group: DayGroup = weekdayOf(key) >= 5 ? "weekends" : "weekdays";
+    for (const slot of slotsFor(work, key, busy, overrides, true)) {
       if (slot.taken) continue;
       slots++;
       dayGroups.add(group);
-      times.add(timeOfDay(`${String(new Date(slot.start).getHours()).padStart(2, "0")}:00`));
+      times.add(timeOfDay(`${String(zoneHour(new Date(slot.start))).padStart(2, "0")}:00`));
     }
   }
   return buildAvailability(dayGroups, times, slots);

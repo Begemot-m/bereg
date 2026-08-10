@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { freeAvailability, nextFreeSlotDays, type WorkHoursDTO } from "./schedule";
+import { addDays, parseYmd, zonedTime, zoneYmd } from "./zone";
 
 // Каталог обещает «ближайшее окно через N дней». Пока это считалось по одному
 // шаблону недели, снятая дата и занятое окно в расчёт не входили — карточка
@@ -20,18 +21,11 @@ const work = (hours: WorkHoursDTO["hours"]): WorkHoursDTO => ({
 const everyDayAt = (time: string) =>
   Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((d) => [d, [{ t: time, d: 50, fmt: "online" as const }]]));
 
-const dayAhead = (days: number) => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + days);
-  return d;
-};
-
-/** ISO окна из шаблона на день через `days` дней. */
+/** ISO окна из шаблона на день через `days` дней — по зоне платформы, как в
+ *  расчёте окон: в CI процесс живёт в UTC, а расписание — в Москве. */
 const slotIso = (days: number) => {
-  const d = dayAhead(days);
-  d.setHours(23, 59, 0, 0);
-  return d.toISOString();
+  const date = parseYmd(addDays(zoneYmd(), days))!;
+  return zonedTime(date.y, date.m, date.d, 23, 59).toISOString();
 };
 
 // Шаблон на позднее время: окно сегодняшнего дня ещё не прошло, поэтому

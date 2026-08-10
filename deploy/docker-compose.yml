@@ -12,6 +12,10 @@ services:
     environment:
       NODE_ENV: production
       UPLOAD_DIR: /data/uploads
+      # Без этого контейнер живёт в UTC, и всё «настенное» время расходится с
+      # тем, что видит пользователь. Расписание считается по APP_TIME_ZONE
+      # явно, но логи и остальной код должны идти в той же зоне.
+      TZ: ${APP_TIME_ZONE:-Europe/Moscow}
     # Дипломы психологов. Каталог хоста, а не анонимный том: файлы должны
     # переживать пересоздание контейнера и попадать в бэкап вместе с /opt/bereg.
     # На диске они лежат зашифрованными ключом DATA_KEY.
@@ -52,6 +56,7 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
+      TZ: ${APP_TIME_ZONE:-Europe/Moscow}
     command: ["node", "dist/bot.js"]
     # У бота нет HTTP-порта: проверка живости из образа приложения ему не подходит
     # и красит рабочий контейнер в unhealthy.
