@@ -25,6 +25,7 @@ import { select, success, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
+import { CATALOG_FREE_DAYS } from "@/lib/subscription";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
@@ -62,7 +63,12 @@ export default function CabinetPage() {
         <div className="space-y-3">
           <SectionTitle>{psy ? "Практика" : "Забота о себе"}</SectionTitle>
           {psy ? (
-            <SubscriptionBanner />
+            <>
+              <SubscriptionBanner />
+              <p className="px-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">
+                После верификации профиля вы получите <span className="font-black" style={{ color: "var(--purple-edge)" }}>{CATALOG_FREE_DAYS} дней бесплатного</span> размещения в каталоге
+              </p>
+            </>
           ) : (
             <div className="card-soft flex items-start gap-3 p-4" style={{ background: "var(--purple-soft)" }}>
               <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="spark" width={21} weight="bold" color="var(--purple-edge)" /></span>
