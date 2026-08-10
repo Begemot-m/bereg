@@ -127,7 +127,7 @@ function NextSteps() {
   if (hidden) return null;
 
   return (
-    <div className="rounded-[16px] p-4" style={{ background: "var(--tiffany)" }}>
+    <div className="rounded-[16px] p-4" style={{ background: "var(--tiffany-soft)" }}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[15px] font-black leading-tight">Что делать дальше?</p>
         <button onClick={close} aria-label="Скрыть подсказку" className="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/70 transition-transform active:scale-90">

@@ -20,6 +20,8 @@ type Intro = {
   key: string;
   kicker: string;
   title: string;
+  /** Хвост заголовка с новой строки и в цвете слайда. */
+  titleAccent?: string;
   points: string[];
   bg: string;        // яркая заливка экрана-постера
   soft: string;      // мягкий тон для подложки под «арт»
@@ -48,7 +50,7 @@ const INTRO: Intro[] = [
     mock: <ToolsMock />,
   },
   {
-    key: "psy", kicker: "для психологов", title: "Клиент и специалист — в едином пространстве",
+    key: "psy", kicker: "для психологов", title: "Клиент и специалист —", titleAccent: "в едином пространстве",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: ["Удобная форма записи с напоминаниями о встрече", "Подробная статистика и метрики по терапии", "Заметки по каждой сессии и динамика прогресса"],
     mock: <ClientProgressMock />,
@@ -174,7 +176,10 @@ export function Onboarding() {
             ) : (
               <div className="flex flex-1 flex-col">
                 <span className="mt-[clamp(12px,3vh,24px)] inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
-                <h1 className="font-tight mt-3 text-[clamp(23px,7vw,27px)] font-black leading-[1.08]">{cur.title}</h1>
+                <h1 className="font-tight mt-3 text-[clamp(23px,7vw,27px)] font-black leading-[1.08]">
+                  {cur.title}
+                  {cur.titleAccent && <><br /><span style={{ color: cur.tone }}>{cur.titleAccent}</span></>}
+                </h1>
                 <ul className="mt-3 space-y-1.5 min-[390px]:mt-4 min-[390px]:space-y-2">
                   {cur.points.map((p, i) => (
                     <motion.li key={p} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
@@ -221,7 +226,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
         Платформа психологической поддержки
       </motion.p>
       <motion.h1 {...rise(0.25)} className="font-tight mt-3 text-[clamp(30px,10vw,40px)] font-black leading-[1.02] text-[var(--ink)]">
-        Добро пожаловать<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME_ACC}</span>.
+        Добро пожаловать<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME_ACC}</span>
       </motion.h1>
       <motion.p {...rise(0.45)} className="mt-4 max-w-[320px] text-[15px] font-bold leading-snug" style={{ color: "rgba(32,28,24,.7)" }}>
         Цифровые инструменты для самостоятельной психологической поддержки и эффективного прогресса терапии
