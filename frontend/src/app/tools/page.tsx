@@ -11,6 +11,8 @@ import type { TechKey } from "@/components/techniques";
 
 // Практика запускается по нажатию — до этого её код не нужен.
 const TechniqueRunner = dynamic(() => import("@/components/techniques").then((m) => m.TechniqueRunner));
+// Тест тянет за собой банк из 300 вопросов и тексты отчёта — грузим только по нажатию.
+const TraitTest = dynamic(() => import("@/components/trait-test").then((m) => m.TraitTest));
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 // Интерактивные клиентские практики.
@@ -26,6 +28,7 @@ export default function ToolsPage() {
 
 function ClientTools() {
   const [tech, setTech] = useState<TechKey | null>(null);
+  const [test, setTest] = useState(false);
 
   return (
     <div>
@@ -40,7 +43,7 @@ function ClientTools() {
                   <span className="chip uppercase" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }}>Скоро в Хронике</span>
                 </div>
                 <h2 className="font-tight text-[22px] font-black leading-[1.05]">Больше опоры между встречами</h2>
-                <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-white/75">Тесты для самодиагностики, AI-ассистент, база знаний и новые практики уже в работе.</p>
+                <p className="mt-1 max-w-[270px] text-[12px] font-semibold leading-snug text-white/75">AI-ассистент, база знаний и новые практики уже в работе.</p>
               </div>
               <span className="ico h-14 w-14 shrink-0" style={{ background: "rgba(255,255,255,.14)" }}><Icon name="compass" width={28} weight="bold" color="#fff" /></span>
             </div>
@@ -89,6 +92,27 @@ function ClientTools() {
           </div>
 
           <div className="mb-2 mt-6">
+            <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Тесты и диагностика</p>
+          </div>
+          <Reveal y={8}>
+            <button
+              onClick={() => { tap(); setTest(true); }}
+              className="flex w-full items-center gap-3 overflow-hidden rounded-[19px] p-3.5 text-left transition-transform duration-200 active:scale-[.98]"
+              style={{ background: "var(--purple-soft)", border: "2px solid var(--purple-edge)" }}
+            >
+              <span className="ico h-12 w-12 shrink-0" style={{ background: "#fff" }}><Icon name="chart" width={24} weight="bold" color="var(--purple-edge)" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-tight text-[15px] font-black leading-tight">Профиль черт личности</span>
+                <span className="mt-0.5 block text-[11px] font-semibold leading-snug text-[var(--muted)]">10 шкал в логике DSM-5 AMPD: что усиливается в стрессе</span>
+                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black" style={{ color: "var(--purple-edge)" }}>
+                  <Icon name="clock" width={11} weight="bold" color="var(--purple-edge)" />от 12 мин
+                </span>
+              </span>
+              <ArrowGlyph size={14} />
+            </button>
+          </Reveal>
+
+          <div className="mb-2 mt-6">
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Улучшить терапию</p>
           </div>
           <div className="grid grid-cols-2 items-stretch gap-2.5">
@@ -104,6 +128,7 @@ function ClientTools() {
       </Reveal>
 
       {tech && <TechniqueRunner tech={tech} onClose={() => setTech(null)} />}
+      {test && <TraitTest onClose={() => setTest(false)} />}
     </div>
   );
 }
