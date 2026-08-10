@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@/components/icons";
 import { APP_NAME, botDeepLink } from "@/lib/brand";
@@ -127,8 +128,13 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
     bump();
   };
 
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }} className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 @md:items-center" onClick={onClose}>
+  if (typeof document === "undefined") return null;
+
+  // Лист рисуем в body: внутри страницы он лежал бы в слое `.sheet` (z-0), и
+  // поверх затемнения оставались фокус-блок главной и нижнее меню — их слои
+  // выше, из-за чего верх экрана «подсвечивался», а клики туда не закрывали лист.
+  return createPortal(
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }} className="fixed inset-0 z-[100] flex items-end justify-center overscroll-contain bg-[rgba(32,28,24,.46)] p-3 md:items-center" onClick={onClose}>
       <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }} onClick={(e) => e.stopPropagation()} className="max-h-[min(88dvh,calc(100dvh-var(--top-pad)-24px))] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-[var(--r-block)] p-0" style={{ background: "var(--surface)" }}>
         {/* Герой */}
         <div className="relative overflow-hidden p-5" style={{ background: "var(--olive-soft)" }}>
@@ -168,7 +174,8 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
           {psy && <p className="t-cap text-center">Очко засчитывается, когда коллега перешёл по вашей ссылке, заполнил профиль и отправил его на верификацию.</p>}
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
 

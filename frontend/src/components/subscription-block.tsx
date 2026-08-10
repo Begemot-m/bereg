@@ -221,7 +221,7 @@ export function SubscriptionBlock({ compact = false }: { compact?: boolean }) {
     <section className="overflow-hidden rounded-[22px]" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       <div className="relative p-5" style={{ background: "linear-gradient(150deg, var(--purple) 0%, var(--purple-soft) 100%)" }}>
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3 py-1 text-[11px] font-black text-white"><Icon name="spark" width={13} weight="fill" /> МЕТОДИКА PRO</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3 py-1 text-[11px] font-black text-white"><Icon name="seal" width={14} weight="fill" color="var(--amber-soft)" /> МЕТОДИКА PRO</span>
           {hero.badge}
         </div>
         <div className="mt-3">
