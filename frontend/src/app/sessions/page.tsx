@@ -257,19 +257,26 @@ function PsySessions() {
         <QuickAddBooking open={quickAdd} onClose={() => setQuickAdd(false)} />
         {scheduleReady && (
           <ScheduleSetup
-            firstVisit={scheduleFirstVisit}
             open={scheduleOpen}
-            onOpen={() => { tap(); finishScheduleIntro(true); }}
             onToggle={() => { tap(); setScheduleOpen((value) => !value); }}
-            onLater={() => finishScheduleIntro(false)}
             onHelp={() => { tap(); setScheduleHelp(true); }}
-            onIntroHelp={() => { tap(); finishScheduleIntro(true); setScheduleHelp(true); }}
             onSaved={() => finishScheduleIntro(false)}
           />
         )}
         {!calOpen && <Segmented value={view} dayPicked={!!selDay} onChange={(v) => { tap(); setView(v); if (v === "soon") setSelDay(null); }} />}
         {help && <HelpDeck title="Как работают сессии" pages={SESSIONS_HELP} onClose={() => setHelp(false)} />}
         {scheduleHelp && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setScheduleHelp(false)} />}
+        {/* Первый визит: сразу инструкция, а не окно-заглушка перед ней —
+            два окна подряд об одном и том же читались как сбой. */}
+        {scheduleFirstVisit && (
+          <HelpDeck
+            title="Как настроить расписание"
+            pages={SCHEDULE_HELP}
+            doneLabel="Настроить график"
+            onClose={() => finishScheduleIntro(false)}
+            onDone={() => finishScheduleIntro(true)}
+          />
+        )}
 
         {!calOpen && view === "soon" && (
           isLoading ? (
@@ -312,40 +319,9 @@ function PsySessions() {
   );
 }
 
-function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, onIntroHelp, onSaved }: { firstVisit: boolean; open: boolean; onOpen: () => void; onToggle: () => void; onLater: () => void; onHelp: () => void; onIntroHelp: () => void; onSaved: () => void }) {
+function ScheduleSetup({ open, onToggle, onHelp, onSaved }: { open: boolean; onToggle: () => void; onHelp: () => void; onSaved: () => void }) {
   return (
     <div className={open ? "mb-4" : ""}>
-      {/* Первый визит — всплывающее окно с приглашением настроить окна */}
-      {firstVisit && (
-        <div className="fixed inset-0 z-[85] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3 @md:items-center" onClick={onLater}>
-          <section onClick={(e) => e.stopPropagation()} className="chunk w-full max-w-md overflow-hidden p-0" style={{ background: "var(--surface)" }}>
-            <div className="p-5" style={{ background: "var(--olive)", borderBottom: "var(--bw-lg) solid var(--olive-edge)" }}>
-              <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white"><Icon name="clock" width={23} weight="bold" /></span>
-              <p className="mt-3 text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Первый шаг</p>
-              <h2 className="font-tight mt-1 text-[20px] font-black leading-tight">Настройте рабочие часы</h2>
-              <p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Клиенты увидят только свободные окна, а занятые сессии появятся в календаре автоматически.</p>
-            </div>
-            <div className="p-5">
-              <div className="grid grid-cols-3 gap-1.5">
-                {["Выберите дни", "Добавьте окна", "Сохраните"].map((label, index) => (
-                  <div key={label} className="rounded-[12px] px-2 py-2.5 text-center" style={{ background: "var(--olive-soft)" }}>
-                    <span className="tnum block text-[11px] font-black text-[var(--olive-edge)]">0{index + 1}</span>
-                    <span className="mt-0.5 block text-[10px] font-extrabold leading-tight">{label}</span>
-                  </div>
-                ))}
-              </div>
-              <button onClick={onOpen} className="mt-4 w-full rounded-[14px] bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[0.98]">Настроить сейчас</button>
-              <div className="mt-2 flex items-center justify-between">
-                {/* Справка (z-60) рисуется под этим окном (z-85): попап надо
-                    сначала закрыть, иначе кнопка выглядит сломанной. */}
-                <button onClick={onIntroHelp} className="px-1 py-1.5 text-[12px] font-extrabold text-[var(--muted)] hover:text-[var(--ink)]">Как настроить?</button>
-                <button onClick={onLater} className="px-1 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)]">Позже</button>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
       <Disclosure open={open} autoScroll={false}>
         {/* Не .chunk: внутри графика рамки осмысленны, а правило «блок внутри
             блока — без рамки» сняло бы их у шкалы, рейки и мини-недели. */}
@@ -353,7 +329,7 @@ function ScheduleSetup({ firstVisit, open, onOpen, onToggle, onLater, onHelp, on
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><p className="text-[14px] font-black">Рабочие часы</p></div>
             {/* Знак вопроса — чернилами и без обводки: это подсказка, а не кнопка-действие */}
-            {!firstVisit && <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center" aria-label="Как настроить расписание"><Icon name="question" width={19} weight="bold" color="var(--ink)" /></button>}
+            <button onClick={onHelp} className="flex h-9 w-9 shrink-0 items-center justify-center" aria-label="Как настроить расписание"><Icon name="question" width={19} weight="bold" color="var(--ink)" /></button>
           </div>
           {/* Правила приёма живут рядом с графиком, а не в кабинете, и одним
               блоком — уходят в хвост редактора, прямо над кнопкой сохранения.

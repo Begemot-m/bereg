@@ -163,7 +163,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
 
           <TherapistBoard value={therapy.board} onSave={onBoard} />
 
-          <WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" />
+          <div data-tour="wheel"><WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" /></div>
         </div>
       </main>
       <MoodSheet open={moodSheet} mood={todayEntry?.mood} emotions={todayEntry?.emotions} onClose={() => setMoodSheet(false)} onSave={onMood} />

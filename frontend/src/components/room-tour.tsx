@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { select, success, tap } from "@/lib/haptics";
@@ -13,8 +13,11 @@ const KEY = (role: Role) => `bereg:tour:${role}:v5`;
 
 const VEIL = { duration: 0.22, ease: EASE } as const;
 
-const PAD = 8;      // воздух вокруг подсвеченного элемента
-const CARD = 210;   // примерная высота карточки — решаем, сверху её класть или снизу
+const PAD = 8;          // воздух вокруг подсвеченного элемента
+const GAP = 12;         // зазор между подсветкой и карточкой
+const CARD = 210;       // высота карточки до первого замера
+const SAFE_TOP = 72;    // под шапкой раздела элемент формально «на экране», а по факту скрыт
+const SAFE_BOTTOM = 104; // то же самое за нижними табами
 
 export function tourSeen(role: Role): boolean {
   if (typeof window === "undefined") return true; // SSR: не мигаем туром
@@ -97,31 +100,42 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
   const steps = TOURS[role] ?? [];
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [cardH, setCardH] = useState(CARD);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const step = steps[index];
-
-  const measure = useCallback(() => {
-    if (!step?.target) { setRect(null); return; }
-    const el = findTarget(step.target);
-    setRect(el ? el.getBoundingClientRect() : null);
-  }, [step]);
 
   // Переводим в нужный раздел.
   useEffect(() => {
     if (step && pathname !== step.href) router.push(step.href);
   }, [step, pathname, router]);
 
-  // Ждём появления элемента (после навигации он рисуется не сразу).
-  // Если он уже целиком на экране — меряем сразу, без скролла и пауз; иначе
-  // подкручиваем мгновенно и меряем следующим кадром. Плавный скролл с паузой
-  // в 420 мс делал первые шаги в «Сессиях» заметно тормозными.
+  // Ждём появления элемента (после навигации он рисуется не сразу) и дальше
+  // какое-то время не отпускаем: экран догружает данные и проигрывает анимации
+  // входа, поэтому единственный замер оставлял подсветку там, где блок был в
+  // первый кадр, а не там, где он остановился.
   useEffect(() => {
     if (!step) return;
     if (!step.target || pathname !== step.href) { setRect(null); return; }
     let tries = 0;
     let timer = 0;
     let frame = 0;
+    let until = 0;
+    let last = "";
+    const track = () => {
+      const el = findTarget(step.target!);
+      if (el) {
+        const box = el.getBoundingClientRect();
+        const key = `${box.top}|${box.left}|${box.width}|${box.height}`;
+        if (key !== last) { last = key; setRect(box); }
+      }
+      frame = performance.now() < until ? requestAnimationFrame(track) : 0;
+    };
+    const follow = (ms: number) => {
+      until = performance.now() + ms;
+      if (!frame) frame = requestAnimationFrame(track);
+    };
     const hunt = () => {
       const el = findTarget(step.target!);
       if (!el) {
@@ -129,18 +143,27 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
         return;
       }
       const box = el.getBoundingClientRect();
-      if (box.top >= 8 && box.bottom <= window.innerHeight - 8) { setRect(box); return; }
-      el.scrollIntoView({ block: "center", behavior: "auto" });
-      frame = requestAnimationFrame(() => setRect(el.getBoundingClientRect()));
+      if (box.top < SAFE_TOP || box.bottom > window.innerHeight - SAFE_BOTTOM) el.scrollIntoView({ block: "center", behavior: "auto" });
+      follow(3000);
     };
+    const nudge = () => follow(500);
     hunt();
-    return () => { window.clearTimeout(timer); cancelAnimationFrame(frame); };
+    window.addEventListener("resize", nudge);
+    window.addEventListener("scroll", nudge, true);
+    return () => {
+      window.clearTimeout(timer);
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("resize", nudge);
+      window.removeEventListener("scroll", nudge, true);
+    };
   }, [step, pathname]);
 
+  // Реальная высота карточки: по прикидке в 210 px длинные шаги не помещались
+  // снизу и кнопки уезжали за край экрана.
   useEffect(() => {
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [measure]);
+    const el = cardRef.current;
+    if (el) setCardH(el.offsetHeight);
+  }, [index, rect]);
 
   if (!step) return null;
   const last = index === steps.length - 1;
@@ -156,12 +179,18 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
     onDone();
   };
 
-  // Карточку кладём с той стороны от подсветки, где больше места.
-  const below = rect ? rect.bottom + CARD < window.innerHeight - 24 : false;
+  // Карточку кладём туда, где она целиком помещается; если не помещается
+  // нигде — где места больше. И в любом случае держим в пределах экрана,
+  // иначе кнопки шага оказываются за краем.
+  const viewport = typeof window === "undefined" ? 0 : window.innerHeight;
+  const spaceBelow = rect ? viewport - (rect.bottom + PAD + GAP) - 12 : 0;
+  const spaceAbove = rect ? rect.top - PAD - GAP - 12 : 0;
+  const below = rect ? spaceBelow >= cardH || spaceBelow >= spaceAbove : false;
+  const limit = Math.max(12, viewport - cardH - 12);
   const cardStyle: React.CSSProperties = rect
     ? below
-      ? { top: rect.bottom + PAD + 12 }
-      : { bottom: Math.max(16, window.innerHeight - rect.top + PAD + 12) }
+      ? { top: Math.min(rect.bottom + PAD + GAP, limit) }
+      : { bottom: Math.min(Math.max(16, viewport - rect.top + PAD + GAP), limit) }
     : { bottom: 24 };
 
   return (
@@ -192,6 +221,7 @@ export function RoomTour({ role, onDone }: { role: Role; onDone: () => void }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
+            ref={cardRef}
             initial={{ opacity: 0, y: below ? -14 : 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
