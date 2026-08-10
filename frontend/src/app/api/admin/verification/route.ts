@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 type Diploma = { name: string; type: string; size: number; dataUrl: string };
 type Verification = {
   fullName?: string; education?: string; publicLink?: string; about?: string;
-  profilePercent?: number; diploma?: Diploma | null;
+  profilePercent?: number; photo?: string | null; diploma?: Diploma | null;
 };
 
 function row(p: {
@@ -42,6 +42,7 @@ function row(p: {
     publicLink: v.publicLink ?? "",
     about: v.about ?? "",
     profilePercent: v.profilePercent ?? 0,
+    photo: v.photo ?? null,
     // diploma — старые анкеты, где файл лежал data-URL'ом прямо в Json.
     // Новые кладут документы в PsyDocument; поле остаётся, пока такие анкеты
     // не разошлись по модерации.

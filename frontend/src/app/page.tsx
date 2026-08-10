@@ -259,10 +259,10 @@ function HomeFrame({ title, subtitle, subIcon, icon, focus, children }: { title:
 
 // Фокус-блок всегда лавандовый — во всех трёх состояниях (нет сессии,
 // подобрать терапевта, ближайшая сессия) это один и тот же блок.
-function FocusIcon({ icon }: { icon: IconName }) {
+function FocusIcon({ icon, white = false }: { icon: IconName; white?: boolean }) {
   return (
     <span className="ico h-[64px] w-[64px] shrink-0" style={{ background: "var(--purple)", borderColor: "var(--purple-edge)" }}>
-      <Icon name={icon} width={30} weight="bold" color="var(--purple-edge)" />
+      <Icon name={icon} width={30} weight="bold" color={white ? "#fff" : "var(--purple-edge)"} />
     </span>
   );
 }
@@ -271,7 +271,7 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   if (!appointment) {
     return (
       <Link href="/sessions" onClick={tap} className="card-lav flex items-center gap-3.5 p-6 text-left transition-transform duration-200 active:scale-[0.99]">
-        <FocusIcon icon="calendar" />
+        <FocusIcon icon="calendar" white />
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Расписание</span>
           <span className="t-head mt-0.5 block leading-tight">Предстоящих сессий пока нет</span>

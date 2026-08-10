@@ -63,6 +63,9 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
       {roleControl}
       {professional && <VerificationPrompt />}
       {professional && <ProfileProgress profile={profile} onContinue={openEditor} />}
+      {professional && (profileCompletionPercent(profile) === 100
+        ? <NextSteps />
+        : <p className="px-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">Заполненный профиль увидят ваши клиенты. Чтобы вас находили другие пользователи, нужна подписка PRO.</p>)}
     </div>
 
     <ProfileSheet open={editing} title="Профиль специалиста" onClose={() => setEditing(false)}>
@@ -100,10 +103,36 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white" style={{ border: "1px solid var(--tiffany-edge)" }}>
           <motion.div className="h-full rounded-full" style={{ background: "var(--tiffany-edge)" }} animate={{ width: `${percent}%` }} transition={{ type: "spring", stiffness: 220, damping: 24 }} />
         </div>
-        {full && <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">Вас находят по всем фильтрам каталога</p>}
+        {full && <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">Профиль готов — его увидят ваши клиенты</p>}
       </div>
       <span className="btn shrink-0 px-4 py-2 text-[12px]">Заполнить</span>
     </button>
+  );
+}
+
+const NEXT_STEPS: { icon: IconName; title: string; text: string }[] = [
+  { icon: "users", title: "Профиль увидят ваши клиенты", text: "Те, кого вы ведёте, откроют карточку и посмотрят условия, правила и как проходит первая встреча." },
+  { icon: "calendar", title: "Заполните график и отправьте клиентам", text: "Так они сами видят свободные окна и записываются, не спрашивая у вас каждый раз." },
+  { icon: "spark", title: "С PRO вы попадёте в каталог", text: "Анкету увидят все пользователи площадки — вас смогут найти новые клиенты." },
+];
+
+// Анкета заполнена — дальше человеку нужен не процент, а следующий шаг.
+function NextSteps() {
+  return (
+    <div className="rounded-[16px] p-4" style={{ background: "var(--tiffany)", border: "var(--bw) solid var(--tiffany-edge)" }}>
+      <p className="text-[15px] font-black leading-tight">Что делать дальше?</p>
+      <div className="mt-3 space-y-2.5">
+        {NEXT_STEPS.map((item) => (
+          <div key={item.title} className="flex items-start gap-2.5">
+            <span className="ico ico-white h-8 w-8 shrink-0"><Icon name={item.icon} width={15} weight="bold" color="var(--tiffany-edge)" /></span>
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-black leading-tight">{item.title}</p>
+              <p className="mt-0.5 text-[11px] font-semibold leading-snug text-[var(--ink)] opacity-70">{item.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -689,8 +718,8 @@ function validateStep(step: StepId, profile: PsyProfile): string {
     if (!profile.education.some((item) => item.trim())) return "Добавьте хотя бы одно образование или значимую программу.";
   }
   if (step === "story") {
-    if (profile.about.trim().length < 80) return "Расскажите о себе чуть подробнее — минимум 80 знаков.";
-    if (profile.firstSession.trim().length < 50) return "Опишите первую встречу — минимум 50 знаков.";
+    if (profile.about.trim().length < 10) return "Расскажите о себе — минимум 10 знаков.";
+    if (profile.firstSession.trim().length < 10) return "Опишите первую встречу — минимум 10 знаков.";
   }
   return "";
 }

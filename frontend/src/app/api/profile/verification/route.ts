@@ -57,11 +57,21 @@ export async function POST(req: NextRequest) {
       publicLink: String(body.publicLink ?? "").trim(),
       about: String(body.about ?? "").trim(),
       profilePercent: Number(body.profilePercent ?? 0) || 0,
+      photo: typeof body.photo === "string" && body.photo.startsWith("data:") ? body.photo : null,
       diploma: readDiploma(body.diploma),
     };
     const data = { ...((current?.data as object) ?? {}), verification } as Prisma.InputJsonValue;
 
+    // Анкету дозаполняют после первой подачи, поэтому карточка заявки обновляется
+    // целиком: раньше метод, опыт, цена, город и формат писались только при
+    // создании — модератор смотрел на пустую заявку вместо заполненной.
     const fields = {
+      name: fullName,
+      primaryMethod: String(body.method ?? ""),
+      experienceYears: Number(body.experienceYears ?? 0) || 0,
+      sessionPrice: Number(body.sessionPrice ?? 0) || 0,
+      city: String(body.city ?? "").trim(),
+      format: String(body.format ?? "online") || "online",
       status: "review",
       rejectReason: null,
       submittedAt: new Date(),
@@ -71,13 +81,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.psyProfile.upsert({
       where: { userId: user.id },
-      create: {
-        userId: user.id,
-        name: fullName,
-        primaryMethod: String(body.method ?? ""),
-        experienceYears: Number(body.experienceYears ?? 0) || 0,
-        ...fields,
-      },
+      create: { userId: user.id, ...fields },
       update: fields,
     });
 

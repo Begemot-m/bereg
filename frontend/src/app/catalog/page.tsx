@@ -93,6 +93,9 @@ export default function CatalogPage() {
   const router = useRouter();
   const profile = useProfile();
   const { data: subscription } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  // Свой график — источник окон для собственной карточки в каталоге: заполнил
+  // расписание, и подборка уже учитывает его дни и время.
+  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours, enabled: Boolean(profile) });
   const [mode, setMode] = useState<CatalogMode>("personal");
   const [prefs, setPrefs] = useState<CatalogPrefs>(EMPTY_PREFS);
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
@@ -117,7 +120,7 @@ export default function CatalogPage() {
     // Своя карточка собирается из анкеты всегда: предпросмотр нужен и до
     // модерации, иначе кнопка из профиля высаживала бы в общий каталог.
     const psy = PSYS.find((item) => item.id === id)
-      ?? (id === OWN_PROFILE_ID && profile ? profileToCatalogPsy(profile) : undefined);
+      ?? (id === OWN_PROFILE_ID && profile ? profileToCatalogPsy(profile, work) : undefined);
     if (psy) { setSelected(psy); setSurveyOpen(false); return; }
     // Боевой каталог живёт на сервере: по ссылке приходит настоящий id, и
     // карточку надо забрать оттуда, а не искать в демо-списке.
@@ -126,7 +129,7 @@ export default function CatalogPage() {
       .then((row) => { if (alive && row) { setSelected(row); setSurveyOpen(false); } })
       .catch(() => { /* карточки нет — остаёмся в общем каталоге */ });
     return () => { alive = false; };
-  }, [profile]);
+  }, [profile, work]);
 
   useEffect(() => {
     try {
@@ -137,9 +140,6 @@ export default function CatalogPage() {
     } catch { setSurveyOpen(true); }
   }, []);
 
-  // Свой график — источник окон для собственной карточки в каталоге: заполнил
-  // расписание, и подборка уже учитывает его дни и время.
-  const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours, enabled: Boolean(profile) });
   const catalog = useMemo(() => publishedCatalog(profile, subscription, work), [profile, subscription, work]);
   const personal = useMemo(() => personalSelection(prefs, catalog), [prefs, catalog]);
   const allFiltered = useMemo(() => sortCatalog(filterCatalog(filters, catalog), sort, prefs), [filters, sort, prefs, catalog]);
@@ -275,6 +275,8 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
   const reasons = reasonsFor(psy, prefs);
   const details = detailLocation(psy);
   const firstSession = psy.firstSession ?? "На первой встрече знакомимся, обсуждаем ваш запрос и то, какой поддержки вы ждёте. В конце сверяемся — комфортно ли вам продолжать. Ничего решать сразу не нужно.";
+  const photos = psy.photos?.length ? psy.photos : psy.portrait ? [psy.portrait] : [];
+  const [photoIndex, setPhotoIndex] = useState<number | null>(null);
   // Полоска Telegram — в цвет шапки специалиста, на выходе возвращаем тон раздела.
   useEffect(() => { syncTelegramChrome(tone.soft); return () => syncTelegramChrome(); }, [tone.soft]);
 
@@ -301,7 +303,9 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
         <button onClick={onBack} className="back-link mb-3 mt-3">{backLabel}</button>
       )}
       <div className="flex items-center gap-3">
-        <Portrait psy={psy} size={98} tone={tone} />
+        {photos.length ? (
+          <button onClick={() => { tap(); setPhotoIndex(0); }} className="shrink-0 transition-transform active:scale-[0.98]" aria-label={`Открыть фотографии: ${psy.name}`}><Portrait psy={psy} size={98} tone={tone} /></button>
+        ) : <Portrait psy={psy} size={98} tone={tone} />}
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5"><h1 className="t-title">{psy.name}</h1>{psy.verified && <Icon name="seal" width={19} weight="fill" color="var(--green)" className="mt-0.5 shrink-0" />}</div>
           <p className="mt-0.5 text-[12px] font-black" style={{ color: tone.edge }}>{specialistLine(psy)}</p>
@@ -346,7 +350,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       {psy.about && <Section title="Как я работаю"><p className="t-body">{psy.about}</p></Section>}
       <MethodList psy={psy} />
 
-      {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} />}
+      {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} onOpen={(index) => { tap(); setPhotoIndex(index); }} />}
 
       <LocationBlock psy={psy} details={details} />
 
@@ -365,6 +369,8 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       {/* Постоянная запись */}
       <TelegramPoster psy={psy} />
     </div>
+
+    <PhotoLightbox photos={photos} name={psy.name} index={photoIndex} onIndex={setPhotoIndex} onClose={() => setPhotoIndex(null)} />
   </div>;
 }
 
@@ -623,8 +629,57 @@ function RulesSection({ psy }: { psy: Psy }) {
   );
 }
 
-function PhotoGallery({ psy }: { psy: Psy }) {
-  return <Section title="Фотографии"><div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">{psy.photos!.map((photo, index) => { const src = asset(photo); return <div key={`${photo.slice(0, 24)}-${index}`} className="relative h-[174px] w-[132px] shrink-0 snap-start overflow-hidden rounded-[16px] bg-white stroke-lg"><Image src={src} alt={`${psy.name}, фотография ${index + 1}`} fill sizes="132px" className="object-cover" unoptimized={isInlineImage(src)} /></div>; })}</div></Section>;
+function PhotoGallery({ psy, onOpen }: { psy: Psy; onOpen: (index: number) => void }) {
+  return <Section title="Фотографии"><div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">{psy.photos!.map((photo, index) => { const src = asset(photo); return <button key={`${photo.slice(0, 24)}-${index}`} onClick={() => onOpen(index)} className="relative h-[174px] w-[132px] shrink-0 snap-start overflow-hidden rounded-[16px] bg-white stroke-lg transition-transform active:scale-[0.98]" aria-label={`Открыть фотографию ${index + 1}`}><Image src={src} alt={`${psy.name}, фотография ${index + 1}`} fill sizes="132px" className="object-cover" unoptimized={isInlineImage(src)} /></button>; })}</div></Section>;
+}
+
+// Фото во весь экран: тап по портрету или кадру в галерее. Листается свайпом и
+// точками — остальные снимки анкеты рядом, возвращаться в карточку не нужно.
+function PhotoLightbox({ photos, name, index, onIndex, onClose }: { photos: string[]; name: string; index: number | null; onIndex: (next: number) => void; onClose: () => void }) {
+  const open = index !== null;
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowRight") onIndex(Math.min(photos.length - 1, (index ?? 0) + 1));
+      if (event.key === "ArrowLeft") onIndex(Math.max(0, (index ?? 0) - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", onKey); };
+  }, [open, index, photos.length, onIndex, onClose]);
+
+  return <AnimatePresence>{open && (
+    <motion.div className="fixed inset-0 z-[90] flex flex-col bg-[rgba(24,21,18,.94)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="flex items-center justify-between px-4 pt-[max(16px,env(safe-area-inset-top))]">
+        <span className="tnum text-[13px] font-black text-white">{(index ?? 0) + 1} / {photos.length}</span>
+        <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(255,255,255,.14)]" aria-label="Закрыть"><Icon name="close" width={18} weight="bold" color="#fff" /></button>
+      </div>
+      <motion.div
+        key={index}
+        className="relative flex-1"
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.18}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -60) onIndex(Math.min(photos.length - 1, (index ?? 0) + 1));
+          if (info.offset.x > 60) onIndex(Math.max(0, (index ?? 0) - 1));
+        }}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <Image src={asset(photos[index ?? 0])} alt={`${name}, фотография ${(index ?? 0) + 1}`} fill sizes="100vw" className="object-contain" unoptimized={isInlineImage(asset(photos[index ?? 0]))} />
+      </motion.div>
+      {photos.length > 1 && (
+        <div className="flex justify-center gap-2 px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
+          {photos.map((photo, dot) => (
+            <button key={`${photo.slice(0, 16)}-${dot}`} onClick={() => onIndex(dot)} aria-label={`Фотография ${dot + 1}`} className="h-2 rounded-full transition-all" style={{ width: dot === index ? 22 : 8, background: dot === index ? "#fff" : "rgba(255,255,255,.4)" }} />
+          ))}
+        </div>
+      )}
+    </motion.div>
+  )}</AnimatePresence>;
 }
 
 function isInlineImage(src: string) { return /^(data:|blob:)/i.test(src); }
