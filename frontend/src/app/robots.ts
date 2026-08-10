@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 
 import { SITE_URL } from "@/lib/seo";
 
+export const dynamic = "force-static";
+
 const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
 /**
