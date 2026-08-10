@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api";
-import { availabilityFits, availabilityFromWorkHours, availabilityScore, EMPTY_AVAILABILITY, type Availability, type DayGroup, type ScheduleHours } from "@/lib/availability";
+import { availabilityFits, availabilityFromWorkHours, availabilityScore, EMPTY_AVAILABILITY, nextSlotDays, type Availability, type DayGroup, type ScheduleHours } from "@/lib/availability";
 import type { PsyProfile } from "@/lib/profile";
 import { publicRules, type PublicRule } from "@/lib/profile-rules";
 import type { Subscription } from "@/lib/subscription";
@@ -225,7 +225,7 @@ export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | 
     sessions: 0,
     clients: 0,
     responseHrs: 24,
-    nextDays: 7,
+    nextDays: nextSlotDays(work),
     availableTimes: availability.times.length ? availability.times : ["day"],
     availability: availability.slots ? availability : undefined,
     exposure: 0,
@@ -292,7 +292,7 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     sessions: 0,
     clients: 0,
     responseHrs: 24,
-    nextDays: 7,
+    nextDays: Number(row.nextDays) || 14,
     availableTimes: (list(row.availableTimes) as TimeOfDay[]).length ? (list(row.availableTimes) as TimeOfDay[]) : ["day"],
     availability: (row.availability as Availability | undefined) ?? undefined,
     exposure: 0,

@@ -71,3 +71,20 @@ export function availabilityLabel(availability: Availability): string {
   const times = availability.times.map((time) => TIME_LABEL[time]).join(", ");
   return times ? `${days} · ${times}` : days;
 }
+
+/**
+ * Через сколько дней ближайшее окно по шаблону недели. Считаем от текущего дня
+ * недели; пустой график — «через две недели», чтобы такая карточка не попадала
+ * в подборку «запись на этой неделе».
+ */
+export function nextSlotDays(work: ScheduleHours | null | undefined, now = new Date()): number {
+  const hours = work?.hours;
+  if (!hours) return 14;
+  // В расписании понедельник — 0, в JS воскресенье — 0.
+  const today = (now.getDay() + 6) % 7;
+  for (let ahead = 0; ahead < 7; ahead++) {
+    const list = hours[(today + ahead) % 7];
+    if (Array.isArray(list) && list.length) return ahead === 0 ? 1 : ahead;
+  }
+  return 14;
+}

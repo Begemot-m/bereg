@@ -24,6 +24,8 @@ export async function PATCH(req: NextRequest) {
       cancelLockDays?: number;
       leadDaysOffline?: number;
       leadDaysOnline?: number;
+      dayFrom?: number;
+      dayTo?: number;
     };
 
     // Шаблон приходит целиком — проверяем форму, чтобы в базу не легло что попало.
@@ -43,6 +45,13 @@ export async function PATCH(req: NextRequest) {
       const d = Number(body.cancelLockDays);
       if (!Number.isInteger(d) || d < 0 || d > 7) {
         return NextResponse.json({ error: "invalid cancelLockDays" }, { status: 422 });
+      }
+    }
+    for (const key of ["dayFrom", "dayTo"] as const) {
+      if (body[key] === undefined) continue;
+      const h = Number(body[key]);
+      if (!Number.isInteger(h) || h < 0 || h > 24) {
+        return NextResponse.json({ error: `invalid ${key}` }, { status: 422 });
       }
     }
     for (const key of ["leadDaysOffline", "leadDaysOnline"] as const) {

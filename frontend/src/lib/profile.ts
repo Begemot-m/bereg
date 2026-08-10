@@ -175,8 +175,37 @@ export function savePsyProfile(patch: Partial<PsyProfile>) {
   else if (patch.photo !== undefined) profile.photos = patch.photo ? [patch.photo, ...profile.photos.filter((x) => x !== patch.photo)].slice(0, 3) : profile.photos;
   localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
   window.dispatchEvent(new CustomEvent(EVENT));
+  lastLocalEdit = Date.now();
   void pushProfile(profile);
 }
+
+/**
+ * Анкета, пришедшая из базы. Кладём как есть и обратно на сервер не шлём:
+ * иначе получилось бы эхо. Свежие правки не трогаем — человек может печатать
+ * прямо сейчас, а ответ сервера отстаёт на секунду-другую.
+ */
+function applyServerProfile(row: Partial<PsyProfile> & { status?: string }) {
+  if (Date.now() - lastLocalEdit < 10_000) return;
+  const cur = getPsyProfile();
+  const next: PsyProfile = {
+    ...EMPTY,
+    ...cur,
+    ...row,
+    location: { ...EMPTY.location, ...(cur?.location ?? {}), ...(row.location ?? {}) },
+    rules: normalizeRules(row.rules ?? cur?.rules),
+    status: toLocalStatus(row.status),
+  };
+  next.approach = next.primaryMethod || next.approach;
+  next.primaryMethod = next.approach;
+  if (!Array.isArray(next.photos)) next.photos = next.photo ? [next.photo] : [];
+  next.photo = next.photos[0] ?? null;
+  if (JSON.stringify(next) === JSON.stringify(cur)) return;
+  localStorage.setItem(KEY_PROFILE, JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent(EVENT));
+}
+
+/** Когда анкету последний раз меняли на этом устройстве. */
+let lastLocalEdit = 0;
 
 // В демо анкета живёт только в браузере, в бою — ещё и в базе. Раньше её туда
 // не отправлял никто: каталог, модерация и карточка специалиста читали
@@ -243,12 +272,7 @@ export function useProfile(): PsyProfile | null {
     lastServerSync = Date.now();
     let alive = true;
     apiFetch<(Partial<PsyProfile> & { status?: string }) | null>("/profile")
-      .then((row) => {
-        if (!alive || !row) return;
-        const cur = getPsyProfile();
-        if (!cur) savePsyProfile({ ...row, status: toLocalStatus(row.status) });
-        else if (toLocalStatus(row.status) !== cur.status) savePsyProfile({ status: toLocalStatus(row.status) });
-      })
+      .then((row) => { if (alive && row) applyServerProfile(row); })
       .catch(() => {});
     return () => { alive = false; };
   }, []);

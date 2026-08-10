@@ -120,6 +120,11 @@ model WorkHours {
   /// отдельно: до кабинета нужно доехать, к видеозвонку — нет. 0 — без ограничения.
   leadDaysOffline Int     @default(0)
   leadDaysOnline  Int     @default(0)
+  /// Границы шкалы в редакторе графика: с какого и по какой час показывать
+  /// сетку. Жили в состоянии компонента, поэтому «работаю с 9 до 22»
+  /// сбрасывалось к умолчанию при каждом открытии.
+  dayFrom        Int      @default(9)
+  dayTo          Int      @default(21)
   updatedAt      DateTime @updatedAt
 }
 

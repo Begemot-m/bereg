@@ -10,6 +10,9 @@ export type WorkHours = {
   /** За сколько дней клиент обязан записаться заранее — очно и онлайн отдельно. */
   leadDaysOffline: number;
   leadDaysOnline: number;
+  /** Границы шкалы редактора: «работаю с 9 до 22». Хранятся в базе. */
+  dayFrom: number;
+  dayTo: number;
 };
 
 export type Slot = { start: string; taken: boolean; fmt: SlotFormat };

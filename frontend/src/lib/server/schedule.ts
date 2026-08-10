@@ -12,18 +12,22 @@ export type WorkHoursDTO = {
   cancelLockDays: number;
   leadDaysOffline: number;
   leadDaysOnline: number;
+  /** Границы шкалы в редакторе: «работаю с 9 до 22». */
+  dayFrom: number;
+  dayTo: number;
 };
 export type SlotDTO = { start: string; taken: boolean; fmt: SlotFormat };
 /** Занятый интервал психолога: начало записи и её длительность. */
 export type Busy = { start: string; minutes: number };
 export type OverrideDTO = { removed?: boolean; fmt?: SlotFormat };
 
-const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50, cancelLockDays: 0, leadDaysOffline: 0, leadDaysOnline: 0 };
+const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50, cancelLockDays: 0, leadDaysOffline: 0, leadDaysOnline: 0, dayFrom: 9, dayTo: 21 };
 
 /** Запрет отмены — целое число дней от 0 (без ограничения) до недели. */
 const clampLock = (days: number) => Math.min(7, Math.max(0, Math.trunc(days) || 0));
 /** Предварительная запись — до месяца вперёд; дальше это уже не «заранее». */
 export const clampLead = (days: number) => Math.min(30, Math.max(0, Math.trunc(days) || 0));
+const clampHour = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Math.trunc(value) || 0));
 
 type WorkHoursRow = {
   hours: unknown;
@@ -31,6 +35,8 @@ type WorkHoursRow = {
   cancelLockDays: number;
   leadDaysOffline: number;
   leadDaysOnline: number;
+  dayFrom: number;
+  dayTo: number;
 };
 
 const toDTO = (row: WorkHoursRow): WorkHoursDTO => ({
@@ -39,6 +45,8 @@ const toDTO = (row: WorkHoursRow): WorkHoursDTO => ({
   cancelLockDays: row.cancelLockDays,
   leadDaysOffline: row.leadDaysOffline,
   leadDaysOnline: row.leadDaysOnline,
+  dayFrom: row.dayFrom,
+  dayTo: row.dayTo,
 });
 
 export async function getWorkHours(userId: number): Promise<WorkHoursDTO> {
@@ -54,7 +62,10 @@ export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>
   const cancelLockDays = patch.cancelLockDays === undefined ? current.cancelLockDays : clampLock(patch.cancelLockDays);
   const leadDaysOffline = patch.leadDaysOffline === undefined ? current.leadDaysOffline : clampLead(patch.leadDaysOffline);
   const leadDaysOnline = patch.leadDaysOnline === undefined ? current.leadDaysOnline : clampLead(patch.leadDaysOnline);
-  const data = { hours, sessionMinutes, cancelLockDays, leadDaysOffline, leadDaysOnline };
+  // Границы шкалы: с 0 до 24, «до» строго больше «с» — иначе сетка схлопнется.
+  const dayFrom = clampHour(patch.dayFrom ?? current.dayFrom, 0, 23);
+  const dayTo = Math.max(dayFrom + 1, clampHour(patch.dayTo ?? current.dayTo, 1, 24));
+  const data = { hours, sessionMinutes, cancelLockDays, leadDaysOffline, leadDaysOnline, dayFrom, dayTo };
   const row = await prisma.workHours.upsert({
     where: { userId },
     create: { userId, ...data },

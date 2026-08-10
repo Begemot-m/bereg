@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { availabilityFits, availabilityFromWorkHours, availabilityScore, timeOfDay } from "@/lib/availability";
+import { availabilityFits, availabilityFromWorkHours, availabilityScore, nextSlotDays, timeOfDay } from "@/lib/availability";
 
 const slot = (t: string) => ({ t, d: 50, fmt: "online" as const });
 
@@ -55,5 +55,24 @@ describe("availabilityFits", () => {
   test("счёт растёт с числом совпадений", () => {
     expect(availabilityScore(evenings, ["weekdays"], ["evening"])).toBe(2);
     expect(availabilityScore(evenings, ["weekends"], ["evening"])).toBe(1);
+  });
+});
+
+describe("ближайшее окно", () => {
+  // Понедельник, 10 августа 2026.
+  const monday = new Date("2026-08-10T09:00:00+03:00");
+
+  test("пустой график — через две недели", () => {
+    expect(nextSlotDays(null, monday)).toBe(14);
+    expect(nextSlotDays({ hours: {} }, monday)).toBe(14);
+  });
+
+  test("окно сегодня считается завтрашним, а не нулевым днём", () => {
+    expect(nextSlotDays({ hours: { 0: [{ t: "11:00" }] } }, monday)).toBe(1);
+  });
+
+  test("ближайший день недели с окнами", () => {
+    expect(nextSlotDays({ hours: { 3: [{ t: "10:00" }] } }, monday)).toBe(3);
+    expect(nextSlotDays({ hours: { 6: [{ t: "10:00" }], 2: [{ t: "10:00" }] } }, monday)).toBe(2);
   });
 });

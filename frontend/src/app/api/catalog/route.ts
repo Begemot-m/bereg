@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { availabilityFromWorkHours } from "@/lib/availability";
+import { availabilityFromWorkHours, nextSlotDays } from "@/lib/availability";
 import { publicRules } from "@/lib/profile-rules";
 import { catalogPlacement } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 
 export const runtime = "nodejs";
+
 
 // Каталог открыт без входа: человек должен увидеть специалистов до регистрации.
 // Отдаём только опубликованные анкеты и только публичные поля — точный адрес
@@ -64,10 +65,15 @@ export async function GET(req: NextRequest) {
   const psys = rows.map((row) => {
     const data = (row.data as Record<string, unknown>) ?? {};
     const location = (data.location ?? {}) as Record<string, unknown>;
-    const availability = availabilityFromWorkHours({ hours: scheduleOf.get(row.userId) });
+    const hours = scheduleOf.get(row.userId);
+    const availability = availabilityFromWorkHours({ hours });
     return {
       availability: availability.slots ? availability : undefined,
       availableTimes: availability.times,
+      // Через сколько дней ближайшее окно — из настоящего графика. Раньше
+      // карточка всем писала «через 7 дней», и «запись на этой неделе»
+      // фильтровала не по расписанию, а по константе.
+      nextDays: nextSlotDays({ hours }),
       id: row.userId,
       name: row.name,
       method: row.primaryMethod,

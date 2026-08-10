@@ -58,6 +58,9 @@ type WorkHours = {
   // Предварительная запись: за сколько дней клиент обязан забронировать окно.
   leadDaysOffline?: number;
   leadDaysOnline?: number;
+  // Границы шкалы редактора: «работаю с 9 до 22».
+  dayFrom?: number;
+  dayTo?: number;
 };
 
 // Корректировки конкретных дат поверх шаблона: убрать окно / сменить формат
@@ -131,6 +134,8 @@ function seed(): DB {
     work: {
       hours: {},
       sessionMinutes: 50,
+      dayFrom: 9,
+      dayTo: 21,
     },
     overrides: {},
     support: [],
@@ -178,6 +183,8 @@ function load(): DB {
       if (db.accountEmail === undefined) db.accountEmail = null;
       if (!db.reminderSettings) db.reminderSettings = s.reminderSettings;
       if (db.work.sessionMinutes === 60) db.work.sessionMinutes = 50;
+      if (db.work.dayFrom === undefined) db.work.dayFrom = 9;
+      if (db.work.dayTo === undefined) db.work.dayTo = 21;
       // миграция: подключение клиента — активные считаем уже присоединившимися
       for (const c of db.clients) {
         if (c.notesModuleEnabled === undefined) c.notesModuleEnabled = Boolean(db.reflections?.[c.id]?.length);
@@ -744,6 +751,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     if (body.cancelLockDays !== undefined) db.work.cancelLockDays = Number(body.cancelLockDays);
     if (body.leadDaysOffline !== undefined) db.work.leadDaysOffline = Number(body.leadDaysOffline);
     if (body.leadDaysOnline !== undefined) db.work.leadDaysOnline = Number(body.leadDaysOnline);
+    if (body.dayFrom !== undefined) db.work.dayFrom = Number(body.dayFrom);
+    if (body.dayTo !== undefined) db.work.dayTo = Number(body.dayTo);
     save(db);
     return delay(db.work as T);
   }

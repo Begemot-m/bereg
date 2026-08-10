@@ -57,11 +57,12 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
   const { data, isLoading } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const [draft, setDraft] = useState<WorkHours | null>(null);
   const [day, setDay] = useState(0);
-  const [from, setFrom] = useState(9);
-  const [to, setTo] = useState(21);
   const [lastFmt, setLastFmt] = useState<"online" | "offline">("online");
   const railRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (data) setDraft(structuredClone(data)); }, [data]);
+  // Черновик берём с сервера один раз. Раньше сюда прилетал каждый ответ
+  // react-query — и любое обновление кэша (сохранение правил приёма, возврат
+  // на вкладку) стирало расставленные, но ещё не сохранённые окна.
+  useEffect(() => { setDraft((current) => current ?? (data ? structuredClone(data) : null)); }, [data]);
 
   const save = useMutation({
     mutationFn: () => saveWorkHours(draft!),
@@ -69,6 +70,13 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
   });
 
   if (isLoading || !draft) return <Spinner label="Окна" />;
+
+  // Границы шкалы — часть расписания, а не состояние экрана: уезжают в базу
+  // вместе с окнами и возвращаются такими же на любом устройстве.
+  const from = draft.dayFrom ?? 9;
+  const to = Math.max(from + 1, draft.dayTo ?? 21);
+  const setFrom = (v: number) => setDraft({ ...draft, dayFrom: Math.min(v, to - 1) });
+  const setTo = (v: number) => setDraft({ ...draft, dayTo: Math.max(v, from + 1) });
 
   const len = draft.sessionMinutes;
   const start = from * 60;
@@ -114,8 +122,8 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
       {/* Интервал работы */}
       <div className="flex items-center gap-2">
         <span className="text-[12px] font-bold text-[var(--muted)]">Работаю</span>
-        <TimeNum label="с" value={from} onChange={(v) => setFrom(Math.min(v, to - 1))} />
-        <TimeNum label="до" value={to} onChange={(v) => setTo(Math.max(v, from + 1))} />
+        <TimeNum label="с" value={from} onChange={setFrom} />
+        <TimeNum label="до" value={to} onChange={setTo} />
       </div>
 
       {/* Длина сессии — ползунок с минутами на бегунке */}
