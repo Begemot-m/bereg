@@ -1,10 +1,14 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { APP_NAME } from "@/lib/brand";
+import { apiFetch } from "@/lib/api";
+import { APP_NAME, APP_NAME_ACC } from "@/lib/brand";
+import { DEMO } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
 import { completeOnboarding, tgUser } from "@/lib/profile";
 import { setRole, setRoleIntent, type Role } from "@/lib/role";
@@ -56,8 +60,11 @@ const WELCOME = 0;
 const ROLE_STEP = INTRO.length + 1;
 
 export function Onboarding() {
+  const qc = useQueryClient();
   const [step, setStep] = useState(WELCOME);
   const [psySell, setPsySell] = useState(false); // после выбора «психолог» — продажа PRO
+  const [agreed, setAgreed] = useState(false);
+  const [saving, setSaving] = useState(false);
   const tg = tgUser();
   const swipeX = useRef<number | null>(null);
   const isWelcome = step === WELCOME && !psySell;
@@ -65,6 +72,24 @@ export function Onboarding() {
   const cur = INTRO[step - 1];
 
   const finish = () => { success(); completeOnboarding(); };
+
+  // Согласие даётся здесь же, галочкой на последнем шаге: отдельная стена
+  // перед знакомством встречала человека юридическим текстом раньше, чем он
+  // понял, куда попал. В демо согласовывать нечего — данных настоящих нет.
+  const acceptAndGo = async (after: () => void) => {
+    if (saving) return;
+    setSaving(true);
+    if (!DEMO) {
+      try {
+        await apiFetch("/consents", { method: "POST", body: JSON.stringify({ kinds: ["pd", "health"] }) });
+        qc.invalidateQueries({ queryKey: ["consents"] });
+      } catch {
+        // Гость ещё без учётной записи — согласие спросит гейт после входа.
+      }
+    }
+    setSaving(false);
+    after();
+  };
   const next = () => { select(); setStep((s) => Math.min(ROLE_STEP, s + 1)); };
   const back = () => { tap(); setStep((s) => Math.max(WELCOME, s - 1)); };
   const endSwipe = (x: number) => {
@@ -132,7 +157,20 @@ export function Onboarding() {
             ) : isWelcome ? (
               <Welcome onNext={next} />
             ) : isRole ? (
-              <RolePicker firstName={tg?.first_name} onPick={(r) => { select(); setRole(r); setRoleIntent(r); if (r === "psychologist") setPsySell(true); else finish(); }} />
+              <RolePicker
+                firstName={tg?.first_name}
+                agreed={agreed}
+                saving={saving}
+                onAgree={() => { tap(); setAgreed((v) => !v); }}
+                onPick={(r) => {
+                  select();
+                  void acceptAndGo(() => {
+                    setRole(r);
+                    setRoleIntent(r);
+                    if (r === "psychologist") setPsySell(true); else finish();
+                  });
+                }}
+              />
             ) : (
               <div className="flex flex-1 flex-col">
                 <span className="mt-[clamp(12px,3vh,24px)] inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
@@ -183,7 +221,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
         Платформа психологической поддержки
       </motion.p>
       <motion.h1 {...rise(0.25)} className="font-tight mt-3 text-[clamp(30px,10vw,40px)] font-black leading-[1.02] text-[var(--ink)]">
-        Добро пожаловать<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME}</span>.
+        Добро пожаловать<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME_ACC}</span>.
       </motion.h1>
       <motion.p {...rise(0.45)} className="mt-4 max-w-[320px] text-[15px] font-bold leading-snug" style={{ color: "rgba(32,28,24,.7)" }}>
         Цифровые инструменты для самостоятельной психологической поддержки и эффективного прогресса терапии
@@ -333,7 +371,13 @@ function SoonBanner() {
   );
 }
 
-function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
+function RolePicker({ firstName, agreed, saving, onAgree, onPick }: {
+  firstName?: string;
+  agreed: boolean;
+  saving: boolean;
+  onAgree: () => void;
+  onPick: (role: Role) => void;
+}) {
   const [index, setIndex] = useState(1); // по умолчанию — пользователь
   const active = ROLE_OPTIONS[index];
   return (
@@ -393,7 +437,27 @@ function RolePicker({ firstName, onPick }: { firstName?: string; onPick: (role: 
       <SoonBanner />
 
       <div className="mt-auto pt-6">
-        <button onClick={() => onPick(active.role)} className="btn btn-accent w-full py-3.5 text-[14px]">Продолжить</button>
+        {/* Согласие — здесь, одной галочкой: без него кнопка не работает. */}
+        <button onClick={onAgree} aria-pressed={agreed} className="flex w-full items-start gap-2.5 rounded-[14px] bg-white/70 p-3 text-left">
+          <span
+            className="keep-style mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px]"
+            style={{ background: agreed ? "var(--purple-edge)" : "#fff", border: `var(--bw) solid ${agreed ? "var(--purple-edge)" : "var(--edge)"}` }}
+          >
+            {agreed && <Icon name="check" width={13} weight="bold" color="#fff" />}
+          </span>
+          <span className="text-[11.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.72)" }}>
+            Согласен на обработку персональных данных, включая записи о состоянии — дневник, заметки, колесо баланса.{" "}
+            <Link href="/policy" onClick={(event) => event.stopPropagation()} className="font-black underline" style={{ color: "var(--purple-edge)" }}>Политика</Link>
+            . Отозвать можно в кабинете.
+          </span>
+        </button>
+        <button
+          onClick={() => onPick(active.role)}
+          disabled={!agreed || saving}
+          className="btn btn-accent mt-3 w-full py-3.5 text-[14px] disabled:opacity-45"
+        >
+          {saving ? "Сохраняем…" : "Продолжить"}
+        </button>
       </div>
     </div>
   );

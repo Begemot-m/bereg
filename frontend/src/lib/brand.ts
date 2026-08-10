@@ -1,5 +1,7 @@
 // Название платформы — меняется в одну строку.
 export const APP_NAME = "Хроника";
+/** Винительный падеж: «Добро пожаловать в Хронику», а не «в Хроника». */
+export const APP_NAME_ACC = "Хронику";
 export const CENTER = "Амур и Психея";
 export const CENTER_SITE = "murpsy.ru";
 export const CENTER_URL = "https://murpsy.ru";

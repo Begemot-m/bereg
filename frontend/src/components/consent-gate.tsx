@@ -9,6 +9,7 @@ import { Icon } from "@/components/icons";
 import { apiFetch } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
 import { success, tap } from "@/lib/haptics";
+import { useOnboarded } from "@/lib/profile";
 
 type ConsentState = {
   policyVersion: string;
@@ -26,6 +27,7 @@ export function ConsentGate({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
   const [pd, setPd] = useState(false);
   const [health, setHealth] = useState(false);
+  const [onboarded] = useOnboarded();
 
   const state = useQuery<ConsentState>({
     queryKey: ["consents"],
@@ -43,6 +45,11 @@ export function ConsentGate({ children }: { children: React.ReactNode }) {
   // смотреть приложение. Ошибку запроса тоже не превращаем в стену — иначе
   // упавший бэкенд закрывает доступ вообще ко всему.
   if (DEMO || state.isLoading || state.isError) return <>{children}</>;
+
+  // Пока человек не прошёл знакомство, стены нет: согласие он даёт галочкой на
+  // последнем шаге онбординга. Юридический экран впереди приветствия выглядел
+  // так, будто приложение сломалось на первом же открытии.
+  if (onboarded !== true) return <>{children}</>;
 
   const g = state.data?.granted ?? {};
   const ok = g.pd?.current && g.health?.current;
