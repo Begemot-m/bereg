@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import type { NextRequest } from "next/server";
 
+import { clientIp } from "@/lib/server/client-ip";
 import { env } from "@/lib/server/env";
 import { prisma } from "@/lib/server/prisma";
 
@@ -26,8 +27,7 @@ export type IssuedSession = { refreshToken: string; expiresAt: Date; sessionId: 
 function clientMeta(req: NextRequest) {
   return {
     userAgent: req.headers.get("user-agent")?.slice(0, 300) ?? null,
-    // За обратным прокси реальный адрес приходит в X-Forwarded-For.
-    ip: (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
+    ip: clientIp(req),
   };
 }
 

@@ -87,6 +87,12 @@
   образом на сервер скопирован обновлённый `deploy/docker-compose.yml`: в нём
   `TZ: ${APP_TIME_ZONE:-Europe/Moscow}` для `app` и `bot`, без него контейнер
   жил в UTC. Прошлая версия лежит рядом как `docker-compose.yml.bak-tz`;
+- **не доехало на сервер (11 августа 2026):** правки в `deploy/Caddyfile`
+  (замена `X-Forwarded-For`, снят конфликтующий `X-Frame-Options`) применяются
+  только копированием файла на VPS и `docker compose up -d caddy`. Пока это не
+  сделано, лимиты частоты обходятся подделкой заголовка. Туда же: в
+  `/opt/bereg/.env` не задан `CRON_SECRET`, поэтому `/api/cron/renew` отвечает
+  401 и подписки не продлеваются автоматически;
 - выкатка ручная и в два шага: в GitHub Actions запустить workflow
   «Build and deploy app» (соберёт образ `sha-<7 знаков>`), затем на VPS
   `cd /opt/bereg && ./deploy.sh ghcr.io/begemot-m/bereg:sha-<тег>`. SSH-шаг

@@ -22,6 +22,9 @@ const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric"
 export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking; onChange: () => void; defaultOpen?: boolean }) {
   const [manage, setManage] = useState(defaultOpen);
   const [resch, setResch] = useState(false);
+  // Куда перенесли. Держим отдельно от списка записей: список обновляется
+  // сразу, а подтверждение должно остаться на экране, пока его не закроют.
+  const [moved, setMoved] = useState<string | null>(null);
   // Правило приезжает вместе с записью. Локальное значение — запасной вариант
   // для демо, где обе роли живут в одном браузере.
   const [localLock] = useCancelLockDays();
@@ -31,9 +34,16 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
   const locked = !past && !canCancel(b.startsAt, lockDays);
   const st = slotStyle(date.getHours());
 
-  const move = useMutation({ mutationFn: (iso: string) => rescheduleMyBooking(b.id, iso), onSuccess: () => { setResch(false); setManage(false); onChange(); } });
+  // Время берём из ответа сервера, а на выбранное окно откатываемся ради демо:
+  // мок возвращает не всегда полную запись.
+  const move = useMutation({
+    mutationFn: (iso: string) => rescheduleMyBooking(b.id, iso),
+    onSuccess: (updated, iso) => { setResch(false); setMoved(updated?.startsAt ?? iso); onChange(); },
+  });
   const cancel = useMutation({ mutationFn: () => cancelMyBooking(b.id), onSuccess: () => { setManage(false); onChange(); } });
-  const toggle = () => { tap(); setManage(!manage); };
+  // Закрыли шестерёнкой — подтверждение считаем прочитанным, иначе оно
+  // всплывёт снова при следующем открытии.
+  const toggle = () => { tap(); setMoved(null); setResch(false); setManage(!manage); };
 
   return (
     <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: past ? 0.68 : 1, scale: 1 }} transition={SPRING} className="card-nested overflow-hidden">
@@ -58,11 +68,37 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
 
       <Disclosure open={manage}>
         <div className="px-3 pb-3">
-          {resch ? (
-            <div className="card-soft p-2.5">
-              <p className="t-micro mb-2">Новое окно</p>
-              <SlotPicker psyId={b.psychologistId} variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
-              <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
+          {moved ? (
+            /* Подтверждение — как после записи: что получилось и что дальше */
+            <div className="rounded-[16px] p-3 text-center" style={{ background: "var(--page)" }}>
+              <p className="text-[13px] font-black">Встреча перенесена</p>
+              <p className="t-cap mt-1 inline-flex items-center gap-1.5">
+                <Icon name="calendar" width={12} weight="bold" color="currentColor" />
+                {cap(dayF.format(new Date(moved)))} в {timeF.format(new Date(moved))} · {b.format === "online" ? "онлайн" : "очно"}
+              </p>
+              <div className="card-soft mt-2.5 flex items-start gap-2.5 p-2.5 text-left" style={{ background: b.format === "online" ? "var(--purple-soft)" : "var(--green-soft)" }}>
+                <span className="ico h-8 w-8 shrink-0" style={{ background: "#fff" }}>
+                  <Icon name={b.format === "online" ? "video" : "pin"} width={15} weight="bold" color={b.format === "online" ? "var(--purple)" : "var(--green)"} />
+                </span>
+                <span className="t-sub min-w-0 flex-1">
+                  {b.format === "online"
+                    ? `${b.psyName.split(" ")[0]} пришлёт ссылку для подключения до начала встречи.`
+                    : `Место прежнее — изменилось только время. ${b.psyName.split(" ")[0]} напомнит адрес перед встречей.`}
+                </span>
+              </div>
+              <button onClick={() => { tap(); setMoved(null); setManage(false); }} className="btn mt-2.5 px-4 py-1.5 text-[11px]">Готово</button>
+            </div>
+          ) : resch ? (
+            <div className="rounded-[16px] p-3" style={{ background: "var(--page)" }}>
+              <p className="t-micro mb-1 px-1">Свободные окна</p>
+              <p className="t-cap mb-2 flex items-center gap-1.5 px-1">
+                <Icon name="calendar" width={12} weight="bold" color="currentColor" />
+                Сейчас — {cap(dayF.format(date))} в {timeF.format(date)}
+              </p>
+              <SlotPicker psyId={b.psychologistId} variant="calendar" calendarTone="blend" showAvail bookedStart={b.startsAt} bookedLabel="Текущая запись" onPick={(iso) => move.mutate(iso)} />
+              <button onClick={() => { tap(); setResch(false); }} className="back-link mt-2 w-full justify-center" disabled={move.isPending}>
+                {move.isPending ? "Переносим…" : "Оставить как есть"}
+              </button>
             </div>
           ) : locked ? (
             <div className="rounded-[13px] p-3" style={{ background: "var(--salmon-soft)" }}>

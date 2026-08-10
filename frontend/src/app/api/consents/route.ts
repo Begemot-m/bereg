@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { clientIp } from "@/lib/server/client-ip";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     const kinds = (body.kinds ?? []).filter((k) => KINDS.has(k));
     if (kinds.length === 0) return NextResponse.json({ error: "kinds required" }, { status: 422 });
 
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const ip = clientIp(req);
     const userAgent = req.headers.get("user-agent");
 
     await prisma.$transaction([
@@ -82,7 +83,7 @@ export async function DELETE(req: NextRequest) {
     const kind = new URL(req.url).searchParams.get("kind");
     if (!kind || !KINDS.has(kind)) return NextResponse.json({ error: "kind required" }, { status: 422 });
 
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const ip = clientIp(req);
     await prisma.$transaction([
       prisma.consent.updateMany({
         where: { userId: user.id, kind, revokedAt: null },

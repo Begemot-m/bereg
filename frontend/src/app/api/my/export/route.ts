@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { clientIp } from "@/lib/server/client-ip";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { getTherapy } from "@/lib/server/therapy";
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
       data: {
         userId: user.id,
         action: "export",
-        ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+        ip: clientIp(req),
       },
     });
 

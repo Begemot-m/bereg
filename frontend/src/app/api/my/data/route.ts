@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { audit } from "@/lib/server/audit";
+import { clientIp } from "@/lib/server/client-ip";
 import { deleteStoredFile } from "@/lib/server/files";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -58,7 +59,7 @@ export async function DELETE(req: NextRequest) {
           action: "my.data.wipe",
           entity: "User",
           entityId: String(user.id),
-          ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+          ip: clientIp(req),
         },
       }),
     ]);

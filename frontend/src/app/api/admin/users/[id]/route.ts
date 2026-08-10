@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { isAdmin } from "@/lib/server/access";
+import { clientIp } from "@/lib/server/client-ip";
 import { prisma } from "@/lib/server/prisma";
 import { grantPsychologist, hasRole, revokePsychologist, setPsyStatus } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await parseBody(req, patchSchema);
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const ip = clientIp(req);
 
     if (body.grantPro) {
       const days = Math.min(365, Math.max(1, Math.round(Number(body.grantPro.days) || 30)));

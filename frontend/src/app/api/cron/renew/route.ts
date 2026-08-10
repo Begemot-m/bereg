@@ -5,7 +5,7 @@ import { renewDueSubscriptions } from "@/lib/server/renew";
 export const runtime = "nodejs";
 
 // Дёргается по расписанию (crontab на сервере, раз в сутки):
-//   curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://murpsy.ru/api/cron/renew
+//   curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://chronika.space/api/cron/renew
 // Без секрета в окружении эндпоинт всегда отвечает 401 — публично не доступен.
 export async function POST(req: NextRequest) {
   const secret = process.env.CRON_SECRET;

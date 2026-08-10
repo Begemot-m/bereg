@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 
+import { clientIp } from "@/lib/server/client-ip";
 import { prisma } from "@/lib/server/prisma";
 
 /**
@@ -31,7 +32,7 @@ export async function audit(
         entityId: entry.entityId ?? null,
         meta: (entry.meta ?? {}) as object,
         userAgent: req.headers.get("user-agent")?.slice(0, 300) ?? null,
-        ip: (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
+        ip: clientIp(req),
       },
     });
   } catch (error) {

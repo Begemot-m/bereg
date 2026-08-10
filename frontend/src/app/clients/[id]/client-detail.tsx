@@ -7,7 +7,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/icons";
-import { MoodStats } from "@/components/mood-stats";
+import { EmotionChips, MoodStats, topEmotions } from "@/components/mood-stats";
 import { PsychologistHomeworkPreview } from "@/components/psychologist-homework";
 import { PsychologistSessionJourney } from "@/components/session-reflections";
 import { TherapistBoardView } from "@/components/therapy-work";
@@ -73,6 +73,8 @@ export function ClientDetail() {
   const { data: appts = [] } = useQuery({ queryKey: ["appointments", id], queryFn: () => listAppointments(id) });
   const { data: homework = [] } = useQuery({ queryKey: ["homework", id], queryFn: () => listHomework(id) });
   const { data: moods = [] } = useQuery({ queryKey: ["moods", id], queryFn: () => listMoods(id) });
+  // В свёрнутом виде хватает трёх: длинный список плашек ломает миниатюру.
+  const topMoodEmotions = useMemo(() => topEmotions(moods, 3), [moods]);
   const { data: therapy } = useQuery({ queryKey: ["client-therapy", id], queryFn: () => getClientTherapy(id) });
   const notesModule = useMutation({
     mutationFn: (enabled: boolean) => setClientNotesModule(id, enabled),
@@ -246,6 +248,9 @@ export function ClientDetail() {
             <div className="min-w-0 flex-1">
               <p className="t-head">Состояние клиента</p>
               <p className="t-cap mt-1">{moods.length ? `Настроение и колесо баланса · ${moods.length} ${plural(moods.length, "отметка", "отметки", "отметок")}` : "Настроение и колесо баланса"}</p>
+              {/* С чем клиент приходит чаще всего — видно до раскрытия: ради
+                  этого карточку и открывают, разворачивать за этим не надо */}
+              {topMoodEmotions.length > 0 && <div className="mt-2"><EmotionChips items={topMoodEmotions} /></div>}
             </div>
             <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{stateOpen ? "↑" : "↓"}</span>
           </button>

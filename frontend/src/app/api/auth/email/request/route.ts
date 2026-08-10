@@ -4,7 +4,8 @@ import { audit } from "@/lib/server/audit";
 import { otpLetter, sendMail } from "@/lib/server/mail";
 import { issueCode, looksLikeEmail, normalizeEmail } from "@/lib/server/otp";
 import { prisma } from "@/lib/server/prisma";
-import { LIMITS, clientIp, limited } from "@/lib/server/rate-limit";
+import { clientIp } from "@/lib/server/client-ip";
+import { LIMITS, limited } from "@/lib/server/rate-limit";
 
 export const runtime = "nodejs";
 

@@ -20,6 +20,26 @@ const monthLabel = (date: Date) => {
 
 const dayKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
+/** Самые частые эмоции с их количеством, по убыванию. */
+export function topEmotions(moods: Mood[], limit = 6): [string, number][] {
+  const counts = new Map<string, number>();
+  for (const entry of moods) for (const name of entry.emotions ?? []) counts.set(name, (counts.get(name) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+
+/** Плашки эмоций: цвет — по валентности, как у точек на линии настроения. */
+export function EmotionChips({ items, showCount = true }: { items: [string, number][]; showCount?: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map(([name, count]) => (
+        <span key={name} className="chip" style={{ background: moodColor(emotionValence(name)), color: "#fff" }}>
+          {showCount ? `${name} · ${count}` : name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // Динамика настроения: линия за период + календарь месяца + частые эмоции.
 export function MoodStats({ moods, title = "Настроение", compact }: { moods: Mood[]; title?: string; compact?: boolean }) {
   const [range, setRange] = useState<7 | 30>(compact ? 7 : 30);
@@ -51,11 +71,7 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
     ? avgOf(marked.slice(half)) - avgOf(marked.slice(0, half))
     : 0;
 
-  const top = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const entry of moods) for (const name of entry.emotions ?? []) counts.set(name, (counts.get(name) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
-  }, [moods]);
+  const top = useMemo(() => topEmotions(moods), [moods]);
 
   return (
     <div className="overflow-hidden rounded-[18px] bg-white" style={{ border: "var(--bw-lg) solid var(--edge-neutral)" }}>
@@ -82,11 +98,7 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
       {top.length > 0 && (
         <div className="line-top p-3.5">
           <p className="mb-2 text-[9px] font-black uppercase tracking-[.1em] text-[var(--muted)]">Частые эмоции</p>
-          <div className="flex flex-wrap gap-1.5">
-            {top.map(([name, count]) => (
-              <span key={name} className="chip" style={{ background: moodColor(emotionValence(name)), color: "#fff" }}>{name} · {count}</span>
-            ))}
-          </div>
+          <EmotionChips items={top} />
         </div>
       )}
 

@@ -8,6 +8,8 @@
 // Алгоритм — скользящее окно по меткам времени: точнее фиксированного окна,
 // в которое можно уложить двойную норму на стыке двух периодов.
 
+import { clientIpKey } from "@/lib/server/client-ip";
+
 type Bucket = { hits: number[] };
 
 const buckets = new Map<string, Bucket>();
@@ -55,12 +57,6 @@ export function hit(key: string, { limit, windowMs }: Limit): { ok: boolean; ret
   return { ok: true, retryAfter: 0 };
 }
 
-/** Адрес запроса: за Caddy настоящий IP приходит в X-Forwarded-For. */
-export function clientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  return fwd?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
-}
-
 /**
  * Обёртка для роутов: вернёт готовый 429, если лимит исчерпан, иначе null.
  *
@@ -68,7 +64,7 @@ export function clientIp(req: Request): string {
  *   if (stop) return stop;
  */
 export function limited(req: Request, scope: string, mode: Limit): Response | null {
-  const { ok, retryAfter } = hit(`${scope}:${clientIp(req)}`, mode);
+  const { ok, retryAfter } = hit(`${scope}:${clientIpKey(req)}`, mode);
   if (ok) return null;
   return new Response(
     JSON.stringify({ error: "too_many_requests", message: "Слишком часто. Попробуйте чуть позже.", retryAfter }),

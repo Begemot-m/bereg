@@ -6,7 +6,8 @@ import { env } from "@/lib/server/env";
 import { emailConfirmationLetter, mailReady, sendMail } from "@/lib/server/mail";
 import { issueEmailToken, normalizeEmail } from "@/lib/server/otp";
 import { prisma } from "@/lib/server/prisma";
-import { clientIp, LIMITS, limited } from "@/lib/server/rate-limit";
+import { clientIp } from "@/lib/server/client-ip";
+import { LIMITS, limited } from "@/lib/server/rate-limit";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { assertSameOrigin } from "@/lib/server/sessions";
 

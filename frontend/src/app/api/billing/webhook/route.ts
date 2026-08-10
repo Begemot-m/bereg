@@ -2,13 +2,26 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { recordPayment } from "@/lib/server/payments";
 import { prisma } from "@/lib/server/prisma";
+import { hit } from "@/lib/server/rate-limit";
 import { getPayment } from "@/lib/server/yookassa";
 
 export const runtime = "nodejs";
 
 // Вебхук ЮKassa. Тело клиента не доверяем: берём payment.id и перезапрашиваем
 // платёж из API — это и есть проверка подлинности. Обработка идемпотентна.
+//
+// Проверки Origin у него нет (ЮKassa его не шлёт), так что дёрнуть роут может
+// кто угодно, и каждый вызов уходит запросом в API ЮKassa. Подделать оплату
+// так нельзя, но выжечь их квоту и занять воркеры — вполне, поэтому потолок
+// общий на весь эндпоинт, а не по адресу: у ЮKassa адреса свои и меняются.
+const WEBHOOK_LIMIT = { limit: 120, windowMs: 60_000 };
+
 export async function POST(req: NextRequest) {
+  if (!hit("yookassa-webhook", WEBHOOK_LIMIT).ok) {
+    // 503 просит ЮKassa повторить позже — их вебхук переживает это спокойно.
+    return NextResponse.json({ error: "busy" }, { status: 503 });
+  }
+
   let event: { event?: string; object?: { id?: string } };
   try {
     event = await req.json();

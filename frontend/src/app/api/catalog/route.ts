@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { catalogPlacement } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { buildPsyCards } from "@/lib/server/psy-card";
+import { LIMITS, limited } from "@/lib/server/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,11 @@ export const runtime = "nodejs";
 // Отдаём только опубликованные анкеты и только публичные поля — точный адрес
 // и контакты сюда не попадают, они открываются после подтверждённой записи.
 export async function GET(req: NextRequest) {
+  // Данные тут и так публичные, но выкачивать каталог целиком скриптом ни к
+  // чему: живому человеку хватает с запасом.
+  const stop = limited(req, "catalog", LIMITS.public);
+  if (stop) return stop;
+
   const url = new URL(req.url);
   const format = url.searchParams.get("format");
   const maxPrice = Number(url.searchParams.get("maxPrice") ?? 0);

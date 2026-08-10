@@ -27,12 +27,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       // просмотра дипломов модератором «просто так».
       await audit(req, { userId: user.id, action: "admin.document.view", entity: "PsyDocument", entityId: String(doc.id) });
     }
+    // Картинку показываем прямо в модерации, а PDF отдаём файлом: он умеет
+    // исполнять свой скрипт, а открытый inline — делает это на нашем домене.
+    const disposition = doc.mime === "application/pdf" ? "attachment" : "inline";
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "content-type": doc.mime,
         "content-length": String(bytes.length),
-        "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(doc.name)}`,
+        "content-disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(doc.name)}`,
         "cache-control": "private, no-store",
+        "x-content-type-options": "nosniff",
       },
     });
   } catch (e) {
