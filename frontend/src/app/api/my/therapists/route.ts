@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
+import { canWorkWithPsy } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { psyCardsByIds, type PsyCard } from "@/lib/server/psy-card";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -93,8 +94,9 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Нельзя закрепить самого себя" }, { status: 422 });
     }
 
-    const psy = await prisma.psyProfile.findUnique({ where: { userId: body.psychologistId }, select: { status: true } });
-    if (!psy || psy.status !== "approved") {
+    // Открепиться можно от кого угодно: связь уже есть, и держать её из-за
+    // статуса анкеты бессмысленно.
+    if (body.action !== "detach" && !(await canWorkWithPsy(user.id, body.psychologistId))) {
       return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
     }
 

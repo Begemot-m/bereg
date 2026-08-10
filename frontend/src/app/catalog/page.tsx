@@ -44,7 +44,9 @@ import {
   type SortMode,
   type Tone,
 } from "@/lib/catalog";
+import { DEMO } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
+import { useMe } from "@/lib/me";
 import { publicRules } from "@/lib/profile-rules";
 import { bookSlot } from "@/lib/mybookings";
 import { useProfile } from "@/lib/profile";
@@ -95,6 +97,7 @@ function yearsWord(value: number) {
 export default function CatalogPage() {
   const router = useRouter();
   const profile = useProfile();
+  const { data: me } = useMe();
   const { data: subscription } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   // Свой график — источник окон для собственной карточки в каталоге: заполнил
   // расписание, и подборка уже учитывает его дни и время.
@@ -121,21 +124,27 @@ export default function CatalogPage() {
     const id = Number(params.get("psy"));
     if (!id) return;
     setInvited(params.get("book") === "1");
-    // Своя анкета в каталоге может быть не опубликована — тогда собираем её
-    // из профиля, иначе приглашение вело бы в пустоту.
-    // Своя карточка собирается из анкеты всегда: предпросмотр нужен и до
-    // модерации, иначе кнопка из профиля высаживала бы в общий каталог.
-    const psy = PSYS.find((item) => item.id === id)
-      ?? (id === OWN_PROFILE_ID && profile ? profileToCatalogPsy(profile, work) : undefined);
-    if (psy) { setSelected(psy); setSurveyOpen(false); return; }
-    // Боевой каталог живёт на сервере: по ссылке приходит настоящий id, и
-    // карточку надо забрать оттуда, а не искать в демо-списке.
+    const demo = PSYS.find((item) => item.id === id);
+    if (demo) { setSelected(demo); setSurveyOpen(false); return; }
+    // Свой предпросмотр берём с сервера по настоящему id: локальная сборка
+    // считала «ближайшее окно» по шаблону недели, и психолог видел у себя не то
+    // число, что клиент. Сервера нет (демо) или анкета ещё не сохранена —
+    // собираем карточку из профиля, иначе кнопка из анкеты вела бы в пустоту.
+    const own = id === OWN_PROFILE_ID;
+    const fallback = own && profile ? profileToCatalogPsy(profile, work) : undefined;
+    const serverId = own ? (DEMO ? undefined : me?.id) : id;
+    const showFallback = () => { if (fallback) { setSelected(fallback); setSurveyOpen(false); } };
+    if (!serverId) { showFallback(); return; }
     let alive = true;
-    getCatalogPsy(id)
-      .then((row) => { if (alive && row) { setSelected(row); setSurveyOpen(false); } })
-      .catch(() => { /* карточки нет — остаёмся в общем каталоге */ });
+    getCatalogPsy(serverId)
+      .then((row) => {
+        if (!alive) return;
+        if (row) { setSelected(row); setSurveyOpen(false); return; }
+        showFallback();
+      })
+      .catch(() => { if (alive) showFallback(); /* иначе остаёмся в общем каталоге */ });
     return () => { alive = false; };
-  }, [profile, work]);
+  }, [profile, work, me?.id]);
 
   useEffect(() => {
     try {
@@ -334,9 +343,11 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       {/* Действия — сразу под именем, а не через полэкрана */}
       <div className="mt-3.5 flex gap-2">
         <AttachTherapistButton name={psy.name} psyId={psy.id} card={psy} />
-        <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn min-h-11 shrink-0 bg-[var(--ink)] px-4 text-white">
-          <Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать
-        </a>
+        {psy.tg && (
+          <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn min-h-11 shrink-0 bg-[var(--ink)] px-4 text-white">
+            <Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать
+          </a>
+        )}
       </div>
     </div>
 
@@ -569,6 +580,8 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
 }
 
 function TelegramPoster({ psy }: { psy: Psy }) {
+  // Ник указан не у всех: без него ссылка вела бы на пустой t.me/.
+  if (!psy.tg) return null;
   return (
     <div className="relative overflow-hidden rounded-[20px] p-5" style={{ background: "var(--head)" }}>
       <div className="relative flex items-start gap-3.5">

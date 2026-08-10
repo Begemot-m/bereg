@@ -2,6 +2,9 @@
 // Логика повторяет демо-мок один в один — клиентский код не должен заметить
 // подмены хранилища.
 
+import { buildAvailability, timeOfDay, type Availability, type DayGroup } from "@/lib/availability";
+import type { TimeOfDay } from "@/lib/catalog";
+import { canWorkWithPsy } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 
 export type SlotFormat = "online" | "offline";
@@ -82,8 +85,9 @@ export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>
 export async function resolveScheduleOwner(viewerId: number, psyParam: string | null): Promise<number | null> {
   const id = Number(psyParam);
   if (!psyParam || !Number.isInteger(id) || id <= 0 || id === viewerId) return viewerId;
-  const psy = await prisma.psyProfile.findUnique({ where: { userId: id }, select: { status: true } });
-  return psy?.status === "approved" ? id : null;
+  // Приглашённый клиент видит окна и до верификации: иначе он открывает анкету
+  // специалиста, который его позвал, и получает пустой календарь.
+  return (await canWorkWithPsy(viewerId, id)) ? id : null;
 }
 
 /** Правки окон в виде, в котором их ждёт клиент: ключ — ISO начала окна. */
@@ -262,6 +266,36 @@ export function nextFreeSlotDays(
     if (slots.some((s) => !s.taken)) return i === 0 ? 1 : i;
   }
   return days;
+}
+
+/**
+ * Слепок доступности по реально свободным окнам, а не по шаблону недели.
+ * Шаблон не знает ни про снятые даты, ни про уже занятое время: фильтр «когда
+ * удобно» показывал специалиста на вечер, который занят вторую неделю подряд.
+ */
+export function freeAvailability(
+  work: WorkHoursDTO,
+  busy: Busy[],
+  overrides: Record<string, OverrideDTO>,
+  days = 14,
+): Availability {
+  const dayGroups = new Set<DayGroup>();
+  const times = new Set<TimeOfDay>();
+  let slots = 0;
+  const base = new Date();
+  base.setHours(0, 0, 0, 0);
+  for (let i = 0; i < days; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+    const group: DayGroup = (d.getDay() + 6) % 7 >= 5 ? "weekends" : "weekdays";
+    for (const slot of slotsFor(work, ymd(d), busy, overrides, true)) {
+      if (slot.taken) continue;
+      slots++;
+      dayGroups.add(group);
+      times.add(timeOfDay(`${String(new Date(slot.start).getHours()).padStart(2, "0")}:00`));
+    }
+  }
+  return buildAvailability(dayGroups, times, slots);
 }
 
 /** Занятые интервалы психолога: всё, что не отменено. */

@@ -1,7 +1,7 @@
-import { availabilityFromWorkHours } from "@/lib/availability";
+import { EMPTY_AVAILABILITY, type Availability } from "@/lib/availability";
 import { publicRules } from "@/lib/profile-rules";
 import { prisma } from "@/lib/server/prisma";
-import { horizon, nextFreeSlotDays, type OverrideDTO, type WorkHoursDTO } from "@/lib/server/schedule";
+import { freeAvailability, horizon, nextFreeSlotDays, type OverrideDTO, type WorkHoursDTO } from "@/lib/server/schedule";
 
 // Единственная сборка публичной карточки специалиста. Раньше её умел только
 // каталог, а раздел «Терапия» получал из `/my/therapists` голые id с именем и
@@ -17,7 +17,7 @@ function mapCard(row: PsyProfileRow, ctx: {
   reviews: number;
   sessions: number;
   nextDays: number;
-  availability: ReturnType<typeof availabilityFromWorkHours>;
+  availability: Availability;
 }) {
   const data = (row.data as Record<string, unknown>) ?? {};
   const location = (data.location ?? {}) as Record<string, unknown>;
@@ -54,10 +54,18 @@ function mapCard(row: PsyProfileRow, ctx: {
     quote: data.quote ?? "",
     photos: data.photos ?? [],
     portrait: (data.photos as string[] | undefined)?.[0] ?? "",
-    // Из адреса — только город и район: точное место после записи.
     city: location.city ?? row.city ?? "",
     district: location.district ?? "",
     metro: location.metro ?? "",
+    // Точный адрес — только если специалист сам открыл его в анкете; иначе
+    // карточка честно говорит, что место есть и его назовут после записи.
+    address: location.publicExactAddress ? String(location.address ?? "").trim() || undefined : undefined,
+    publicExactAddress: Boolean(location.publicExactAddress),
+    privateAddressAvailable: !location.publicExactAddress && Boolean(String(location.address ?? "").trim()),
+    // Контакты из анкеты каталог наружу не отдавал вовсе — в бою блок
+    // «Написать в Telegram» работал только на своей карточке.
+    tg: String(data.tg ?? "").trim().replace(/^@/, ""),
+    links: Array.isArray(data.links) ? data.links : [],
     // Статус анкеты нужен разделу «Терапия»: закреплённый специалист может
     // ещё не пройти верификацию, и карточка должна сказать об этом честно,
     // вместо того чтобы молча притворяться каталожной.
@@ -112,19 +120,17 @@ export async function buildPsyCards(rows: PsyProfileRow[]): Promise<PsyCard[]> {
 
   return rows.map((row) => {
     const work = workOf.get(row.userId);
-    const hours = (work?.hours ?? {}) as Record<number, { t: string }[]>;
+    const dto = work ? { ...work, hours: (work.hours ?? {}) as WorkHoursDTO["hours"] } : null;
+    const busy = busyOf.get(row.userId) ?? [];
+    const overrides = overridesOf.get(row.userId) ?? {};
     return mapCard(row, {
       rating: reviewOf.get(row.userId)?.rating ?? 0,
       reviews: reviewOf.get(row.userId)?.count ?? 0,
       sessions: doneOf.get(row.userId) ?? 0,
-      availability: availabilityFromWorkHours({ hours }),
-      nextDays: work
-        ? nextFreeSlotDays(
-            { ...work, hours: (work.hours ?? {}) as WorkHoursDTO["hours"] },
-            busyOf.get(row.userId) ?? [],
-            overridesOf.get(row.userId) ?? {},
-          )
-        : 14,
+      // Доступность считаем по свободным окнам, а не по шаблону недели: иначе
+      // фильтр «когда удобно» обещает время, которое уже занято.
+      availability: dto ? freeAvailability(dto, busy, overrides) : EMPTY_AVAILABILITY,
+      nextDays: dto ? nextFreeSlotDays(dto, busy, overrides) : 14,
     });
   });
 }

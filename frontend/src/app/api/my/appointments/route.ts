@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
+import { canWorkWithPsy } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { leadBlocked } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -78,8 +79,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Нельзя записаться в прошлое" }, { status: 422 });
     }
 
+    // Неодобренная анкета закрыта для всех, кроме тех, кого этот психолог
+    // позвал сам: анкету по приглашению человек уже видит, и упираться в
+    // «специалист не найден» на кнопке записи ему незачем.
     const psy = await prisma.psyProfile.findUnique({ where: { userId: psychologistId } });
-    if (!psy || psy.status !== "approved") {
+    if (!psy || !(await canWorkWithPsy(user.id, psychologistId))) {
       return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
     }
 

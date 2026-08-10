@@ -26,6 +26,17 @@ const TIME_ORDER: TimeOfDay[] = ["morning", "day", "evening"];
  * Отсюда фильтр «когда удобно» и берёт правду: заполнил специалист график —
  * его окна сразу участвуют в подборе, без отдельной ручной отметки.
  */
+/** Собрать слепок из набранных дней и времён в порядке, который ждёт интерфейс. */
+export function buildAvailability(days: Iterable<DayGroup>, times: Iterable<TimeOfDay>, slots: number): Availability {
+  const daySet = new Set(days);
+  const timeSet = new Set(times);
+  return {
+    days: DAY_ORDER.filter((day) => daySet.has(day)),
+    times: TIME_ORDER.filter((time) => timeSet.has(time)),
+    slots,
+  };
+}
+
 export function availabilityFromWorkHours(work: ScheduleHours | null | undefined): Availability {
   const hours = work?.hours ?? {};
   const days = new Set<DayGroup>();
@@ -39,11 +50,7 @@ export function availabilityFromWorkHours(work: ScheduleHours | null | undefined
     slots += list.length;
     for (const slot of list) times.add(timeOfDay(slot.t));
   }
-  return {
-    days: DAY_ORDER.filter((day) => days.has(day)),
-    times: TIME_ORDER.filter((time) => times.has(time)),
-    slots,
-  };
+  return buildAvailability(days, times, slots);
 }
 
 const hit = <T>(a: T[], b: T[]) => a.filter((item) => b.includes(item)).length;

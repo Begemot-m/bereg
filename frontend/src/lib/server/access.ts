@@ -182,6 +182,27 @@ export async function psyApproved(userId: number): Promise<boolean> {
   return psy?.status === "approved";
 }
 
+/**
+ * Может ли клиент работать с этим специалистом: записаться, закрепить, увидеть
+ * расписание. Одобренная анкета открыта всем, но человека, которого психолог
+ * позвал сам, верификация задерживать не должна — анкету по прямой ссылке он
+ * уже видит, а прикрепиться и записаться не мог.
+ */
+export async function canWorkWithPsy(clientUserId: number, psychologistId: number): Promise<boolean> {
+  const psy = await prisma.psyProfile.findUnique({ where: { userId: psychologistId }, select: { status: true } });
+  if (!psy) return false;
+  if (psy.status === "approved") return true;
+
+  const [card, link] = await Promise.all([
+    prisma.client.findFirst({ where: { userId: clientUserId, psychologistId }, select: { id: true } }),
+    prisma.therapistLink.findUnique({
+      where: { clientUserId_psychologistId: { clientUserId, psychologistId } },
+      select: { detached: true },
+    }),
+  ]);
+  return Boolean(card) || Boolean(link && !link.detached);
+}
+
 export const NOT_APPROVED = {
   error: "not_approved",
   message: "Принимать клиентов можно после подтверждения анкеты. Заявка на верификацию — в кабинете.",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { nextFreeSlotDays, type WorkHoursDTO } from "./schedule";
+import { freeAvailability, nextFreeSlotDays, type WorkHoursDTO } from "./schedule";
 
 // Каталог обещает «ближайшее окно через N дней». Пока это считалось по одному
 // шаблону недели, снятая дата и занятое окно в расчёт не входили — карточка
@@ -59,5 +59,30 @@ describe("nextFreeSlotDays", () => {
 
   it("правило предварительной записи отодвигает ближайшее окно", () => {
     expect(nextFreeSlotDays({ ...work(LATE), leadDaysOnline: 3 }, [], {})).toBe(3);
+  });
+});
+
+// Фильтр «когда удобно» раньше смотрел на шаблон недели: специалист попадал в
+// подборку на вечер, который занят на две недели вперёд.
+describe("freeAvailability", () => {
+  it("без графика — пустая доступность", () => {
+    expect(freeAvailability(work({}), [], {})).toEqual({ days: [], times: [], slots: 0 });
+  });
+
+  it("свободные вечерние окна дают будни, выходные и вечер", () => {
+    const availability = freeAvailability(work(LATE), [], {});
+    expect(availability.times).toEqual(["evening"]);
+    expect(availability.days).toEqual(["weekdays", "weekends"]);
+    expect(availability.slots).toBeGreaterThan(10);
+  });
+
+  it("занятые окна в доступность не попадают", () => {
+    const busy = Array.from({ length: 14 }, (_, i) => ({ start: slotIso(i), minutes: 50 }));
+    expect(freeAvailability(work(LATE), busy, {})).toEqual({ days: [], times: [], slots: 0 });
+  });
+
+  it("снятые даты в доступность не попадают", () => {
+    const overrides = Object.fromEntries(Array.from({ length: 14 }, (_, i) => [slotIso(i), { removed: true }]));
+    expect(freeAvailability(work(LATE), [], overrides).slots).toBe(0);
   });
 });

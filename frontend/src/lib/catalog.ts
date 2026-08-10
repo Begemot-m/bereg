@@ -44,6 +44,8 @@ export type Psy = {
   exposure: number;
   newcomer: boolean;
   tg: string;
+  /** Сайт и соцсети из анкеты — то же, что специалист показывает у себя. */
+  links?: { kind: string; url: string }[];
   about: string;
   firstSession?: string;
   education: string[];
@@ -231,6 +233,7 @@ export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | 
     exposure: 0,
     newcomer: true,
     tg: profile.tg.trim().replace(/^@/, ""),
+    links: profile.links.filter((link) => link.url.trim()),
     about: profile.about.trim(),
     firstSession: profile.firstSession.trim() || undefined,
     education: profile.education.map((item) => item.trim()).filter(Boolean),
@@ -288,6 +291,9 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     city: text(row.city),
     district: text(row.district) || undefined,
     metro: text(row.metro) || undefined,
+    address: text(row.address) || undefined,
+    publicExactAddress: Boolean(row.publicExactAddress),
+    privateAddressAvailable: Boolean(row.privateAddressAvailable),
     gender: (row.gender === "woman" || row.gender === "man" ? row.gender : "unspecified"),
     languages: list(row.languages),
     years: Number(row.years) || 0,
@@ -301,7 +307,10 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     // Новичок — тот, у кого ещё нет ни одной оценки. Раньше пометка стояла
     // у всех боевых карточек, включая работающих не первый год.
     newcomer: (Number(row.reviews) || 0) === 0,
-    tg: "",
+    // Контакт для связи приходит с сервера: без него кнопка «Написать в
+    // Telegram» в бою была видна только на собственной карточке.
+    tg: text(row.tg).replace(/^@/, ""),
+    links: Array.isArray(row.links) ? (row.links as Psy["links"]) : undefined,
     about: text(row.about),
     firstSession: text(row.firstSession) || undefined,
     education: list(row.education),
