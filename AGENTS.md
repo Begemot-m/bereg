@@ -81,8 +81,12 @@
 - VPS Beget: Ubuntu 24.04, Docker, 2 vCPU / 4 ГБ, публичный IP
   `213.139.208.92`, приватный IP `10.16.0.2`;
 - managed PostgreSQL Beget: `default_db`, приватный адрес `10.16.0.1:5432`;
-- текущий образ: `ghcr.io/begemot-m/bereg:sha-c34d1c8` (выкачен 10 августа 2026,
-  вечер: анкета психолога через сервер; применены все 15 миграций);
+- текущий образ: `ghcr.io/begemot-m/bereg:sha-a211d5f` (выкачен 10 августа 2026,
+  ночь: часовой пояс расписания; применены все 15 миграций, включая
+  `20260810200000_reviews` — оценки специалистов пишутся в базу). Вместе с
+  образом на сервер скопирован обновлённый `deploy/docker-compose.yml`: в нём
+  `TZ: ${APP_TIME_ZONE:-Europe/Moscow}` для `app` и `bot`, без него контейнер
+  жил в UTC. Прошлая версия лежит рядом как `docker-compose.yml.bak-tz`;
 - выкатка ручная и в два шага: в GitHub Actions запустить workflow
   «Build and deploy app» (соберёт образ `sha-<7 знаков>`), затем на VPS
   `cd /opt/bereg && ./deploy.sh ghcr.io/begemot-m/bereg:sha-<тег>`. SSH-шаг

@@ -54,6 +54,16 @@ const reviewSchema = z.object({
   text: z.string().max(2000).optional(),
 });
 
+// Встреча считается состоявшейся так же, как в дневнике сессий: либо психолог
+// отметил её проведённой, либо время уже прошло и её не отменили. Прежняя
+// проверка требовала только статус `done`, а его ставят руками — клиент сходил
+// на сессию и упирался в «оценить можно после встречи».
+const attendedWhere = (psychologistId: number, userId: number) => ({
+  psychologistId,
+  client: { userId },
+  OR: [{ status: "done" }, { status: { not: "cancelled" }, startsAt: { lt: new Date() } }],
+});
+
 // Оценку ставит только тот, у кого со специалистом была встреча: иначе рейтинг
 // накручивается с любого свежего аккаунта.
 export async function POST(req: NextRequest) {
@@ -65,11 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     const attended = await prisma.appointment.findFirst({
-      where: {
-        psychologistId: body.psychologistId,
-        client: { userId: user.id },
-        status: "done",
-      },
+      where: attendedWhere(body.psychologistId, user.id),
       select: { id: true },
     });
     if (!attended) {

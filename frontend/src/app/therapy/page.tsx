@@ -25,6 +25,7 @@ import { bookSlot, cancelMyBooking } from "@/lib/mybookings";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState, type WheelAnswers } from "@/lib/therapy";
+import { serverMessage } from "@/lib/api";
 import { asset } from "@/lib/asset";
 import { select, success, tap } from "@/lib/haptics";
 import { getReviews, rateTherapist } from "@/lib/reviews";
@@ -212,20 +213,24 @@ function FindTherapistBlock() {
 function RatingRow({ psyId, name }: { psyId: number | undefined; name: string }) {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["reviews", psyId ?? null], queryFn: () => getReviews(psyId as number), enabled: Boolean(psyId) });
-  const [denied, setDenied] = useState(false);
+  const [denied, setDenied] = useState("");
   const mine = data?.list.find((r) => r.mine)?.rating ?? 0;
   const rate = useMutation({
     mutationFn: (value: number) => rateTherapist(psyId as number, value),
-    onSuccess: (next) => { success(); qc.setQueryData(["reviews", psyId ?? null], next); qc.invalidateQueries({ queryKey: ["catalog"] }); },
-    onError: () => setDenied(true),
+    onSuccess: (next) => { success(); setDenied(""); qc.setQueryData(["reviews", psyId ?? null], next); qc.invalidateQueries({ queryKey: ["catalog"] }); },
+    // Раньше строка на отказе просто исчезала: человек жал звезду и не понимал,
+    // сохранилось или нет. Сервер отвечает человеческим текстом — его и покажем.
+    onError: (e: Error) => setDenied(serverMessage(e) || "Оценка не сохранилась — попробуйте позже"),
   });
 
-  if (!psyId || denied) return null;
+  if (!psyId) return null;
   return (
     <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[14px] px-3 py-2" style={{ background: "var(--page)" }}>
       <span className="min-w-0">
         <span className="block text-[11.5px] font-black">{mine ? "Ваша оценка" : `Как вам работа с ${name.split(" ")[0]}?`}</span>
-        {Boolean(data?.count) && <span className="t-cap block">Средняя {data?.rating} · {data?.count} оценок</span>}
+        {denied
+          ? <span className="t-cap block" style={{ color: "var(--rose-edge, var(--muted))" }}>{denied}</span>
+          : Boolean(data?.count) && <span className="t-cap block">Средняя {data?.rating} · {data?.count} оценок</span>}
       </span>
       <span className="flex shrink-0 gap-0.5">
         {[1, 2, 3, 4, 5].map((value) => (

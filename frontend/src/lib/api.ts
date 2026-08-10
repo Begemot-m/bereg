@@ -47,6 +47,21 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return res.json() as Promise<T>;
 }
 
+/**
+ * Человеческий текст из ошибки `apiFetch`. Он склеивает статус с телом ответа
+ * (`API 403: {"error":"…"}`), а показывать пользователю надо только `error`.
+ */
+export function serverMessage(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e);
+  const body = raw.slice(raw.indexOf("{"));
+  try {
+    const parsed = JSON.parse(body) as { error?: unknown };
+    return typeof parsed.error === "string" ? parsed.error : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function hasLiveSession(): Promise<boolean> {
   const res = await fetch(`${API_URL}/auth/me`);
   if (res.ok) return true;
