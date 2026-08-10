@@ -22,9 +22,50 @@ export function getRole(): Role {
 }
 
 export function setRole(role: Role) {
+  const changed = getRole() !== role;
   localStorage.setItem(KEY, role);
+  lastLocalChoice = Date.now();
+  window.dispatchEvent(new CustomEvent(EVENT));
+  // Роль в базе трогаем только при настоящей смене: оболочка вызывает setRole
+  // на каждом входе по ссылке, и без этой проверки каждый такой заход писал
+  // в базу то, что там и так лежит.
+  if (changed) void pushRole(role);
+}
+
+/**
+ * Выбор роли уезжает в базу. Пока он жил только в localStorage, человек,
+ * зарегистрировавшийся психологом с телефона, открывал на десктопе
+ * клиентский интерфейс — там роли просто не было.
+ *
+ * «Гость» на сервер не отправляем: это состояние экрана до входа, а не роль
+ * аккаунта.
+ */
+async function pushRole(role: Role) {
+  if (role === "guest") return;
+  const { apiFetch } = await import("@/lib/api");
+  await apiFetch("/profile/role", { method: "POST", body: JSON.stringify({ active: role }) }).catch(() => {});
+}
+
+/**
+ * Роль, сохранённая на сервере, применяется к этому устройству. Свежий
+ * локальный выбор не перебиваем: ответ отстаёт на секунду-другую, а человек
+ * мог за это время переключиться сам.
+ */
+export function applyServerRole(active: Role, roles: Role[]) {
+  if (typeof window === "undefined") return;
+  if (Date.now() - lastLocalChoice < 10_000) return;
+  // Переключатель ролей в кабинете показывается по намерению. Оно приходит
+  // отсюда же: роль психолога есть в аккаунте — значит есть и намерение,
+  // даже когда человек сейчас работает клиентом.
+  const intent: Role = roles.includes("psychologist") ? "psychologist" : "client";
+  const changed = getRole() !== active || getRoleIntent() !== intent;
+  if (!changed) return;
+  localStorage.setItem(KEY, active);
+  localStorage.setItem(INTENT_KEY, intent);
   window.dispatchEvent(new CustomEvent(EVENT));
 }
+
+let lastLocalChoice = 0;
 
 // Что человек выбрал в онбординге. Нужно ровно для переключателя ролей в
 // кабинете: тому, кто зашёл клиентом и не имеет учётной записи психолога,

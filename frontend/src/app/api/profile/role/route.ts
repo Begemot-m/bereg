@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { audit } from "@/lib/server/audit";
+import { prisma } from "@/lib/server/prisma";
 import { grantPsychologist, hasRole, rolesOf } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 
@@ -14,11 +15,21 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    if (!hasRole(user, "psychologist")) {
+    // active — в какой роли человек работает сейчас. Без него запрос означает
+    // «выдай роль психолога», как и раньше.
+    const body = (await req.json().catch(() => ({}))) as { active?: string };
+    const wantsClient = body.active === "client";
+
+    if (!wantsClient && !hasRole(user, "psychologist")) {
       await grantPsychologist(user.id);
       await audit(req, { userId: user.id, action: "psy.role.claim" });
     }
-    return NextResponse.json({ roles: [...new Set([...rolesOf(user), "psychologist"])] });
+
+    const roles = wantsClient ? rolesOf(user) : [...new Set([...rolesOf(user), "psychologist"])];
+    const activeRole = wantsClient ? "client" : "psychologist";
+    await prisma.user.update({ where: { id: user.id }, data: { activeRole } });
+
+    return NextResponse.json({ roles, activeRole });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

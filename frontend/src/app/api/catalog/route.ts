@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { availabilityFromWorkHours, nextSlotDays } from "@/lib/availability";
+import { availabilityFromWorkHours } from "@/lib/availability";
 import { publicRules } from "@/lib/profile-rules";
 import { catalogPlacement } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
+import { horizon, nextFreeSlotDays, type OverrideDTO, type WorkHoursDTO } from "@/lib/server/schedule";
 
 export const runtime = "nodejs";
 
@@ -56,24 +57,55 @@ export async function GET(req: NextRequest) {
 
   // Окна для фильтра «когда удобно» берём из графика специалиста: заполнил
   // расписание — его дни и время сразу участвуют в подборке.
-  const schedules = await prisma.workHours.findMany({
-    where: { userId: { in: rows.map((row) => row.userId) } },
-    select: { userId: true, hours: true },
-  });
+  // Ближайшее окно считается по тому же расчёту, что и календарь записи:
+  // шаблон недели минус снятые даты минус занятые окна, с правилом
+  // предварительной записи. По одному шаблону карточка обещала запись раньше,
+  // чем её показывал календарь.
+  const ids = rows.map((row) => row.userId);
+  const range = horizon(14);
+  const [schedules, overrideRows, busyRows] = await Promise.all([
+    prisma.workHours.findMany({ where: { userId: { in: ids } } }),
+    prisma.slotOverride.findMany({ where: { userId: { in: ids }, startsAt: { gte: range.from, lte: range.to } } }),
+    prisma.appointment.findMany({
+      where: { psychologistId: { in: ids }, status: { not: "cancelled" }, startsAt: { gte: range.from, lte: range.to } },
+      select: { psychologistId: true, startsAt: true, durationMin: true },
+    }),
+  ]);
+
+  const workOf = new Map(schedules.map((row) => [row.userId, row]));
+  const overridesOf = new Map<number, Record<string, OverrideDTO>>();
+  for (const row of overrideRows) {
+    const bag = overridesOf.get(row.userId) ?? {};
+    bag[row.startsAt.toISOString()] = {
+      ...(row.removed ? { removed: true } : {}),
+      ...(row.fmt ? { fmt: row.fmt as "online" | "offline" } : {}),
+    };
+    overridesOf.set(row.userId, bag);
+  }
+  const busyOf = new Map<number, { start: string; minutes: number }[]>();
+  for (const row of busyRows) {
+    const list = busyOf.get(row.psychologistId) ?? [];
+    list.push({ start: row.startsAt.toISOString(), minutes: row.durationMin });
+    busyOf.set(row.psychologistId, list);
+  }
   const scheduleOf = new Map(schedules.map((row) => [row.userId, (row.hours ?? {}) as Record<number, { t: string }[]>]));
 
   const psys = rows.map((row) => {
     const data = (row.data as Record<string, unknown>) ?? {};
     const location = (data.location ?? {}) as Record<string, unknown>;
     const hours = scheduleOf.get(row.userId);
+    const work = workOf.get(row.userId);
     const availability = availabilityFromWorkHours({ hours });
     return {
       availability: availability.slots ? availability : undefined,
       availableTimes: availability.times,
-      // Через сколько дней ближайшее окно — из настоящего графика. Раньше
-      // карточка всем писала «через 7 дней», и «запись на этой неделе»
-      // фильтровала не по расписанию, а по константе.
-      nextDays: nextSlotDays({ hours }),
+      nextDays: work
+        ? nextFreeSlotDays(
+            { ...work, hours: (work.hours ?? {}) as WorkHoursDTO["hours"] },
+            busyOf.get(row.userId) ?? [],
+            overridesOf.get(row.userId) ?? {},
+          )
+        : 14,
       id: row.userId,
       name: row.name,
       method: row.primaryMethod,

@@ -4,12 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
+import { applyServerRole, type Role } from "@/lib/role";
 
 export type Me = {
   id: number;
   username: string | null;
   firstName: string | null;
   roles: string[];
+  /** Роль, в которой человек работал в прошлый раз, — с любого устройства. */
+  activeRole?: Role;
   isAdmin: boolean;
 };
 
@@ -69,7 +72,14 @@ export function useMe() {
           isAdmin: username === DEMO_OWNER,
         };
       }
-      return apiFetch<Me>("/auth/me");
+      const me = await apiFetch<Me>("/auth/me");
+      // Роль приезжает вместе с профилем: отдельный запрос ради одного поля
+      // держал бы интерфейс в клиентском виде лишнюю секунду.
+      applyServerRole(
+        me.activeRole === "psychologist" ? "psychologist" : "client",
+        me.roles.filter((r): r is Role => r === "client" || r === "psychologist"),
+      );
+      return me;
     },
     staleTime: 5 * 60_000,
     retry: false,

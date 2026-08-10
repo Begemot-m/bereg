@@ -264,9 +264,11 @@ function CatalogEmpty({ filters, catalogEmpty, onRelax }: { filters: CatalogFilt
 function Portrait({ psy, size, tone = T[psy.tone] }: { psy: Psy; size: number; tone?: { bg: string; soft: string; edge: string } }) { const portrait = asset(psy.portrait); return <div className="relative shrink-0 overflow-hidden rounded-[18px]" style={{ width: size, height: Math.round(size * 1.12), border: `var(--bw-lg) solid ${tone.edge}`, background: tone.soft }}><Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes={`${size}px`} className="object-cover" priority unoptimized={isInlineImage(portrait)} /></div>; }
 
 // Кнопка «добавить терапевта в мой раздел Терапия» — вверху анкеты.
-function AttachTherapistButton({ name }: { name: string }) {
+// psyId обязателен: без него специалист закреплялся по одному имени, и раздел
+// «Терапия» потом не знал, чей график показывать для записи.
+function AttachTherapistButton({ name, psyId }: { name: string; psyId: number }) {
   const [attached, setAttached] = useState(() => isAttached(name));
-  const add = () => { if (attached) return; success(); attachTherapist(name); setAttached(true); };
+  const add = () => { if (attached) return; success(); attachTherapist(name, psyId); setAttached(true); };
   return (
     <button onClick={add} aria-disabled={attached} className={`btn min-h-11 shrink-0 px-4 ${attached ? "btn-soft" : "btn-accent"}`}>
       {attached ? <><Icon name="check" width={15} weight="bold" color="var(--edge)" /> В терапии</> : <><Icon name="plus" width={15} weight="bold" color="#fff" /> В терапию</>}
@@ -329,7 +331,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
 
       {/* Действия — сразу под именем, а не через полэкрана */}
       <div className="mt-3.5 flex gap-2">
-        <AttachTherapistButton name={psy.name} />
+        <AttachTherapistButton name={psy.name} psyId={psy.id} />
         <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn min-h-11 shrink-0 bg-[var(--ink)] px-4 text-white">
           <Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать
         </a>

@@ -19,6 +19,7 @@ const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => 
 import { APP_NAME } from "@/lib/brand";
 import { joinClientCard } from "@/lib/clients";
 import { select } from "@/lib/haptics";
+import { useMe } from "@/lib/me";
 import { useOnboarded } from "@/lib/profile";
 import { useAuth } from "@/lib/useAuth";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
@@ -73,6 +74,10 @@ function Wordmark({ small }: { small?: boolean }) {
 export function AppShell({ children }: { children: ReactNode }) {
   const { env, state: authState, reason: authReason, detail: authDetail } = useAuth();
   const qc = useQueryClient();
+  // Профиль читается на уровне оболочки, а не только в кабинете: из него
+  // приезжает роль, и до этого запроса интерфейс собирался клиентским даже у
+  // психолога, впервые открывшего приложение на другом устройстве.
+  useMe();
   const [role, setRole] = useRole();
   const pathname = usePathname();
   const router = useRouter();

@@ -1,12 +1,22 @@
 "use client";
 
-// Прикреплённые терапевты клиента: список + активный + удалённые вручную.
-// Хранится на устройстве; каталог добавляет сюда, раздел «Терапия» читает.
+// Прикреплённые терапевты клиента: список + активный + открепленные вручную.
+//
+// Источник правды — база (`/my/therapists`). localStorage остался кэшем: он
+// рисует раздел до ответа сервера и держит демо, где сервера нет вовсе.
+// Раньше кэш был единственным хранилищем — на втором устройстве раздел
+// «Терапия» открывался пустым, а специалист, прикреплённый из каталога,
+// приходил без id, и записаться к нему было некуда.
 export const THERAPISTS_KEY = "bereg_my_therapists_v1";
+
+import { apiFetch } from "@/lib/api";
+import { DEMO } from "@/lib/demo";
 
 // ids — имя специалиста → его userId. Без id запись на окно уходила бы «в
 // никуда»: сервер спрашивает, к кому записываемся, а имя ему ни о чём не говорит.
 export type TherapistStore = { list: string[]; removed: string[]; active: string | null; ids: Record<string, number> };
+
+export type TherapistLink = { id: number; name: string; active: boolean };
 
 export function loadTherapists(): TherapistStore {
   const base: TherapistStore = { list: [], removed: [], active: null, ids: {} };
@@ -23,14 +33,63 @@ export function saveTherapists(store: TherapistStore) {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("bereg:therapists"));
 }
 
+/** Ответ сервера ложится в кэш целиком: он и есть правда. */
+function applyServer(links: TherapistLink[]): TherapistStore {
+  const store = loadTherapists();
+  const ids: Record<string, number> = { ...store.ids };
+  for (const link of links) ids[link.name] = link.id;
+  const next: TherapistStore = {
+    ids,
+    list: links.map((l) => l.name),
+    removed: store.removed.filter((name) => !links.some((l) => l.name === name)),
+    active: links.find((l) => l.active)?.name ?? links[0]?.name ?? null,
+  };
+  saveTherapists(next);
+  return next;
+}
+
+/** Подтянуть список из базы. В демо сервера нет — работает кэш. */
+export async function syncTherapists(): Promise<TherapistStore> {
+  if (DEMO) return loadTherapists();
+  try {
+    return applyServer(await apiFetch<TherapistLink[]>("/my/therapists"));
+  } catch {
+    return loadTherapists();
+  }
+}
+
+async function pushLink(psyId: number, action: "attach" | "detach" | "active") {
+  if (DEMO || !psyId) return;
+  try {
+    applyServer(await apiFetch<TherapistLink[]>("/my/therapists", {
+      method: "PATCH",
+      body: JSON.stringify({ psychologistId: psyId, action }),
+    }));
+  } catch { /* останемся на кэше — следующая синхронизация подтянет */ }
+}
+
 // Прикрепить терапевта. Возвращает true, если добавили (false — уже был).
 export function attachTherapist(name: string, psyId?: number): boolean {
   const store = loadTherapists();
   const removed = store.removed.filter((n) => n !== name);
-  const ids = psyId ? { ...store.ids, [name]: psyId } : store.ids;
-  if (store.list.includes(name)) { saveTherapists({ ...store, ids, removed, active: store.active ?? name }); return false; }
-  saveTherapists({ ...store, ids, list: [...store.list, name], removed, active: store.active ?? name });
-  return true;
+  const id = psyId ?? store.ids[name];
+  const ids = id ? { ...store.ids, [name]: id } : store.ids;
+  const already = store.list.includes(name);
+  saveTherapists(
+    already
+      ? { ...store, ids, removed, active: store.active ?? name }
+      : { ...store, ids, list: [...store.list, name], removed, active: store.active ?? name },
+  );
+  if (id) void pushLink(id, "attach");
+  return !already;
+}
+
+/** Кого раздел «Терапия» открывает по умолчанию. */
+export function setActiveTherapist(name: string) {
+  const store = loadTherapists();
+  saveTherapists({ ...store, active: name });
+  const id = store.ids[name];
+  if (id) void pushLink(id, "active");
 }
 
 /** id специалиста по имени: из прикреплённых, иначе из уже сделанных записей. */
@@ -62,5 +121,7 @@ export function detachTherapist(name: string): TherapistStore {
     active: store.active === name ? list[0] ?? null : store.active,
   };
   saveTherapists(next);
+  const id = store.ids[name];
+  if (id) void pushLink(id, "detach");
   return next;
 }

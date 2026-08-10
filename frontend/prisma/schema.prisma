@@ -21,6 +21,10 @@ model User {
   /// заставляла выбирать одно и теряла вторую сторону при каждой смене.
   /// «client» есть у всех, «psychologist» добавляется заявкой на верификацию.
   roles      String[]  @default(["client"])
+  /// Роль, в которой человек работает сейчас. Жила только в localStorage:
+  /// зарегистрировался психологом с телефона — на десктопе открывался
+  /// клиентский интерфейс. Что роль вообще доступна, решает roles[].
+  activeRole String    @default("client") // client | psychologist
   /// Состояние верификации рядом с ролью: none | draft | review | approved |
   /// rejected. Дублирует PsyProfile.status, чтобы проверка прав не тянула
   /// вторую таблицу на каждом запросе.
@@ -59,6 +63,28 @@ model User {
   payments           Payment[]
   psyDocuments       PsyDocument[]
   visits             Visit[]
+  therapistLinks     TherapistLink[]    @relation("ClientLinks")
+  clientLinks        TherapistLink[]    @relation("PsychologistLinks")
+}
+
+/// Специалист, закреплённый клиентом в разделе «Терапия». Жил в localStorage:
+/// на втором устройстве список пропадал, а по имени без id нельзя было
+/// показать график специалиста для записи.
+model TherapistLink {
+  id             Int      @id @default(autoincrement())
+  client         User     @relation("ClientLinks", fields: [clientUserId], references: [id], onDelete: Cascade)
+  clientUserId   Int
+  psychologist   User     @relation("PsychologistLinks", fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId Int
+  /// Открепили вручную. Строка остаётся, иначе склейка с записями вернула бы
+  /// специалиста обратно на следующем открытии раздела.
+  detached  Boolean  @default(false)
+  /// Кого раздел «Терапия» открывает по умолчанию.
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([clientUserId, psychologistId])
+  @@index([clientUserId])
 }
 
 /// Заход в раздел приложения. Ни сессии, ни аудит на вопрос «сколько людей

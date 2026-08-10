@@ -241,6 +241,29 @@ export function monthAvailability(
   return out;
 }
 
+/**
+ * Через сколько дней у специалиста ближайшее свободное окно. Каталог считал
+ * это по одному шаблону недели — снятые даты и уже занятые окна в расчёт не
+ * входили, и карточка обещала запись раньше, чем её показывал календарь.
+ * 14 — «в ближайшие две недели окна нет».
+ */
+export function nextFreeSlotDays(
+  work: WorkHoursDTO,
+  busy: Busy[],
+  overrides: Record<string, OverrideDTO>,
+  days = 14,
+): number {
+  const base = new Date();
+  base.setHours(0, 0, 0, 0);
+  for (let i = 0; i < days; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+    const slots = slotsFor(work, ymd(d), busy, overrides, true);
+    if (slots.some((s) => !s.taken)) return i === 0 ? 1 : i;
+  }
+  return days;
+}
+
 /** Занятые интервалы психолога: всё, что не отменено. */
 export async function takenTimes(userId: number, range?: Range): Promise<Busy[]> {
   // Занятость нужна только на горизонте календаря. Раньше читались все

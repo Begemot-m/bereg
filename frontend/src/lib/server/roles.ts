@@ -23,6 +23,16 @@ export function hasRole(user: { roles?: string[] | null }, role: Role): boolean 
   return rolesOf(user).includes(role);
 }
 
+/**
+ * Роль, в которой человек работает. Хранится в базе, чтобы не расходиться
+ * между устройствами. Психолога отдаём только тому, у кого роль есть: её могли
+ * снять в админке, пока человек сидел в кабинете на другом компьютере.
+ */
+export function activeRoleOf(user: { roles?: string[] | null; activeRole?: string | null }): Role {
+  const value = user.activeRole === "psychologist" ? "psychologist" : "client";
+  return value === "psychologist" && hasRole(user, "psychologist") ? "psychologist" : "client";
+}
+
 /** Статус верификации с тем же фолбэком на анкету для незабэкофилленных строк. */
 export function psyStatusOf(user: { psyStatus?: string | null }): PsyStatus {
   const value = user.psyStatus ?? "none";

@@ -21,7 +21,7 @@ import { useRole } from "@/lib/role";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
-import { loadTherapists, mergeWithBookings, type TherapistStore } from "@/lib/therapists";
+import { loadTherapists, mergeWithBookings, syncTherapists, type TherapistStore } from "@/lib/therapists";
 import { startTour, tourSeen } from "@/components/room-tour";
 import type { Role } from "@/lib/role";
 
@@ -96,6 +96,9 @@ function PersonHome({ guest }: { guest: boolean }) {
   useEffect(() => {
     const sync = () => setStore(loadTherapists());
     sync();
+    // Кэш рисует список сразу, база уточняет его через мгновение: на новом
+    // устройстве в кэше пусто, а закреплённые специалисты есть.
+    void syncTherapists().then(setStore);
     window.addEventListener("bereg:therapists", sync);
     return () => window.removeEventListener("bereg:therapists", sync);
   }, []);

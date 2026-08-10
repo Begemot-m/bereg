@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { psyStatusOf, rolesOf } from "@/lib/server/roles";
+import { activeRoleOf, psyStatusOf, rolesOf } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -13,6 +13,9 @@ export async function GET(req: NextRequest) {
       username: user.username,
       firstName: user.firstName,
       roles: rolesOf(user),
+      // Роль, в которой человек работал в прошлый раз, — с любого устройства.
+      // Психологом её отдаём только тому, у кого эта роль вообще есть.
+      activeRole: activeRoleOf(user),
       psyStatus: psyStatusOf(user),
       // Интерфейс по этому флагу решает, показывать ли вход в админку.
       // Права всё равно проверяются на сервере: скрытая кнопка — не защита.

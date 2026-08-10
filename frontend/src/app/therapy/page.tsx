@@ -28,7 +28,7 @@ import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState,
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, therapistId, type TherapistStore } from "@/lib/therapists";
+import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, setActiveTherapist, syncTherapists, therapistId, type TherapistStore } from "@/lib/therapists";
 import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
 
 const ME = 1; // в демо клиент «я» — карточка №1
@@ -43,12 +43,14 @@ function useMyTherapists(bookingNames: string[], onDetach: (name: string) => voi
     setStore(next);
     if (next.list.length !== base.list.length || next.active !== base.active) saveTherapists(next);
   };
-  useEffect(() => { sync(); const on = () => sync(); window.addEventListener("bereg:therapists", on); return () => window.removeEventListener("bereg:therapists", on); }, [bookingNames.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Кэш рисует список сразу, база уточняет его следом: на новом устройстве в
+  // кэше пусто, а закреплённые специалисты есть.
+  useEffect(() => { sync(); void syncTherapists().then(sync); const on = () => sync(); window.addEventListener("bereg:therapists", on); return () => window.removeEventListener("bereg:therapists", on); }, [bookingNames.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
   const persist = (nextStore: TherapistStore) => { setStore(nextStore); saveTherapists(nextStore); };
   return {
     list: store.list,
     active: store.active,
-    setActive: (name: string) => { select(); persist({ ...store, active: name }); },
+    setActive: (name: string) => { select(); persist({ ...store, active: name }); setActiveTherapist(name); },
     // Открепили — записи к этому специалисту отменяются: и здесь, и на главной.
     remove: (name: string) => { tap(); setStore(detachTherapist(name)); onDetach(name); },
   };
