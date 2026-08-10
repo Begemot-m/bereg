@@ -58,6 +58,30 @@ model User {
   supportRequests    SupportRequest[]
   payments           Payment[]
   psyDocuments       PsyDocument[]
+  visits             Visit[]
+}
+
+/// Заход в раздел приложения. Ни сессии, ни аудит на вопрос «сколько людей
+/// заходило и куда» не отвечают: сессия живёт неделями, а аудит пишется только
+/// на важные действия. Строка на заход, дальше считаем агрегатами.
+model Visit {
+  id      BigInt @id @default(autoincrement())
+  user    User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Гость каталога не авторизован — тогда пусто, и человека считаем по device.
+  userId  Int?
+  /// Роль на момент захода: psychologist | client | guest.
+  role    String @default("guest")
+  /// Раздел приложения: home | sessions | clients | catalog | cabinet | tools |
+  /// therapy | admin | landing.
+  section String
+  /// Анонимный идентификатор браузера. Персональных данных не содержит,
+  /// нужен, чтобы гости не считались по одному на каждый заход.
+  device    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([section, createdAt])
+  @@index([device, createdAt])
 }
 
 /// Диплом или сертификат психолога. Отдельной таблицей, а не полем в

@@ -253,6 +253,49 @@ export function useAdminStats() {
   });
 }
 
+export type UsageTotals = {
+  visitors: number; psychologists: number; clients: number; guests: number; visits: number;
+  sections: { section: string; visits: number; people: number }[];
+};
+export type UsagePeriod = "day" | "week" | "month" | "all";
+export type Usage = { periods: Record<UsagePeriod, UsageTotals>; since: string | null };
+
+const DEMO_USAGE: Record<UsagePeriod, UsageTotals> = {
+  day: { visitors: 38, psychologists: 9, clients: 21, guests: 8, visits: 96, sections: [
+    { section: "sessions", visits: 31, people: 12 }, { section: "catalog", visits: 24, people: 18 },
+    { section: "clients", visits: 17, people: 8 }, { section: "cabinet", visits: 14, people: 11 },
+    { section: "therapy", visits: 10, people: 7 },
+  ] },
+  week: { visitors: 164, psychologists: 31, clients: 96, guests: 37, visits: 612, sections: [
+    { section: "sessions", visits: 198, people: 29 }, { section: "catalog", visits: 154, people: 88 },
+    { section: "clients", visits: 112, people: 26 }, { section: "cabinet", visits: 84, people: 61 },
+    { section: "therapy", visits: 64, people: 42 },
+  ] },
+  month: { visitors: 428, psychologists: 34, clients: 271, guests: 123, visits: 2140, sections: [
+    { section: "sessions", visits: 702, people: 33 }, { section: "catalog", visits: 534, people: 240 },
+    { section: "clients", visits: 398, people: 30 }, { section: "cabinet", visits: 286, people: 178 },
+    { section: "therapy", visits: 220, people: 131 },
+  ] },
+  all: { visitors: 913, psychologists: 41, clients: 604, guests: 268, visits: 5840, sections: [
+    { section: "sessions", visits: 1980, people: 40 }, { section: "catalog", visits: 1460, people: 520 },
+    { section: "clients", visits: 1040, people: 37 }, { section: "cabinet", visits: 780, people: 395 },
+    { section: "therapy", visits: 580, people: 288 },
+  ] },
+};
+
+/** Посещаемость: сколько людей заходило и в какие разделы. */
+export function useAdminUsage() {
+  return useQuery<Usage>({
+    queryKey: ["admin-usage"],
+    queryFn: async () => {
+      if (DEMO) return { periods: DEMO_USAGE, since: "2026-07-01T00:00:00.000Z" };
+      return apiFetch<Usage>("/admin/usage");
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
 export function useAdminUsers(q: string, page: number) {
   return useQuery<{ items: UserRow[]; total: number; pages: number }>({
     queryKey: ["admin-users", q, page],

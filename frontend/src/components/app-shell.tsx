@@ -20,6 +20,7 @@ import { select } from "@/lib/haptics";
 import { useOnboarded } from "@/lib/profile";
 import { useAuth } from "@/lib/useAuth";
 import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
+import { trackSection } from "@/lib/track";
 
 type NavItem = { href: string; label: string; icon: IconName };
 
@@ -77,6 +78,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const items = NAV[role];
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
+
+  // Посещаемость: раздел отмечается на каждом переходе, не чаще раза в пять
+  // минут на раздел. Сводку читает админка.
+  useEffect(() => { trackSection(pathname); }, [pathname]);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
   // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;

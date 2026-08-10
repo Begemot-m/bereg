@@ -117,10 +117,23 @@ const NEXT_STEPS: { icon: IconName; title: string; text: string }[] = [
 ];
 
 // Анкета заполнена — дальше человеку нужен не процент, а следующий шаг.
+// Подсказка одноразовая: закрыл — больше не возвращается.
+const NEXT_STEPS_KEY = "bereg_next_steps_hidden";
+
 function NextSteps() {
+  const [hidden, setHidden] = useState(true);
+  useEffect(() => { setHidden(localStorage.getItem(NEXT_STEPS_KEY) === "1"); }, []);
+  const close = () => { tap(); localStorage.setItem(NEXT_STEPS_KEY, "1"); setHidden(true); };
+  if (hidden) return null;
+
   return (
-    <div className="rounded-[16px] p-4" style={{ background: "var(--tiffany)", border: "var(--bw) solid var(--tiffany-edge)" }}>
-      <p className="text-[15px] font-black leading-tight">Что делать дальше?</p>
+    <div className="rounded-[16px] p-4" style={{ background: "var(--tiffany)" }}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[15px] font-black leading-tight">Что делать дальше?</p>
+        <button onClick={close} aria-label="Скрыть подсказку" className="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/70 transition-transform active:scale-90">
+          <Icon name="close" width={13} weight="bold" color="var(--ink)" />
+        </button>
+      </div>
       <div className="mt-3 space-y-2.5">
         {NEXT_STEPS.map((item) => (
           <div key={item.title} className="flex items-start gap-2.5">

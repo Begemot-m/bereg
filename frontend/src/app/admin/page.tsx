@@ -6,10 +6,11 @@ import { PageHead } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Input, SkeletonRow } from "@/components/ui";
 import {
-  useAdminStats, useAdminUsers, useUserAction,
+  useAdminStats, useAdminUsage, useAdminUsers, useUserAction,
   useReviewVerification, useVerificationQueue,
   useAuditLog, useFunnels, useSeries, useSupportAction, useSupportInbox,
   type FunnelRow, type PsyApplication, type Series, type SupportRow,
+  type UsagePeriod, type UsageTotals,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
 import { documentHref } from "@/lib/psy-documents";
@@ -28,7 +29,9 @@ export default function AdminPage() {
   const [auditFilter, setAuditFilter] = useState("");
   const [auditPage, setAuditPage] = useState(0);
   const [days, setDays] = useState(30);
+  const [period, setPeriod] = useState<UsagePeriod>("week");
 
+  const usage = useAdminUsage();
   const stats = useAdminStats();
   const users = useAdminUsers(q, page);
   const act = useUserAction();
@@ -146,6 +149,21 @@ export default function AdminPage() {
                 ))}
               </div>
             </details>
+          )}
+        </section>
+
+        {/* Посещаемость: первый вопрос к платформе — заходят ли вообще и куда. */}
+        <section>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="t-micro">Посещаемость</p>
+            <div className="flex gap-1.5">
+              {PERIODS.map(({ key, label }) => (
+                <button key={key} onClick={() => { tap(); setPeriod(key); }} className={period === key ? "chip chip-strong" : "chip"}>{label}</button>
+              ))}
+            </div>
+          </div>
+          {usage.isLoading ? <SkeletonRow /> : usage.data && (
+            <UsageBlock totals={usage.data.periods[period]} since={usage.data.since} />
           )}
         </section>
 
@@ -568,6 +586,58 @@ function SupportCard({ r, busy, onHandle, onReply }: {
         </button>
       </div>
     </div>
+  );
+}
+
+const PERIODS: { key: UsagePeriod; label: string }[] = [
+  { key: "day", label: "день" },
+  { key: "week", label: "неделя" },
+  { key: "month", label: "месяц" },
+  { key: "all", label: "всего" },
+];
+
+const SECTION_LABEL: Record<string, string> = {
+  home: "Главная", sessions: "Сессии", clients: "Клиенты", catalog: "Каталог",
+  cabinet: "Кабинет", tools: "Инструменты", therapy: "С терапевтом", profile: "Профиль",
+  admin: "Админка", landing: "Лендинг", onboarding: "Знакомство", support: "Поддержка",
+};
+
+/**
+ * Сколько людей заходило и в какие разделы. Людей считаем по устройствам:
+ * гость каталога не авторизован, но заходил так же, как вошедший.
+ */
+function UsageBlock({ totals, since }: { totals: UsageTotals; since: string | null }) {
+  const max = Math.max(1, ...totals.sections.map((row) => row.visits));
+  return (
+    <>
+      <div className="grid grid-cols-4 gap-2">
+        <Tile value={totals.visitors} label="человек" />
+        <Tile value={totals.psychologists} label="психологов" />
+        <Tile value={totals.clients} label="клиентов" />
+        <Tile value={totals.guests} label="гостей" />
+      </div>
+
+      <p className="t-micro mb-2 mt-4">Разделы · {totals.visits} заходов</p>
+      {totals.sections.length === 0 ? (
+        <p className="t-cap">
+          {since ? "За выбранный период заходов не было." : "Заходы начали писаться недавно — данные появятся в ближайшие часы."}
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {totals.sections.map((row) => (
+            <div key={row.section} className="card-soft flex items-center gap-3 p-2.5">
+              <span className="w-[92px] shrink-0 text-[12px] font-black leading-tight">{SECTION_LABEL[row.section] ?? row.section}</span>
+              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                <div className="h-full rounded-full" style={{ width: `${Math.round((row.visits / max) * 100)}%`, background: "var(--ink)" }} />
+              </div>
+              <span className="tabular-nums shrink-0 text-[11px] font-black">{row.visits}</span>
+              <span className="t-cap shrink-0 w-[62px] text-right">{row.people} чел.</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {since && <p className="t-cap mt-2">Считаем с {dateF.format(new Date(since))}</p>}
+    </>
   );
 }
 

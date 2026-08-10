@@ -36,6 +36,15 @@ import {
   X,
   Chalkboard,
   Feather,
+  TelegramLogo,
+  CloudLightning,
+  BatteryLow,
+  Heartbeat,
+  HeartBreak,
+  Bandaids,
+  Backpack,
+  UserFocus,
+  Clover,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -78,7 +87,16 @@ export type IconName =
   | "route"
   | "close"
   | "chalkboard"
-  | "angel";
+  | "angel"
+  | "telegram-logo"
+  | "storm"
+  | "battery"
+  | "heartbeat"
+  | "heartbreak"
+  | "bandaid"
+  | "backpack"
+  | "self"
+  | "clover";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -122,6 +140,16 @@ const MAP: Record<IconName, PhIcon> = {
   chalkboard: Chalkboard,
   // Ангела в Phosphor нет: за Амура отвечает крыло-перо.
   angel: Feather,
+  // Фирменный самолётик Telegram — для ссылок «открыть приложение».
+  "telegram-logo": TelegramLogo,
+  storm: CloudLightning,
+  battery: BatteryLow,
+  heartbeat: Heartbeat,
+  heartbreak: HeartBreak,
+  bandaid: Bandaids,
+  backpack: Backpack,
+  self: UserFocus,
+  clover: Clover,
 };
 
 export function Icon({

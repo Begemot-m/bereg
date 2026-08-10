@@ -3,8 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
+import { useEffect, useState } from "react";
+
 import { Icon } from "@/components/icons";
 import { catalogProfileGaps } from "@/lib/catalog";
+import { tap } from "@/lib/haptics";
 import { useProfile } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
 import { CATALOG_FREE_DAYS, catalogDaysLeft, getSubscription, PLAN_PRICE, rub } from "@/lib/subscription";
@@ -23,7 +26,11 @@ const dayWord = (n: number) => {
  * одном месте, потому что человек видит только результат: проверка пройдена,
  * анкета собрана целиком, размещение оплачено (или идут бесплатные дни).
  */
+const HIDDEN_KEY = "bereg_catalog_placement_hidden";
+
 export function CatalogPlacement({ className }: { className?: string }) {
+  const [hidden, setHidden] = useState<string | null>(null);
+  useEffect(() => { setHidden(localStorage.getItem(HIDDEN_KEY)); }, []);
   const profile = useProfile();
   const { data: verification } = useVerification();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
@@ -36,6 +43,9 @@ export function CatalogPlacement({ className }: { className?: string }) {
   let title: string;
   let note: string;
   let icon: "seal" | "clock" | "compass" | "spark" = "compass";
+  // Что именно сейчас показано — по этому ключу помним, что человек закрыл
+  // блок. Состояние сменилось (например, анкету одобрили) — покажем снова.
+  const state = status !== "approved" ? status : gaps.length ? "gaps" : sub?.pro ? "pro" : daysLeft > 0 ? "free" : "expired";
 
   if (status !== "approved") {
     icon = status === "review" ? "clock" : "seal";
@@ -67,11 +77,19 @@ export function CatalogPlacement({ className }: { className?: string }) {
     note = `Бесплатные ${CATALOG_FREE_DAYS} ${dayWord(CATALOG_FREE_DAYS)} закончились. Анкета осталась подтверждённой — вернуть её в выдачу можно подпиской PRO.`;
   }
 
+  const close = () => { tap(); localStorage.setItem(HIDDEN_KEY, state); setHidden(state); };
+  if (hidden === state) return null;
+
   return (
-    <div className={`card-soft flex items-start gap-3 p-4 ${className ?? ""}`} style={{ background: "var(--surface)" }}>
+    <div className={`card-soft flex items-start gap-3 p-4 ${className ?? ""}`} style={{ background: "var(--surface)", border: `var(--bw) solid ${tone}` }}>
       <span className="ico ico-white h-11 w-11 shrink-0"><Icon name={icon} width={21} weight="bold" color={tone} /></span>
-      <div className="min-w-0">
-        <p className="t-micro" style={{ color: tone }}>Каталог специалистов</p>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="t-micro" style={{ color: tone }}>Каталог специалистов</p>
+          <button onClick={close} aria-label="Скрыть блок" className="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white transition-transform active:scale-90">
+            <Icon name="close" width={13} weight="bold" color="var(--ink)" />
+          </button>
+        </div>
         <p className="t-body mt-1 font-black">{title}</p>
         <p className="mt-1 text-[11.5px] font-semibold leading-snug text-[var(--muted)]">{note}</p>
         {status === "approved" && !gaps.length && !sub?.pro && (

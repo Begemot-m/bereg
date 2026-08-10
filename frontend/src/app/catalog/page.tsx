@@ -658,9 +658,10 @@ function PhotoLightbox({ photos, name, index, onIndex, onClose }: { photos: stri
 
   return <AnimatePresence>{open && (
     <motion.div className="fixed inset-0 z-[90] flex flex-col bg-[rgba(24,21,18,.94)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <div className="flex items-center justify-between px-4 pt-[max(16px,env(safe-area-inset-top))]">
-        <span className="tnum text-[13px] font-black text-white">{(index ?? 0) + 1} / {photos.length}</span>
-        <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(255,255,255,.14)]" aria-label="Закрыть"><Icon name="close" width={18} weight="bold" color="#fff" /></button>
+      {/* Крестик белый и плотный: на тёмной подложке полупрозрачный кружок
+          терялся, и выйти из просмотра было нечем. */}
+      <div className="flex justify-end px-4 pt-[max(16px,env(safe-area-inset-top))]">
+        <button onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(0,0,0,.45)] transition-transform active:scale-90" aria-label="Закрыть просмотр"><Icon name="close" width={20} weight="bold" color="var(--ink)" /></button>
       </div>
       <motion.div
         key={index}
@@ -676,14 +677,35 @@ function PhotoLightbox({ photos, name, index, onIndex, onClose }: { photos: stri
         animate={{ opacity: 1, scale: 1 }}
       >
         <Image src={asset(photos[index ?? 0])} alt={`${name}, фотография ${(index ?? 0) + 1}`} fill sizes="100vw" className="object-contain" unoptimized={isInlineImage(asset(photos[index ?? 0]))} />
+
+        {/* Стрелки — для тех, кто смотрит с мышкой: свайп есть только на телефоне. */}
+        {photos.length > 1 && (
+          <>
+            <button
+              onClick={() => onIndex(Math.max(0, (index ?? 0) - 1))}
+              disabled={(index ?? 0) === 0}
+              aria-label="Предыдущее фото"
+              className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,.9)] transition-opacity active:scale-90 disabled:opacity-25"
+            ><span className="rotate-180"><ArrowGlyph size={16} /></span></button>
+            <button
+              onClick={() => onIndex(Math.min(photos.length - 1, (index ?? 0) + 1))}
+              disabled={(index ?? 0) === photos.length - 1}
+              aria-label="Следующее фото"
+              className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,.9)] transition-opacity active:scale-90 disabled:opacity-25"
+            ><ArrowGlyph size={16} /></button>
+          </>
+        )}
       </motion.div>
-      {photos.length > 1 && (
-        <div className="flex justify-center gap-2 px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
-          {photos.map((photo, dot) => (
-            <button key={`${photo.slice(0, 16)}-${dot}`} onClick={() => onIndex(dot)} aria-label={`Фотография ${dot + 1}`} className="h-2 rounded-full transition-all" style={{ width: dot === index ? 22 : 8, background: dot === index ? "#fff" : "rgba(255,255,255,.4)" }} />
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col items-center gap-2 px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
+        {photos.length > 1 && (
+          <div className="flex justify-center gap-2">
+            {photos.map((photo, dot) => (
+              <button key={`${photo.slice(0, 16)}-${dot}`} onClick={() => onIndex(dot)} aria-label={`Фотография ${dot + 1}`} className="h-2 rounded-full transition-all" style={{ width: dot === index ? 22 : 8, background: dot === index ? "#fff" : "rgba(255,255,255,.4)" }} />
+            ))}
+          </div>
+        )}
+        <span className="tnum text-[11px] font-black text-[rgba(255,255,255,.65)]">{(index ?? 0) + 1} из {photos.length}</span>
+      </div>
     </motion.div>
   )}</AnimatePresence>;
 }
@@ -704,6 +726,8 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
   const [mine, setMine] = useState(0);
   useEffect(() => { try { const ratings = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); setMine(ratings[psy.id] ?? 0); } catch { /* ignore */ } }, [psy.id]);
   const rate = (value: number) => { success(); setMine(value); try { const ratings = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); ratings[psy.id] = value; localStorage.setItem(RATING_KEY, JSON.stringify(ratings)); } catch { /* ignore */ } };
+  // Оценки появляются только после встреч: пока их нет, показываем честный ноль.
+  const rated = psy.reviews > 0 && psy.rating > 0;
   return (
     <Section title="Рейтинг и оценка">
       <div className="overflow-hidden rounded-[20px] bg-[var(--amber-soft)]">
@@ -727,8 +751,11 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
           {/* Распределение оценок — анимированные полосы */}
           <div className="min-w-0 flex-1 space-y-1">
             {(() => {
-              const raw = [5, 4, 3, 2, 1].map((s) => Math.max(0.02, 1 - Math.abs(s - psy.rating) * 0.62));
-              const sum = raw.reduce((a, b) => a + b, 0);
+              // Без отзывов распределения нет: прежняя формула при нулевом
+              // рейтинге растягивала полосу «одна звезда» почти на всю ширину,
+              // и новый специалист выглядел разгромленным.
+              const raw = [5, 4, 3, 2, 1].map((s) => (rated ? Math.max(0.02, 1 - Math.abs(s - psy.rating) * 0.62) : 0));
+              const sum = raw.reduce((a, b) => a + b, 0) || 1;
               return [5, 4, 3, 2, 1].map((s, i) => (
                 <div key={s} className="flex items-center gap-1.5">
                   <span className="w-2 text-right text-[9px] font-black text-[var(--muted)]">{s}</span>
@@ -739,7 +766,7 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
                 </div>
               ));
             })()}
-            <p className="pt-0.5 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted)]">{psy.reviews} отзывов после встреч</p>
+            <p className="pt-0.5 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted)]">{rated ? `${psy.reviews} отзывов после встреч` : "оценок пока нет"}</p>
           </div>
         </div>
         <div className="border-t bg-white/55 p-4" style={{ borderColor: "var(--amber-edge)" }}>
