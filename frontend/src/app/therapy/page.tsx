@@ -26,10 +26,9 @@ import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
-import { PSYS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { getReviews, rateTherapist } from "@/lib/reviews";
-import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, setActiveTherapist, syncTherapists, therapistId, type TherapistStore } from "@/lib/therapists";
+import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, setActiveTherapist, syncTherapists, therapistCard, therapistId, type TherapistStore } from "@/lib/therapists";
 import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
 
 const ME = 1; // в демо клиент «я» — карточка №1
@@ -37,7 +36,7 @@ const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "nume
 
 // Прикреплённые терапевты: общий стор (каталог добавляет) + автодобавление из записей.
 function useMyTherapists(bookingNames: string[], onDetach: (name: string) => void) {
-  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null, ids: {} });
+  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null, ids: {}, cards: {} });
   const sync = () => {
     const base = loadTherapists();
     const next = mergeWithBookings(base, bookingNames);
@@ -135,7 +134,7 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
               <div className="no-scrollbar mt-4 flex items-center gap-1.5 overflow-x-auto">
                 {therapists.list.map((name) => {
                   const on = name === therapist;
-                  const psy = PSYS.find((p) => p.name === name);
+                  const psy = therapistCard(name);
                   return (
                     <button key={name} onClick={() => therapists.setActive(name)} className="inline-flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-[11px] font-black transition-colors" style={{ background: on ? "var(--purple)" : "#fff", border: `var(--bw) solid var(--${on ? "purple-edge" : "edge-neutral"})` }}>
                       <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-[var(--purple-soft)] text-[9px] font-black">{psy ? <Image src={asset(psy.portrait)} alt="" width={20} height={20} className="h-5 w-5 object-cover" unoptimized={/^(data:|blob:)/i.test(asset(psy.portrait))} /> : name.charAt(0)}</span>
@@ -247,7 +246,7 @@ function RatingRow({ psyId, name }: { psyId: number | undefined; name: string })
 
 // Карточка терапевта в стиле каталога — с переходом на его страницу и записью.
 function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: string; next: MyBooking | null; bookings: MyBooking[]; defaultOpen?: boolean; onRemove?: () => void }) {
-  const psy = PSYS.find((item) => item.name === name);
+  const psy = therapistCard(name);
   const href = psy ? `/catalog?psy=${psy.id}&from=therapy` : "/catalog?from=therapy";
   const portrait = psy ? asset(psy.portrait) : null;
   const [bookOpen, setBookOpen] = useState(defaultOpen ?? false);

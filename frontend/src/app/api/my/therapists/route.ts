@@ -3,12 +3,17 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { prisma } from "@/lib/server/prisma";
+import { psyCardsByIds, type PsyCard } from "@/lib/server/psy-card";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
 
-export type TherapistLinkDTO = { id: number; name: string; active: boolean };
+// Карточка целиком, а не id с именем: раздел «Терапия» рисует специалиста теми
+// же полями, что и каталог. Пока роут отдавал только имя, закреплённый терапевт
+// показывался буквой вместо фото — остальное страница искала в статическом
+// списке демо-анкет, которого в бою нет.
+export type TherapistLinkDTO = PsyCard & { active: boolean };
 
 // Закреплённые специалисты клиента. Раньше список жил в localStorage: на
 // втором устройстве раздел «Терапия» был пуст, а прикреплённый из каталога
@@ -18,7 +23,7 @@ export type TherapistLinkDTO = { id: number; name: string; active: boolean };
 // и его раздел «Терапия» должны говорить об одном и том же. Открепление явное,
 // и оно эту склейку переигрывает.
 async function listFor(userId: number): Promise<TherapistLinkDTO[]> {
-  const [links, booked] = await Promise.all([
+  const [links, booked, clientCards] = await Promise.all([
     prisma.therapistLink.findMany({ where: { clientUserId: userId }, orderBy: { createdAt: "asc" } }),
     prisma.appointment.findMany({
       where: { client: { userId }, status: { not: "cancelled" } },
@@ -26,24 +31,42 @@ async function listFor(userId: number): Promise<TherapistLinkDTO[]> {
       orderBy: { startsAt: "asc" },
       select: { psychologistId: true },
     }),
+    // Психолог, у которого человек заведён клиентом, — его терапевт, даже если
+    // записей ещё не было. Иначе принятое приглашение никак не отражалось в
+    // разделе «Терапия» до первой встречи.
+    prisma.client.findMany({
+      where: { userId, psychologistId: { not: null } },
+      distinct: ["psychologistId"],
+      orderBy: { createdAt: "asc" },
+      select: { psychologistId: true },
+    }),
   ]);
 
   const detached = new Set(links.filter((l) => l.detached).map((l) => l.psychologistId));
   const ids = [
     ...links.filter((l) => !l.detached).map((l) => l.psychologistId),
+    ...clientCards.map((c) => c.psychologistId as number).filter((id) => !detached.has(id)),
     ...booked.map((b) => b.psychologistId).filter((id) => !detached.has(id)),
   ];
   const unique = [...new Set(ids)];
   if (unique.length === 0) return [];
 
-  const profiles = await prisma.user.findMany({
-    where: { id: { in: unique } },
-    select: { id: true, firstName: true, psyProfile: { select: { name: true } } },
-  });
-  const nameOf = new Map(profiles.map((p) => [p.id, p.psyProfile?.name ?? p.firstName ?? "Специалист"]));
+  const [cards, users] = await Promise.all([
+    psyCardsByIds(unique),
+    prisma.user.findMany({ where: { id: { in: unique } }, select: { id: true, firstName: true } }),
+  ]);
+  const cardOf = new Map(cards.map((card) => [card.id, card]));
+  const nameOf = new Map(users.map((u) => [u.id, u.firstName ?? "Специалист"]));
   const activeId = links.find((l) => l.active && !l.detached)?.psychologistId ?? unique[0];
 
-  return unique.map((id) => ({ id, name: nameOf.get(id) ?? "Специалист", active: id === activeId }));
+  // Анкеты может не быть вовсе (психолог завёл клиента до её заполнения) —
+  // тогда карточка минимальная, но список не рвётся.
+  return unique.map((id) => {
+    const card = cardOf.get(id);
+    return card
+      ? { ...card, active: id === activeId }
+      : ({ id, name: nameOf.get(id) ?? "Специалист", active: id === activeId } as TherapistLinkDTO);
+  });
 }
 
 export async function GET(req: NextRequest) {

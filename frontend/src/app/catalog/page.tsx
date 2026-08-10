@@ -266,9 +266,11 @@ function Portrait({ psy, size, tone = T[psy.tone] }: { psy: Psy; size: number; t
 // Кнопка «добавить терапевта в мой раздел Терапия» — вверху анкеты.
 // psyId обязателен: без него специалист закреплялся по одному имени, и раздел
 // «Терапия» потом не знал, чей график показывать для записи.
-function AttachTherapistButton({ name, psyId }: { name: string; psyId: number }) {
+// Карточка уезжает в кэш вместе с закреплением: раздел «Терапия» открывается
+// с фото и чипами сразу, а не пустым до первого ответа сервера.
+function AttachTherapistButton({ name, psyId, card }: { name: string; psyId: number; card?: Psy }) {
   const [attached, setAttached] = useState(() => isAttached(name));
-  const add = () => { if (attached) return; success(); attachTherapist(name, psyId); setAttached(true); };
+  const add = () => { if (attached) return; success(); attachTherapist(name, psyId, card); setAttached(true); };
   return (
     <button onClick={add} aria-disabled={attached} className={`btn min-h-11 shrink-0 px-4 ${attached ? "btn-soft" : "btn-accent"}`}>
       {attached ? <><Icon name="check" width={15} weight="bold" color="var(--edge)" /> В терапии</> : <><Icon name="plus" width={15} weight="bold" color="#fff" /> В терапию</>}
@@ -331,7 +333,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
 
       {/* Действия — сразу под именем, а не через полэкрана */}
       <div className="mt-3.5 flex gap-2">
-        <AttachTherapistButton name={psy.name} psyId={psy.id} />
+        <AttachTherapistButton name={psy.name} psyId={psy.id} card={psy} />
         <a href={`https://t.me/${psy.tg}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn min-h-11 shrink-0 bg-[var(--ink)] px-4 text-white">
           <Icon name="telegram" width={16} weight="fill" color="#fff" /> Написать
         </a>
@@ -795,7 +797,7 @@ function BookedNext({ psy, at, format, onDone }: { psy: Psy; at: string; format:
   const date = new Date(at);
   const place = [psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : ""].filter(Boolean).join(" · ");
   const finishFastEntry = () => window.dispatchEvent(new CustomEvent("bereg-fast-entry-complete"));
-  const attach = () => { success(); attachTherapist(psyName, psy.id); setAttached(true); };
+  const attach = () => { success(); attachTherapist(psyName, psy.id, psy); setAttached(true); };
 
   return (
     <div>

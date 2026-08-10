@@ -42,6 +42,18 @@ export async function POST(req: NextRequest) {
     });
 
     if (card.psychologistId) {
+      // Психолог, пригласивший клиента, сразу становится его терапевтом.
+      // Раньше связь возникала только с первой записью: человек принимал
+      // приглашение и открывал пустой раздел «Терапия» с предложением найти
+      // специалиста — того самого, который его и позвал.
+      const psychologistId = card.psychologistId;
+      const links = await prisma.therapistLink.findMany({ where: { clientUserId: user.id, detached: false } });
+      await prisma.therapistLink.upsert({
+        where: { clientUserId_psychologistId: { clientUserId: user.id, psychologistId } },
+        create: { clientUserId: user.id, psychologistId, detached: false, active: links.length === 0 },
+        update: { detached: false },
+      });
+
       await prisma.notification.create({
         data: {
           userId: card.psychologistId,

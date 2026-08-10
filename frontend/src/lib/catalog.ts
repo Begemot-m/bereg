@@ -262,7 +262,7 @@ export async function getCatalogPsy(id: number): Promise<Psy | null> {
 
 /** Анкета из /api/catalog в карточку каталога. Публичных полей меньше, чем в
  *  своей анкете, — остальное заполняем нейтральными значениями. */
-type CatalogApiPsy = Partial<Record<keyof Psy, unknown>> & { id: number; name: string };
+export type CatalogApiPsy = Partial<Record<keyof Psy, unknown>> & { id: number; name: string };
 export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
   const list = (v: unknown) => (Array.isArray(v) ? (v as string[]).filter(Boolean) : []);
   const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
@@ -273,7 +273,9 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     portrait: text(row.portrait) || photos[0] || "",
     photos,
     tone: "purple",
-    verified: true,
+    // Галочку ставит сервер: закреплённый специалист может ещё проходить
+    // верификацию, и карточка не должна обещать лишнего.
+    verified: row.verified !== false,
     rating: Number(row.rating) || 0,
     reviews: Number(row.reviews) || 0,
     method: text(row.method),

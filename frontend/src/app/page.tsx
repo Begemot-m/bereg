@@ -20,8 +20,7 @@ import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
-import { PSYS } from "@/lib/catalog";
-import { loadTherapists, mergeWithBookings, syncTherapists, type TherapistStore } from "@/lib/therapists";
+import { loadTherapists, mergeWithBookings, syncTherapists, therapistCard, type TherapistStore } from "@/lib/therapists";
 import { startTour, tourSeen } from "@/components/room-tour";
 import type { Role } from "@/lib/role";
 
@@ -92,7 +91,7 @@ function PersonHome({ guest }: { guest: boolean }) {
 
   // Терапевты — тот же стор и та же склейка с записями, что в разделе «Терапия»:
   // открепили специалиста там — здесь сразу подбор, а не запись к нему.
-  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null, ids: {} });
+  const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null, ids: {}, cards: {} });
   useEffect(() => {
     const sync = () => setStore(loadTherapists());
     sync();
@@ -199,8 +198,8 @@ function ManageRow() {
 
 // Фото терапевта в блоке ближайшей сессии — крупное, из карточки каталога.
 function PsyAvatar({ name }: { name: string }) {
-  const psy = PSYS.find((item) => item.name === name);
-  const portrait = psy ? asset(psy.portrait) : null;
+  const psy = therapistCard(name);
+  const portrait = psy?.portrait ? asset(psy.portrait) : null;
   if (!portrait) return <span className="ico ico-white h-[80px] w-[80px] shrink-0 text-[32px] font-black" style={{ color: "var(--edge)" }}>{name.charAt(0)}</span>;
   return (
     <span className="relative block h-[80px] w-[80px] shrink-0 overflow-hidden rounded-[22px] bg-white">
