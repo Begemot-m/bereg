@@ -94,7 +94,7 @@ const TRIO: { icon: IconName; tone: string; edge: string; title: string; text: s
 /** С чем приходят: те же фильтры, по которым каталог подбирает специалиста. */
 const TOPICS: { icon: IconName; label: string; color: string }[] = [
   { icon: "storm", label: "Тревога", color: "var(--purple-edge)" },
-  { icon: "battery", label: "Выгорание", color: "var(--amber-edge)" },
+  { icon: "fire", label: "Выгорание", color: "var(--amber-edge)" },
   { icon: "heart", label: "Отношения", color: "var(--coral-edge)" },
   { icon: "self", label: "Самооценка", color: "var(--tiffany-edge)" },
   { icon: "heartbeat", label: "Панические атаки", color: "var(--coral-edge)" },
@@ -469,10 +469,10 @@ function ScreensTabs() {
               style={{ boxShadow: "0 -2px 40px rgba(32,28,24,.12)" }}
             >
               <Image
-                src={asset(`/shots/d-${tab.key}.png`)}
+                src={asset(`/shots/d-${tab.key}.webp`)}
                 alt={`Экран «${tab.label}» в Хронике`}
-                width={2560}
-                height={1600}
+                width={1632}
+                height={1120}
                 className="block w-full"
                 unoptimized
                 priority={active === 0}
@@ -644,10 +644,10 @@ function FeatureCard({
             style={{ boxShadow: "0 20px 60px rgba(32,28,24,.16)", ...(stack ? { y: shotY } : null) }}
           >
             <Image
-              src={asset(`/shots/d-${block.shot}.png`)}
+              src={asset(`/shots/d-${block.shot}.webp`)}
               alt={`Экран «${block.title}» в Хронике`}
-              width={2560}
-              height={1600}
+              width={1632}
+              height={1120}
               className="block w-full"
               unoptimized
             />

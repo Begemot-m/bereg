@@ -39,6 +39,7 @@ import {
   TelegramLogo,
   CloudLightning,
   BatteryLow,
+  Fire,
   Heartbeat,
   HeartBreak,
   Bandaids,
@@ -91,6 +92,7 @@ export type IconName =
   | "telegram-logo"
   | "storm"
   | "battery"
+  | "fire"
   | "heartbeat"
   | "heartbreak"
   | "bandaid"
@@ -144,6 +146,7 @@ const MAP: Record<IconName, PhIcon> = {
   "telegram-logo": TelegramLogo,
   storm: CloudLightning,
   battery: BatteryLow,
+  fire: Fire,
   heartbeat: Heartbeat,
   heartbreak: HeartBreak,
   bandaid: Bandaids,
