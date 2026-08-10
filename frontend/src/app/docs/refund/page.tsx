@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Doc, P, Requisites, Section, Ul } from "@/components/legal-doc";
 import { LEGAL, dayPrice } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Политика возвратов — Хроника" };
+export const metadata: Metadata = { title: "Политика возвратов" };
 
 export default function RefundPage() {
   return (

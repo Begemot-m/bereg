@@ -3,7 +3,12 @@ import Link from "next/link";
 
 import { LEGAL, LEGAL_DOCS } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Документы — Хроника" };
+export const metadata: Metadata = {
+  title: "Документы сервиса",
+  description:
+    "Пользовательское соглашение, политика обработки персональных данных, оферта и условия возврата платформы «Хроника».",
+  alternates: { canonical: "/docs" },
+};
 
 export default function DocsPage() {
   return (

@@ -3,7 +3,12 @@ import Link from "next/link";
 
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Политика обработки персональных данных — Хроника" };
+export const metadata: Metadata = {
+  title: "Политика обработки персональных данных",
+  description:
+    "Как платформа «Хроника» собирает, хранит и защищает персональные данные психологов и клиентов: состав данных, сроки хранения и права пользователя.",
+  alternates: { canonical: "/policy" },
+};
 
 const VERSION = process.env.POLICY_VERSION ?? "2026-07-01";
 

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Doc, P, Requisites, Section, Ul } from "@/components/legal-doc";
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Согласие на обработку персональных данных — Хроника" };
+export const metadata: Metadata = { title: "Согласие на обработку персональных данных" };
 
 export default function ConsentPage() {
   return (

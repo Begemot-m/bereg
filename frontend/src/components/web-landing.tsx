@@ -28,6 +28,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { WebLogin } from "@/components/web-login";
 import { asset } from "@/lib/asset";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
+import { FAQ_ITEMS } from "@/lib/seo";
 
 const BOT_URL = botDeepLink("site");
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -123,7 +124,7 @@ const FEATURES: {
     tone: "var(--purple-soft)",
   },
   {
-    title: "Расписание и записи",
+    title: "Расписание и онлайн-запись",
     text: "Вы задаёте рабочие часы по дням недели — дальше клиент сам занимает свободное окно, получает напоминание и переносит встречу, не отвлекая вас.",
     tags: [
       { icon: "calendar", label: "Окна по часам" },
@@ -135,7 +136,7 @@ const FEATURES: {
     tone: "var(--green-soft)",
   },
   {
-    title: "Каталог и подбор",
+    title: "Каталог психологов и подбор",
     text: "Анкета проходит ручную проверку и попадает в каталог. Подбор идёт по персональному фильтру, поэтому к вам приходят те, кому вы подходите. Без накруток отзывов и платного рейтинга.",
     tags: [
       { icon: "compass", label: "Анкета с проверкой" },
@@ -148,14 +149,12 @@ const FEATURES: {
   },
 ];
 
-const FAQ: { q: string; a: string; icon: IconName }[] = [
-  { q: "Нужно что-то устанавливать?", a: "Нет. Приложение открывается внутри Telegram по ссылке, аккаунт мессенджера и есть вход.", icon: "telegram" },
-  { q: "А если я работаю с компьютера?", a: "Привяжите почту в кабинете — и заходите в браузере по коду из письма. Данные те же.", icon: "lock" },
-  { q: "Что видит клиент?", a: "Свою запись, домашние задания и дневник состояния. Ваши заметки к встрече — только ваши.", icon: "user" },
-  { q: "Сколько это стоит?", a: "Основные разделы бесплатны. Платными будут расширенные модули, о них скажем заранее.", icon: "chart" },
-  { q: "Как клиенты меня находят?", a: "Через каталог: анкету смотрят руками, дальше подбор по запросу, методу, формату и бюджету.", icon: "compass" },
-  { q: "Можно попробовать без клиентов?", a: "Да. Демо работает на тестовых данных прямо в браузере — ничего не сломается.", icon: "spark" },
-];
+/**
+ * Вопросы живут в `lib/seo.ts`: тот же текст уходит в микроразметку FAQPage.
+ * Разъедутся — Google снимет расширенный сниппет, поэтому источник один.
+ */
+const FAQ_ICONS: IconName[] = ["telegram", "lock", "user", "chart", "compass", "spark"];
+const FAQ = FAQ_ITEMS.map((item, i) => ({ ...item, icon: FAQ_ICONS[i] ?? "question" }));
 
 /** Кольцо интеграций: разделы, которые обычно живут в разных приложениях. */
 const ORBIT: IconName[] = ["calendar", "users", "note", "mood", "compass", "bell", "balance", "chart"];
@@ -469,7 +468,7 @@ function ScreensTabs() {
             >
               <Image
                 src={asset(`/shots/d-${tab.key}.webp`)}
-                alt={`Экран «${tab.label}» в Хронике`}
+                alt={`Раздел «${tab.label}» в Хронике — платформе для психологов и клиентов`}
                 width={1632}
                 height={1120}
                 className="h-full w-full object-cover object-top"
@@ -646,7 +645,7 @@ function FeatureCard({
           >
             <Image
               src={asset(`/shots/d-${block.shot}.webp`)}
-              alt={`Экран «${block.title}» в Хронике`}
+              alt={`${block.title} в Хронике — экран приложения для психолога`}
               width={1632}
               height={1120}
               className="h-full w-full object-cover object-left-top"
@@ -878,7 +877,13 @@ function Footer({ onLogin }: { onLogin: () => void }) {
           </FooterCol>
         </div>
 
-        <p className="mt-10 border-t pt-6 text-[13px] font-medium text-[var(--muted-2)]" style={{ borderColor: "var(--hairline)" }}>
+        <p className="mt-10 border-t pt-6 text-[13px] font-medium leading-[1.6] text-[var(--muted-2)]" style={{ borderColor: "var(--hairline)" }}>
+          {APP_NAME} — цифровая платформа для улучшения ментального здоровья: каталог проверенных психологов
+          и психотерапевтов, онлайн-запись на консультацию, дневник настроения и практики самопомощи при
+          тревоге, выгорании и панических атаках. Психологу — расписание и рабочие часы, карточки клиентов,
+          заметки к сессии, домашние задания и динамика терапии. Работает в приложении Telegram и в браузере.
+        </p>
+        <p className="mt-4 text-[13px] font-medium text-[var(--muted-2)]">
           Платформа не оказывает экстренную и медицинскую помощь.<br />
           {LEGAL.operator}, {LEGAL.status}, ИНН {LEGAL.inn}. Связь: {LEGAL.email}.
         </p>

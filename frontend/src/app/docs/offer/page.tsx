@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Doc, P, Requisites, Section, Ul } from "@/components/legal-doc";
 import { LEGAL, dayPrice } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Публичная оферта — Хроника" };
+export const metadata: Metadata = { title: "Публичная оферта" };
 
 export default function OfferPage() {
   return (

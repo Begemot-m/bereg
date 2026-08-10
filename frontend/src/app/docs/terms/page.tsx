@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Doc, P, Requisites, Section, Ul } from "@/components/legal-doc";
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Пользовательское соглашение — Хроника" };
+export const metadata: Metadata = { title: "Пользовательское соглашение" };
 
 export default function TermsPage() {
   return (

@@ -10,8 +10,10 @@ import { DemoFrame } from "@/components/demo-frame";
 import { DragScroll } from "@/components/drag-scroll";
 import { TelegramInit } from "@/components/telegram-init";
 import { VersionCheck } from "@/components/version-check";
+import { SeoJsonLd } from "@/components/seo-jsonld";
 import { Providers } from "./providers";
 import { APP_NAME } from "@/lib/brand";
+import { KEYWORDS, SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo";
 
 const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
@@ -21,9 +23,43 @@ const head = Nunito({ subsets: ["latin", "cyrillic"], weight: ["700", "800", "90
 // кеглях, а у нас основная масса текста как раз 11–14 px.
 const body = Golos_Text({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700"], variable: "--font-body", display: "swap" });
 
+// Демо на Pages — копия прода по текстам. Пускать его в индекс нельзя:
+// поисковик увидит два одинаковых сайта и размажет позиции между ними.
+const INDEXABLE = !DEMO;
+
 export const metadata: Metadata = {
-  title: `${APP_NAME} — среда для психологической помощи`,
-  description: "Инструмент психолога, площадка поиска и цифровая самопомощь",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: `%s — ${APP_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  keywords: KEYWORDS,
+  applicationName: APP_NAME,
+  category: "health",
+  authors: [{ name: APP_NAME, url: SITE_URL }],
+  creator: APP_NAME,
+  publisher: APP_NAME,
+  alternates: { canonical: "/" },
+  robots: INDEXABLE
+    ? { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } }
+    : { index: false, follow: false },
+  openGraph: {
+    type: "website",
+    siteName: APP_NAME,
+    locale: "ru_RU",
+    url: SITE_URL,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: SITE_TITLE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/og.png"],
+  },
+  formatDetection: { telephone: false, email: false, address: false },
 };
 
 export const viewport: Viewport = {
@@ -49,6 +85,24 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta httpEquiv="Pragma" content="no-cache" />
         {/* afterInteractive: скрипт Telegram навешивает стили на <html> ПОСЛЕ гидрации,
             иначе получаем hydration mismatch и падение при переходах. */}
+        <SeoJsonLd />
+        {/* Приложение рисуется на клиенте: без JS страница осталась бы пустой,
+            и робот, который не исполняет скрипты, не понял бы, о чём сайт.
+            Текст здесь — тот же, что видит гость на лендинге. */}
+        <noscript>
+          <h1>{SITE_TITLE}</h1>
+          <p>{SITE_DESCRIPTION}</p>
+          <ul>
+            <li>Каталог проверенных психологов и подбор специалиста по запросу, методу, формату и бюджету</li>
+            <li>Онлайн-запись в свободные окна, напоминания и переносы встреч</li>
+            <li>Психологу — расписание, карточки клиентов, заметки и домашние задания</li>
+            <li>Дневник настроения и практики самопомощи между сессиями</li>
+          </ul>
+          <p>
+            <a href="/catalog">Каталог психологов</a> · <a href="/docs">Документы сервиса</a> ·{" "}
+            <a href="/policy">Политика конфиденциальности</a>
+          </p>
+        </noscript>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
         <TelegramInit />
         <VersionCheck />
