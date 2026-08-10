@@ -10,7 +10,10 @@
 export const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
 import { apiFetch } from "@/lib/api";
-import { DEMO } from "@/lib/demo";
+
+// Флаг читается напрямую из окружения, а не из lib/demo: мок импортирует
+// ключ хранилища отсюда, и через `DEMO` получился бы цикл.
+const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
 // ids — имя специалиста → его userId. Без id запись на окно уходила бы «в
 // никуда»: сервер спрашивает, к кому записываемся, а имя ему ни о чём не говорит.

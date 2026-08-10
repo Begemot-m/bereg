@@ -28,6 +28,7 @@ import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState,
 import { asset } from "@/lib/asset";
 import { PSYS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
+import { getReviews, rateTherapist } from "@/lib/reviews";
 import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, setActiveTherapist, syncTherapists, therapistId, type TherapistStore } from "@/lib/therapists";
 import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
 
@@ -207,6 +208,43 @@ function FindTherapistBlock() {
   );
 }
 
+// Оценка специалиста. Ставится после состоявшейся встречи — сервер это и
+// проверяет, поэтому до первой сессии строка молчит и места не занимает.
+function RatingRow({ psyId, name }: { psyId: number | undefined; name: string }) {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["reviews", psyId ?? null], queryFn: () => getReviews(psyId as number), enabled: Boolean(psyId) });
+  const [denied, setDenied] = useState(false);
+  const mine = data?.list.find((r) => r.mine)?.rating ?? 0;
+  const rate = useMutation({
+    mutationFn: (value: number) => rateTherapist(psyId as number, value),
+    onSuccess: (next) => { success(); qc.setQueryData(["reviews", psyId ?? null], next); qc.invalidateQueries({ queryKey: ["catalog"] }); },
+    onError: () => setDenied(true),
+  });
+
+  if (!psyId || denied) return null;
+  return (
+    <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[14px] px-3 py-2" style={{ background: "var(--page)" }}>
+      <span className="min-w-0">
+        <span className="block text-[11.5px] font-black">{mine ? "Ваша оценка" : `Как вам работа с ${name.split(" ")[0]}?`}</span>
+        {Boolean(data?.count) && <span className="t-cap block">Средняя {data?.rating} · {data?.count} оценок</span>}
+      </span>
+      <span className="flex shrink-0 gap-0.5">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            key={value}
+            onClick={() => { tap(); rate.mutate(value); }}
+            disabled={rate.isPending}
+            aria-label={`Оценка ${value}`}
+            className="p-0.5"
+          >
+            <Icon name="star" width={17} weight={value <= mine ? "fill" : "bold"} color={value <= mine ? "var(--amber-edge)" : "var(--muted-2)"} />
+          </button>
+        ))}
+      </span>
+    </div>
+  );
+}
+
 // Карточка терапевта в стиле каталога — с переходом на его страницу и записью.
 function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: string; next: MyBooking | null; bookings: MyBooking[]; defaultOpen?: boolean; onRemove?: () => void }) {
   const psy = PSYS.find((item) => item.name === name);
@@ -268,6 +306,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
           </p>
         </div>
       </Link>
+      <RatingRow psyId={psyId} name={name} />
       <div className="mt-2.5 flex gap-2">
         <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="btn btn-accent flex-1 py-2.5" aria-expanded={bookOpen}>
           <Icon name="calendar" width={14} weight="bold" color="#fff" /> {bookOpen ? "Свернуть" : mine.length ? "Моя запись" : "Записаться"}

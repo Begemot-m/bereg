@@ -1,7 +1,10 @@
 // Демо-режим: приложение работает без бэкенда, на мок-данных в localStorage.
 // Включается переменной NEXT_PUBLIC_DEMO=1 (команда `bun run demo`).
 
-import { THERAPISTS_KEY } from "@/lib/therapists";
+// Ключи чужих модулей продублированы строками намеренно: и lib/therapists, и
+// lib/catalog ходят через apiFetch, а тот в демо ведёт сюда — импорт замкнул бы
+// круг на инициализации модуля.
+const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
 export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
@@ -78,6 +81,8 @@ type DB = {
   therapyTutorialSeen: boolean;
   reflections: Record<number, SessionReflection[]>;
   myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
+  /** Оценки специалистов каталога: id психолога → моя оценка. */
+  reviews: Record<number, number>;
   work: WorkHours;
   overrides: Record<string, SlotOverride>;
   support: Support[];
@@ -129,6 +134,7 @@ function seed(): DB {
     therapyTutorialSeen: false,
     reflections,
     myBookings: [],
+    reviews: {},
     // График пустой: окна расставляет сам психолог. Так же ведёт себя прод —
     // `DEFAULT_HOURS` в lib/server/schedule.ts тоже без окон.
     work: {
@@ -810,6 +816,21 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   }
 
   // записи клиента-пользователя (его сессии у специалистов)
+  // оценки специалиста: в демо своя одна, а средняя берётся из карточки каталога
+  if (clean === "/reviews") {
+    const psyId = Number(new URLSearchParams(path.split("?")[1] ?? "").get("psy") || body.psychologistId || 0);
+    if (method === "POST") {
+      db.reviews[Number(body.psychologistId)] = Math.min(5, Math.max(1, Number(body.rating)));
+      save(db);
+    }
+    const mine = db.reviews[psyId];
+    return delay({
+      rating: mine ?? 0,
+      count: mine ? 1 : 0,
+      list: mine ? [{ rating: mine, text: "", authorName: "Вы", createdAt: new Date().toISOString(), mine: true }] : [],
+    } as T);
+  }
+
   if (clean === "/my/appointments" && method === "GET") {
     return delay([...db.myBookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)) as T);
   }

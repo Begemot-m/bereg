@@ -63,14 +63,25 @@ export async function GET(req: NextRequest) {
   // чем её показывал календарь.
   const ids = rows.map((row) => row.userId);
   const range = horizon(14);
-  const [schedules, overrideRows, busyRows] = await Promise.all([
+  const [schedules, overrideRows, busyRows, reviewRows, doneRows] = await Promise.all([
     prisma.workHours.findMany({ where: { userId: { in: ids } } }),
     prisma.slotOverride.findMany({ where: { userId: { in: ids }, startsAt: { gte: range.from, lte: range.to } } }),
     prisma.appointment.findMany({
       where: { psychologistId: { in: ids }, status: { not: "cancelled" }, startsAt: { gte: range.from, lte: range.to } },
       select: { psychologistId: true, startsAt: true, durationMin: true },
     }),
+    // Рейтинг и счётчики карточки — из базы, а не константы. Раньше боевым
+    // анкетам проставлялись нули, и сортировка «по рейтингу» сравнивала нули.
+    prisma.review.groupBy({ by: ["psychologistId"], where: { psychologistId: { in: ids } }, _avg: { rating: true }, _count: { _all: true } }),
+    prisma.appointment.groupBy({
+      by: ["psychologistId"],
+      where: { psychologistId: { in: ids }, status: "done" },
+      _count: { _all: true },
+    }),
   ]);
+
+  const reviewOf = new Map(reviewRows.map((r) => [r.psychologistId, { rating: Math.round((r._avg.rating ?? 0) * 10) / 10, count: r._count._all }]));
+  const doneOf = new Map(doneRows.map((r) => [r.psychologistId, r._count._all]));
 
   const workOf = new Map(schedules.map((row) => [row.userId, row]));
   const overridesOf = new Map<number, Record<string, OverrideDTO>>();
@@ -108,6 +119,9 @@ export async function GET(req: NextRequest) {
         : 14,
       id: row.userId,
       name: row.name,
+      rating: reviewOf.get(row.userId)?.rating ?? 0,
+      reviews: reviewOf.get(row.userId)?.count ?? 0,
+      sessions: doneOf.get(row.userId) ?? 0,
       method: row.primaryMethod,
       methods: data.methods ?? [],
       years: row.experienceYears,

@@ -65,6 +65,29 @@ model User {
   visits             Visit[]
   therapistLinks     TherapistLink[]    @relation("ClientLinks")
   clientLinks        TherapistLink[]    @relation("PsychologistLinks")
+  reviewsWritten     Review[]           @relation("ReviewAuthor")
+  reviewsReceived    Review[]           @relation("ReviewTarget")
+}
+
+/// Оценка специалиста клиентом. Рейтинга не существовало вовсе: каталог
+/// проставлял всем боевым карточкам 0, и сортировка «по рейтингу» сравнивала
+/// нули. Одна оценка на пару «клиент — психолог», её можно переписать.
+model Review {
+  id             Int      @id @default(autoincrement())
+  author         User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId       Int
+  psychologist   User     @relation("ReviewTarget", fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId Int
+  /// 1…5. Дробных оценок не бывает: их никто не ставит осмысленно.
+  rating Int
+  /// Текст необязателен — звёзды ставят чаще, чем пишут. Шифруется, как всё,
+  /// что человек пишет о терапии.
+  text      String   @default("") @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([authorId, psychologistId])
+  @@index([psychologistId])
 }
 
 /// Специалист, закреплённый клиентом в разделе «Терапия». Жил в localStorage:
