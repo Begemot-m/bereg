@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { NOT_APPROVED, psyApproved } from "@/lib/server/access";
+import { withStatsOne } from "@/lib/server/clients";
+import { createInviteToken } from "@/lib/server/jwt";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { ownedClient } from "@/lib/server/therapy";
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         invitedAt: new Date(),
       },
     });
-    return NextResponse.json(updated);
+    return NextResponse.json({ ...(await withStatsOne(updated)), inviteToken: await createInviteToken(client.id) });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

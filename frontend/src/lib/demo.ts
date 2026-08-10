@@ -535,6 +535,15 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     c.invitedAt = new Date().toISOString();
     c.updatedAt = c.invitedAt;
     save(db);
+    return delay({ ...withStats(db, c), inviteToken: String(c.id) } as T);
+  }
+  // приём приглашения по ссылке: в демо метка — это номер карточки
+  if (clean === "/clients/join" && method === "POST") {
+    const c = db.clients.find((x) => x.id === Number(body.token));
+    if (!c) throw new Error("API 404");
+    c.link = "joined";
+    c.updatedAt = new Date().toISOString();
+    save(db);
     return delay(withStats(db, c) as T);
   }
   const cid = clean.match(/^\/clients\/(\d+)$/)?.[1];
@@ -542,7 +551,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const id = Number(cid);
     const c = db.clients.find((x) => x.id === id);
     if (!c) throw new Error("API 404");
-    if (method === "GET") { resolveClientLinks(db); return delay(withStats(db, c) as T); }
+    if (method === "GET") { resolveClientLinks(db); return delay({ ...withStats(db, c), inviteToken: String(c.id) } as T); }
     if (method === "PATCH") {
       if (body.name !== undefined) c.name = String(body.name);
       if (body.contact !== undefined) c.contact = (body.contact as string) || null;

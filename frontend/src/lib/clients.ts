@@ -24,6 +24,8 @@ export type Client = {
   hwDone: number;
   createdAt: string;
   updatedAt: string;
+  /** Подпись карточки для ссылки-приглашения. Приходит только в одиночной выдаче. */
+  inviteToken?: string;
 };
 
 // Статус вычисляется автоматически по активности, не выставляется вручную.
@@ -62,8 +64,14 @@ export const createClient = (name: string, contact: string) =>
   apiFetch<Client>("/clients", { method: "POST", body: JSON.stringify({ name, contact }) });
 
 // Пригласить клиента подключить свой профиль (опционально обновив контакт).
+// inviteToken — подпись карточки: в ссылке едет он, а не голый id, иначе
+// подключиться к чужой карточке можно было перебором.
 export const inviteClient = (id: number, contact?: string) =>
-  apiFetch<Client>(`/clients/${id}/invite`, { method: "POST", body: JSON.stringify(contact !== undefined ? { contact } : {}) });
+  apiFetch<Client & { inviteToken: string }>(`/clients/${id}/invite`, { method: "POST", body: JSON.stringify(contact !== undefined ? { contact } : {}) });
+
+/** Принять приглашение: связывает карточку у психолога с этим аккаунтом. */
+export const joinClientCard = (token: string) =>
+  apiFetch<Client>("/clients/join", { method: "POST", body: JSON.stringify({ token }) });
 
 export const LINK_LABEL: Record<ClientLink, string> = {
   none: "Не подключён",

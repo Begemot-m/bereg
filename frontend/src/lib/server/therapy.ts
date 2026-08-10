@@ -40,14 +40,44 @@ export function dayKey(d = new Date()): Date {
   return day;
 }
 
-export async function getTherapy(clientId: number): Promise<TherapyDTO> {
-  const [client, moods, notes, profile, reflections] = await Promise.all([
-    prisma.client.findUnique({ where: { id: clientId }, select: { notesModuleEnabled: true, notesModuleShared: true, notesModulePsychologist: true } }),
-    prisma.mood.findMany({ where: { clientId }, orderBy: { day: "asc" }, take: 30 }),
-    prisma.goodNote.findMany({ where: { clientId }, orderBy: { day: "asc" }, take: 60 }),
-    prisma.therapyProfile.findUnique({ where: { clientId } }),
+/**
+ * Где лежат настроение, колесо и «что хорошего» этого человека. Это данные
+ * человека, а не карточки у конкретного психолога: со вторым специалистом
+ * заводится вторая карточка, и половина истории оставалась в первой — клиент
+ * видел одно, психолог в карточке другое. Владелец — самая ранняя карточка
+ * аккаунта. У карточки без привязанного аккаунта своя история: её ведёт
+ * психолог, переносить некуда.
+ */
+export async function therapyOwnerId(client: { id: number; userId: number | null }): Promise<number> {
+  if (!client.userId) return client.id;
+  const first = await prisma.client.findFirst({
+    where: { userId: client.userId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  return first?.id ?? client.id;
+}
+
+/**
+ * allCards — смотрит сам клиент, и подготовки к встречам нужны по всем его
+ * психологам. Психолог видит только те, что относятся к его карточке.
+ */
+export async function getTherapy(clientId: number, opts: { allCards?: boolean } = {}): Promise<TherapyDTO> {
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { id: true, userId: true, notesModuleEnabled: true, notesModuleShared: true, notesModulePsychologist: true },
+  });
+  const ownerId = client ? await therapyOwnerId(client) : clientId;
+  const reflectionScope = opts.allCards && client?.userId
+    ? { client: { userId: client.userId } }
+    : { clientId };
+
+  const [moods, notes, profile, reflections] = await Promise.all([
+    prisma.mood.findMany({ where: { clientId: ownerId }, orderBy: { day: "asc" }, take: 30 }),
+    prisma.goodNote.findMany({ where: { clientId: ownerId }, orderBy: { day: "asc" }, take: 60 }),
+    prisma.therapyProfile.findUnique({ where: { clientId: ownerId } }),
     prisma.sessionReflection.findMany({
-      where: { clientId },
+      where: reflectionScope,
       orderBy: { appointment: { startsAt: "desc" } },
       take: 30,
       include: {
@@ -106,8 +136,12 @@ export type TherapyPatch = {
   notesModule?: { enabled?: boolean; shared?: boolean };
 };
 
-export async function patchTherapy(clientId: number, patch: TherapyPatch): Promise<TherapyDTO> {
+export async function patchTherapy(clientId: number, patch: TherapyPatch, opts: { allCards?: boolean } = {}): Promise<TherapyDTO> {
   const day = dayKey();
+  const card = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, userId: true } });
+  // Пишем туда же, откуда читаем: иначе отметка настроения уходила в карточку
+  // второго психолога, а экран клиента показывал историю первой.
+  const ownerId = card ? await therapyOwnerId(card) : clientId;
 
   if (patch.notesModule) {
     await prisma.client.update({
@@ -124,8 +158,8 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
     const mood = patch.mood === undefined ? undefined : Math.min(5, Math.max(1, Math.round(Number(patch.mood))));
     const emotions = Array.isArray(patch.emotions) ? patch.emotions.map(String).slice(0, 12) : undefined;
     await prisma.mood.upsert({
-      where: { clientId_day: { clientId, day } },
-      create: { clientId, day, mood: mood ?? 3, emotions: emotions ?? [] },
+      where: { clientId_day: { clientId: ownerId, day } },
+      create: { clientId: ownerId, day, mood: mood ?? 3, emotions: emotions ?? [] },
       update: { ...(mood !== undefined ? { mood } : {}), ...(emotions !== undefined ? { emotions } : {}) },
     });
   }
@@ -134,12 +168,12 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
     const text = patch.good.trim().slice(0, 240);
     if (text) {
       await prisma.goodNote.upsert({
-        where: { clientId_day: { clientId, day } },
-        create: { clientId, day, text: enc(text) },
+        where: { clientId_day: { clientId: ownerId, day } },
+        create: { clientId: ownerId, day, text: enc(text) },
         update: { text: enc(text) },
       });
     } else {
-      await prisma.goodNote.deleteMany({ where: { clientId, day } });
+      await prisma.goodNote.deleteMany({ where: { clientId: ownerId, day } });
     }
   }
 
@@ -157,9 +191,9 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
 
   if (Object.keys(profilePatch).length > 0) {
     await prisma.therapyProfile.upsert({
-      where: { clientId },
+      where: { clientId: ownerId },
       create: {
-        clientId,
+        clientId: ownerId,
         board: profilePatch.board ?? "",
         wheel: profilePatch.wheel ?? undefined,
         tutorialSeen: profilePatch.tutorialSeen ?? false,
@@ -173,12 +207,19 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
   }
 
   if (patch.reflection) {
-    const moduleState = await prisma.client.findUnique({ where: { id: clientId }, select: { notesModuleEnabled: true } });
+    // Встреча ищется по всем карточкам человека, а не только по той, через
+    // которую пришёл запрос: подготовка к сессии со вторым психологом иначе
+    // не сохранялась. Модуль заметок при этом спрашивается у карточки самой
+    // встречи — разрешение даёт та пара «клиент — психолог», а не соседняя.
     const appointment = await prisma.appointment.findFirst({
-      where: { id: patch.reflection.appointmentId, clientId, status: { not: "cancelled" } },
-      select: { id: true },
+      where: {
+        id: patch.reflection.appointmentId,
+        status: { not: "cancelled" },
+        ...(card?.userId ? { client: { userId: card.userId } } : { clientId }),
+      },
+      select: { id: true, clientId: true, client: { select: { notesModuleEnabled: true } } },
     });
-    if (appointment && moduleState?.notesModuleEnabled) {
+    if (appointment && appointment.client.notesModuleEnabled) {
       const preparation = patch.reflection.preparation === undefined ? undefined : enc(patch.reflection.preparation.trim().slice(0, 2000));
       const takeaway = patch.reflection.takeaway === undefined ? undefined : enc(patch.reflection.takeaway.trim().slice(0, 2000));
       const feeling = patch.reflection.feeling === undefined
@@ -189,7 +230,7 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
       await prisma.sessionReflection.upsert({
         where: { appointmentId: appointment.id },
         create: {
-          clientId,
+          clientId: appointment.clientId,
           appointmentId: appointment.id,
           preparation: preparation ?? "",
           takeaway: takeaway ?? "",
@@ -204,7 +245,7 @@ export async function patchTherapy(clientId: number, patch: TherapyPatch): Promi
     }
   }
 
-  return getTherapy(clientId);
+  return getTherapy(clientId, opts);
 }
 
 export async function setPsychologistNotesModule(clientId: number, enabled: boolean): Promise<TherapyDTO> {
@@ -223,6 +264,22 @@ export async function setPsychologistNotesModule(clientId: number, enabled: bool
  */
 export async function myClientCard(userId: number) {
   return prisma.client.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
+}
+
+/**
+ * Карточка для записи терапии. Если человек ещё не записан ни к кому — заводим
+ * личную, без психолога: раньше сервер в этом случае возвращал пустой ответ и
+ * молча выбрасывал патч, и настроение с колесом баланса не сохранялись вовсе.
+ * Когда он потом запишется, карточка у психолога появится рядом, а история
+ * останется в этой — она старше, и владельцем терапии считается именно она.
+ */
+export async function ensureMyClientCard(user: { id: number; firstName: string | null }) {
+  return (
+    (await myClientCard(user.id)) ??
+    prisma.client.create({
+      data: { userId: user.id, name: user.firstName ?? "Клиент", link: "joined", status: "new" },
+    })
+  );
 }
 
 /** Карточка принадлежит этому психологу? Защита от чужих id в пути. */

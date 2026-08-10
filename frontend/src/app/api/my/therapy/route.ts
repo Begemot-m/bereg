@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { AuthError, requireUser } from "@/lib/server/session";
-import { getTherapy, myClientCard, patchTherapy, type TherapyPatch } from "@/lib/server/therapy";
+import { ensureMyClientCard, getTherapy, myClientCard, patchTherapy, type TherapyPatch } from "@/lib/server/therapy";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
     const card = await myClientCard(user.id);
-    return NextResponse.json(card ? await getTherapy(card.id) : EMPTY);
+    return NextResponse.json(card ? await getTherapy(card.id, { allCards: true }) : EMPTY);
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
@@ -45,11 +45,11 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const card = await myClientCard(user.id);
-    if (!card) return NextResponse.json(EMPTY);
-
     const body = await parseBody(req, therapyPatchSchema);
-    return NextResponse.json(await patchTherapy(card.id, body as TherapyPatch));
+    // Карточка заводится здесь же: отметка настроения от человека без
+    // психолога раньше просто исчезала.
+    const card = await ensureMyClientCard(user);
+    return NextResponse.json(await patchTherapy(card.id, body as TherapyPatch, { allCards: true }));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     if (e instanceof InvalidBody) return invalidBodyResponse(e);

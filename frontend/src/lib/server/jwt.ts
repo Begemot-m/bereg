@@ -17,6 +17,26 @@ export async function createAccessToken(userId: number, sessionId: string): Prom
     .sign(key());
 }
 
+// Приглашение клиента подключить свой профиль. Раньше в ссылке ехал голый id
+// карточки — по нему перебором можно было привязаться к чужой. Подпись живёт
+// месяц: дольше приглашение и не ждут.
+export async function createInviteToken(clientId: number): Promise<string> {
+  return new SignJWT({ type: "invite" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(String(clientId))
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(key());
+}
+
+export async function verifyInviteToken(token: string): Promise<number> {
+  const { payload } = await jwtVerify(token, key());
+  if (payload.type !== "invite") throw new Error("wrong token type");
+  const clientId = Number(payload.sub);
+  if (!Number.isInteger(clientId)) throw new Error("bad subject");
+  return clientId;
+}
+
 export type AccessClaims = { userId: number; sessionId: string };
 
 export async function verifyAccessToken(token: string): Promise<AccessClaims> {

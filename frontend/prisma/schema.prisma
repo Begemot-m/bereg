@@ -212,9 +212,12 @@ model AuditLog {
 
 // Карточка клиента, которую ведёт психолог. Не обязательно юзер платформы.
 model Client {
-  id             Int      @id @default(autoincrement())
-  psychologist   User     @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
-  psychologistId Int
+  id Int @id @default(autoincrement())
+  /// Пусто — личная карточка человека без психолога. Она нужна, чтобы
+  /// настроение и колесо баланса сохранялись с первого дня: раньше клиент без
+  /// специалиста писал их в никуда, сервер молча выбрасывал патч.
+  psychologist   User? @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId Int?
   name           String
   contact        String? // телефон / телеграм / email
   note           String   @default("") @db.Text // заметки психолога — шифруются
@@ -228,6 +231,10 @@ model Client {
   userId                  Int?
   link                    String    @default("none") // none | invited | joined
   invitedAt               DateTime?
+  /// Имя из профиля подключившегося клиента, если оно разошлось с тем, как
+  /// карточку подписал психолог. Карточка предлагает заменить; «оставить своё»
+  /// очищает поле, поэтому вычислить его на лету нельзя — нужно состояние.
+  joinedName              String?
   /// Модуль заметок: клиент может вести лично или делиться со специалистом.
   notesModuleEnabled      Boolean   @default(false)
   notesModuleShared       Boolean   @default(true)

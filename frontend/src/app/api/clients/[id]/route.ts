@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { withStatsOne } from "@/lib/server/clients";
+import { createInviteToken } from "@/lib/server/jwt";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 
@@ -12,6 +14,24 @@ async function getOwned(clientId: number, psychologistId: number) {
   return client;
 }
 
+// Одна карточка. Роута не было вовсе: экраны клиента, его домашек и заметок
+// звали /clients/:id и получали 405 — в демо мок это умел, поэтому дыра
+// держалась незамеченной.
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await requireUser(req);
+    const { id } = await ctx.params;
+    const client = await getOwned(Number(id), user.id);
+    if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // Подпись карточки едет вместе с ней: из неё собирается ссылка-приглашение,
+    // и она нужна экрану до того, как психолог нажал «Пригласить».
+    return NextResponse.json({ ...(await withStatsOne(client)), inviteToken: await createInviteToken(client.id) });
+  } catch (e) {
+    if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    throw e;
+  }
+}
+
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser(req);
@@ -19,16 +39,22 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const client = await getOwned(Number(id), user.id);
     if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const body = (await req.json()) as { name?: string; contact?: string; note?: string };
+    // status и joinedName интерфейс шлёт с первого дня, а роут их выбрасывал:
+    // «Пауза» вручную не ставилась, а предложение заменить имя возвращалось
+    // после каждого обновления страницы.
+    const body = (await req.json()) as { name?: string; contact?: string; note?: string; status?: string; joinedName?: string | null };
+    const status = ["new", "therapy", "paused"].includes(body.status ?? "") ? body.status : undefined;
     const updated = await prisma.client.update({
       where: { id: client.id },
       data: {
         name: body.name?.trim() || undefined,
         contact: body.contact === undefined ? undefined : body.contact.trim() || null,
         note: body.note ?? undefined,
+        status,
+        joinedName: body.joinedName === undefined ? undefined : body.joinedName || null,
       },
     });
-    return NextResponse.json(updated);
+    return NextResponse.json(await withStatsOne(updated));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

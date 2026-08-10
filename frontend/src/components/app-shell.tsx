@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -16,6 +17,7 @@ const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.Ro
 // Лендинг видят только гости из браузера — в бандл вошедшего он не нужен.
 const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => m.WebLanding));
 import { APP_NAME } from "@/lib/brand";
+import { joinClientCard } from "@/lib/clients";
 import { select } from "@/lib/haptics";
 import { useOnboarded } from "@/lib/profile";
 import { useAuth } from "@/lib/useAuth";
@@ -70,6 +72,7 @@ function Wordmark({ small }: { small?: boolean }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { env, state: authState, reason: authReason, detail: authDetail } = useAuth();
+  const qc = useQueryClient();
   const [role, setRole] = useRole();
   const pathname = usePathname();
   const router = useRouter();
@@ -82,6 +85,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Посещаемость: раздел отмечается на каждом переходе, не чаще раза в пять
   // минут на раздел. Сводку читает админка.
   useEffect(() => { trackSection(pathname); }, [pathname]);
+
+  // Приглашение принимается, как только появилась сессия: до этого метку
+  // некуда предъявить. Раньше она просто лежала в sessionStorage, карточка у
+  // психолога навсегда оставалась в «Ждём подключения», и терапия клиента до
+  // неё не доезжала.
+  useEffect(() => {
+    if (authState !== "authed") return;
+    const token = sessionStorage.getItem("bereg_pending_invite");
+    if (!token) return;
+    sessionStorage.removeItem("bereg_pending_invite");
+    joinClientCard(token)
+      .then(() => { qc.invalidateQueries(); })
+      .catch(() => { /* просроченное или чужое приглашение — молча пропускаем */ });
+  }, [authState, qc]);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
   // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;

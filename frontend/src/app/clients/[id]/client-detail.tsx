@@ -39,9 +39,10 @@ import { getClientTherapy, setClientNotesModule } from "@/lib/therapy";
 const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
 
-// Ссылка-приглашение клиента подключить свой профиль.
-function inviteLink(id: number): string {
-  return `${PROD_URL}?invite=${id}`;
+// Ссылка-приглашение клиента подключить свой профиль. В ней подписанная метка
+// карточки, а не её номер: по номеру перебором подключались бы к чужой.
+function inviteLink(client: Client): string {
+  return `${PROD_URL}?invite=${encodeURIComponent(client.inviteToken ?? String(client.id))}`;
 }
 
 export function ClientDetail() {
@@ -290,7 +291,7 @@ function ClientConnect({ client, onChanged }: { client: Client; onChanged: () =>
   const [kind, setKind] = useState<"tg" | "phone">(() => (client.contact && isPhone(client.contact) ? "phone" : "tg"));
   const [contact, setContact] = useState(client.contact ?? "");
   const [copied, setCopied] = useState(false);
-  const link = inviteLink(client.id);
+  const link = inviteLink(client);
   const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Веду вас в «Хронику» — подключите свой профиль, чтобы видеть записи, задания и практики:")}`;
 
   const invite = useMutation({ mutationFn: () => inviteClient(client.id, contact.trim()), onSuccess: () => { success(); onChanged(); } });
