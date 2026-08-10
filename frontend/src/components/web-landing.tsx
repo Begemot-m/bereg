@@ -347,7 +347,7 @@ function TelegramButton() {
       style={{ background: "var(--ink)" }}
     >
       <Icon name="telegram-logo" width={19} weight="fill" color="#fff" />
-      <span className="hidden whitespace-nowrap sm:block">Приложение в Telegram</span>
+      <span className="hidden whitespace-nowrap sm:block">В мини-приложение</span>
     </a>
   );
 }
@@ -373,16 +373,16 @@ function Hero({ scrollY }: { scrollY: MotionValue<number> }) {
           className="inline-flex items-center gap-2 text-[15px] font-medium text-[var(--muted)]"
         >
           <Icon name="telegram-logo" width={18} weight="fill" color="#2aabee" />
-          Приложение Telegram и десктоп
+          Платформа в приложении Telegram и в браузере
         </motion.p>
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.06, ease: EASE }}
-          className="font-tight mx-auto mt-5 max-w-[1020px] text-[38px] font-black leading-[1.05] tracking-[-0.035em] sm:text-[48px] md:text-[68px]"
+          className="font-tight mx-auto mt-5 max-w-[1020px] text-[36px] font-black leading-[1.05] tracking-[-0.035em] sm:text-[46px] md:text-[62px]"
         >
-          Практика психолога,<br className="hidden md:block" /> собранная в одном месте
+          Цифровая платформа для улучшения<br className="hidden md:block" /> ментального здоровья
         </motion.h1>
 
         <motion.p
@@ -391,7 +391,7 @@ function Hero({ scrollY }: { scrollY: MotionValue<number> }) {
           transition={{ duration: 0.7, delay: 0.14, ease: EASE }}
           className="mx-auto mt-6 max-w-[620px] text-[17px] font-medium leading-[1.5] text-[var(--muted)] md:text-[19px]"
         >
-          Цифровая платформа для улучшения ментального здоровья
+          Практика психолога, собранная в одном месте
         </motion.p>
       </motion.div>
     </section>
@@ -453,7 +453,7 @@ function ScreensTabs() {
         transition={{ duration: 0.9, ease: EASE }}
       >
         <motion.div
-          className="relative overflow-hidden rounded-[24px] px-3 pt-3 md:rounded-[36px] md:px-10 md:pt-10"
+          className="relative overflow-hidden rounded-[24px] md:rounded-[36px]"
           animate={{ backgroundColor: tab.tone }}
           transition={{ duration: 0.5, ease: EASE }}
           style={{ height: "clamp(230px, 46vw, 620px)" }}
@@ -465,15 +465,14 @@ function ScreensTabs() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.45, ease: EASE }}
-              className="mx-auto h-full w-full max-w-[1040px] overflow-hidden rounded-t-[16px] bg-white md:rounded-t-[22px]"
-              style={{ boxShadow: "0 -2px 40px rgba(32,28,24,.12)" }}
+              className="absolute inset-0"
             >
               <Image
                 src={asset(`/shots/d-${tab.key}.webp`)}
                 alt={`Экран «${tab.label}» в Хронике`}
                 width={1632}
                 height={1120}
-                className="block w-full"
+                className="h-full w-full object-cover object-top"
                 unoptimized
                 priority={active === 0}
               />
@@ -521,20 +520,22 @@ function Topics() {
   return (
     <section className={`${WRAP} pb-20 md:pb-32`}>
       <Reveal>
-        <p className="text-center text-[19px] font-medium text-[var(--muted)]">
+        <h2 className="font-tight mx-auto max-w-[820px] text-center text-[32px] font-black leading-[1.06] tracking-[-0.03em] sm:text-[36px] md:text-[54px]">
           С чем к психологам приходят чаще всего
-        </p>
+        </h2>
       </Reveal>
-      <div className="mt-12 grid grid-cols-2 gap-y-11 md:grid-cols-4">
+      <div className="mt-12 grid grid-cols-2 gap-y-10 md:mt-16 md:grid-cols-4">
         {TOPICS.map((topic, i) => (
           <Reveal key={topic.label} delay={(i % 4) * 0.06}>
-            <div className="flex flex-col items-center justify-center gap-3 px-2 text-center sm:flex-row sm:gap-3">
-              <Icon name={topic.icon} width={34} weight="duotone" color={topic.color} />
-              <span
-                className="font-tight text-[22px] font-black leading-[1.1] tracking-[-0.02em] md:text-[27px]"
-                style={{ color: topic.color }}
-              >
-                {topic.label}
+            <div className="flex justify-center px-2">
+              <span className="inline-flex items-center gap-2">
+                <Icon name={topic.icon} width={32} weight="duotone" color={topic.color} className="shrink-0" />
+                <span
+                  className="font-tight text-[21px] font-black leading-[1.12] tracking-[-0.02em] md:text-[25px]"
+                  style={{ color: topic.color }}
+                >
+                  {topic.label}
+                </span>
               </span>
             </div>
           </Reveal>
@@ -640,15 +641,15 @@ function FeatureCard({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8, delay: 0.15, ease: EASE }}
-            className="absolute left-5 top-7 w-[130%] overflow-hidden rounded-[14px] bg-white sm:left-6 sm:top-8 md:left-10 md:top-12"
-            style={{ boxShadow: "0 20px 60px rgba(32,28,24,.16)", ...(stack ? { y: shotY } : null) }}
+            className="absolute inset-x-0 -bottom-10 -top-10"
+            style={stack ? { y: shotY } : undefined}
           >
             <Image
               src={asset(`/shots/d-${block.shot}.webp`)}
               alt={`Экран «${block.title}» в Хронике`}
               width={1632}
               height={1120}
-              className="block w-full"
+              className="h-full w-full object-cover object-left-top"
               unoptimized
             />
           </motion.div>
@@ -711,52 +712,54 @@ function Orbit() {
     <section className="relative overflow-hidden py-16 md:py-24" style={{ background: "rgba(32,28,24,.03)" }}>
       <div className={`${WRAP} text-center`}>
         <Reveal>
-          <h2 className="font-tight mx-auto max-w-[900px] text-[30px] font-black leading-[1.08] tracking-[-0.03em] sm:text-[36px] md:text-[48px]">
-            Работайте спокойнее:{" "}
-            <span className="text-[var(--muted)]">
-              современные инструменты станут вашим надёжным помощником, а не врагом
-            </span>
+          <h2 className="font-tight mx-auto max-w-[820px] text-[32px] font-black leading-[1.06] tracking-[-0.03em] sm:text-[36px] md:text-[54px]">
+            Работайте спокойнее
           </h2>
+        </Reveal>
+        <Reveal delay={0.08}>
+          <p
+            className="mx-auto mt-5 max-w-[640px] text-[17px] font-semibold leading-[1.5] md:text-[20px]"
+            style={{ color: "var(--purple-edge)" }}
+          >
+            Современные инструменты станут вашим надёжным помощником, а не врагом
+          </p>
         </Reveal>
       </div>
 
-      <div className="relative mx-auto mt-12 aspect-square w-full max-w-[340px] sm:max-w-[420px] md:mt-16 md:max-w-[500px]">
-        <span className="absolute inset-0 rounded-full" style={{ background: "rgba(32,28,24,.035)" }} />
-        <span className="absolute inset-[15%] rounded-full" style={{ background: "rgba(32,28,24,.045)" }} />
+      {/* Колесо наполовину в «воде»: нижняя половина скрыта, иконки уходят под
+          линию и выныривают — как лопасти мельницы. */}
+      <div className="relative mx-auto mt-12 w-full max-w-[420px] overflow-hidden px-8 sm:max-w-[520px] md:mt-16 md:max-w-[600px]">
+        <div className="relative aspect-square w-full" style={{ marginBottom: "-50%" }}>
+          <span className="absolute inset-0 rounded-full" style={{ background: "rgba(32,28,24,.035)" }} />
+          <span className="absolute inset-[15%] rounded-full" style={{ background: "rgba(32,28,24,.045)" }} />
 
-        <motion.div className="absolute inset-0" animate={calm ? undefined : { rotate: 360 }} transition={turn}>
-          {ORBIT.map((icon, i) => {
-            const angle = (i / ORBIT.length) * 2 * Math.PI - Math.PI / 2;
-            return (
-              <span
-                key={icon}
-                className="absolute h-[58px] w-[58px]"
-                style={{
-                  left: `${50 + Math.cos(angle) * 42}%`,
-                  top: `${50 + Math.sin(angle) * 42}%`,
-                  marginLeft: -29,
-                  marginTop: -29,
-                }}
-              >
-                <motion.span
-                  className="flex h-full w-full items-center justify-center rounded-full bg-[var(--surface)]"
-                  style={{ boxShadow: "0 8px 24px rgba(32,28,24,.1)" }}
-                  animate={calm ? undefined : { rotate: -360 }}
-                  transition={turn}
+          <motion.div className="absolute inset-0" animate={calm ? undefined : { rotate: 360 }} transition={turn}>
+            {ORBIT.map((icon, i) => {
+              const angle = (i / ORBIT.length) * 2 * Math.PI - Math.PI / 2;
+              return (
+                <span
+                  key={icon}
+                  className="absolute h-[58px] w-[58px]"
+                  style={{
+                    left: `${50 + Math.cos(angle) * 42}%`,
+                    top: `${50 + Math.sin(angle) * 42}%`,
+                    marginLeft: -29,
+                    marginTop: -29,
+                  }}
                 >
-                  <Icon name={icon} width={25} weight="regular" color="var(--ink)" />
-                </motion.span>
-              </span>
-            );
-          })}
-        </motion.div>
-
-        <span
-          className="absolute left-1/2 top-1/2 flex h-[110px] w-[110px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full md:h-[132px] md:w-[132px]"
-          style={{ background: "var(--ink)" }}
-        >
-          <span className="font-tight text-[19px] font-black tracking-[-0.03em] text-white md:text-[23px]">{APP_NAME}</span>
-        </span>
+                  <motion.span
+                    className="flex h-full w-full items-center justify-center rounded-full bg-[var(--surface)]"
+                    style={{ boxShadow: "0 8px 24px rgba(32,28,24,.1)" }}
+                    animate={calm ? undefined : { rotate: -360 }}
+                    transition={turn}
+                  >
+                    <Icon name={icon} width={25} weight="regular" color="var(--ink)" />
+                  </motion.span>
+                </span>
+              );
+            })}
+          </motion.div>
+        </div>
       </div>
     </section>
   );
