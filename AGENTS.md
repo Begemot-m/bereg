@@ -81,18 +81,23 @@
 - VPS Beget: Ubuntu 24.04, Docker, 2 vCPU / 4 ГБ, публичный IP
   `213.139.208.92`, приватный IP `10.16.0.2`;
 - managed PostgreSQL Beget: `default_db`, приватный адрес `10.16.0.1:5432`;
-- текущий образ: `ghcr.io/begemot-m/bereg:sha-c5dd5a0` (выкачен в ночь на
-  11 августа 2026: часовой пояс расписания и оценки; применены все 15 миграций, включая
-  `20260810200000_reviews` — оценки специалистов пишутся в базу). Вместе с
-  образом на сервер скопирован обновлённый `deploy/docker-compose.yml`: в нём
-  `TZ: ${APP_TIME_ZONE:-Europe/Moscow}` для `app` и `bot`, без него контейнер
-  жил в UTC. Прошлая версия лежит рядом как `docker-compose.yml.bak-tz`;
-- **не доехало на сервер (11 августа 2026):** правки в `deploy/Caddyfile`
-  (замена `X-Forwarded-For`, снят конфликтующий `X-Frame-Options`) применяются
-  только копированием файла на VPS и `docker compose up -d caddy`. Пока это не
-  сделано, лимиты частоты обходятся подделкой заголовка. Туда же: в
-  `/opt/bereg/.env` не задан `CRON_SECRET`, поэтому `/api/cron/renew` отвечает
-  401 и подписки не продлеваются автоматически;
+- текущий образ: `ghcr.io/begemot-m/bereg:sha-c177256` (выкачен 11 августа
+  2026: аудит безопасности — подделка `X-Forwarded-For` больше не обходит
+  лимиты, лимит на вебхук и каталог, PDF документов отдаётся вложением. Все 15
+  миграций применены, новых в этом релизе нет). Раньше выкатка падала на
+  `bun install --frozen-lockfile`: из `package.json` убрали `zustand`, а
+  `bun.lock` не пересобрали — коммит `c177256` это чинит. Перед этим на сервер
+  был скопирован `deploy/docker-compose.yml` с `TZ:
+  ${APP_TIME_ZONE:-Europe/Moscow}` для `app` и `bot`, прошлая версия лежит
+  рядом как `docker-compose.yml.bak-tz`;
+- `deploy/Caddyfile` доехал на сервер 11 августа 2026 (замена
+  `X-Forwarded-For` на `{remote_host}`, снят конфликтующий `X-Frame-Options`,
+  убран отдельный блок для вебхука — лимит теперь в самом роуте). Прошлая
+  версия — `/opt/bereg/Caddyfile.bak-20260811`. Этот файл не в образе:
+  копировать на VPS вручную и делать `docker compose exec caddy caddy reload`;
+- `CRON_SECRET` в `/opt/bereg/.env` задан, но **`crontab` на сервере пуст** —
+  ни `/api/cron/renew`, ни `backup.sh` по расписанию не запускаются. Продление
+  подписок и бэкапы сейчас держатся только на ручном запуске;
 - выкатка ручная и в два шага: в GitHub Actions запустить workflow
   «Build and deploy app» (соберёт образ `sha-<7 знаков>`), затем на VPS
   `cd /opt/bereg && ./deploy.sh ghcr.io/begemot-m/bereg:sha-<тег>`. SSH-шаг
