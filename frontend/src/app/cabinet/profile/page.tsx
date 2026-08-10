@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { PageHead } from "@/components/blocks";
+import { CatalogPlacement } from "@/components/catalog-placement";
 import { ProfessionalProfileEditor } from "@/components/profile-editor";
 import { VerificationPrompt } from "@/components/verification-prompt";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
@@ -16,6 +17,9 @@ export default function CabinetProfilePage() {
         {/* Подсказка о проверке — до анкеты: заполнять её имеет смысл, зная,
             что дальше документы и модерация. */}
         <VerificationPrompt compact className="mb-4 mt-3" />
+        {/* Что мешает карточке стоять в каталоге — до анкеты, чтобы правки шли
+            сразу по списку. */}
+        <CatalogPlacement className="mb-4" />
         <ProfessionalProfileEditor />
 
         {/* Та же карточка, что видит клиент в каталоге, — собирается из анкеты. */}

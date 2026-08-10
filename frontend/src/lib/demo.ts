@@ -126,16 +126,10 @@ function seed(): DB {
     therapyTutorialSeen: false,
     reflections,
     myBookings: [],
-    // Без рабочих часов записывать клиента некуда — в демо шаблон недели
-    // задан сразу, и времена демо-сессий совпадают с окнами.
+    // График пустой: окна расставляет сам психолог. Так же ведёт себя прод —
+    // `DEFAULT_HOURS` в lib/server/schedule.ts тоже без окон.
     work: {
-      hours: {
-        0: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }, { t: "18:00", d: 50, fmt: "online" }],
-        1: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }, { t: "18:00", d: 50, fmt: "online" }],
-        2: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "18:00", d: 50, fmt: "online" }],
-        3: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }, { t: "18:00", d: 50, fmt: "online" }],
-        4: [{ t: "11:00", d: 50, fmt: "online" }, { t: "13:00", d: 50, fmt: "online" }, { t: "16:00", d: 50, fmt: "offline" }],
-      },
+      hours: {},
       sessionMinutes: 50,
     },
     overrides: {},
@@ -159,9 +153,7 @@ function load(): DB {
       const db = JSON.parse(raw) as DB;
       // Страховка от неполных/старых данных.
       const s = seed();
-      // Пустой шаблон недели остался у тех, кто открывал демо до появления
-      // расписания по умолчанию: без окон запись клиента не работает.
-      if (!db.work?.hours || Object.keys(db.work.hours).length === 0) db.work = s.work;
+      if (!db.work?.hours) db.work = s.work;
       // миграция окон: старый формат — массив строк времени; добавляем fmt
       for (const k of Object.keys(db.work.hours)) {
         const arr = db.work.hours[Number(k)] as unknown[];

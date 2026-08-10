@@ -24,7 +24,7 @@ mock.module("./prisma", () => ({
   },
 }));
 
-const { access, psyApproved } = await import("./access");
+const { access, catalogPlacement, psyApproved } = await import("./access");
 
 const days = (n: number) => new Date(Date.now() + n * 86_400_000);
 
@@ -153,5 +153,56 @@ describe("бесплатное размещение в каталоге", () => 
     psyRow = { status: "approved", reviewedAt: days(-90) };
     subRow = { status: "active", currentPeriodEnd: days(20) };
     expect((await access(1)).catalog).toBe(true);
+  });
+
+  test("пробный PRO тоже держит карточку", async () => {
+    psyRow = { status: "approved", reviewedAt: days(-30) };
+    firstAppt = { startsAt: days(-3) };
+    const acc = await access(1);
+    expect(acc.pro).toBe(true);
+    expect(acc.catalog).toBe(true);
+  });
+});
+
+// Тем же правилом каталог отсекает чужие анкеты: деньги решают, кто в выдаче,
+// поэтому расчёт проверяется отдельно от чтения базы.
+describe("правило размещения", () => {
+  test("неодобренная анкета в каталог не идёт", () => {
+    expect(catalogPlacement({ status: "review", reviewedAt: days(-1) }).placed).toBe(false);
+    expect(catalogPlacement({ status: "rejected", reviewedAt: days(-1) }).reason).toBe("not_approved");
+  });
+
+  test("первые 14 дней после одобрения — бесплатно", () => {
+    const p = catalogPlacement({ status: "approved", reviewedAt: days(-13) });
+    expect(p.placed).toBe(true);
+    expect(p.reason).toBe("free");
+  });
+
+  test("на пятнадцатый день без оплаты карточка снимается", () => {
+    const p = catalogPlacement({ status: "approved", reviewedAt: days(-15) });
+    expect(p.placed).toBe(false);
+    expect(p.reason).toBe("expired");
+  });
+
+  test("оплаченный PRO возвращает карточку в выдачу", () => {
+    const p = catalogPlacement({ status: "approved", reviewedAt: days(-40), subStatus: "active", currentPeriodEnd: days(10) });
+    expect(p.placed).toBe(true);
+    expect(p.reason).toBe("paid");
+  });
+
+  test("истёкшая подписка не считается оплатой", () => {
+    const p = catalogPlacement({ status: "approved", reviewedAt: days(-40), subStatus: "active", currentPeriodEnd: days(-1) });
+    expect(p.placed).toBe(false);
+  });
+
+  test("неоплаченная заявка на подписку карточку не держит", () => {
+    const p = catalogPlacement({ status: "approved", reviewedAt: days(-40), subStatus: "pending", currentPeriodEnd: null });
+    expect(p.placed).toBe(false);
+  });
+
+  test("одобрение без даты проверки бесплатных дней не даёт", () => {
+    const p = catalogPlacement({ status: "approved", reviewedAt: null });
+    expect(p.placed).toBe(false);
+    expect(p.freeUntil).toBeNull();
   });
 });

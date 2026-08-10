@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Arrow, PageHead, SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
+import { CatalogPlacement } from "@/components/catalog-placement";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
@@ -25,7 +26,6 @@ import { select, success, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
-import { CATALOG_FREE_DAYS } from "@/lib/subscription";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
@@ -65,9 +65,7 @@ export default function CabinetPage() {
           {psy ? (
             <>
               <SubscriptionBanner />
-              <p className="px-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">
-                После верификации профиля вы получите <span className="font-black" style={{ color: "var(--purple-edge)" }}>{CATALOG_FREE_DAYS} дней бесплатного</span> размещения в каталоге
-              </p>
+              <CatalogPlacement />
             </>
           ) : (
             <div className="card-soft flex items-start gap-3 p-4" style={{ background: "var(--purple-soft)" }}>

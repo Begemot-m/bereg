@@ -18,7 +18,44 @@ export const FREE_CLIENT_LIMIT = 3;
 const TRIAL_DAYS = 14;
 
 /** Сколько анкета стоит в каталоге бесплатно после одобрения. */
-const CATALOG_FREE_DAYS = 14;
+export const CATALOG_FREE_DAYS = 14;
+
+/** Что известно о размещении одной анкеты: её статус и подписка владельца. */
+export type PlacementInput = {
+  status: string | null | undefined;
+  reviewedAt: Date | null | undefined;
+  subStatus?: string | null;
+  currentPeriodEnd?: Date | null;
+};
+
+export type Placement = {
+  /** Видна ли карточка в каталоге прямо сейчас. */
+  placed: boolean;
+  /** Докуда бесплатное размещение после одобрения. */
+  freeUntil: Date | null;
+  reason: "paid" | "free" | "expired" | "not_approved";
+};
+
+/**
+ * Одно правило размещения на всю платформу: карточка стоит в каталоге, если
+ * анкета одобрена и либо оплачен PRO, либо ещё идут бесплатные 14 дней с
+ * момента одобрения. По нему живут и `/api/catalog`, и ответ `/subscription`.
+ */
+export function catalogPlacement(input: PlacementInput, now = Date.now()): Placement {
+  if (input.status !== "approved") return { placed: false, freeUntil: null, reason: "not_approved" };
+
+  let freeUntil: Date | null = null;
+  if (input.reviewedAt) {
+    freeUntil = new Date(input.reviewedAt);
+    freeUntil.setDate(freeUntil.getDate() + CATALOG_FREE_DAYS);
+  }
+  const freeActive = Boolean(freeUntil && freeUntil.getTime() > now);
+  const paid = input.subStatus === "active" && (!input.currentPeriodEnd || input.currentPeriodEnd.getTime() > now);
+
+  if (paid) return { placed: true, freeUntil, reason: "paid" };
+  if (freeActive) return { placed: true, freeUntil, reason: "free" };
+  return { placed: false, freeUntil, reason: "expired" };
+}
 
 export type Access = {
   pro: boolean;
@@ -75,12 +112,11 @@ export async function access(userId: number): Promise<Access> {
 
   // Бесплатные 14 дней в каталоге идут от одобрения анкеты и не зависят от
   // подписки: пока они не вышли, карточка стоит даже на бесплатном тарифе.
-  let catalogUntil: Date | null = null;
-  if (psy?.status === "approved" && psy.reviewedAt) {
-    catalogUntil = new Date(psy.reviewedAt);
-    catalogUntil.setDate(catalogUntil.getDate() + CATALOG_FREE_DAYS);
-  }
-  const catalogFree = Boolean(catalogUntil && catalogUntil.getTime() > now);
+  const placement = catalogPlacement(
+    { status: psy?.status, reviewedAt: psy?.reviewedAt, subStatus: sub?.status, currentPeriodEnd: sub?.currentPeriodEnd },
+    now,
+  );
+  const catalogUntil = placement.freeUntil;
 
   const paidActive = sub?.status === "active" && (!sub.currentPeriodEnd || sub.currentPeriodEnd.getTime() > now);
   if (paidActive) {
@@ -112,7 +148,9 @@ export async function access(userId: number): Promise<Access> {
     trialStarted: Boolean(startedAt),
     currentPeriodEnd: sub?.currentPeriodEnd ?? null,
     catalogUntil,
-    catalog: catalogFree,
+    // Пробный PRO — это тоже PRO: пока он идёт, карточка стоит в каталоге,
+    // даже если бесплатные 14 дней после одобрения уже прошли.
+    catalog: placement.placed || (trialActive && psy?.status === "approved"),
   };
 }
 

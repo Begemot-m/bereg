@@ -166,15 +166,30 @@ export function hasCatalogPlacement(subscription: Subscription | null | undefine
   return Boolean(subscription.catalogUntil && new Date(subscription.catalogUntil).getTime() > now);
 }
 
+/**
+ * Чего не хватает анкете, чтобы стать карточкой каталога. Список нужен не
+ * только проверке: специалисту показываем ровно те пункты, которые держат его
+ * вне выдачи, — «анкета не прошла валидацию» без причин бесполезно.
+ */
+export function catalogProfileGaps(profile: PsyProfile | null | undefined): string[] {
+  if (!profile) return ["анкета не заполнена"];
+  const gaps: string[] = [];
+  if (!profile.name.trim()) gaps.push("имя");
+  if (!profile.photos.length) gaps.push("фотография");
+  if (!profile.primaryMethod.trim() || !profile.methods.length) gaps.push("основной подход");
+  if (!profile.topics.length) gaps.push("запросы, с которыми работаете");
+  if (!profile.languages.length) gaps.push("языки консультаций");
+  if (!Number.isFinite(profile.sessionPrice) || profile.sessionPrice <= 0) gaps.push("стоимость встречи");
+  if (profile.sessionMinutes < 30) gaps.push("длительность встречи от 30 минут");
+  if (profile.experienceYears === "" || Number(profile.experienceYears) < 0) gaps.push("стаж");
+  if (profile.format !== "online" && !profile.location.city.trim()) gaps.push("город для очных встреч");
+  if (profile.location.publicExactAddress && !profile.location.address.trim()) gaps.push("адрес приёма");
+  return gaps;
+}
+
 export function isCatalogProfileReady(profile: PsyProfile | null | undefined): profile is PsyProfile {
   if (!profile || profile.status !== "approved") return false;
-  if (!profile.name.trim() || !profile.photos.length || !profile.primaryMethod.trim()) return false;
-  if (!profile.methods.length || !profile.topics.length || !profile.languages.length) return false;
-  if (!Number.isFinite(profile.sessionPrice) || profile.sessionPrice <= 0 || profile.sessionMinutes < 30) return false;
-  if (profile.experienceYears === "" || Number(profile.experienceYears) < 0) return false;
-  if (profile.format !== "online" && !profile.location.city.trim()) return false;
-  if (profile.location.publicExactAddress && !profile.location.address.trim()) return false;
-  return true;
+  return catalogProfileGaps(profile).length === 0;
 }
 
 export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | null): Psy {
@@ -228,6 +243,17 @@ export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | 
   };
 }
 
+/**
+ * Боевой каталог: анкеты из базы, прошедшие проверку и с действующим
+ * размещением (PRO либо первые 14 дней после одобрения) — решает сервер.
+ * В демо базы нет, там каталог собирается из локальных данных.
+ */
+export async function listCatalog(): Promise<Psy[]> {
+  if (DEMO_CATALOG) return [];
+  const rows = await apiFetch<CatalogApiPsy[]>("/catalog");
+  return rows.map(apiPsyToCatalogPsy);
+}
+
 /** Одна анкета с сервера по id — карточка для ссылки-приглашения. */
 export async function getCatalogPsy(id: number): Promise<Psy | null> {
   const rows = await apiFetch<CatalogApiPsy[]>(`/catalog?id=${id}`);
@@ -260,7 +286,7 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     city: text(row.city),
     district: text(row.district) || undefined,
     metro: text(row.metro) || undefined,
-    gender: "unspecified",
+    gender: (row.gender === "woman" || row.gender === "man" ? row.gender : "unspecified"),
     languages: list(row.languages),
     years: Number(row.years) || 0,
     sessions: 0,
@@ -283,7 +309,19 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
   };
 }
 
-export function publishedCatalog(profile: PsyProfile | null | undefined, subscription: Subscription | null | undefined, work?: ScheduleHours | null): Psy[] {
+/**
+ * Что видит человек в каталоге. В бою список приходит с сервера — там же
+ * проверены и статус анкеты, и оплата, поэтому своя карточка попадает в него
+ * тем же путём, что и чужие. В демо сервера нет: каталог собирается из
+ * бутафорских анкет плюс своя, если размещение действует.
+ */
+export function publishedCatalog(
+  profile: PsyProfile | null | undefined,
+  subscription: Subscription | null | undefined,
+  work?: ScheduleHours | null,
+  server: Psy[] = [],
+): Psy[] {
+  if (!DEMO_CATALOG) return server;
   if (!hasCatalogPlacement(subscription) || !isCatalogProfileReady(profile)) return PUBLIC_PSYS;
   return [profileToCatalogPsy(profile, work), ...PUBLIC_PSYS];
 }

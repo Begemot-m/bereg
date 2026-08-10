@@ -283,12 +283,8 @@ const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hour
 
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between gap-2">
+      <div className="mb-1.5">
         <p className="text-[12px] font-extrabold uppercase tracking-wide text-[var(--muted)]">Неделя</p>
-        <span className="flex items-center gap-2.5 text-[10px] font-black text-[var(--muted)]">
-          <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: "var(--head-soft)" }} /> свободно</span>
-          <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: "var(--edge)" }} /> занято</span>
-        </span>
       </div>
       <div className="flex gap-1.5">
         {WEEKDAYS.map((_, wd) => {

@@ -28,6 +28,9 @@ import {
   formatLabel,
   nextSlotLabel,
   getCatalogPsy,
+  hasCatalogPlacement,
+  isCatalogProfileReady,
+  listCatalog,
   OWN_PROFILE_ID,
   personalSelection,
   profileToCatalogPsy,
@@ -96,6 +99,9 @@ export default function CatalogPage() {
   // Свой график — источник окон для собственной карточки в каталоге: заполнил
   // расписание, и подборка уже учитывает его дни и время.
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours, enabled: Boolean(profile) });
+  // Боевые анкеты: сервер отдаёт только подтверждённые и с действующим
+  // размещением. В демо запрос уходит в никуда — там каталог локальный.
+  const { data: serverPsys } = useQuery({ queryKey: ["catalog"], queryFn: listCatalog, staleTime: 60_000, retry: false });
   const [mode, setMode] = useState<CatalogMode>("personal");
   const [prefs, setPrefs] = useState<CatalogPrefs>(EMPTY_PREFS);
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
@@ -140,7 +146,7 @@ export default function CatalogPage() {
     } catch { setSurveyOpen(true); }
   }, []);
 
-  const catalog = useMemo(() => publishedCatalog(profile, subscription, work), [profile, subscription, work]);
+  const catalog = useMemo(() => publishedCatalog(profile, subscription, work, serverPsys ?? []), [profile, subscription, work, serverPsys]);
   const personal = useMemo(() => personalSelection(prefs, catalog), [prefs, catalog]);
   const allFiltered = useMemo(() => sortCatalog(filterCatalog(filters, catalog), sort, prefs), [filters, sort, prefs, catalog]);
   const pageCount = Math.max(1, Math.ceil(allFiltered.length / 10));
@@ -160,7 +166,7 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={returnTo === "profile" && selected.id === OWN_PROFILE_ID && !catalog.some((item) => item.id === OWN_PROFILE_ID)} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={returnTo === "profile" && selected.id === OWN_PROFILE_ID && !(hasCatalogPlacement(subscription) && isCatalogProfileReady(profile))} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">

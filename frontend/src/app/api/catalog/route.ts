@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { availabilityFromWorkHours } from "@/lib/availability";
 import { publicRules } from "@/lib/profile-rules";
+import { catalogPlacement } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
   // тут не требуется: по прямой ссылке специалист открывается и без PRO.
   const one = Number(url.searchParams.get("id"));
 
-  const rows = await prisma.psyProfile.findMany({
+  const found = await prisma.psyProfile.findMany({
     where: one > 0
       ? { userId: one, status: "approved" }
       : {
@@ -27,8 +28,30 @@ export async function GET(req: NextRequest) {
           ...(maxPrice > 0 ? { sessionPrice: { lte: maxPrice } } : {}),
         },
     orderBy: { sessionPrice: "asc" },
-    take: one > 0 ? 1 : 100,
+    take: one > 0 ? 1 : 200,
   });
+
+  // Одобренной анкеты мало: место в каталоге держат либо оплаченный PRO, либо
+  // бесплатные 14 дней после одобрения. Кончилось и то и другое — карточка
+  // уходит из выдачи, хотя сама анкета остаётся подтверждённой.
+  // По прямой ссылке (?id=) карточка открывается и без размещения: человек
+  // пришёл к конкретному специалисту, а не искал его в каталоге.
+  const subs = await prisma.subscription.findMany({
+    where: { psychologistId: { in: found.map((row) => row.userId) } },
+    select: { psychologistId: true, status: true, currentPeriodEnd: true },
+  });
+  const subOf = new Map(subs.map((row) => [row.psychologistId, row]));
+  const rows = one > 0
+    ? found
+    : found.filter((row) => {
+        const sub = subOf.get(row.userId);
+        return catalogPlacement({
+          status: row.status,
+          reviewedAt: row.reviewedAt,
+          subStatus: sub?.status,
+          currentPeriodEnd: sub?.currentPeriodEnd,
+        }).placed;
+      });
 
   // Окна для фильтра «когда удобно» берём из графика специалиста: заполнил
   // расписание — его дни и время сразу участвуют в подборке.
@@ -60,6 +83,9 @@ export async function GET(req: NextRequest) {
       education: data.education ?? [],
       languages: data.languages ?? [],
       specialistTypes: data.specialistTypes ?? [],
+      // Пол специалиста — фильтр в каталоге; без него анкета выпадала из
+      // подборки, стоило клиенту выбрать «женщина» или «мужчина».
+      gender: data.gender ?? "unspecified",
       // Настройки анкеты: счётчики и правила показываются, только если
       // специалист отметил это у себя в профиле.
       showStats: data.showStats !== false,

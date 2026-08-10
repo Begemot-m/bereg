@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { apiFetch } from "@/lib/api";
 import { EMPTY_RULES, normalizeRules, type ProfileRules } from "@/lib/profile-rules";
 
 // --- Пользователь из Telegram (initDataUnsafe достаточно для прототипа) ---
@@ -174,6 +175,54 @@ export function savePsyProfile(patch: Partial<PsyProfile>) {
   else if (patch.photo !== undefined) profile.photos = patch.photo ? [patch.photo, ...profile.photos.filter((x) => x !== patch.photo)].slice(0, 3) : profile.photos;
   localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
   window.dispatchEvent(new CustomEvent(EVENT));
+  void pushProfile(profile);
+}
+
+// В демо анкета живёт только в браузере, в бою — ещё и в базе. Раньше её туда
+// не отправлял никто: каталог, модерация и карточка специалиста читали
+// PsyProfile, куда попадали лишь поля из заявки на верификацию.
+const LIVE = process.env.NEXT_PUBLIC_DEMO !== "1";
+
+// Анкета сохраняется на каждый затихший ввод, а весит она вместе с фото
+// несколько мегабайт: в базу уезжает последний снимок раз в полторы секунды и
+// только если он отличается от уже отправленного.
+let pushTimer: number | null = null;
+let pushQueued: PsyProfile | null = null;
+let pushedBody = "";
+
+async function pushProfile(profile: PsyProfile) {
+  if (!LIVE || typeof window === "undefined") return;
+  pushQueued = profile;
+  if (pushTimer !== null) return;
+  pushTimer = window.setTimeout(async () => {
+    pushTimer = null;
+    const next = pushQueued;
+    pushQueued = null;
+    if (!next) return;
+    const body = JSON.stringify(next);
+    if (body === pushedBody) return;
+    pushedBody = body;
+    try {
+      await apiFetch("/profile", { method: "PUT", body });
+    } catch {
+      // Гость и клиент анкеты не имеют — 401 тут норма. Снимок забываем,
+      // чтобы следующая правка попробовала снова.
+      pushedBody = "";
+    }
+  }, 1500);
+}
+
+/** Статус модерации ставит сервер; локально держим только эти два значения. */
+export const toLocalStatus = (status: unknown): PsyProfile["status"] => (status === "approved" ? "approved" : "review");
+
+/** Когда анкету последний раз сверяли с базой. */
+let lastServerSync = 0;
+
+/** Решение модерации пришло другим путём — подтягиваем его в локальную анкету. */
+export function applyServerStatus(status: unknown) {
+  const cur = getPsyProfile();
+  if (!cur || cur.status === toLocalStatus(status)) return;
+  savePsyProfile({ status: toLocalStatus(status) });
 }
 
 export function useProfile(): PsyProfile | null {
@@ -184,6 +233,26 @@ export function useProfile(): PsyProfile | null {
     window.addEventListener(EVENT, onChange);
     return () => window.removeEventListener(EVENT, onChange);
   }, []);
+
+  // Сверка с базой: на новом устройстве анкеты в браузере нет, а статус
+  // модерации меняется только на сервере — «подтверждён» иначе не доедет.
+  useEffect(() => {
+    // Хук стоит на нескольких экранах сразу — тянем анкету не чаще раза в
+    // минуту, иначе каждый переход бил бы в базу по три раза.
+    if (!LIVE || Date.now() - lastServerSync < 60_000) return;
+    lastServerSync = Date.now();
+    let alive = true;
+    apiFetch<(Partial<PsyProfile> & { status?: string }) | null>("/profile")
+      .then((row) => {
+        if (!alive || !row) return;
+        const cur = getPsyProfile();
+        if (!cur) savePsyProfile({ ...row, status: toLocalStatus(row.status) });
+        else if (toLocalStatus(row.status) !== cur.status) savePsyProfile({ status: toLocalStatus(row.status) });
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   return p;
 }
 

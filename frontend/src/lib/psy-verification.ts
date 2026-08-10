@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
+import { applyServerStatus } from "@/lib/profile";
 
 export type PsyStatus = "none" | "draft" | "review" | "approved" | "rejected";
 
@@ -107,9 +108,16 @@ export function useVerification() {
   return useQuery<Verification>({
     queryKey: ["psy-verification"],
     queryFn: async () => {
-      if (DEMO) return demoSyncWithQueue(demoRead());
+      if (DEMO) {
+        const next = demoSyncWithQueue(demoRead());
+        applyServerStatus(next.status);
+        return next;
+      }
       const row = await apiFetch<{ status?: string; rejectReason?: string | null; submittedAt?: string | null } | null>("/profile");
       if (!row) return { status: "none", rejectReason: null, submittedAt: null };
+      // Решение модератора живёт в базе; локальной анкете о нём никто не
+      // сообщал, и она навсегда оставалась «на проверке».
+      applyServerStatus(row.status);
       return {
         status: (row.status as PsyStatus) ?? "draft",
         rejectReason: row.rejectReason ?? null,
