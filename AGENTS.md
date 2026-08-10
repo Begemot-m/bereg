@@ -81,8 +81,12 @@
 - VPS Beget: Ubuntu 24.04, Docker, 2 vCPU / 4 ГБ, публичный IP
   `213.139.208.92`, приватный IP `10.16.0.2`;
 - managed PostgreSQL Beget: `default_db`, приватный адрес `10.16.0.1:5432`;
-- текущий образ: `ghcr.io/begemot-m/bereg:sha-c666c86` (выкачен 7 августа 2026,
-  лендинг для гостей из браузера);
+- текущий образ: `ghcr.io/begemot-m/bereg:sha-22041ae` (выкачен 10 августа 2026,
+  боевой каталог со сверкой оплаты);
+- выкатка ручная и в два шага: в GitHub Actions запустить workflow
+  «Build and deploy app» (соберёт образ `sha-<7 знаков>`), затем на VPS
+  `cd /opt/bereg && ./deploy.sh ghcr.io/begemot-m/bereg:sha-<тег>`. SSH-шаг
+  workflow падает с `missing server host`, пока не заданы секреты `SSH_*`;
 - приложение и PostgreSQL healthy, TLS выдан Caddy;
 - `.env` находится только на VPS в `/opt/bereg/.env`, секретов в git нет;
 - временный SSH-ключ предыдущего Codex удалён и с VPS, и с компьютера;
