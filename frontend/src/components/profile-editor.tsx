@@ -242,6 +242,7 @@ function PreviewEmpty({ text }: { text: string }) { return <p className="t-sub p
 
 function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; livePreview?: boolean }) {
   const flowSteps = livePreview ? STEPS.slice(0, -1) : STEPS;
+  const stored = useProfile();
   const [draft, setDraft] = useState<PsyProfile>(() => mergeProfile(getPsyProfile()));
   const [step, setStep] = useState<number>(() => {
     const profile = mergeProfile(getPsyProfile());
@@ -256,22 +257,25 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
   // анкеты само записало бы в профиль значения по умолчанию.
   const touched = useRef(false);
 
+  // Отдельного черновика в браузере больше нет: анкету ведёт сервер, а на
+  // втором устройстве старый черновик возвращал в неё давно переписанные поля.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(DRAFT_KEY);
-      if (stored) setDraft(mergeProfile(JSON.parse(stored) as PsyProfile));
-    } catch { /* битый черновик не мешает открыть профиль */ }
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* локальное хранилище может быть недоступно */ }
   }, []);
 
+  // Пока человек ничего не менял, форма показывает то, что приехало из базы.
+  useEffect(() => {
+    if (touched.current || !stored) return;
+    setDraft(mergeProfile(stored));
+  }, [stored]);
+
   // Всё, что ввели, сохраняется само — кнопки «Сохранить» больше нет.
-  // Пишем и черновик, и сам профиль: статус проверки при этом не трогаем,
-  // иначе автосохранение молча снимало бы пройденную модерацию.
+  // Статус проверки при этом не трогаем, иначе автосохранение молча снимало бы
+  // пройденную модерацию.
   useEffect(() => {
     if (!touched.current) return;
     const timer = window.setTimeout(() => {
-      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* локальное хранилище может быть недоступно */ }
-      const stored = getPsyProfile();
-      savePsyProfile({ ...draft, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: stored?.status ?? "review" });
+      savePsyProfile({ ...draft, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: getPsyProfile()?.status ?? "review" });
     }, 400);
     return () => window.clearTimeout(timer);
   }, [draft]);
@@ -290,7 +294,6 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
     if (firstInvalid >= 0) { setStep(firstInvalid); setError(validateStep(STEPS[firstInvalid].id, draft)); return; }
     // Публикация = отправка на проверку модератору.
     savePsyProfile({ ...draft, primaryMethod: draft.primaryMethod, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: "review" });
-    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
     success(); setPublished(true);
   };
 

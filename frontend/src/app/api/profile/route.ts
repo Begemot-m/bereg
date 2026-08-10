@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
+import { mergeProfilePatch, PROFILE_COLUMNS } from "@/lib/server/profile-patch";
 import { AuthError, requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
 type Row = {
   name: string; primaryMethod: string; experienceYears: number; sessionPrice: number;
   sessionMinutes: number; format: string; city: string; status: string; data: unknown;
-  rejectReason?: string | null; submittedAt?: Date | null;
+  rejectReason?: string | null; submittedAt?: Date | null; updatedAt?: Date | null;
 };
 
 const toDTO = (row: Row) => ({
@@ -26,12 +27,8 @@ const toDTO = (row: Row) => ({
   status: row.status,
   rejectReason: row.rejectReason ?? null,
   submittedAt: row.submittedAt ?? null,
+  updatedAt: row.updatedAt ?? null,
 });
-
-const FILTERABLE = new Set([
-  "name", "primaryMethod", "experienceYears", "sessionPrice",
-  "sessionMinutes", "format", "status", "location",
-]);
 
 export async function GET(req: NextRequest) {
   try {
@@ -54,7 +51,7 @@ export async function PUT(req: NextRequest) {
 
     // Всё, что не участвует в фильтрах каталога, едет в JSON как есть.
     const rest: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(body)) if (!FILTERABLE.has(k)) rest[k] = v;
+    for (const [k, v] of Object.entries(body)) if (!PROFILE_COLUMNS.has(k)) rest[k] = v;
     rest.location = body.location ?? {};
     const data = rest as Prisma.InputJsonValue;
 
@@ -82,6 +79,41 @@ export async function PUT(req: NextRequest) {
       create: { userId: user.id, ...fields, status: "draft" },
       update: fields,
     });
+    return NextResponse.json(toDTO(row));
+  } catch (e) {
+    if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
+    throw e;
+  }
+}
+
+// Правка анкеты приходит полями, а не целиком: два устройства, открытые на
+// разных шагах, больше не затирают друг друга — доезжает только то, что человек
+// действительно поменял.
+export async function PATCH(req: NextRequest) {
+  try {
+    const user = await requireUser(req);
+    const body = (await req.json()) as Record<string, unknown>;
+    const cur = await prisma.psyProfile.findUnique({ where: { userId: user.id } });
+    const { data, fields } = mergeProfilePatch((cur?.data as Record<string, unknown> | null) ?? {}, body);
+    const json = data as Prisma.InputJsonValue;
+
+    // Статус трогает только модерация — как и в PUT.
+    const row = cur
+      ? await prisma.psyProfile.update({ where: { userId: user.id }, data: { ...fields, data: json } })
+      : await prisma.psyProfile.create({
+          data: {
+            userId: user.id,
+            name: fields.name ?? "",
+            primaryMethod: fields.primaryMethod ?? "",
+            experienceYears: fields.experienceYears ?? 0,
+            sessionPrice: fields.sessionPrice ?? 0,
+            sessionMinutes: fields.sessionMinutes ?? 0,
+            format: fields.format ?? "",
+            city: fields.city ?? "",
+            status: "draft",
+            data: json,
+          },
+        });
     return NextResponse.json(toDTO(row));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });

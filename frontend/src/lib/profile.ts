@@ -173,72 +173,91 @@ export function savePsyProfile(patch: Partial<PsyProfile>) {
   // Основное фото — первое в массиве (совместимость со старым polем photo).
   if (patch.photos) profile.photo = patch.photos[0] ?? null;
   else if (patch.photo !== undefined) profile.photos = patch.photo ? [patch.photo, ...profile.photos.filter((x) => x !== patch.photo)].slice(0, 3) : profile.photos;
-  localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
-  window.dispatchEvent(new CustomEvent(EVENT));
-  lastLocalEdit = Date.now();
-  void pushProfile(profile);
+  writeLocal(profile);
+  queuePush(cur, profile);
 }
 
+function writeLocal(profile: PsyProfile) {
+  localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
+  window.dispatchEvent(new CustomEvent(EVENT));
+}
+
+type ServerProfile = Partial<PsyProfile> & {
+  status?: string;
+  rejectReason?: string | null;
+  submittedAt?: string | null;
+  updatedAt?: string | null;
+};
+
 /**
- * Анкета, пришедшая из базы. Кладём как есть и обратно на сервер не шлём:
- * иначе получилось бы эхо. Свежие правки не трогаем — человек может печатать
- * прямо сейчас, а ответ сервера отстаёт на секунду-другую.
+ * Анкета из базы — она и есть правда. Локально уступают все поля, кроме тех,
+ * что человек только что поменял на этом устройстве и которые ещё не доехали
+ * до сервера: их сервер про свою копию просто не знает.
  */
-function applyServerProfile(row: Partial<PsyProfile> & { status?: string }) {
-  if (Date.now() - lastLocalEdit < 10_000) return;
+function applyServerProfile(row: ServerProfile) {
   const cur = getPsyProfile();
-  const next: PsyProfile = {
+  const next = {
     ...EMPTY,
     ...cur,
     ...row,
     location: { ...EMPTY.location, ...(cur?.location ?? {}), ...(row.location ?? {}) },
     rules: normalizeRules(row.rules ?? cur?.rules),
     status: toLocalStatus(row.status),
-  };
+  } as PsyProfile & Record<string, unknown>;
+  for (const [key, value] of Object.entries(pending)) next[key] = value;
   next.approach = next.primaryMethod || next.approach;
   next.primaryMethod = next.approach;
   if (!Array.isArray(next.photos)) next.photos = next.photo ? [next.photo] : [];
   next.photo = next.photos[0] ?? null;
   if (JSON.stringify(next) === JSON.stringify(cur)) return;
-  localStorage.setItem(KEY_PROFILE, JSON.stringify(next));
-  window.dispatchEvent(new CustomEvent(EVENT));
+  writeLocal(next);
 }
 
-/** Когда анкету последний раз меняли на этом устройстве. */
-let lastLocalEdit = 0;
-
-// В демо анкета живёт только в браузере, в бою — ещё и в базе. Раньше её туда
-// не отправлял никто: каталог, модерация и карточка специалиста читали
-// PsyProfile, куда попадали лишь поля из заявки на верификацию.
+// В демо анкета живёт только в браузере, в бою источник правды — база, а
+// localStorage остаётся кэшем: он рисует анкету до ответа сервера.
 const LIVE = process.env.NEXT_PUBLIC_DEMO !== "1";
 
-// Анкета сохраняется на каждый затихший ввод, а весит она вместе с фото
-// несколько мегабайт: в базу уезжает последний снимок раз в полторы секунды и
-// только если он отличается от уже отправленного.
-let pushTimer: number | null = null;
-let pushQueued: PsyProfile | null = null;
-let pushedBody = "";
+// Что решает не человек, а сервер: статус модерации и её следы.
+const SERVER_OWNED = new Set(["status", "rejectReason", "submittedAt", "updatedAt"]);
 
-async function pushProfile(profile: PsyProfile) {
+// На сервер уезжают только изменённые поля. Форма сохраняет анкету целиком на
+// каждый затихший ввод, и раньше полный снимок (вместе с фото на мегабайты)
+// затирал в базе всё, что человек успел поправить со второго устройства.
+let pending: Record<string, unknown> = {};
+let flushTimer: number | null = null;
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+function queuePush(prev: PsyProfile | null, next: PsyProfile) {
   if (!LIVE || typeof window === "undefined") return;
-  pushQueued = profile;
-  if (pushTimer !== null) return;
-  pushTimer = window.setTimeout(async () => {
-    pushTimer = null;
-    const next = pushQueued;
-    pushQueued = null;
-    if (!next) return;
-    const body = JSON.stringify(next);
-    if (body === pushedBody) return;
-    pushedBody = body;
-    try {
-      await apiFetch("/profile", { method: "PUT", body });
-    } catch {
-      // Гость и клиент анкеты не имеют — 401 тут норма. Снимок забываем,
-      // чтобы следующая правка попробовала снова.
-      pushedBody = "";
-    }
-  }, 1500);
+  let changed = false;
+  for (const key of Object.keys(next) as (keyof PsyProfile)[]) {
+    if (SERVER_OWNED.has(key)) continue;
+    if (prev && same(prev[key], next[key])) continue;
+    pending[key] = next[key];
+    changed = true;
+  }
+  if (changed) scheduleFlush(800);
+}
+
+function scheduleFlush(delay: number) {
+  if (flushTimer !== null) return;
+  flushTimer = window.setTimeout(() => { flushTimer = null; void flushProfile(); }, delay);
+}
+
+async function flushProfile() {
+  const body = pending;
+  pending = {};
+  if (!Object.keys(body).length) return;
+  try {
+    const row = await apiFetch<ServerProfile | null>("/profile", { method: "PATCH", body: JSON.stringify(body) });
+    if (row) applyServerProfile(row);
+  } catch {
+    // Гость и клиент анкеты не имеют — 401 тут норма. Поля возвращаем в
+    // очередь, но не поверх того, что человек успел поправить следом.
+    pending = { ...body, ...pending };
+    scheduleFlush(5000);
+  }
 }
 
 /** Статус модерации ставит сервер; локально держим только эти два значения. */
@@ -246,6 +265,22 @@ export const toLocalStatus = (status: unknown): PsyProfile["status"] => (status 
 
 /** Когда анкету последний раз сверяли с базой. */
 let lastServerSync = 0;
+let syncing = false;
+
+/**
+ * Тянет анкету из базы в локальный кэш. `force` — когда ждать нельзя:
+ * вкладку открыли заново, а на другом устройстве анкету уже поправили.
+ */
+export function refreshProfile(force = false) {
+  if (!LIVE || typeof window === "undefined" || syncing) return;
+  if (!force && Date.now() - lastServerSync < 20_000) return;
+  syncing = true;
+  lastServerSync = Date.now();
+  apiFetch<ServerProfile | null>("/profile")
+    .then((row) => { if (row) applyServerProfile(row); })
+    .catch(() => {})
+    .finally(() => { syncing = false; });
+}
 
 /** Решение модерации пришло другим путём — подтягиваем его в локальную анкету. */
 export function applyServerStatus(status: unknown) {
@@ -263,18 +298,14 @@ export function useProfile(): PsyProfile | null {
     return () => window.removeEventListener(EVENT, onChange);
   }, []);
 
-  // Сверка с базой: на новом устройстве анкеты в браузере нет, а статус
-  // модерации меняется только на сервере — «подтверждён» иначе не доедет.
+  // Анкета приезжает из базы: на новом устройстве её в браузере нет, а правки
+  // со второго устройства и решение модерации иначе не доедут. Возврат на
+  // вкладку — отдельный повод сверить: телефон мог пролежать в кармане день.
   useEffect(() => {
-    // Хук стоит на нескольких экранах сразу — тянем анкету не чаще раза в
-    // минуту, иначе каждый переход бил бы в базу по три раза.
-    if (!LIVE || Date.now() - lastServerSync < 60_000) return;
-    lastServerSync = Date.now();
-    let alive = true;
-    apiFetch<(Partial<PsyProfile> & { status?: string }) | null>("/profile")
-      .then((row) => { if (alive && row) applyServerProfile(row); })
-      .catch(() => {});
-    return () => { alive = false; };
+    refreshProfile();
+    const onVisible = () => { if (document.visibilityState === "visible") refreshProfile(true); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   return p;
