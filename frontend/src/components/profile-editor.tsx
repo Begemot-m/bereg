@@ -290,7 +290,6 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
     <div className="min-w-0">
     {/* Прогресс + шаги: можно вернуться на любой пройденный и дозаполнить позже */}
     <div className="mb-4 overflow-hidden rounded-[20px] bg-white stroke-lg">
-      <div className="h-1.5 bg-[var(--surface-2)]"><motion.div className="h-full bg-[var(--ink)]" animate={{ width: `${((index + 1) / flowSteps.length) * 100}%` }} /></div>
       <div className="flex items-center gap-3 p-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span>
         <div className="min-w-0 flex-1">
@@ -303,17 +302,18 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
           const isPreview = item.id === "preview";
           const done = !isPreview && isComplete(item.id, draft);
           const active = itemIndex === index;
-          // Заполненные — зелёные, недозаполненные — янтарные (сигнал), текущий — тёмная обводка.
-          const bg = isPreview ? "var(--surface-2)" : done ? "var(--green)" : "var(--amber)";
-          const edge = isPreview ? "var(--edge-neutral)" : done ? "var(--green-edge)" : "var(--amber-edge)";
+          // Заполненные — зелёные, недозаполненные — янтарные (сигнал). Текущий
+          // раздел чёрный и вдвое шире: где ты сейчас, видно без чтения.
+          const bg = active ? "var(--ink)" : isPreview ? "var(--surface-2)" : done ? "var(--green)" : "var(--amber)";
+          const edge = active ? "var(--ink)" : isPreview ? "var(--edge-neutral)" : done ? "var(--green-edge)" : "var(--amber-edge)";
           return (
             <button
               key={item.id}
               onClick={() => openStep(itemIndex)}
               aria-label={`${itemIndex + 1}. ${item.title}${done ? " — заполнено" : ""}`}
               aria-current={active}
-              className="h-2.5 flex-1 rounded-full transition-colors"
-              style={{ background: bg, border: `2px solid ${active ? "var(--ink)" : edge}` }}
+              className={`h-2.5 rounded-full transition-all ${active ? "flex-[2.2]" : "flex-1"}`}
+              style={{ background: bg, border: `2px solid ${edge}` }}
             />
           );
         })}
@@ -336,12 +336,12 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
                 onClick={() => { openStep(itemIndex); setNavOpen(false); }}
                 aria-current={active}
                 className="flex w-full items-center gap-2.5 rounded-[13px] p-2.5 text-left transition-transform active:scale-[.99]"
-                style={{ background: active ? "var(--surface-2)" : "transparent", border: `var(--bw) solid ${active ? "var(--ink)" : "var(--edge-neutral)"}` }}
+                style={{ background: active ? "var(--ink)" : "transparent", border: `var(--bw) solid ${active ? "var(--ink)" : "var(--edge-neutral)"}`, color: active ? "#fff" : "inherit" }}
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px]" style={{ background: item.tone }}><Icon name={item.icon} width={17} weight="bold" /></span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px]" style={{ background: item.tone }}><Icon name={item.icon} width={17} weight="bold" color="var(--ink)" /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] font-black leading-tight">{itemIndex + 1}. {item.title}</span>
-                  <span className="t-cap block">{item.short}</span>
+                  <span className="t-cap block" style={active ? { color: "rgba(255,255,255,.72)" } : undefined}>{item.short}</span>
                 </span>
                 {!isPreview && (
                   <span className="shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[.05em]" style={{ background: done ? "var(--green-soft)" : "var(--amber-soft)", color: done ? "var(--green-edge)" : "var(--amber-edge)" }}>
