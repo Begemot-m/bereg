@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { availabilityFits, availabilityFromWorkHours, availabilityScore, EMPTY_AVAILABILITY, nextSlotDays, type Availability, type DayGroup, type ScheduleHours } from "@/lib/availability";
+import { helpsLine, languagePrepositional, yearsWord } from "@/lib/morph";
 import type { PsyProfile } from "@/lib/profile";
 import { publicRules, type PublicRule } from "@/lib/profile-rules";
 import type { Subscription } from "@/lib/subscription";
@@ -241,7 +242,7 @@ export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | 
     rules: publicRules(profile.rules),
     style: profile.style?.trim() || undefined,
     quote: profile.quote?.trim() || undefined,
-    helps: profile.topics.filter(Boolean).slice(0, 3).join(", ") || undefined,
+    helps: profile.topics.filter(Boolean).length ? helpsLine(profile.topics) : undefined,
     avoids: (profile.avoids ?? []).map((t) => t.trim()).filter(Boolean),
   };
 }
@@ -374,9 +375,9 @@ export function reasonsFor(psy: Psy, prefs: CatalogPrefs): string[] {
   if (topic) reasons.push(`работает с запросом «${topic}»`);
   if (reasons.length < 3) reasons.push(`основной подход — ${psy.method}`);
   if (prefs.budget && priceFitsBudget(psy.price, prefs.budget)) reasons.push("подходит по бюджету");
-  if (prefs.language !== "any" && speaksLanguage(psy, prefs.language)) reasons.push(prefs.language === LANGUAGE_OTHER ? "консультирует не только на русском" : `консультирует на ${prefs.language}`);
+  if (prefs.language !== "any" && speaksLanguage(psy, prefs.language)) reasons.push(prefs.language === LANGUAGE_OTHER ? "консультирует не только на русском" : `консультирует на ${languagePrepositional(prefs.language)}`);
   if (prefs.city && prefs.format !== "online" && psy.city.toLowerCase() === prefs.city.toLowerCase()) reasons.push(`принимает в городе ${psy.city}`);
-  if (prefs.minYears > 0 && psy.years >= prefs.minYears) reasons.push(`${psy.years} лет практики`);
+  if (prefs.minYears > 0 && psy.years >= prefs.minYears) reasons.push(`${psy.years} ${yearsWord(psy.years)} практики`);
   if (prefs.gender !== "any" && psy.gender === prefs.gender) reasons.push("соответствует выбору специалиста");
   return reasons.slice(0, 3);
 }

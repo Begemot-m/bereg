@@ -27,6 +27,10 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
   const doRequest = () => {
     return fetch(`${API_URL}${path}`, {
+      // Данные приложения меняются от запроса к запросу: анкета, каталог,
+      // расписание. Без явного no-store вебвью Telegram отдаёт свой кэш, и
+      // свежая правка профиля «не доезжает» до списка минутами.
+      cache: "no-store",
       ...init,
       headers: {
         ...(isForm ? {} : { "Content-Type": "application/json" }),

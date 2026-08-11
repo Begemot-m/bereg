@@ -12,6 +12,8 @@ import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
 import { EMPTY_RULES, normalizeRules, publicRules, RULE_PRESETS, rulesFilled, type RuleId } from "@/lib/profile-rules";
+import { helpsLine } from "@/lib/morph";
+import { useVerification, type PsyStatus } from "@/lib/psy-verification";
 
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
@@ -201,8 +203,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
 
 // Карточка-миниатюра повторяет представление специалиста в каталоге.
 function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; name: string; photo: string | null }) {
-  const topics = profile?.topics ?? [];
-  const helps = topics.length ? topics.slice(0, 3).join(", ") : "разными запросами";
+  const helps = helpsLine(profile?.topics);
   const price = profile?.sessionPrice ? profile.sessionPrice.toLocaleString("ru-RU") : "—";
   const minutes = profile?.sessionMinutes || "—";
   const format = formatLabel(profile?.format || "online");
@@ -243,6 +244,7 @@ function PreviewEmpty({ text }: { text: string }) { return <p className="t-sub p
 function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; livePreview?: boolean }) {
   const flowSteps = livePreview ? STEPS.slice(0, -1) : STEPS;
   const stored = useProfile();
+  const { data: verification } = useVerification();
   const [draft, setDraft] = useState<PsyProfile>(() => mergeProfile(getPsyProfile()));
   const [step, setStep] = useState<number>(() => {
     const profile = mergeProfile(getPsyProfile());
@@ -292,15 +294,18 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
   const save = () => {
     const firstInvalid = STEPS.slice(0, -1).findIndex((item) => validateStep(item.id, draft));
     if (firstInvalid >= 0) { setStep(firstInvalid); setError(validateStep(STEPS[firstInvalid].id, draft)); return; }
-    // Публикация = отправка на проверку модератору.
-    savePsyProfile({ ...draft, primaryMethod: draft.primaryMethod, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: "review" });
+    // Завершение анкеты — это сохранение, а не заявка: статус ставит модерация.
+    // Раньше здесь принудительно писалось «review», и подтверждённый специалист
+    // после каждой правки откатывался в «на проверке» — локально анкета
+    // выпадала из каталога до следующей сверки с базой.
+    savePsyProfile({ ...draft, primaryMethod: draft.primaryMethod, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: getPsyProfile()?.status ?? "review" });
     success(); setPublished(true);
   };
 
   const current = flowSteps[step ?? 0];
   const index = step ?? 0;
 
-  if (published) return <PublishedScreen name={draft.name || displayName()} onDone={onDone} />;
+  if (published) return <PublishedScreen name={draft.name || displayName()} status={verification?.status ?? "none"} onDone={onDone} />;
 
   return <div className={livePreview ? "@xl:grid @xl:grid-cols-[minmax(0,0.9fr)_minmax(360px,1.1fr)] @xl:items-start @xl:gap-5" : ""}>
     <div className="min-w-0">
@@ -458,18 +463,47 @@ function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange
   );
 }
 
-// Экран после публикации: профиль ушёл на проверку модератору.
-// На последнем шаге окно закрывается само — статус остаётся виден в кабинете.
-function PublishedScreen({ name, onDone }: { name: string; onDone: () => void }) {
-  useEffect(() => { const timer = window.setTimeout(onDone, 2200); return () => window.clearTimeout(timer); }, [onDone]);
+// Экран после сохранения анкеты. Раньше он всегда обещал проверку — и человек
+// с пройденной верификацией после каждой правки читал «мы проверим анкету»,
+// хотя проверять уже нечего: изменения уходят в каталог сразу.
+function PublishedScreen({ name, status, onDone }: { name: string; status: PsyStatus; onDone: () => void }) {
+  useEffect(() => { const timer = window.setTimeout(onDone, 2600); return () => window.clearTimeout(timer); }, [onDone]);
+  const greeting = name ? `${name}, спасибо!` : "Спасибо!";
+  const view = status === "approved"
+    ? {
+        icon: "check" as const,
+        bg: "var(--green-soft)",
+        edge: "var(--green-edge)",
+        title: "Изменения сохранены",
+        text: "Анкета уже обновилась в каталоге — клиенты видят её в новом виде. Верификация пройдена, повторно её проходить не нужно.",
+        note: "Правьте профиль в любой момент — проверка больше не потребуется",
+      }
+    : status === "review"
+      ? {
+          icon: "clock" as const,
+          bg: "var(--amber-soft)",
+          edge: "var(--amber-edge)",
+          title: "Анкета на проверке",
+          text: `${greeting} Заявка уже у модератора — обычно это занимает 1–2 рабочих дня. Дозаполнять профиль можно прямо сейчас: правки подтянутся к заявке.`,
+          note: "Пока идёт проверка — профиль виден только вам и вашим клиентам",
+        }
+      : {
+          icon: "seal" as const,
+          bg: "var(--purple-soft)",
+          edge: "var(--purple-edge)",
+          title: "Анкета сохранена",
+          text: `${greeting} Профиль уже видят ваши клиенты. Чтобы карточка появилась в общем каталоге, пройдите верификацию — это делается один раз.`,
+          note: "Верификация — в кабинете, раздел «Пройдите верификацию»",
+        };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center py-6 text-center">
-      <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="flex h-20 w-20 items-center justify-center rounded-[23px] bg-[var(--amber)]" style={{ border: "var(--bw-lg) solid var(--amber-edge)" }}>
-        <Icon name="clock" width={38} weight="bold" />
+      <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="flex h-20 w-20 items-center justify-center rounded-[23px]" style={{ background: view.bg, border: `var(--bw-lg) solid ${view.edge}` }}>
+        <Icon name={view.icon} width={38} weight="bold" />
       </motion.span>
-      <h3 className="font-tight mt-4 text-[22px] font-black leading-tight">Профиль на проверке</h3>
-      <p className="mt-2 max-w-[300px] text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{name ? `${name}, спасибо!` : "Спасибо!"} Мы проверяем анкету и документы вручную — обычно это занимает до 1–2 рабочих дней. Как только всё подтвердим, профиль появится в каталоге.</p>
-      <div className="mt-4 flex items-center gap-2 rounded-[13px] bg-[var(--amber-soft)] px-3.5 py-2.5 text-[11px] font-black" style={{ border: "var(--bw) solid var(--amber-edge)" }}><Icon name="check" width={13} weight="bold" /> Пока идёт проверка — профиль виден только вам</div>
+      <h3 className="font-tight mt-4 text-[22px] font-black leading-tight">{view.title}</h3>
+      <p className="mt-2 max-w-[300px] text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{view.text}</p>
+      <div className="mt-4 flex items-center gap-2 rounded-[13px] px-3.5 py-2.5 text-[11px] font-black" style={{ background: view.bg, border: `var(--bw) solid ${view.edge}` }}><Icon name="check" width={13} weight="bold" /> {view.note}</div>
       <Button className="mt-5 w-full" onClick={() => { tap(); onDone(); }}>Готово</Button>
     </motion.div>
   );

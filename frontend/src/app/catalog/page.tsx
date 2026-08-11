@@ -51,9 +51,10 @@ import {
 import { DEMO } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
+import { helpsLine } from "@/lib/morph";
 import { publicRules } from "@/lib/profile-rules";
 import { bookSlot } from "@/lib/mybookings";
-import { useProfile } from "@/lib/profile";
+import { LINK_META, PROFILE_SYNCED, useProfile, type LinkKind } from "@/lib/profile";
 import { getSubscription } from "@/lib/subscription";
 import { attachTherapist, isAttached } from "@/lib/therapists";
 
@@ -108,7 +109,10 @@ export default function CatalogPage() {
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours, enabled: Boolean(profile) });
   // Боевые анкеты: сервер отдаёт только подтверждённые и с действующим
   // размещением. В демо запрос уходит в никуда — там каталог локальный.
-  const { data: serverPsys } = useQuery({ queryKey: ["catalog"], queryFn: listCatalog, staleTime: 60_000, retry: false });
+  // Каталог перечитывается при каждом заходе на страницу: с 60-секундной
+  // «свежестью» психолог правил анкету и минуту видел в выдаче прежнюю
+  // карточку. Кэш остаётся — он только рисует список до ответа сервера.
+  const { data: serverPsys } = useQuery({ queryKey: ["catalog"], queryFn: listCatalog, staleTime: 60_000, refetchOnMount: "always", retry: false });
   const [mode, setMode] = useState<CatalogMode>("personal");
   const [prefs, setPrefs] = useState<CatalogPrefs>(EMPTY_PREFS);
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
@@ -149,6 +153,14 @@ export default function CatalogPage() {
       .catch(() => { if (alive) showFallback(); /* иначе остаёмся в общем каталоге */ });
     return () => { alive = false; };
   }, [profile, work, me?.id]);
+
+  // Анкету поправили при открытом каталоге — карточка обновляется сразу.
+  const qc = useQueryClient();
+  useEffect(() => {
+    const onSynced = () => { void qc.invalidateQueries({ queryKey: ["catalog"] }); };
+    window.addEventListener(PROFILE_SYNCED, onSynced);
+    return () => window.removeEventListener(PROFILE_SYNCED, onSynced);
+  }, [qc]);
 
   useEffect(() => {
     try {
@@ -226,7 +238,7 @@ function specialistLine(psy: Psy): string {
 
 function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   const portrait = asset(psy.portrait);
-  const helps = psy.helps ?? psy.topics.slice(0, 3).join(", ");
+  const helps = psy.helps ?? helpsLine(psy.topics);
   const soon = psy.nextDays <= 3;
 
   return (
@@ -381,6 +393,10 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
 
       {/* Образование с раскрываемой проверкой документов */}
       {psy.education.length > 0 && <EducationBlock psy={psy} />}
+
+      {/* Сайт и соцсети из анкеты: специалист их заполняет, а карточка раньше
+          молчала — ссылки видел только он сам в предпросмотре. */}
+      <LinksBlock psy={psy} />
 
       {/* Темы, с которыми специалист не работает */}
       {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="chip" style={{ background: "var(--surface-2)" }}>{topic}</span>)}</div><p className="t-cap mt-2.5">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></Section>}
@@ -633,6 +649,34 @@ function EducationBlock({ psy }: { psy: Psy }) {
   );
 }
 
+// Ссылки анкеты: сайт, канал, соцсети. Показываем то, что специалист сам
+// открыл в профиле, — и только внешние http(s)-адреса.
+function LinksBlock({ psy }: { psy: Psy }) {
+  const links = (psy.links ?? []).filter((link) => /^https?:\/\//i.test(link.url.trim()));
+  if (!links.length) return null;
+  return (
+    <Section title="Сайт и соцсети">
+      <div className="flex flex-wrap gap-2">
+        {links.map((link) => {
+          const meta = LINK_META[link.kind as LinkKind] ?? LINK_META.site;
+          return (
+            <a
+              key={`${link.kind}-${link.url}`}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              onClick={tap}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12px] font-black stroke transition-transform active:scale-[.97]"
+            >
+              <Icon name={meta.icon} width={14} weight="bold" /> {meta.label}
+            </a>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
 // Правила отмены и связи между сессиями: специалист выбирает их в анкете и сам
 // решает, показывать ли. Дисклеймер про экстренную помощь — от платформы, он
 // стоит всегда.
@@ -680,8 +724,10 @@ function PhotoLightbox({ photos, name, index, onIndex, onClose }: { photos: stri
   return <AnimatePresence>{open && (
     <motion.div className="fixed inset-0 z-[90] flex flex-col bg-[rgba(24,21,18,.94)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       {/* Крестик белый и плотный: на тёмной подложке полупрозрачный кружок
-          терялся, и выйти из просмотра было нечем. */}
-      <div className="flex justify-end px-4 pt-[max(16px,env(safe-area-inset-top))]">
+          терялся, и выйти из просмотра было нечем. Отступ сверху — общий
+          `--top-pad`: у самой кромки крестик подлезал под кнопки Telegram
+          («Закрыть» и меню), и попасть по нему было нечем. */}
+      <div className="flex justify-end px-4" style={{ paddingTop: "var(--top-pad)" }}>
         <button onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(0,0,0,.45)] transition-transform active:scale-90" aria-label="Закрыть просмотр"><Icon name="close" width={20} weight="bold" color="var(--ink)" /></button>
       </div>
       <motion.div

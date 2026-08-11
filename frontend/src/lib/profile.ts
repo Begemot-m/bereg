@@ -92,6 +92,8 @@ export function tgUsername(): string {
 const KEY_ONBOARDED = "bereg_onboarded";
 const KEY_PROFILE = "bereg_psy_profile";
 const EVENT = "bereg-profile-change";
+/** Анкета сохранена в базе: слушателям пора перечитать то, что от неё зависит. */
+export const PROFILE_SYNCED = "bereg-profile-synced";
 
 export function isOnboarded(): boolean {
   if (typeof window === "undefined") return true; // SSR: не мигаем онбордингом
@@ -252,6 +254,9 @@ async function flushProfile() {
   try {
     const row = await apiFetch<ServerProfile | null>("/profile", { method: "PATCH", body: JSON.stringify(body) });
     if (row) applyServerProfile(row);
+    // Анкета доехала до базы — значит и карточка в каталоге уже другая.
+    // Открытые списки должны перечитать её, а не ждать истечения кэша.
+    window.dispatchEvent(new CustomEvent(PROFILE_SYNCED));
   } catch {
     // Гость и клиент анкеты не имеют — 401 тут норма. Поля возвращаем в
     // очередь, но не поверх того, что человек успел поправить следом.
