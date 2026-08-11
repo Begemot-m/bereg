@@ -1,8 +1,7 @@
+import { nextPeriodEnd } from "@/lib/server/billing";
 import { recordPayment } from "@/lib/server/payments";
 import { prisma } from "@/lib/server/prisma";
 import { chargeRecurring } from "@/lib/server/yookassa";
-
-const DAY = 86_400_000;
 
 // Автопродление: находит подписки с истёкшим периодом и сохранённым способом
 // оплаты, списывает по нему. Ручные компы из админки (grantedBy) не трогаем.
@@ -35,8 +34,7 @@ export async function renewDueSubscriptions(now = new Date()): Promise<{ charged
       });
 
       if (payment.status === "succeeded") {
-        const base = sub.currentPeriodEnd && sub.currentPeriodEnd > now ? sub.currentPeriodEnd : now;
-        const end = new Date(base.getTime() + 30 * DAY);
+        const end = nextPeriodEnd(sub.currentPeriodEnd, now);
         // Не перетираем, если вебхук уже провёл именно этот платёж.
         await prisma.subscription.updateMany({
           where: { psychologistId: sub.psychologistId, NOT: { yookassaPaymentId: payment.id } },

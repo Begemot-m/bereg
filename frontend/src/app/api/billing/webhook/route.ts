@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { recordPayment } from "@/lib/server/payments";
-import { prisma } from "@/lib/server/prisma";
+import { activatePayment, cancelPending } from "@/lib/server/billing";
 import { hit } from "@/lib/server/rate-limit";
 import { getPayment } from "@/lib/server/yookassa";
 
@@ -40,42 +39,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "cannot verify" }, { status: 502 });
   }
 
-  if (!(payment.status === "succeeded" && payment.paid)) {
-    return NextResponse.json({ ok: true }); // не оплачено — игнор
-  }
-
   const psychologistId = Number(payment.metadata.psychologistId);
-  if (!psychologistId) return NextResponse.json({ ok: true });
 
-  // Пишем платёж до проверки на повтор: подписку мог продлить автопродление,
-  // и тогда выход по идемпотентности случится раньше, чем деньги попадут в
-  // историю. Сама запись идемпотентна по id платежа.
-  await recordPayment({
-    psychologistId,
-    yookassaPaymentId: paymentId,
-    amount: payment.amount,
-    kind: payment.metadata.kind === "renewal" ? "renewal" : "initial",
-  });
-
-  // Идемпотентность: если уже активировали этот платёж — выходим.
-  const existing = await prisma.subscription.findUnique({ where: { psychologistId } });
-  if (existing?.status === "active" && existing.yookassaPaymentId === paymentId) {
+  // Оплата сорвалась — снимаем ожидание, иначе кабинет вечно ждёт подтверждения.
+  if (payment.status === "canceled" && psychologistId) {
+    await cancelPending(paymentId, psychologistId);
     return NextResponse.json({ ok: true });
   }
 
-  const periodEnd = new Date();
-  periodEnd.setDate(periodEnd.getDate() + 30);
-
-  await prisma.subscription.update({
-    where: { psychologistId },
-    data: {
-      status: "active",
-      plan: "pro",
-      yookassaPaymentId: paymentId,
-      paymentMethodId: payment.paymentMethodId,
-      currentPeriodEnd: periodEnd,
-    },
-  });
-
+  await activatePayment(payment);
   return NextResponse.json({ ok: true });
 }

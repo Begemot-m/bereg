@@ -7,17 +7,32 @@ import { useEffect } from "react";
 import { PageHead } from "@/components/blocks";
 import { Reveal } from "@/components/motion";
 import { Button, Card, Spinner } from "@/components/ui";
-import { getSubscription } from "@/lib/subscription";
+import { confirmSubscription, getSubscription } from "@/lib/subscription";
 
 export default function BillingReturn() {
   const { data: sub, refetch } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
-
-  useEffect(() => {
-    const t = setInterval(() => refetch(), 3000);
-    return () => clearInterval(t);
-  }, [refetch]);
-
   const active = sub?.status === "active";
+
+  // Сами спрашиваем ЮKassa о судьбе платежа, а не ждём вебхук: он приходит на
+  // секунды позже, и человек не должен видеть спиннер дольше, чем нужно.
+  useEffect(() => {
+    if (active) return;
+    let stop = false;
+    const tick = async () => {
+      try {
+        await confirmSubscription();
+      } catch {
+        // Не ответили — попробуем на следующем такте.
+      }
+      if (!stop) await refetch();
+    };
+    void tick();
+    const t = setInterval(() => void tick(), 3000);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [refetch, active]);
 
   return (
     <div>

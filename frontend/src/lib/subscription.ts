@@ -48,3 +48,8 @@ export const getSubscription = () => apiFetch<Subscription>("/subscription");
 // Создаёт платёж и возвращает ссылку на оплату ЮKassa (в демо — возврат в кабинет).
 export const startSubscription = (plan: PlanId) =>
   apiFetch<{ confirmation_url: string | null }>("/billing/subscribe", { method: "POST", body: JSON.stringify({ plan }) });
+
+// Спрашивает у ЮKassa, прошёл ли платёж. Нужен на странице возврата: вебхук
+// может опоздать, и без этого человек смотрел бы на «ждём подтверждения».
+export const confirmSubscription = () =>
+  apiFetch<{ activated: boolean; canceled?: boolean }>("/billing/confirm", { method: "POST" });

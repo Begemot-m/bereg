@@ -1007,11 +1007,20 @@ gh run watch $(gh run list --limit 1 --json databaseId -q '.[0].databaseId') --e
 
 1. Инфраструктура — ждёт сервера: `.env`, домены в Caddy, автовыкатка
    (в `app-deploy.yml` вернуть блок `push`).
-2. ЮKassa — код готов: платёж (`billing/subscribe`), вебхук (`billing/webhook`,
-   проверка через API + идемпотентность), автопродление (`lib/server/renew.ts`
-   + `chargeRecurring`, дёргается кроном через `POST /api/cron/renew` с
-   `CRON_SECRET`). **Проверить на staging с тестовыми ключами** до прода —
-   боевой платёжный путь без интеграционной проверки не включать.
+2. ЮKassa — магазин одобрен 11 августа 2026 (shop id `1432105`, ИНН
+   784203190925, боевой ключ живой, `fiscalization_enabled: false` — чек в
+   платеже не передаём и не должны). Код: платёж (`billing/subscribe`), вебхук
+   (`billing/webhook`), подтверждение платежа самим плательщиком на возврате
+   (`billing/confirm` — страховка, если вебхук опоздал или не настроен),
+   активация в одном месте (`lib/server/billing.ts`, идемпотентна по id
+   платежа), автопродление (`lib/server/renew.ts` + `chargeRecurring`, кроном
+   через `POST /api/cron/renew` с `CRON_SECRET`).
+   **Осталось руками на сервере:** вписать `YOOKASSA_SHOP_ID` /
+   `YOOKASSA_SECRET_KEY` в `/opt/bereg/.env`, задать в кабинете ЮKassa
+   уведомления на `https://chronika.space/api/billing/webhook`
+   (`payment.succeeded`, `payment.canceled`), выкатить образ и провести один
+   боевой платёж на 990 ₽ с возвратом через кабинет ЮKassa. Пока `crontab`
+   пуст, автопродление не работает — строку с `/api/cron/renew` тоже добавить.
 3. Первая проверка восстановления из бэкапа — до живых пользователей.
 
 **Важно при первом проде:** миграция сейчас одна (`init`) и пересобирается

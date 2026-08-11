@@ -885,6 +885,10 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     save(db);
     return delay({ confirmation_url: "/billing/return" } as T);
   }
+  if (clean === "/billing/confirm" && method === "POST") {
+    resolveSub(db);
+    return delay({ activated: db.sub.status === "active" } as T);
+  }
 
   // переход в психологи: в демо роль живёт в localStorage, серверу подтверждать нечего
   if (clean === "/profile/role" && method === "POST") {
