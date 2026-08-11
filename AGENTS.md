@@ -95,16 +95,20 @@
   убран отдельный блок для вебхука — лимит теперь в самом роуте). Прошлая
   версия — `/opt/bereg/Caddyfile.bak-20260811`. Этот файл не в образе:
   копировать на VPS вручную и делать `docker compose exec caddy caddy reload`;
-- **собран и ждёт выкатки** `ghcr.io/begemot-m/bereg:sha-22948ee` (11 августа
-  2026, оплата подписки через ЮKassa). На VPS: `cd /opt/bereg && ./deploy.sh
-  ghcr.io/begemot-m/bereg:sha-22948ee`. Перед этим в `/opt/bereg/.env` вписать
-  `YOOKASSA_SHOP_ID=1432105` и `YOOKASSA_SECRET_KEY` (боевой ключ магазина), а
-  в кабинете ЮKassa задать уведомления на
-  `https://chronika.space/api/billing/webhook` — события `payment.succeeded` и
-  `payment.canceled`. Новых миграций в релизе нет;
-- `CRON_SECRET` в `/opt/bereg/.env` задан, но **`crontab` на сервере пуст** —
-  ни `/api/cron/renew`, ни `backup.sh` по расписанию не запускаются. Продление
-  подписок и бэкапы сейчас держатся только на ручном запуске;
+- **на проде выкачен `ghcr.io/begemot-m/bereg:sha-332df5c`** (11 августа 2026,
+  оплата подписки Pro через ЮKassa; новых миграций нет). Ключи магазина
+  (shopId `1432105`) лежат в `/opt/bereg/.env`, прошлая версия файла —
+  `.env.bak-yookassa-20260811`. Магазину **не подключены автоплатежи**: код это
+  переживает (повторяет платёж без `save_payment_method`), но подписки
+  продлеваются только вручную, пока менеджер ЮKassa их не включит. В кабинете
+  ЮKassa остаётся задать HTTP-уведомления на
+  `https://chronika.space/api/billing/webhook` (`payment.succeeded`,
+  `payment.canceled`) — без них доступ всё равно откроется, но только когда
+  плательщик вернётся на страницу возврата;
+- автопродление подписок стоит в `crontab` root: `/opt/bereg/renew.sh` в 03:20
+  UTC, лог `/opt/bereg/renew.log`. **`backup.sh` по расписанию по-прежнему не
+  запускается** — бэкапы держатся на том, что их делает `deploy.sh` перед
+  миграцией;
 - выкатка ручная и в два шага: в GitHub Actions запустить workflow
   «Build and deploy app» (соберёт образ `sha-<7 знаков>`), затем на VPS
   `cd /opt/bereg && ./deploy.sh ghcr.io/begemot-m/bereg:sha-<тег>`. SSH-шаг
