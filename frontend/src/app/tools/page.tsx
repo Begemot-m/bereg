@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
@@ -20,6 +21,26 @@ const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: stri
   { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.webp", bg: "#d9edf3", edge: "#5f95ab" },
   { tech: "thought", title: "Дневник мыслей", desc: "Отслеживать негативные убеждения и переформулировать их по методу КПТ", time: "2–7 мин", image: "/practices/automatic-thoughts.webp", bg: "var(--purple-soft)", edge: "var(--purple-edge)", soon: true },
 ];
+
+// Пять дорожек, которые заполняются по очереди — «тест проходят прямо сейчас».
+function FillGlyph() {
+  const reduce = useReducedMotion();
+  return (
+    <span aria-hidden className="flex w-[44px] shrink-0 flex-col gap-[5px]">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span key={i} className="block h-[6px] overflow-hidden rounded-full" style={{ background: "#efeae2" }}>
+          <motion.span
+            className="block h-full rounded-full"
+            style={{ background: "var(--purple-edge)" }}
+            initial={{ width: reduce ? "60%" : "0%" }}
+            animate={reduce ? undefined : { width: ["0%", "100%", "100%", "0%"] }}
+            transition={{ duration: 3.6, times: [0, 0.34, 0.74, 1], repeat: Infinity, delay: i * 0.16, ease: "easeInOut" }}
+          />
+        </span>
+      ))}
+    </span>
+  );
+}
 
 export default function ToolsPage() {
   // Инструменты у психолога и клиента одинаковые — общий набор практик.
@@ -95,18 +116,17 @@ function ClientTools() {
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Тесты и диагностика</p>
           </div>
           <Reveal y={8}>
+            {/* Безрамочная строка: вместо иконки — шкалы, которые заполняются сами. */}
             <button
               onClick={() => { tap(); setTest(true); }}
-              className="flex w-full items-center gap-3 overflow-hidden rounded-[19px] p-3.5 text-left transition-transform duration-200 active:scale-[.98]"
-              style={{ background: "var(--purple-soft)", border: "2px solid var(--purple-edge)" }}
+              className="flex w-full items-center gap-4 bg-transparent py-3 text-left transition-opacity duration-200 active:opacity-70"
+              style={{ borderTop: "1px solid var(--edge-neutral)", borderBottom: "1px solid var(--edge-neutral)" }}
             >
-              <span className="ico h-12 w-12 shrink-0" style={{ background: "#fff" }}><Icon name="chart" width={24} weight="bold" color="var(--purple-edge)" /></span>
+              <FillGlyph />
               <span className="min-w-0 flex-1">
-                <span className="block font-tight text-[15px] font-black leading-tight">Профиль черт личности</span>
-                <span className="mt-0.5 block text-[11px] font-semibold leading-snug text-[var(--muted)]">10 шкал в логике DSM-5 AMPD: что усиливается в стрессе</span>
-                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black" style={{ color: "var(--purple-edge)" }}>
-                  <Icon name="clock" width={11} weight="bold" color="var(--purple-edge)" />от 12 мин
-                </span>
+                <span className="block font-tight text-[15px] font-black leading-tight">Тест на тип личности</span>
+                <span className="mt-1 block text-[11px] font-semibold leading-snug text-[var(--muted)]">Помогает определить сильные и слабые стороны проявления вашего типа в стрессе.</span>
+                <span className="mt-1.5 block text-[10px] font-bold text-[var(--muted-2)]">от 12 минут</span>
               </span>
               <ArrowGlyph size={14} />
             </button>

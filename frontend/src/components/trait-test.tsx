@@ -3,9 +3,11 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
-import { Icon } from "@/components/icons";
+import { ArrowGlyph } from "@/components/blocks";
+import { Icon, type IconName } from "@/components/icons";
 import { Disclosure } from "@/components/ui";
 import { select, success, tap } from "@/lib/haptics";
+import type { PdfBlock } from "@/lib/trait-report-pdf";
 import {
   ANSWERS,
   DISCLAIMER,
@@ -21,7 +23,15 @@ import {
   type Variant,
 } from "@/lib/trait-test";
 
-const TONE = { bg: "var(--purple)", soft: "var(--purple-soft)", edge: "var(--purple-edge)" };
+const TONE = {
+  bg: "var(--purple)",
+  soft: "var(--purple-soft)",
+  edge: "var(--purple-edge)",
+  // Шапка — светлее чистой лаванды, чтобы не давить на контент.
+  head: "color-mix(in srgb, var(--purple) 52%, #fff)",
+};
+// Пустое пространство дорожек — тёплый бежевый, а не персик раздела.
+const TRACK = "#f3ece1";
 const DRAFT_KEY = "bereg-trait-test-draft-v1";
 const RESULT_KEY = "bereg-trait-test-v1";
 
@@ -29,10 +39,11 @@ type Draft = { variant: Variant; seed: string; answers: Record<string, number>; 
 type Saved = { completedAt: string; variant: Variant; percents: Record<string, number> };
 type Stage = "intro" | "instruction" | "test" | "result";
 
-const STATE_TONE: Record<State, { label: string; bg: string; edge: string }> = {
-  low: { label: "слабо", bg: "var(--green-soft)", edge: "var(--green-edge)" },
-  mid: { label: "умеренно", bg: "var(--amber-soft)", edge: "var(--amber-edge)" },
-  high: { label: "выражено", bg: "var(--salmon-soft)", edge: "var(--salmon-edge)" },
+// bar — лёгкий пастельный тон дорожки, edge — только для мелкого текста.
+const STATE_TONE: Record<State, { label: string; bg: string; edge: string; bar: string }> = {
+  low: { label: "слабо", bg: "var(--green-soft)", edge: "var(--green-edge)", bar: "var(--green)" },
+  mid: { label: "умеренно", bg: "var(--amber-soft)", edge: "var(--amber-edge)", bar: "var(--amber)" },
+  high: { label: "выражено", bg: "var(--salmon-soft)", edge: "var(--salmon-edge)", bar: "var(--salmon)" },
 };
 
 function loadDraft(): Draft | null {
@@ -131,17 +142,30 @@ export function TraitTest({ onClose }: { onClose: () => void }) {
     setStage("result");
   };
 
+  const toIntro = () => {
+    // Уходим из теста — черновик уже в localStorage, поднимаем его в состояние,
+    // чтобы на главном экране сразу была кнопка «Продолжить прохождение».
+    if (stage === "test" && seed) setDraft({ variant, seed, answers, index });
+    setResults(null);
+    setStage("intro");
+    tap();
+  };
+
+  // Шапочное «Назад» всегда ведёт в главное меню теста, шаг назад по вопросам — кнопкой снизу.
   const back = () => {
-    if (stage === "test" && index > 0) { setIndex(index - 1); tap(); return; }
-    if (stage === "test") { setStage("instruction"); tap(); return; }
-    if (stage === "instruction") { setStage("intro"); tap(); return; }
-    if (stage === "result") { setResults(null); setStage("intro"); tap(); return; }
-    onClose();
+    if (stage === "intro") { onClose(); return; }
+    toIntro();
+  };
+
+  const prevQuestion = () => {
+    if (index > 0) { setIndex(index - 1); tap(); return; }
+    setStage("instruction");
+    tap();
   };
 
   return (
     <AnimatePresence>
-      <Shell progress={progress} onBack={back} onClose={onClose}>
+      <Shell progress={progress} showBar={stage === "test"} showExit={stage === "test"} onBack={back} onClose={onClose}>
         {stage === "intro" && (
           <Intro
             variant={variant}
@@ -161,18 +185,18 @@ export function TraitTest({ onClose }: { onClose: () => void }) {
             total={questions.length}
             picked={answers[questions[index].id]}
             onAnswer={answer}
-            onBack={back}
+            onBack={prevQuestion}
           />
         )}
         {stage === "result" && results && (
-          <Result results={results} variant={variant} completedAt={saved?.completedAt} onRestart={() => { tap(); setStage("intro"); setResults(null); }} />
+          <Result results={results} onMenu={toIntro} />
         )}
       </Shell>
     </AnimatePresence>
   );
 }
 
-function Shell({ progress, onBack, onClose, children }: { progress: number; onBack: () => void; onClose: () => void; children: ReactNode }) {
+function Shell({ progress, showBar, showExit, onBack, onClose, children }: { progress: number; showBar: boolean; showExit: boolean; onBack: () => void; onClose: () => void; children: ReactNode }) {
   const reduce = useReducedMotion();
   useEffect(() => {
     const old = document.body.style.overflow;
@@ -191,17 +215,24 @@ function Shell({ progress, onBack, onClose, children }: { progress: number; onBa
         transition={{ duration: .24, ease: [0.32, 0.72, 0, 1] }}
         style={{ border: `var(--bw-lg) solid ${TONE.edge}`, "--edge": TONE.edge } as CSSProperties}
       >
-        <header className="shrink-0 px-4 pb-10 pt-[max(22px,calc(var(--top-pad)+10px))]" style={{ background: TONE.bg }}>
+        <header className="shrink-0 px-4 pb-10 pt-[max(22px,calc(var(--top-pad)+10px))]" style={{ background: TONE.head }}>
           <div className="relative flex items-center gap-3">
             <button onClick={onBack} className="back-link shrink-0" style={{ color: TONE.edge }}>Назад</button>
-            <span className="pointer-events-none absolute left-1/2 max-w-[calc(100%-160px)] -translate-x-1/2 truncate rounded-[12px] bg-white px-3 py-1.5 font-tight text-[14px] font-black leading-tight" style={{ color: TONE.edge }}>Профиль черт</span>
-            <span className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white" style={{ border: `var(--bw) solid ${TONE.edge}` }}><Icon name="chart" width={20} weight="bold" /></span>
+            <span className="pointer-events-none absolute left-1/2 max-w-[calc(100%-190px)] -translate-x-1/2 truncate rounded-[12px] bg-white px-3 py-1.5 font-tight text-[14px] font-black leading-tight" style={{ color: TONE.edge }}>Тест на тип личности</span>
+            {showExit ? (
+              <button onClick={onClose} className="ml-auto shrink-0 rounded-[12px] bg-white px-3 py-2 text-[12px] font-black transition-transform duration-150 active:scale-[.97]" style={{ color: TONE.edge, border: `var(--bw) solid ${TONE.edge}` }}>Выйти</button>
+            ) : (
+              <span className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white" style={{ border: `var(--bw) solid ${TONE.edge}` }}><Icon name="chart" width={20} weight="bold" /></span>
+            )}
           </div>
-          <div className="mt-6">
-            <div className="h-2.5 overflow-hidden rounded-full bg-white" style={{ border: `var(--bw) solid ${TONE.edge}` }}>
-              <motion.div className="h-full" animate={{ width: `${Math.max(0, Math.min(100, progress))}%` }} transition={{ duration: .28, ease: [0.32, 0.72, 0, 1] }} style={{ background: TONE.bg }} />
+          {/* Шкала нужна только пока тест заполняется — на входе и в отчёте она пустая. */}
+          {showBar && (
+            <div className="mt-6">
+              <div className="h-3.5 rounded-full bg-white p-[3px]" style={{ border: `var(--bw) solid ${TONE.edge}` }}>
+                <motion.div className="h-full rounded-full" animate={{ width: `${Math.max(0, Math.min(100, progress))}%` }} transition={{ duration: .28, ease: [0.32, 0.72, 0, 1] }} style={{ background: "var(--green-edge)" }} />
+              </div>
             </div>
-          </div>
+          )}
         </header>
         <div className="relative -mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-t-[27px] bg-[var(--surface)] px-4 pb-[max(24px,var(--safe-bottom))] pt-6">{children}</div>
       </motion.section>
@@ -209,8 +240,13 @@ function Shell({ progress, onBack, onClose, children }: { progress: number; onBa
   );
 }
 
-function Primary({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return <button onClick={onClick} className="mt-5 w-full rounded-[14px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform duration-150 active:scale-[.98]">{children}</button>;
+function Primary({ onClick, icon, children }: { onClick: () => void; icon?: IconName; children: ReactNode }) {
+  return (
+    <button onClick={onClick} className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[var(--ink)] py-3.5 text-[14px] font-black text-white transition-transform duration-150 active:scale-[.98]">
+      {icon && <Icon name={icon} width={18} weight="bold" color="#fff" />}
+      {children}
+    </button>
+  );
 }
 
 function Bullets({ items, tone = "muted" }: { items: string[]; tone?: "muted" | "ink" }) {
@@ -226,10 +262,24 @@ function Bullets({ items, tone = "muted" }: { items: string[]; tone?: "muted" | 
   );
 }
 
-function Block({ title, children }: { title: string; children: ReactNode }) {
+function Block({ title, icon, hint, children }: { title: string; icon?: IconName; hint?: string; children: ReactNode }) {
+  const [openHint, setOpenHint] = useState(false);
   return (
     <section className="mt-4 rounded-[18px] bg-white p-4" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-      <h3 className="font-tight text-[15px] font-black leading-tight">{title}</h3>
+      <div className="flex items-center gap-2">
+        {icon && <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px]" style={{ background: TONE.soft }}><Icon name={icon} width={15} weight="bold" color={TONE.edge} /></span>}
+        <h3 className="font-tight text-[15px] font-black leading-tight">{title}</h3>
+        {hint && (
+          <button onClick={() => { tap(); setOpenHint(!openHint); }} aria-label="Пояснение" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: TONE.soft }}>
+            <Icon name="question" width={12} weight="bold" color={TONE.edge} />
+          </button>
+        )}
+      </div>
+      {hint && (
+        <Disclosure open={openHint}>
+          <p className="mt-2 rounded-[10px] p-2.5 text-[11.5px] font-semibold leading-relaxed" style={{ background: TONE.soft }}>{hint}</p>
+        </Disclosure>
+      )}
       {children}
     </section>
   );
@@ -246,17 +296,12 @@ function Intro({ variant, saved, draft, onPick, onStart, onResume, onOpenSaved }
 }) {
   return (
     <div>
-      <div className="flex min-h-[140px] flex-col items-center justify-center rounded-[22px] px-5 text-center" style={{ background: TONE.soft, border: `var(--bw-lg) solid ${TONE.edge}` }}>
-        <span className="flex h-14 w-14 items-center justify-center rounded-[17px] bg-white"><Icon name="chart" width={28} weight="bold" color={TONE.edge} /></span>
-        <p className="mt-3 text-[10px] font-black uppercase tracking-[.1em]" style={{ color: TONE.edge }}>Скрининг · DSM-5 AMPD</p>
-      </div>
-
-      <h2 className="mt-5 font-tight text-[25px] font-black leading-[1.05]">Профиль черт личности</h2>
-      <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">Показывает, какие паттерны поведения и стратегии у вас выражены сильнее — особенно в стрессовых ситуациях. Десять шкал, каждая измеряется независимо.</p>
+      <h2 className="font-tight text-[25px] font-black leading-[1.05]">Тест покажет персональные сведения детально под Вас</h2>
+      <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">Основан в соответствии с диагностическим руководством для DSM-5. На других площадках, как правило, предоставляют общие сведения. Этот тест дает персональную оценку и рекомендации.</p>
 
       {draft && (
-        <button onClick={onResume} className="mt-4 flex w-full items-center gap-3 rounded-[16px] p-3 text-left" style={{ background: TONE.soft, border: `var(--bw) solid ${TONE.edge}` }}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white"><Icon name="clock" width={19} weight="bold" color={TONE.edge} /></span>
+        <button onClick={onResume} className="mt-4 flex w-full items-center gap-2.5 bg-transparent py-1 text-left" style={{ color: "var(--green-edge)" }}>
+          <Icon name="warn" width={19} weight="fill" color="var(--green-edge)" />
           <span className="min-w-0 flex-1">
             <span className="block text-[13px] font-black">Продолжить прохождение</span>
             <span className="block text-[11px] font-semibold text-[var(--muted)]">отвечено {Object.keys(draft.answers).length} из {draft.variant}</span>
@@ -274,12 +319,12 @@ function Intro({ variant, saved, draft, onPick, onStart, onResume, onOpenSaved }
         </button>
       )}
 
-      <Block title="Как устроен тест">
+      <Block title="Как устроен тест" hint="Утверждения перемешаны и разложены по десяти шкалам. Чем ровнее вы отвечаете, тем точнее итоговые проценты.">
         <Bullets items={[
           "10 шкал соответствуют чертам личности из модели AMPD DSM-5",
-          "каждая шкала измеряется независимо, результат — процент выраженности",
-          "чем больше вопросов, тем устойчивее оценка",
-          "итог — скрининг-профиль черт, а не клинический диагноз",
+          "каждая шкала указывает процентное выражение",
+          "чем больше вопросов, тем точнее результат",
+          "итоговое значение не является клиническим диагнозом",
         ]} />
       </Block>
 
@@ -305,7 +350,7 @@ function Intro({ variant, saved, draft, onPick, onStart, onResume, onOpenSaved }
         </div>
       </div>
 
-      <Primary onClick={onStart}>Пройти тест</Primary>
+      <Primary onClick={onStart} icon="chart">Пройти тест</Primary>
       <p className="mt-3 text-center text-[10.5px] font-semibold leading-relaxed text-[var(--muted-2)]">{DISCLAIMER} Ответы остаются на этом устройстве.</p>
     </div>
   );
@@ -344,8 +389,10 @@ function TestStep({ question, index, total, picked, onAnswer, onBack }: {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <p className="text-[12px] font-black uppercase tracking-[.08em]" style={{ color: TONE.edge }}>Вопрос {index + 1} из {total}</p>
-        <span className="chip" style={{ background: TONE.soft, color: TONE.edge }}>{Math.round(((index) / total) * 100)}%</span>
+        <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--ink)]">
+          Вопрос <span className="tnum" style={{ color: TONE.edge }}>{index + 1}</span> из <span className="tnum" style={{ color: TONE.edge }}>{total}</span>
+        </p>
+        <span className="tnum text-[12px] font-black" style={{ color: TONE.edge }}>{Math.round((index / total) * 100)}%</span>
       </div>
 
       <AnimatePresence mode="wait">
@@ -391,12 +438,15 @@ function ScaleRow({ row }: { row: ScaleResult }) {
           <span className="text-[13px] font-black">{row.title}</span>
           <span className="tnum shrink-0 font-tight text-[15px] font-black">{row.percent}%</span>
         </div>
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full" style={{ background: "var(--head-soft)" }}>
-          <motion.div className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${row.percent}%` }} transition={{ duration: .5, ease: [0.32, 0.72, 0, 1] }} style={{ background: tone.edge }} />
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full" style={{ background: TRACK }}>
+          <motion.div className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${row.percent}%` }} transition={{ duration: .5, ease: [0.32, 0.72, 0, 1] }} style={{ background: tone.bar }} />
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
           <span className="chip" style={{ background: tone.bg, color: tone.edge }}>{tone.label}</span>
-          <span className="text-[11px] font-bold text-[var(--muted)]">{open ? "свернуть" : "подробнее"}</span>
+          <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--muted)]">
+            <ArrowGlyph size={12} className="transition-transform" style={{ transform: open ? "rotate(-90deg)" : "rotate(90deg)" }} />
+            {open ? "свернуть" : "подробнее"}
+          </span>
         </div>
       </button>
       <Disclosure open={open}>
@@ -413,23 +463,124 @@ function ScaleRow({ row }: { row: ScaleResult }) {
   );
 }
 
-function Result({ results, variant, completedAt, onRestart }: {
-  results: ScaleResult[];
-  variant: Variant;
-  completedAt?: string;
-  onRestart: () => void;
-}) {
+// Радар по десяти шкалам — тот же язык, что у колеса баланса.
+function TraitRadar({ results, size = 252 }: { results: ScaleResult[]; size?: number }) {
+  const map = useMemo(() => {
+    const m: Record<string, ScaleResult> = {};
+    for (const r of results) m[r.code] = r;
+    return m;
+  }, [results]);
+
+  const pad = 46;
+  const cx = size / 2;
+  const cy = size / 2;
+  const R = size / 2 - pad;
+  const n = SCALES.length;
+  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  const pt = (i: number, r: number) => [cx + r * Math.cos(angle(i)), cy + r * Math.sin(angle(i))] as const;
+  const val = (i: number) => map[SCALES[i].code]?.percent ?? 0;
+
+  const ringPath = (level: number) =>
+    SCALES.map((_, i) => { const [x, y] = pt(i, (R * level) / 100); return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`; }).join(" ") + " Z";
+  const dataPath =
+    SCALES.map((_, i) => { const [x, y] = pt(i, (R * val(i)) / 100); return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`; }).join(" ") + " Z";
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mx-auto block">
+      {[20, 40, 60, 80, 100].map((lvl) => (
+        <path key={lvl} d={ringPath(lvl)} fill={lvl === 100 ? "#fff" : "none"} stroke="var(--edge-neutral)" strokeWidth={lvl === 100 ? 2 : 1} opacity={lvl === 100 ? 1 : 0.5} />
+      ))}
+      {SCALES.map((_, i) => { const [x, y] = pt(i, R); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--edge-neutral)" strokeWidth={1} opacity={0.5} />; })}
+
+      <motion.path
+        d={dataPath} fill="var(--purple)" fillOpacity={0.35} stroke="var(--purple-edge)" strokeWidth={2.5} strokeLinejoin="round"
+        initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 16 }}
+        style={{ transformOrigin: `${cx}px ${cy}px` }}
+      />
+
+      {SCALES.map((s, i) => {
+        const [x, y] = pt(i, (R * val(i)) / 100);
+        const tone = STATE_TONE[map[s.code]?.state ?? "low"];
+        return (
+          <motion.circle key={s.code} cx={x} cy={y} r={4.5} fill={tone.bar} stroke={tone.edge} strokeWidth={2}
+            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.15 + i * 0.03, type: "spring", stiffness: 300, damping: 18 }} />
+        );
+      })}
+
+      {SCALES.map((s, i) => {
+        const [x, y] = pt(i, R + 16);
+        const a = angle(i);
+        const anchor = Math.abs(Math.cos(a)) < 0.3 ? "middle" : Math.cos(a) > 0 ? "start" : "end";
+        return <text key={s.code} x={x} y={y} textAnchor={anchor} dominantBaseline="middle" className="fill-[var(--ink)] text-[8.5px] font-black uppercase" style={{ letterSpacing: ".02em" }}>{s.short}</text>;
+      })}
+    </svg>
+  );
+}
+
+function Lead({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="mt-4">
+      <p className="font-tight text-[14px] font-black leading-tight">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function pdfBlocks(report: ReturnType<typeof buildReport>, results: ScaleResult[]): PdfBlock[] {
+  const hex: Record<State, string> = { low: "#aec89d", mid: "#f3ce77", high: "#ef9f8d" };
+  const out: PdfBlock[] = [{ k: "h1", text: "Ваш результат" }, { k: "p", text: report.title }];
+
+  out.push({ k: "h2", text: "Что показал тест" }, { k: "p", text: report.intro });
+  for (const t of report.portrait) out.push({ k: "p", text: t });
+
+  out.push({ k: "h2", text: "Все шкалы" });
+  for (const r of results) out.push({ k: "bar", text: r.title, percent: r.percent, note: `${STATE_TONE[r.state].label} · ${r.stateTitle}`, color: hex[r.state] });
+
+  const list = (title: string, items: string[]) => {
+    if (!items.length) return;
+    out.push({ k: "h2", text: title });
+    for (const t of items) out.push({ k: "li", text: t });
+  };
+  list("Как это проявляется", report.manifestations);
+  list("На что можно опереться", report.strengths);
+  list("Сочетания выраженных особенностей", report.pairs);
+  list("Ближайшие шаги", report.steps);
+  if (report.practices.length) {
+    out.push({ k: "h2", text: "Техники саморегуляции" });
+    for (const p of report.practices) out.push({ k: "li", text: `${p.title} — ${p.text}` });
+  }
+  list("Рекомендации по выраженным шкалам", report.recommendations);
+  list("Как читать проценты", report.ranges);
+
+  out.push({ k: "note", text: DISCLAIMER });
+  return out;
+}
+
+function Result({ results, onMenu }: { results: ScaleResult[]; onMenu: () => void }) {
   const report = useMemo(() => buildReport(results), [results]);
   const ordered = useMemo(() => SCALES.map((s) => results.find((r) => r.code === s.code)).filter(Boolean) as ScaleResult[], [results]);
   const [byScale, setByScale] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const share = async () => {
+    if (sharing) return;
+    tap();
+    setSharing(true);
+    try {
+      const { buildReportPdf, sharePdf } = await import("@/lib/trait-report-pdf");
+      const blob = await buildReportPdf(pdfBlocks(report, results));
+      await sharePdf(blob, "tip-lichnosti.pdf", "Результат теста на тип личности");
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return (
     <div>
-      <div className="rounded-[22px] p-4" style={{ background: TONE.soft, border: `var(--bw-lg) solid ${TONE.edge}` }}>
-        <p className="text-[10px] font-black uppercase tracking-[.1em]" style={{ color: TONE.edge }}>Результат · {variant} вопросов</p>
-        <h2 className="mt-1 font-tight text-[23px] font-black leading-[1.05]">{report.title}</h2>
-        {completedAt && <p className="mt-1 text-[11px] font-bold text-[var(--muted)]">{dateLabel(completedAt)}</p>}
-        <div className="mt-3 space-y-1.5">
+      <div className="rounded-[22px] p-4 pt-5" style={{ background: TONE.soft }}>
+        <h2 className="font-tight text-[23px] font-black leading-[1.05]">Ваш результат</h2>
+        <div className="mt-3"><TraitRadar results={results} /></div>
+        <div className="mt-2 space-y-1.5">
           {report.keyIndicators.map((k) => (
             <div key={k.title} className="flex items-center justify-between rounded-[12px] bg-white px-3 py-2">
               <span className="text-[12.5px] font-black">{k.title}</span>
@@ -439,10 +590,16 @@ function Result({ results, variant, completedAt, onRestart }: {
         </div>
       </div>
 
-      <p className="mt-4 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{report.intro}</p>
-      {report.portrait.map((t, i) => (
-        <p key={i} className="mt-2 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{t}</p>
-      ))}
+      <Lead title={report.title}>
+        <p className="mt-1.5 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{report.intro}</p>
+      </Lead>
+      {report.portrait.length > 0 && (
+        <Lead title="Как это выглядит в жизни">
+          {report.portrait.map((t, i) => (
+            <p key={i} className="mt-1.5 text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{t}</p>
+          ))}
+        </Lead>
+      )}
 
       <div className="mb-2 mt-6 flex items-center justify-between">
         <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Все шкалы</p>
@@ -454,26 +611,26 @@ function Result({ results, variant, completedAt, onRestart }: {
         {(byScale ? ordered : results).map((row) => <ScaleRow key={row.code} row={row} />)}
       </div>
 
-      <Block title="Как это проявляется">
+      <Block title="Как это проявляется" icon="waves">
         <Bullets items={report.manifestations} />
       </Block>
 
-      <Block title="На что можно опереться">
+      <Block title="На что можно опереться" icon="clover">
         <Bullets items={report.strengths} />
       </Block>
 
       {report.pairs.length > 0 && (
-        <Block title="Сочетания выраженных особенностей">
+        <Block title="Сочетания выраженных особенностей" icon="swap">
           <Bullets items={report.pairs} />
         </Block>
       )}
 
-      <Block title="Ближайшие шаги">
+      <Block title="Ближайшие шаги" icon="steps">
         <Bullets items={report.steps} />
       </Block>
 
       {report.practices.length > 0 && (
-        <Block title="Техники саморегуляции">
+        <Block title="Техники саморегуляции" icon="therapy">
           <p className="mt-1 text-[12px] font-semibold leading-relaxed text-[var(--muted)]">Начните с одной, которая кажется применимой прямо сейчас.</p>
           <div className="mt-3 space-y-2">
             {report.practices.map((p) => (
@@ -487,16 +644,25 @@ function Result({ results, variant, completedAt, onRestart }: {
       )}
 
       {report.recommendations.length > 0 && (
-        <Block title="Рекомендации по выраженным шкалам">
+        <Block title="Рекомендации по выраженным шкалам" icon="note">
           <Bullets items={report.recommendations} />
         </Block>
       )}
 
-      <Block title="Как читать проценты">
+      <Block title="Как читать проценты" icon="chart">
         <Bullets items={report.ranges} />
       </Block>
 
-      <Primary onClick={onRestart}>Пройти заново</Primary>
+      <Primary onClick={onMenu} icon="home">Главное меню</Primary>
+      <button
+        onClick={share}
+        disabled={sharing}
+        className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-[14px] bg-white py-3.5 text-[14px] font-black transition-transform duration-150 active:scale-[.98] disabled:opacity-60"
+        style={{ border: `var(--bw) solid ${TONE.edge}`, color: TONE.edge }}
+      >
+        <Icon name="share" width={18} weight="bold" color={TONE.edge} />
+        {sharing ? "Готовим PDF…" : "Поделиться результатом"}
+      </button>
       <p className="mt-3 text-center text-[10.5px] font-semibold leading-relaxed text-[var(--muted-2)]">{DISCLAIMER}</p>
     </div>
   );

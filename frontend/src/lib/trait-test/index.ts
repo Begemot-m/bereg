@@ -28,17 +28,17 @@ export const VARIANTS: { n: Variant; label: string; est: string }[] = [
   { n: 300, label: "300 вопросов", est: "30–45 минут" },
 ];
 
-export const SCALES: { code: string; title: string }[] = [
-  { code: "PARANOID", title: "Параноидный тип" },
-  { code: "SCHIZOID", title: "Шизоидный тип" },
-  { code: "SCHIZOTYPAL", title: "Шизотипический тип" },
-  { code: "ANTISOCIAL", title: "Антисоциальный тип" },
-  { code: "BORDERLINE", title: "Пограничный тип" },
-  { code: "HISTRIONIC", title: "Истероидный тип" },
-  { code: "NARCISSISTIC", title: "Нарциссический тип" },
-  { code: "AVOIDANT", title: "Избегающий тип" },
-  { code: "DEPENDENT", title: "Зависимый тип" },
-  { code: "OCPD", title: "Обсессивно-компульсивный тип" },
+export const SCALES: { code: string; title: string; short: string }[] = [
+  { code: "PARANOID", title: "Параноидный тип", short: "Паранойд" },
+  { code: "SCHIZOID", title: "Шизоидный тип", short: "Шизоид" },
+  { code: "SCHIZOTYPAL", title: "Шизотипический тип", short: "Шизотип" },
+  { code: "ANTISOCIAL", title: "Антисоциальный тип", short: "Антисоц" },
+  { code: "BORDERLINE", title: "Пограничный тип", short: "Погранич" },
+  { code: "HISTRIONIC", title: "Истероидный тип", short: "Истероид" },
+  { code: "NARCISSISTIC", title: "Нарциссический тип", short: "Нарцисс" },
+  { code: "AVOIDANT", title: "Избегающий тип", short: "Избегание" },
+  { code: "DEPENDENT", title: "Зависимый тип", short: "Зависимость" },
+  { code: "OCPD", title: "Обсессивно-компульсивный тип", short: "Обсессив" },
 ];
 
 type ScaleReport = Record<State, { title: string; what: string; how: string; help: string }>;

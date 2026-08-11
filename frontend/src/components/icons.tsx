@@ -46,6 +46,9 @@ import {
   Backpack,
   UserFocus,
   Clover,
+  WarningCircle,
+  Waves,
+  Footprints,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -98,7 +101,10 @@ export type IconName =
   | "bandaid"
   | "backpack"
   | "self"
-  | "clover";
+  | "clover"
+  | "warn"
+  | "waves"
+  | "steps";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -153,6 +159,9 @@ const MAP: Record<IconName, PhIcon> = {
   backpack: Backpack,
   self: UserFocus,
   clover: Clover,
+  warn: WarningCircle,
+  waves: Waves,
+  steps: Footprints,
 };
 
 export function Icon({
