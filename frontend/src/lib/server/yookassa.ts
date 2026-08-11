@@ -28,22 +28,35 @@ export type PaymentResult = {
 };
 
 export async function createPayment(input: CreatePaymentInput): Promise<PaymentResult> {
-  const res = await fetch(`${API}/payments`, {
-    method: "POST",
-    headers: {
-      Authorization: auth(),
-      "Idempotence-Key": crypto.randomUUID(),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      amount: { value: input.amountRub.toFixed(2), currency: "RUB" },
-      capture: true,
-      description: input.description,
-      metadata: input.metadata,
-      save_payment_method: input.savePaymentMethod ?? false,
-      confirmation: { type: "redirect", return_url: input.returnUrl },
-    }),
-  });
+  const attempt = (savePaymentMethod: boolean) =>
+    fetch(`${API}/payments`, {
+      method: "POST",
+      headers: {
+        Authorization: auth(),
+        "Idempotence-Key": crypto.randomUUID(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: { value: input.amountRub.toFixed(2), currency: "RUB" },
+        capture: true,
+        description: input.description,
+        metadata: input.metadata,
+        save_payment_method: savePaymentMethod,
+        confirmation: { type: "redirect", return_url: input.returnUrl },
+      }),
+    });
+
+  const wantsRecurring = input.savePaymentMethod ?? false;
+  let res = await attempt(wantsRecurring);
+
+  // Пока магазину не подключили автоплатежи, ЮKassa отвечает на
+  // `save_payment_method` отказом — и платёж не создаётся вовсе, то есть
+  // оплатить нельзя в принципе. Разовая оплата важнее рекуррента: повторяем
+  // без сохранения способа оплаты. Подключат автоплатежи — первая попытка
+  // начнёт проходить сама, менять ничего не придётся.
+  if (!res.ok && res.status === 403 && wantsRecurring) {
+    res = await attempt(false);
+  }
 
   if (!res.ok) throw new Error(`YooKassa create payment failed: ${res.status} ${await res.text()}`);
 

@@ -1015,12 +1015,21 @@ gh run watch $(gh run list --limit 1 --json databaseId -q '.[0].databaseId') --e
    активация в одном месте (`lib/server/billing.ts`, идемпотентна по id
    платежа), автопродление (`lib/server/renew.ts` + `chargeRecurring`, кроном
    через `POST /api/cron/renew` с `CRON_SECRET`).
-   **Осталось руками на сервере:** вписать `YOOKASSA_SHOP_ID` /
-   `YOOKASSA_SECRET_KEY` в `/opt/bereg/.env`, задать в кабинете ЮKassa
-   уведомления на `https://chronika.space/api/billing/webhook`
-   (`payment.succeeded`, `payment.canceled`), выкатить образ и провести один
-   боевой платёж на 990 ₽ с возвратом через кабинет ЮKassa. Пока `crontab`
-   пуст, автопродление не работает — строку с `/api/cron/renew` тоже добавить.
+   **Сделано на сервере 11 августа 2026:** ключи вписаны в `/opt/bereg/.env`
+   (прошлая версия — `.env.bak-yookassa-20260811`), выкачен образ, автопродление
+   поставлено в `crontab` (`/opt/bereg/renew.sh`, 03:20 UTC, лог
+   `/opt/bereg/renew.log`).
+   **Магазину не подключены автоплатежи**: на `save_payment_method: true`
+   ЮKassa отвечает `forbidden` («This store can't make recurring payments»), и
+   платёж не создаётся вовсе. `createPayment` теперь при таком отказе повторяет
+   запрос без сохранения способа оплаты — оплата работает, но подписка
+   продлевается только руками: `paymentMethodId` не приходит, и
+   `renewDueSubscriptions` такие подписки не видит. Автоплатежи запрашиваются у
+   менеджера ЮKassa; после подключения ничего править не нужно — первая попытка
+   начнёт проходить сама.
+   **Осталось владельцу:** задать в кабинете ЮKassa уведомления на
+   `https://chronika.space/api/billing/webhook` (`payment.succeeded`,
+   `payment.canceled`) и провести один боевой платёж на 990 ₽ с возвратом.
 3. Первая проверка восстановления из бэкапа — до живых пользователей.
 
 **Важно при первом проде:** миграция сейчас одна (`init`) и пересобирается
