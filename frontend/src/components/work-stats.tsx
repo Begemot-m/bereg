@@ -5,8 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { select } from "@/lib/haptics";
+import { addDays, parseYmd, weekdayOf, zoneDay, zoneYmd } from "@/lib/zone";
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const firstOf = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}-01`;
+const shiftMonth = (y: number, m: number, delta: number) => {
+  const raw = m - 1 + delta;
+  return { y: y + Math.floor(raw / 12), m: ((raw % 12) + 12) % 12 + 1 };
+};
 const MON = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 // Плавный счётчик — число «набегает» при появлении/смене периода.
@@ -35,39 +41,47 @@ export function WorkStats({ items, title = "Статистика работы" }
   const [period, setPeriod] = useState<"week" | "month" | "all">("week");
 
   const data = useMemo(() => {
-    const now = new Date();
+    // Границы периодов режутся по календарю платформы: у психолога восточнее
+    // Москвы иначе поздняя встреча попадала бы в соседний день статистики.
+    const todayY = zoneYmd(new Date());
+    const today = parseYmd(todayY)!;
     const active = items.filter((i) => !i.cancelled);
     if (period === "all") {
       // Всё время — последние 6 месяцев по месяцам.
       const bars = Array.from({ length: 6 }).map((_, mi) => {
-        const start = new Date(now.getFullYear(), now.getMonth() - (5 - mi), 1);
-        const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+        const from = shiftMonth(today.y, today.m, -(5 - mi));
+        const to = shiftMonth(from.y, from.m, 1);
+        const start = zoneDay(firstOf(from.y, from.m));
+        const end = zoneDay(firstOf(to.y, to.m));
         const within = active.filter((i) => { const t = new Date(i.startsAt); return t >= start && t < end; });
-        return { label: MON[start.getMonth()], value: within.length, today: mi === 5 };
+        return { label: MON[from.m - 1], value: within.length, today: mi === 5 };
       });
       return { bars, sessions: active.length, hours: Math.round(active.reduce((s, i) => s + i.durationMin, 0) / 60), clients: new Set(active.map((i) => i.clientKey)).size };
     }
     if (period === "week") {
-      const monday = new Date(now); monday.setHours(0, 0, 0, 0);
-      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const mondayY = addDays(todayY, -weekdayOf(todayY));
+      const monday = zoneDay(mondayY);
       const bars = WD.map((label, d) => {
-        const day = new Date(monday); day.setDate(monday.getDate() + d);
-        const next = new Date(day); next.setDate(day.getDate() + 1);
+        const dayY = addDays(mondayY, d);
+        const day = zoneDay(dayY);
+        const next = zoneDay(addDays(dayY, 1));
         const inDay = active.filter((i) => { const t = new Date(i.startsAt); return t >= day && t < next; });
-        return { label, value: inDay.length, today: day.toDateString() === now.toDateString() };
+        return { label, value: inDay.length, today: dayY === todayY };
       });
-      const within = active.filter((i) => new Date(i.startsAt) >= monday && new Date(i.startsAt) < new Date(monday.getTime() + 7 * 86400000));
+      const weekEnd = zoneDay(addDays(mondayY, 7));
+      const within = active.filter((i) => new Date(i.startsAt) >= monday && new Date(i.startsAt) < weekEnd);
       return { bars, sessions: within.length, hours: Math.round(within.reduce((s, i) => s + i.durationMin, 0) / 60), clients: new Set(within.map((i) => i.clientKey)).size };
     }
     // Месяц — последние 4 недели.
     const bars = Array.from({ length: 4 }).map((_, wi) => {
-      const end = new Date(now); end.setHours(0, 0, 0, 0); end.setDate(end.getDate() - (3 - wi) * 7);
-      const start = new Date(end); start.setDate(end.getDate() - 6);
-      const nextEnd = new Date(end); nextEnd.setDate(end.getDate() + 1);
+      const endY = addDays(todayY, -(3 - wi) * 7);
+      const startY = addDays(endY, -6);
+      const start = zoneDay(startY);
+      const nextEnd = zoneDay(addDays(endY, 1));
       const within = active.filter((i) => { const t = new Date(i.startsAt); return t >= start && t < nextEnd; });
-      return { label: `${start.getDate()}–${end.getDate()}`, value: within.length, today: wi === 3 };
+      return { label: `${parseYmd(startY)!.d}–${parseYmd(endY)!.d}`, value: within.length, today: wi === 3 };
     });
-    const monthStart = new Date(now); monthStart.setHours(0, 0, 0, 0); monthStart.setDate(monthStart.getDate() - 27);
+    const monthStart = zoneDay(addDays(todayY, -27));
     const within = active.filter((i) => new Date(i.startsAt) >= monthStart);
     return { bars, sessions: within.length, hours: Math.round(within.reduce((s, i) => s + i.durationMin, 0) / 60), clients: new Set(within.map((i) => i.clientKey)).size };
   }, [items, period]);
