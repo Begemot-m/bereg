@@ -95,6 +95,13 @@
   убран отдельный блок для вебхука — лимит теперь в самом роуте). Прошлая
   версия — `/opt/bereg/Caddyfile.bak-20260811`. Этот файл не в образе:
   копировать на VPS вручную и делать `docker compose exec caddy caddy reload`;
+- **собран и ждёт выкатки** `ghcr.io/begemot-m/bereg:sha-22948ee` (11 августа
+  2026, оплата подписки через ЮKassa). На VPS: `cd /opt/bereg && ./deploy.sh
+  ghcr.io/begemot-m/bereg:sha-22948ee`. Перед этим в `/opt/bereg/.env` вписать
+  `YOOKASSA_SHOP_ID=1432105` и `YOOKASSA_SECRET_KEY` (боевой ключ магазина), а
+  в кабинете ЮKassa задать уведомления на
+  `https://chronika.space/api/billing/webhook` — события `payment.succeeded` и
+  `payment.canceled`. Новых миграций в релизе нет;
 - `CRON_SECRET` в `/opt/bereg/.env` задан, но **`crontab` на сервере пуст** —
   ни `/api/cron/renew`, ни `backup.sh` по расписанию не запускаются. Продление
   подписок и бэкапы сейчас держатся только на ручном запуске;
