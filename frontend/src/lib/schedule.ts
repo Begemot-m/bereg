@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { zoneYmd } from "@/lib/zone";
 
 export type SlotFormat = "online" | "offline";
 export type WorkSlot = { t: string; d: number; fmt: SlotFormat };
@@ -36,9 +37,9 @@ export const getOverrides = () => apiFetch<Record<string, SlotOverride>>("/overr
 export const setOverride = (iso: string, patch: SlotOverride) =>
   apiFetch<Record<string, SlotOverride>>("/overrides", { method: "PATCH", body: JSON.stringify({ iso, ...patch }) });
 
-export function ymdLocal(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+// Календарная дата момента — в зоне платформы, а не устройства. Сервер режет
+// сутки по `Europe/Moscow`, и если браузер в Екатеринбурге посчитает по-своему,
+// поздний вечер уедет в соседний день, а окна графика — на два часа.
+export const ymdLocal = (d: Date): string => zoneYmd(d);
 
 export const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];

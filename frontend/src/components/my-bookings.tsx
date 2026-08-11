@@ -12,10 +12,11 @@ import type { MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { cancelMyBooking, rescheduleMyBooking } from "@/lib/mybookings";
 import { slotStyle } from "@/lib/slot-style";
+import { zoneFormat, zoneHour } from "@/lib/zone";
 
 const SPRING = { type: "spring" as const, stiffness: 460, damping: 26 };
-const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
-const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long" });
+const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
+const dayF = zoneFormat({ weekday: "short", day: "numeric", month: "long" });
 
 // Запись клиента. Вид тот же, что у занятого окна в сессиях психолога:
 // строка со временем, шестерёнка разворачивает перенос и отмену.
@@ -32,7 +33,7 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
   const date = new Date(b.startsAt);
   const past = date.getTime() < Date.now();
   const locked = !past && !canCancel(b.startsAt, lockDays);
-  const st = slotStyle(date.getHours());
+  const st = slotStyle(zoneHour(date));
 
   // Время берём из ответа сервера, а на выбранное окно откатываемся ради демо:
   // мок возвращает не всегда полную запись.

@@ -12,7 +12,9 @@ import { Disclosure } from "@/components/ui";
 import { CATALOG_FREE_DAYS, catalogDaysLeft, FREE_CLIENT_LIMIT, getSubscription, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
 import { tap } from "@/lib/haptics";
 
-const dF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
+import { zoneFormat } from "@/lib/zone";
+
+const dF = zoneFormat({ day: "numeric", month: "long" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [

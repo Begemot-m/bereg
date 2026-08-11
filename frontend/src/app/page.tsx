@@ -23,9 +23,10 @@ import { asset } from "@/lib/asset";
 import { loadTherapists, mergeWithBookings, syncTherapists, therapistCard, type TherapistStore } from "@/lib/therapists";
 import { startTour, tourSeen } from "@/components/room-tour";
 import type { Role } from "@/lib/role";
+import { zoneDayDiff, zoneFormat } from "@/lib/zone";
 
-const dateF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
-const dateTimeF = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const dateF = zoneFormat({ weekday: "long", day: "numeric", month: "long" });
+const dateTimeF = zoneFormat({ weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -409,11 +410,7 @@ function cap(value: string): string {
 
 // Относительный день. Цвет не нужен: статус всегда в акценте раздела.
 function whenBadge(iso: string): string | undefined {
-  const date = new Date(iso);
-  const now = new Date();
-  const today = new Date(now); today.setHours(0, 0, 0, 0);
-  const target = new Date(date); target.setHours(0, 0, 0, 0);
-  const diff = Math.round((target.getTime() - today.getTime()) / 86400000);
+  const diff = zoneDayDiff(new Date(), new Date(iso));
   // Только относительный день — точное время уже показано в основной строке.
   if (diff === 0) return "сегодня";
   if (diff === 1) return "завтра";

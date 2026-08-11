@@ -18,6 +18,8 @@ import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
 import { PROD_URL } from "@/lib/brand";
 
+import { zoneDayDiff, zoneFormat } from "@/lib/zone";
+
 const APP_URL = PROD_URL;
 
 // Анонс модулей закрывается насовсем: показывать его на каждом заходе — шум.
@@ -30,7 +32,8 @@ const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
   { key: "paused", label: "Пауза" },
 ];
 
-const nextF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const nextF = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 
 // Быстрое сообщение: телеграм по @нику, иначе звонок по номеру.
 function contactHref(contact: string | null): string | null {
@@ -42,11 +45,9 @@ function contactHref(contact: string | null): string | null {
 }
 
 function relDay(iso: string): string {
-  const d = new Date(iso); const t = new Date();
-  const day = new Date(d); day.setHours(0, 0, 0, 0);
-  const today = new Date(t); today.setHours(0, 0, 0, 0);
-  const diff = Math.round((day.getTime() - today.getTime()) / 86400000);
-  const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  const d = new Date(iso);
+  const diff = zoneDayDiff(new Date(), d);
+  const time = timeF.format(d);
   if (diff === 0) return `Сегодня, ${time}`;
   if (diff === 1) return `Завтра, ${time}`;
   return nextF.format(d);

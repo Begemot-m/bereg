@@ -10,7 +10,9 @@ import { Arrow } from "@/components/blocks";
 import { HW_LABEL, updateHomework, type Homework, type HwStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 
-const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+import { zoneFormat } from "@/lib/zone";
+
+const dtf = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export function WorkWithSpecialist({ homework }: {
   homework: Homework[];

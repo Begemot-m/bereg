@@ -11,9 +11,10 @@ import { success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
 import { useProfile } from "@/lib/profile";
 import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
+import { zoneDay, zoneFormat } from "@/lib/zone";
 
-const dayF = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
-const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
+const dayF = zoneFormat({ weekday: "long", day: "numeric", month: "long" });
+const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const MSG_KEY = "bereg_invite_message";
 
@@ -66,7 +67,7 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
   // Ссылка ведёт на реальный id психолога: по нему клиент откроет анкету и
   // увидит именно его окна. OWN_PROFILE_ID — запасной вариант для демо.
   const link = bookingInviteUrl(me?.id);
-  const dayLabel = firstFree ? cap(dayF.format(new Date(firstFree + "T00:00:00"))) : null;
+  const dayLabel = firstFree ? cap(dayF.format(zoneDay(firstFree))) : null;
   const times = free.map((s) => timeF.format(new Date(s.start))).join(", ");
   const name = profile?.name?.trim();
 

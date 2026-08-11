@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui";
 import { select, success } from "@/lib/haptics";
 import { getWorkHours, saveWorkHours, WEEKDAYS, type WorkHours, type WorkSlot } from "@/lib/schedule";
 import { slotStyle } from "@/lib/slot-style";
+import { addDays, weekdayOf, zoneAt, zoneYmd } from "@/lib/zone";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
@@ -283,7 +284,7 @@ const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hour
   const span = Math.max(1, to - from) * 60;
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   // Понедельник текущей недели — от него считаем дату каждого столбца.
-  const monday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }, []);
+  const monday = useMemo(() => { const today = zoneYmd(new Date()); return addDays(today, -weekdayOf(today)); }, []);
   const busy = useMemo(
     () => new Set(appts.filter((a) => a.status !== "cancelled").map((a) => new Date(a.startsAt).getTime())),
     [appts],
@@ -305,8 +306,8 @@ const WeekMini = memo(function WeekMini({ hours, from, to, day, onPick }: { hour
                 {list.map((s) => {
                   const top = clamp(((toMin(s.t) - from * 60) / span) * H, 0, H);
                   const h = Math.max(3, (s.d / span) * H);
-                  const dt = new Date(monday); dt.setDate(monday.getDate() + wd);
-                  const [hh, mm] = s.t.split(":").map(Number); dt.setHours(hh, mm, 0, 0);
+                  const [hh, mm] = s.t.split(":").map(Number);
+                  const dt = zoneAt(addDays(monday, wd), hh, mm) ?? new Date(NaN);
                   const taken = busy.has(dt.getTime());
                   return <div key={s.t} className="absolute inset-x-0.5 rounded-[3px]" style={{ top, height: h, background: taken ? "var(--edge)" : "var(--head-soft)" }} />;
                 })}

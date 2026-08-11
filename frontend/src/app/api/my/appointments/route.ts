@@ -8,6 +8,7 @@ import { leadBlocked } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 import { queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
+import { APP_ZONE } from "@/lib/server/zone";
 
 export const runtime = "nodejs";
 
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
           data: {
             userId: psychologistId,
             kind: "booking",
-            text: `Новая запись · ${card.name} · ${startsAt.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`,
+            text: `Новая запись · ${card.name} · ${startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE, day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`,
           },
         });
         await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: psychologistId, audience: "psychologist", kind: "booking" });

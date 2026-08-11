@@ -11,7 +11,9 @@ import { tap } from "@/lib/haptics";
 import type { NotesModuleState, ReflectionPatch, SessionReflection } from "@/lib/therapy";
 
 type Meeting = { id: number; startsAt: string; status?: string; psyName?: string };
-const sessionDate = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+import { zoneFormat } from "@/lib/zone";
+
+const sessionDate = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export function ClientSessionJourney({ meetings, reflections, module, saving, onSave, onModuleChange }: {
   meetings: Meeting[];

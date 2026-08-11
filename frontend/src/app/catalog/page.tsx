@@ -5,6 +5,10 @@ import { ArrowGlyph } from "@/components/blocks";
 import { AnimatePresence, motion } from "motion/react";
 
 import { getMonthAvailability, getWorkHours, ymdLocal } from "@/lib/schedule";
+import { zoneDay, zoneFormat } from "@/lib/zone";
+
+const dayLongF = zoneFormat({ weekday: "long", day: "numeric", month: "long" });
+const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -460,7 +464,7 @@ function BookingMini({ psy, tone, onDone }: { psy: Psy; tone: { bg: string; soft
     return Object.keys(avail).filter((day) => day >= today && avail[day] === "free").sort()[0] ?? null;
   }, [avail]);
   const label = nearest
-    ? new Date(nearest + "T00:00:00").toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })
+    ? dayLongF.format(zoneDay(nearest))
     : null;
 
   return (
@@ -818,7 +822,7 @@ function BookedNext({ psy, at, format, onDone }: { psy: Psy; at: string; format:
         <span className="ico ico-accent mx-auto flex h-12 w-12"><Icon name="check" width={24} weight="bold" color="#fff" /></span>
         <p className="t-head mt-2">Вы записаны к {psyName.split(" ")[0]}</p>
         <p className="t-cap mt-1">
-          {date.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })} в {date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {format === "online" ? "онлайн" : "очно"}
+          {dayLongF.format(date)} в {timeF.format(date)} · {format === "online" ? "онлайн" : "очно"}
         </p>
       </div>
 

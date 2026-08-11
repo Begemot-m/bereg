@@ -9,9 +9,10 @@ import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
 import type { Appointment, ApptFormat } from "@/lib/appointments";
+import { addDays, parseYmd, weekdayOf, zoneDay, zoneFormat } from "@/lib/zone";
 
-const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
-const monShort = new Intl.DateTimeFormat("ru-RU", { month: "short" });
+const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
+const monShort = zoneFormat({ month: "short" });
 
 // Лента дней (или мини-календарик) + сетка свободных времён. Формат берётся из окна.
 export function SlotPicker({
@@ -41,17 +42,10 @@ export function SlotPicker({
   bookedLabel?: string;
   onPick: (iso: string, format: ApptFormat) => void;
 }) {
-  const days = useMemo(() => {
-    const base = new Date();
-    base.setHours(0, 0, 0, 0);
-    return Array.from({ length: daysAhead }, (_, i) => {
-      const d = new Date(base);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }, [daysAhead]);
+  const todayY = ymdLocal(new Date());
+  const days = useMemo(() => Array.from({ length: daysAhead }, (_, i) => addDays(todayY, i)), [daysAhead, todayY]);
 
-  const [active, setActive] = useState(() => startDay ?? ymdLocal(days[0]));
+  const [active, setActive] = useState(() => startDay ?? days[0]);
   // Ближайший свободный день приходит асинхронно — перескакиваем на него,
   // пока пользователь сам не выбрал другой.
   const touched = useRef(false);
@@ -79,11 +73,10 @@ export function SlotPicker({
         <MonthCalendar appts={appts} selected={active} onSelectDay={(y) => { if (y) { touched.current = true; setActive(y); } }} avail={showAvail ? avail : undefined} disableUnavailable={showAvail} tone={calendarTone} />
       ) : (
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {days.map((d) => {
-            const key = ymdLocal(d);
+          {days.map((key) => {
             const isActive = key === active;
-            const wd = (d.getDay() + 6) % 7;
-            const today = ymdLocal(new Date()) === key;
+            const wd = weekdayOf(key);
+            const today = todayY === key;
             return (
               <button
                 key={key}
@@ -92,9 +85,9 @@ export function SlotPicker({
                 style={isActive ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff", color: "var(--ink)" }}
               >
                 <span className={`text-[10px] font-extrabold uppercase ${isActive ? "opacity-90" : "text-[var(--muted-2)]"}`}>{WEEKDAYS[wd]}</span>
-                <span className="text-[18px] font-extrabold leading-none">{d.getDate()}</span>
+                <span className="text-[18px] font-extrabold leading-none">{parseYmd(key)?.d}</span>
                 <span className={`text-[9px] font-bold ${isActive ? "opacity-80" : "text-[var(--muted-2)]"}`}>
-                  {today ? "сегодня" : monShort.format(d).replace(".", "")}
+                  {today ? "сегодня" : monShort.format(zoneDay(key)).replace(".", "")}
                 </span>
               </button>
             );

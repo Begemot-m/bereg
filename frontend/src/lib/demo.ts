@@ -6,6 +6,10 @@
 // круг на инициализации модуля.
 const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
+// Зона платформы — единственный внешний импорт: модуль ни от чего не зависит,
+// круга на инициализации не будет. Мок обязан резать сутки как сервер.
+import { addDays as addZoneDays, parseYmd, weekdayOf, zoneAt, zoneYmd } from "@/lib/zone";
+
 export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
 type Status = "therapy" | "new" | "paused";
@@ -102,10 +106,8 @@ type DB = {
 const KEY = "psy_demo_db_v12";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromNow);
-  d.setHours(hour, min, 0, 0);
-  return d.toISOString();
+  const day = addZoneDays(zoneYmd(new Date()), daysFromNow);
+  return (zoneAt(day, hour, min) ?? new Date()).toISOString();
 }
 
 function seed(): DB {
@@ -387,9 +389,8 @@ const busyOf = (db: DB, isClient: boolean): Busy[] =>
 
 // Вычислить свободные слоты на дату из выбранных часов минус занятые времена.
 function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Record<string, SlotOverride>): { start: string; taken: boolean; fmt: ApptFormat }[] {
-  const d = new Date(dateStr + "T00:00:00");
-  if (Number.isNaN(d.getTime())) return [];
-  const wd = (d.getDay() + 6) % 7;
+  if (!parseYmd(dateStr)) return [];
+  const wd = weekdayOf(dateStr);
   const slots = [...((work.hours ?? {})[wd] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
   const session = work.sessionMinutes || 50;
   // Запись занимает окно и тогда, когда её время не совпадает с шаблоном
@@ -401,8 +402,8 @@ function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Rec
   const out: { start: string; taken: boolean; fmt: ApptFormat }[] = [];
   for (const s of slots) {
     const [hh, mm] = s.t.split(":").map(Number);
-    const t = new Date(d); t.setHours(hh, mm, 0, 0);
-    if (t.getTime() < now) continue;
+    const t = zoneAt(dateStr, hh, mm);
+    if (!t || t.getTime() < now) continue;
     const iso = t.toISOString();
     const ov = overrides[iso];
     if (ov?.removed) continue; // окно снято на эту дату
@@ -796,15 +797,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   if (clean === "/month-availability" && method === "GET") {
     const isClient = q.get("psy") != null;
     const busy = busyOf(db, isClient);
-    const p = (n: number) => String(n).padStart(2, "0");
-    const ymdOf = (d: Date) => `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
     // День с записью занят, даже если рабочих часов на него не задано.
-    const withAppt = new Set(busy.map((b) => ymdOf(new Date(b.start))));
+    const withAppt = new Set(busy.map((b) => zoneYmd(new Date(b.start))));
     const out: Record<string, "free" | "full"> = {};
-    const base = new Date(); base.setHours(0, 0, 0, 0);
+    const base = zoneYmd(new Date());
     for (let i = 0; i < 60; i++) {
-      const d = new Date(base); d.setDate(d.getDate() + i);
-      const ymd = ymdOf(d);
+      const ymd = addZoneDays(base, i);
       const slots = slotsFor(isClient ? CATALOG_WORK : db.work, ymd, busy, db.overrides);
       if (slots.length === 0) {
         if (withAppt.has(ymd)) out[ymd] = "full";

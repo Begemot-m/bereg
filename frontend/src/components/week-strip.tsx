@@ -5,15 +5,13 @@ import { ArrowGlyph } from "@/components/blocks";
 
 import { select } from "@/lib/haptics";
 import { ymdLocal, WEEKDAYS } from "@/lib/schedule";
+import { addDays, parseYmd, weekdayOf } from "@/lib/zone";
 
 // Верхний календарь-стрип: свайп вбок с микровибрацией, выбранный день в оливковом круге.
 export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: { selected?: string | null; onSelect?: (ymd: string) => void; marked?: Set<string>; from?: number; days?: number }) {
-  const list = useMemo(() => {
-    const base = new Date(); base.setHours(0, 0, 0, 0);
-    return Array.from({ length: days }, (_, i) => { const d = new Date(base); d.setDate(d.getDate() + from + i); return d; });
-  }, [from, days]);
-
   const today = ymdLocal(new Date());
+  const list = useMemo(() => Array.from({ length: days }, (_, i) => addDays(today, from + i)), [from, days, today]);
+
   const sel = selected ?? today;
   const selRef = useRef<HTMLButtonElement>(null);
   const lastHaptic = useRef(0);
@@ -27,11 +25,10 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
   return (
     <div className="relative">
       <div className="no-scrollbar flex gap-1 overflow-x-auto pb-1" onScroll={onScroll} style={{ scrollSnapType: "x proximity" }}>
-      {list.map((d) => {
-        const key = ymdLocal(d);
+      {list.map((key) => {
         const active = key === sel;
         const isToday = key === today;
-        const wd = (d.getDay() + 6) % 7;
+        const wd = weekdayOf(key);
         return (
           <button
             key={key}
@@ -53,7 +50,7 @@ export function WeekStrip({ selected, onSelect, marked, from = -3, days = 24 }: 
               className="relative flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-extrabold"
               style={active ? { background: "var(--head)", color: "var(--ink)" } : isToday ? { background: "color-mix(in srgb, var(--head) 45%, transparent)", color: "var(--ink)" } : { color: "var(--ink)" }}
             >
-              {d.getDate()}
+              {parseYmd(key)!.d}
               {marked?.has(key) && <span className="absolute right-[7px] top-[7px] h-[4px] w-[4px] rounded-full" style={{ background: "var(--edge)" }} />}
             </span>
           </button>

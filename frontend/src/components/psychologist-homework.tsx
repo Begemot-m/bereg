@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui";
 import { deleteHomework, HW_LABEL, sendHomework, updateHomework, type Homework, type HwStatus } from "@/lib/clients";
 import { success, tap } from "@/lib/haptics";
 
-const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+import { zoneFormat } from "@/lib/zone";
+
+const dtf = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 // Раздел заданий целиком в лавандовом тоне: статус различается словом на
 // плашке, а не цветом — иначе список пестрит тремя цветами разом.
 const HW_TONE: Record<HwStatus, string> = { assigned: "purple", doing: "purple", done: "purple" };

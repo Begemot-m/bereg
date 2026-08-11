@@ -4,6 +4,7 @@ import { prisma } from "@/lib/server/prisma";
 import { lockedByPolicy } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { cancelPendingReminders, queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
+import { APP_ZONE } from "@/lib/server/zone";
 
 export const runtime = "nodejs";
 
@@ -46,7 +47,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: appt.psychologistId, audience: "psychologist", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
       await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: user.id, audience: "client", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
       await replaceReminders(tx, { appointmentId: appt.id, clientUserId: user.id, psychologistUserId: appt.psychologistId, startsAt, reminder2h: user.sessionReminder2h });
-      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "reschedule", text: `Клиент перенёс встречу на ${startsAt.toLocaleString("ru-RU")}` } });
+      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "reschedule", text: `Клиент перенёс встречу на ${startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE })}` } });
       return row;
     });
     return NextResponse.json({
@@ -79,7 +80,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       await cancelPendingReminders(tx, appt.id);
       await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: appt.psychologistId, audience: "psychologist", kind: "cancel" });
       await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: user.id, audience: "client", kind: "cancel" });
-      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "cancel", text: `Клиент отменил встречу ${appt.startsAt.toLocaleString("ru-RU")}` } });
+      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "cancel", text: `Клиент отменил встречу ${appt.startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE })}` } });
     });
     return new NextResponse(null, { status: 204 });
   } catch (e) {

@@ -34,11 +34,12 @@ import { ProPaywall } from "@/components/pro-sell";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { useRole } from "@/lib/role";
 import { getMonthAvailability, getOverrides, getWorkHours, saveWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
+import { addDays, weekdayOf, zoneAt, zoneDay, zoneFormat } from "@/lib/zone";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
-const dayShort = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
-const weekdayF = new Intl.DateTimeFormat("ru-RU", { weekday: "long" });
+const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
+const dayShort = zoneFormat({ day: "numeric", month: "short" });
+const weekdayF = zoneFormat({ weekday: "long" });
 const SCHEDULE_SETUP_KEY = "bereg:schedule-setup-seen:v1";
 
 export default function SessionsPage() {
@@ -57,8 +58,8 @@ export default function SessionsPage() {
 /* ============ Психолог ============ */
 
 function relLabel(ymd: string): string | null {
-  const t = new Date(); t.setHours(0, 0, 0, 0);
-  const d = new Date(ymd + "T00:00:00");
+  const t = zoneDay(ymdLocal(new Date()));
+  const d = zoneDay(ymd);
   const diff = Math.round((d.getTime() - t.getTime()) / 86400000);
   if (diff === 0) return "Сегодня";
   if (diff === 1) return "Завтра";
@@ -66,7 +67,7 @@ function relLabel(ymd: string): string | null {
   return null;
 }
 function dateHeader(ymd: string): string {
-  const d = new Date(ymd + "T00:00:00");
+  const d = zoneDay(ymd);
   const rel = relLabel(ymd);
   return `${dayShort.format(d)} · ${rel ? rel + " · " : ""}${weekdayF.format(d)}`;
 }
@@ -138,8 +139,8 @@ function PsySessions() {
   const bulk = useMutation({ mutationFn: async (ops: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }[]) => { for (const o of ops) await setOverride(o.iso, o.patch); }, onSuccess: () => { success(); closeMultiMode(); inv(); } });
   const toggleDay = (y: string) => setMultiDays((prev) => { const n = new Set(prev); n.has(y) ? n.delete(y) : n.add(y); return n; });
   const daySlots = (ymd: string) => {
-    const d = new Date(ymd + "T00:00:00"); const wd = (d.getDay() + 6) % 7; const now = Date.now();
-    return (work?.hours?.[wd] ?? []).map((s) => { const [hh, mm] = s.t.split(":").map(Number); const dt = new Date(d); dt.setHours(hh, mm, 0, 0); const iso = dt.toISOString(); return { iso, past: dt.getTime() < now, appt: appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime()), removed: !!overrides[iso]?.removed }; });
+    const wd = weekdayOf(ymd); const now = Date.now();
+    return (work?.hours?.[wd] ?? []).map((s) => { const [hh, mm] = s.t.split(":").map(Number); const dt = zoneAt(ymd, hh, mm) ?? new Date(NaN); const iso = dt.toISOString(); return { iso, past: dt.getTime() < now, appt: appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime()), removed: !!overrides[iso]?.removed }; });
   };
   const bulkAct = (kind: "off" | "open" | "online" | "offline") => {
     const ops: { iso: string; patch: { removed?: boolean; fmt?: ApptFormat } }[] = [];
@@ -158,8 +159,7 @@ function PsySessions() {
   const markedDays = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
   // Ближайшие дни (сегодня, завтра …) с ещё не прошедшими записями
   const now = Date.now();
-  const soonDays = Array.from({ length: 30 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }).filter((d) => {
-    const y = ymdLocal(d);
+  const soonDays = Array.from({ length: 30 }, (_, i) => addDays(todayY, i)).filter((y) => {
     const hasAppt = appts.some((a) => a.status !== "cancelled" && ymdLocal(new Date(a.startsAt)) === y && new Date(a.startsAt).getTime() >= now);
     return selDay ? y === selDay && hasAppt : hasAppt;
   });
@@ -283,17 +283,14 @@ function PsySessions() {
             <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
           ) : selDay ? (
             // День выбран сверху — весь день окнами: свободные и занятые, как в календаре.
-            <DayAgenda key={selDay} date={new Date(selDay + "T00:00:00")} today={selDay === todayY} />
+            <DayAgenda key={selDay} date={zoneDay(selDay)} today={selDay === todayY} />
           ) : soonDays.length === 0 ? (
             <EmptyState onAdd={openCalendar} selDay={null} />
           ) : (
             // Тот же блок дня, что в «Неделе», только с занятыми окнами:
             // управление графиком живёт в «Неделе» и календаре.
             <div className="space-y-4">
-              {soonDays.map((d) => {
-                const y = ymdLocal(d);
-                return <DayAgenda key={y} date={d} today={y === todayY} badge={relTone(y)} busyOnly />;
-              })}
+              {soonDays.map((y) => <DayAgenda key={y} date={zoneDay(y)} today={y === todayY} badge={relTone(y)} busyOnly />)}
             </div>
           )
         )}
@@ -305,7 +302,7 @@ function PsySessions() {
             {multiMode ? (
               <p className="text-center text-[13px] font-semibold text-[var(--muted-2)]">{multiDays.size ? `Выбрано дней: ${multiDays.size}. Действия применятся ко всем.` : "Тапайте по дням в календаре, чтобы выбрать несколько."}</p>
             ) : selDay ? (
-              <DayAgenda key={selDay} date={new Date(selDay + "T00:00:00")} today={selDay === todayY} />
+              <DayAgenda key={selDay} date={zoneDay(selDay)} today={selDay === todayY} />
             ) : (
               <p className="text-center text-[13px] font-semibold text-[var(--muted-2)]">Выберите день в календаре — покажу свободные окна и записи.</p>
             )}

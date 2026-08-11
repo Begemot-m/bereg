@@ -15,8 +15,10 @@ import {
 import { tap } from "@/lib/haptics";
 import { documentHref } from "@/lib/psy-documents";
 
-const dateF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "2-digit" });
-const timeF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+import { zoneFormat } from "@/lib/zone";
+
+const dateF = zoneFormat({ day: "numeric", month: "short", year: "2-digit" });
+const timeF = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 const TOPICS: Record<string, string> = {
   bug: "не работает", billing: "оплата", data: "данные", other: "другое",

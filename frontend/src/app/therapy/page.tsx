@@ -23,6 +23,7 @@ import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, SkeletonRow } from "@/components/ui";
 import { bookSlot, cancelMyBooking } from "@/lib/mybookings";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
+import { zoneFormat } from "@/lib/zone";
 import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { serverMessage } from "@/lib/api";
@@ -33,7 +34,9 @@ import { detachTherapist, loadTherapists, mergeWithBookings, saveTherapists, set
 import { TherapyGuide, therapyGuideSeen } from "@/components/therapy-guide";
 
 const ME = 1; // в демо клиент «я» — карточка №1
-const dateTime = new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+const dateTime = zoneFormat({ weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+const bookedDay = zoneFormat({ day: "numeric", month: "long" });
+const bookedTime = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 
 // Прикреплённые терапевты: общий стор (каталог добавляет) + автодобавление из записей.
 function useMyTherapists(bookingNames: string[], onDetach: (name: string) => void) {
@@ -326,7 +329,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
           {booked ? (
             <div className="text-center">
               <p className="text-[13px] font-black">Вы записаны к {name.split(" ")[0]}</p>
-              <p className="t-cap mt-1 inline-flex items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" />{new Date(booked.at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {new Date(booked.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+              <p className="t-cap mt-1 inline-flex items-center gap-1.5"><Icon name="calendar" width={12} weight="bold" color="currentColor" />{bookedDay.format(new Date(booked.at))} в {bookedTime.format(new Date(booked.at))} · {booked.format === "online" ? "онлайн" : "очно"}</p>
               {/* Куда идти или чего ждать — сразу после записи, чтобы не искать */}
               <div className="card-soft mt-2.5 flex items-start gap-2.5 p-2.5 text-left" style={{ background: booked.format === "online" ? "var(--purple-soft)" : "var(--green-soft)" }}>
                 <span className="ico h-8 w-8 shrink-0" style={{ background: "#fff" }}>

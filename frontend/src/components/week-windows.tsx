@@ -13,12 +13,12 @@ import { SlotPicker } from "@/components/slot-picker";
 import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { createClient, isPhone, listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
-import { getOverrides, getWorkHours, setOverride } from "@/lib/schedule";
+import { getOverrides, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
+import { addDays, weekdayOf, zoneAt, zoneDay, zoneDayNumber, zoneFormat, zoneHour, sameZoneDay } from "@/lib/zone";
 
-const timeF = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
-const wdF = new Intl.DateTimeFormat("ru-RU", { weekday: "long" });
-const dLong = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
-const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
+const wdF = zoneFormat({ weekday: "long" });
+const dLong = zoneFormat({ weekday: "long", day: "numeric", month: "long" });
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pl = (n: number, one: string, few: string, many: string) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
 
@@ -31,18 +31,19 @@ export function useDayWindows() {
   const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
 
   const daySlots = (d: Date): Slot[] => {
-    const wd = (d.getDay() + 6) % 7;
+    const ymd = ymdLocal(d);
+    const wd = weekdayOf(ymd);
     const now = Date.now();
     const schedule: Slot[] = [...(work?.hours?.[wd] ?? [])].sort((a, b) => a.t.localeCompare(b.t)).map((s) => {
       const [hh, mm] = s.t.split(":").map(Number);
-      const dt = new Date(d); dt.setHours(hh, mm, 0, 0);
+      const dt = zoneAt(ymd, hh, mm) ?? new Date(NaN);
       const iso = dt.toISOString(); const ov = overrides[iso];
       const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
       return { iso, hour: hh, t: s.t, dur: appt?.durationMin ?? s.d, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, appt, removed: !!ov?.removed };
     });
     const apptOnly: Slot[] = appts
-      .filter((a) => a.status !== "cancelled" && sameDay(new Date(a.startsAt), d) && !schedule.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime()))
-      .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: dt.getHours(), t: timeF.format(dt), dur: a.durationMin, fmt: a.format, past: dt.getTime() < now, appt: a, removed: false }; });
+      .filter((a) => a.status !== "cancelled" && sameZoneDay(new Date(a.startsAt), d) && !schedule.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime()))
+      .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: a.durationMin, fmt: a.format, past: dt.getTime() < now, appt: a, removed: false }; });
     return [...schedule, ...apptOnly].sort((a, b) => a.iso.localeCompare(b.iso));
   };
 
@@ -74,7 +75,7 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
     <section>
       <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
         <div className="flex items-center gap-2">
-          <h3 className="text-[13.5px] font-black">{cap(wdF.format(date))}, {date.getDate()}</h3>
+          <h3 className="text-[13.5px] font-black">{cap(wdF.format(date))}, {zoneDayNumber(date)}</h3>
           {badge
             ? <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: `var(--${badge.tone}-soft)`, color: `var(--${badge.tone}-edge)` }}>{badge.label}</span>
             : today && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}>сегодня</span>}
@@ -112,11 +113,11 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
 // Агенда недели — те же дни подряд.
 export function WeekWindows() {
   const { hasWork } = useDayWindows();
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }), []);
+  const days = useMemo(() => { const today = ymdLocal(new Date()); return Array.from({ length: 7 }, (_, i) => addDays(today, i)); }, []);
   if (!hasWork) return <NoWorkHours />;
   return (
     <div className="space-y-4">
-      {days.map((d, i) => <DayAgenda key={d.toDateString()} date={d} today={i === 0} />)}
+      {days.map((y, i) => <DayAgenda key={y} date={zoneDay(y)} today={i === 0} />)}
     </div>
   );
 }
@@ -205,7 +206,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
   const times = useMemo(() => {
     const out: { iso: string; label: string }[] = [];
     for (let m = 8 * 60; m <= 21 * 60 + 30; m += 30) {
-      const dt = new Date(date); dt.setHours(Math.floor(m / 60), m % 60, 0, 0);
+      const dt = zoneAt(ymdLocal(date), Math.floor(m / 60), m % 60) ?? new Date(NaN);
       const value = dt.toISOString();
       if (dt.getTime() < now || takenSet.has(value)) continue;
       out.push({ iso: value, label: timeF.format(dt) });

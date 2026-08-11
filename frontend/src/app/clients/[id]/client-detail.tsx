@@ -36,7 +36,9 @@ import { select, success, tap } from "@/lib/haptics";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { getClientTherapy, setClientNotesModule } from "@/lib/therapy";
 
-const dtf = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+import { zoneFormat } from "@/lib/zone";
+
+const dtf = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
 
 // Ссылка-приглашение клиента подключить свой профиль. В ней подписанная метка

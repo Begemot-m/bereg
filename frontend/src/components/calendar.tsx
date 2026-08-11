@@ -6,16 +6,17 @@ import { ArrowGlyph } from "@/components/blocks";
 import { select } from "@/lib/haptics";
 import { ymdLocal, WEEKDAYS } from "@/lib/schedule";
 import type { Appointment } from "@/lib/appointments";
+import { addDays, parseYmd, weekdayOf } from "@/lib/zone";
 
 const MON = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 
-function startOfWeek(d: Date) {
-  const x = new Date(d);
-  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+// Сетка считается по календарю платформы: иначе поздним вечером в восточных
+// часовых поясах «сегодня» подсвечивало бы завтрашний день.
+const firstOf = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}-01`;
+const shiftMonth = (c: { y: number; m: number }, delta: number) => {
+  const raw = c.m - 1 + delta;
+  return { y: c.y + Math.floor(raw / 12), m: ((raw % 12) + 12) % 12 + 1 };
+};
 
 type Avail = "free" | "full" | "none";
 
@@ -39,29 +40,29 @@ export function MonthCalendar({
   multi?: Set<string>;
   onToggle?: (ymd: string) => void;
 }) {
-  const [cursor, setCursor] = useState(new Date());
+  const today = parseYmd(ymdLocal(new Date()))!;
+  const [cursor, setCursor] = useState({ y: today.y, m: today.m });
   const has = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
 
-  const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-  const start = startOfWeek(first);
+  const first = firstOf(cursor.y, cursor.m);
+  const start = addDays(first, -weekdayOf(first));
   const cells = Array.from({ length: 42 }, (_, i) => addDays(start, i));
 
   const navBtn = "flex h-8 w-8 items-center justify-center bg-transparent text-[var(--edge)] transition-transform active:scale-90";
   return (
     <div className={tone === "blend" ? "px-0.5" : "chunk p-3.5"} style={tone === "blend" ? { background: "transparent" } : undefined}>
       <div className="mb-2 flex items-center justify-between">
-        <p className="font-tight text-[15px] font-extrabold">{MON[cursor.getMonth()]} {cursor.getFullYear()}</p>
+        <p className="font-tight text-[15px] font-extrabold">{MON[cursor.m - 1]} {cursor.y}</p>
         <div className="flex items-center gap-1">
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className={navBtn}><ArrowGlyph style={{ transform: "rotate(180deg)" }} /></button>
-          <button onClick={() => { setCursor(new Date()); onSelectDay(null); }} className="rounded-full px-2.5 py-1 text-[11px] font-bold active:scale-95 transition-transform" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>Сегодня</button>
-          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className={navBtn}><ArrowGlyph /></button>
+          <button onClick={() => setCursor(shiftMonth(cursor, -1))} className={navBtn}><ArrowGlyph style={{ transform: "rotate(180deg)" }} /></button>
+          <button onClick={() => { setCursor({ y: today.y, m: today.m }); onSelectDay(null); }} className="rounded-full px-2.5 py-1 text-[11px] font-bold active:scale-95 transition-transform" style={{ background: "var(--head-soft)", color: "var(--edge)" }}>Сегодня</button>
+          <button onClick={() => setCursor(shiftMonth(cursor, 1))} className={navBtn}><ArrowGlyph /></button>
         </div>
       </div>
       <div className="grid grid-cols-7 gap-x-1 gap-y-0.5">
         {WEEKDAYS.map((d) => <div key={d} className="pb-0.5 text-center text-[9px] font-extrabold uppercase text-[var(--muted-2)]">{d}</div>)}
-        {cells.map((d, i) => {
-          const y = ymdLocal(d);
-          const inMonth = d.getMonth() === cursor.getMonth();
+        {cells.map((y, i) => {
+          const inMonth = parseYmd(y)!.m === cursor.m;
           const isSel = multi ? multi.has(y) : selected === y;
           const a: Avail | undefined = avail?.[y];
 
@@ -87,7 +88,7 @@ export function MonthCalendar({
               className={`keep-ring relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] font-extrabold transition-colors duration-150 active:scale-90 ${inMonth ? "" : "opacity-25"} ${disabled ? "cursor-default" : ""} ${busy && !isSel ? "day-busy" : ""}`}
               style={style}
             >
-              {d.getDate()}
+              {parseYmd(y)!.d}
             </button>
           );
         })}

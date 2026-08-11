@@ -1,4 +1,5 @@
 import type { TimeOfDay } from "@/lib/catalog";
+import { zoneWeekday } from "@/lib/zone";
 
 export type DayGroup = "weekdays" | "weekends";
 /** Минимум, который нужен от расписания: время окна по дням недели. */
@@ -87,8 +88,9 @@ export function availabilityLabel(availability: Availability): string {
 export function nextSlotDays(work: ScheduleHours | null | undefined, now = new Date()): number {
   const hours = work?.hours;
   if (!hours) return 14;
-  // В расписании понедельник — 0, в JS воскресенье — 0.
-  const today = (now.getDay() + 6) % 7;
+  // В расписании понедельник — 0. День недели берём по календарю платформы:
+  // у клиента из другого пояса «сегодня» иначе съезжает на сутки.
+  const today = zoneWeekday(now);
   for (let ahead = 0; ahead < 7; ahead++) {
     const list = hours[(today + ahead) % 7];
     if (Array.isArray(list) && list.length) return ahead === 0 ? 1 : ahead;
