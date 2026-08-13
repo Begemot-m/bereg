@@ -231,10 +231,8 @@ function InviteClientButton() {
     }
   };
   return (
-    // Текст в две строки: «Пригласить» само по себе не отвечало на вопрос
-    // «кого и куда», а в одну строку понятная формулировка не влезает.
-    <button onClick={share} className="btn btn-white max-w-[124px] shrink-0 px-2.5 py-1.5 text-left text-[11px] leading-tight" title="Отправьте ссылку — клиент подключится сам и появится в списке">
-      <Icon name="telegram" width={14} weight="fill" color="var(--edge)" /> {copied ? "Ссылка скопирована" : "Позвать клиента в приложение"}
+    <button onClick={share} className="btn btn-white h-9 shrink-0 whitespace-nowrap px-2.5 text-[11.5px]" title="Отправьте ссылку — клиент подключится сам и появится в списке">
+      <Icon name="telegram" width={14} weight="fill" color="var(--edge)" /> {copied ? "Скопировано ✓" : "Пригласить клиента"}
     </button>
   );
 }
