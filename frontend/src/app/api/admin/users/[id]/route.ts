@@ -132,11 +132,28 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       });
     }
 
+    // Целиком строку пользователя отдавать нельзя: `telegramId` — BigInt,
+    // а его `JSON.stringify` не умеет, и весь ответ падал в 500.
     const fresh = await prisma.user.findUnique({
       where: { id: userId },
-      include: { subscription: true },
+      select: {
+        id: true, firstName: true, username: true, email: true, roles: true, blockedAt: true,
+        subscription: { select: { plan: true, status: true, currentPeriodEnd: true, grantedBy: true } },
+      },
     });
-    return NextResponse.json(fresh);
+    if (!fresh) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const sub = fresh.subscription;
+    return NextResponse.json({
+      id: fresh.id,
+      name: fresh.firstName ?? fresh.username ?? `#${fresh.id}`,
+      username: fresh.username,
+      email: fresh.email,
+      roles: fresh.roles,
+      blocked: Boolean(fresh.blockedAt),
+      pro: sub?.status === "active" && (!sub.currentPeriodEnd || sub.currentPeriodEnd.getTime() > Date.now()),
+      proUntil: sub?.currentPeriodEnd?.toISOString() ?? null,
+      proGranted: Boolean(sub?.grantedBy),
+    });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     if (e instanceof InvalidBody) return invalidBodyResponse(e);

@@ -55,7 +55,7 @@ import { useMe } from "@/lib/me";
 import { helpsLine } from "@/lib/morph";
 import { publicRules } from "@/lib/profile-rules";
 import { bookSlot } from "@/lib/mybookings";
-import { hasRestrictedLink, INSTAGRAM_NOTE, LINK_META, PROFILE_SYNCED, useProfile, type LinkKind } from "@/lib/profile";
+import { hasRestrictedLink, INSTAGRAM_NOTE, LINK_META, normalizeLinkUrl, PROFILE_SYNCED, useProfile, type LinkKind } from "@/lib/profile";
 import { FREE_CLIENT_LIMIT, getSubscription } from "@/lib/subscription";
 import { listClients } from "@/lib/clients";
 import { attachTherapist, isAttached } from "@/lib/therapists";
@@ -398,7 +398,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       <Section title="Как проходит первая встреча"><p className="t-body">{firstSession}</p></Section>
 
       {/* Голосовое приветствие (демо-слот) */}
-      <VoiceGreeting name={psy.name.split(" ")[0]} />
+      <VoiceGreeting />
 
       {/* Подход и пример работы — без обещаний результата */}
       {psy.about && <Section title="Как я работаю"><p className="t-body">{psy.about}</p></Section>}
@@ -649,8 +649,9 @@ function TelegramPoster({ psy }: { psy: Psy }) {
   );
 }
 
-// Голосовое приветствие — демо-слот под будущее аудио специалиста.
-function VoiceGreeting({ name }: { name: string }) {
+// Голосовое приветствие — слот под будущее аудио специалиста. Имени тут нет:
+// пока записи не существует, подпись с именем читается как обещание за него.
+function VoiceGreeting() {
   return (
     <Section title="Голос специалиста">
       <div className="card-soft flex items-center gap-3 p-3.5">
@@ -660,7 +661,7 @@ function VoiceGreeting({ name }: { name: string }) {
         </div>
         <div className="shrink-0 text-right">
           <p className="text-[11px] font-black leading-none">приветствие</p>
-          <p className="mt-1 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">скоро · {name}</p>
+          <p className="mt-1 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted-2)]">скоро</p>
         </div>
       </div>
     </Section>
@@ -688,7 +689,9 @@ function EducationBlock({ psy }: { psy: Psy }) {
 // Ссылки анкеты: сайт, канал, соцсети. Показываем то, что специалист сам
 // открыл в профиле, — и только внешние http(s)-адреса.
 function LinksBlock({ psy }: { psy: Psy }) {
-  const links = (psy.links ?? []).filter((link) => /^https?:\/\//i.test(link.url.trim()));
+  const links = (psy.links ?? [])
+    .map((link) => ({ ...link, url: normalizeLinkUrl(link.kind, link.url) }))
+    .filter((link): link is { kind: LinkKind; url: string } => Boolean(link.url));
   if (!links.length) return null;
   return (
     <Section title="Сайт и соцсети">

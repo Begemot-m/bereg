@@ -35,9 +35,9 @@ export function SessionInviteButton() {
     <>
       <button
         onClick={() => { tap(); setOpen(true); }}
-        className="btn btn-white h-9 shrink-0 whitespace-nowrap px-2.5 text-[11.5px]"
+        className="btn btn-white h-auto max-w-[112px] shrink-0 px-2.5 py-1.5 text-center text-[11px] leading-[1.15]"
       >
-        <Icon name="telegram" width={14} weight="fill" color="var(--edge)" /> Позвать на сессию
+        <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> Позвать на сессию
       </button>
       <AnimatePresence>{open && <SessionInviteSheet onClose={() => setOpen(false)} />}</AnimatePresence>
     </>

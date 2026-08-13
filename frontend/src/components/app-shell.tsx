@@ -19,7 +19,7 @@ const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => 
 import { APP_NAME } from "@/lib/brand";
 import { joinClientCard } from "@/lib/clients";
 import { select } from "@/lib/haptics";
-import { iconTrick } from "@/lib/icon-motion";
+import { iconLoop } from "@/lib/icon-motion";
 import { useMe } from "@/lib/me";
 import { useOnboarded } from "@/lib/profile";
 import { useAuth } from "@/lib/useAuth";
@@ -46,8 +46,10 @@ function NavIcon({ icon, active, size, weight, color }: { icon: IconName; active
         key={active ? "on" : "off"}
         className="flex items-center justify-center"
         style={{ willChange: "transform", backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
-        animate={active ? iconTrick(icon) : { scale: 1, rotate: 0, y: 0 }}
-        transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+        animate={active ? iconLoop(icon).animate : { scale: 1, rotate: 0, y: 0 }}
+        transition={active
+          ? { duration: iconLoop(icon).duration, ease: "easeInOut", repeat: Infinity, repeatType: "loop" }
+          : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
         {glyph}
       </motion.span>

@@ -87,6 +87,36 @@ export const LINK_META: Record<LinkKind, { label: string; icon: import("@/compon
   vk: { label: "ВКонтакте", icon: "users" },
   youtube: { label: "YouTube", icon: "video" },
 };
+const LINK_HOST: Record<LinkKind, string | null> = {
+  site: null,
+  telegram: "https://t.me/",
+  instagram: "https://instagram.com/",
+  vk: "https://vk.com/",
+  youtube: "https://youtube.com/@",
+};
+
+/**
+ * Адрес ссылки анкеты в виде, пригодном для перехода. Специалисты пишут их
+ * как придётся: «@nick», «instagram.com/nick», «www.site.ru». Раньше карточка
+ * в каталоге показывала только те, что начинались с http(s), — всё остальное
+ * молча пропадало, хотя человек его заполнил. Здесь дописываем схему и
+ * разворачиваем ник в адрес соцсети. Не разобрали — вернём null, и ссылка не
+ * покажется, вместо того чтобы вести в никуда.
+ */
+export function normalizeLinkUrl(kind: string, raw: string): string | null {
+  const value = (raw ?? "").trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+
+  const host = LINK_HOST[kind as LinkKind] ?? null;
+  const handle = value.replace(/^@/, "");
+  // Домен узнаём по точке до первого слэша: «t.me/nick» — адрес, «nick» — ник.
+  const looksLikeDomain = /^[^\s/]+\.[a-zа-я]{2,}(\/|$)/i.test(value);
+  if (looksLikeDomain) return `https://${value.replace(/^\/+/, "")}`;
+  if (host && /^[\w.\-]+$/.test(handle)) return `${host}${handle}`;
+  return null;
+}
+
 export const SPECIALIST_TYPES = ["Психолог", "Психотерапевт", "Психиатр", "Клинический психолог", "Коуч", "Гештальт-терапевт"];
 export const STYLE_OPTIONS = ["мягкий и поддерживающий", "структурный", "активный, с заданиями", "неспешный, глубинный", "тёплый и практичный", "бережный, пошаговый"];
 

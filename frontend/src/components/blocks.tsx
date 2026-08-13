@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { tap } from "@/lib/haptics";
-import { iconTrick } from "@/lib/icon-motion";
+import { iconLoop } from "@/lib/icon-motion";
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
@@ -31,15 +31,15 @@ export function PageHead({ title, sub, subIcon, icon, back, backLight, right, ch
               style={{ willChange: "transform", backfaceVisibility: "hidden" }}
               className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] bg-white"
             >
-              {/* Знак раздела повторяет свой трюк с паузами: прыжок, разворот,
-                  оборот компаса. Плитка при этом стоит на месте — заголовок
-                  рядом не дрожит, ради этого анимация и вынесена внутрь. */}
+              {/* Знак раздела живёт непрерывно: прыжок, разворот, оборот
+                  компаса — цикл идёт сразу и без пауз между повторами. Плитка
+                  при этом стоит на месте, ради этого анимация вынесена внутрь. */}
               <span className="flex items-center justify-center" style={{ perspective: 620 }}>
                 <motion.span
                   className="flex items-center justify-center"
                   style={{ willChange: "transform", backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
-                  animate={reduce ? {} : iconTrick(icon)}
-                  transition={reduce ? undefined : { duration: 0.85, ease: [0.22, 1, 0.36, 1], repeat: Infinity, repeatDelay: 5, delay: 0.45 }}
+                  animate={reduce ? {} : iconLoop(icon).animate}
+                  transition={reduce ? undefined : { duration: iconLoop(icon).duration, ease: "easeInOut", repeat: Infinity, repeatType: "loop" }}
                 >
                   <Icon name={icon} width={36} weight="bold" color="var(--edge)" />
                 </motion.span>
@@ -55,7 +55,10 @@ export function PageHead({ title, sub, subIcon, icon, back, backLight, right, ch
             )}
           </div>
         </div>
-        {right}
+        {/* Кнопка справа стоит по центру шапки, а не липнет к её верху:
+            рядом плитка знака раздела в 68 px, и верхнее выравнивание
+            смотрелось перекошенным. */}
+        {right && <div className="flex shrink-0 items-center self-center">{right}</div>}
       </div>
       {children && <div className="mt-4">{children}</div>}
     </div>

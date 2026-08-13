@@ -10,7 +10,7 @@ import { VerificationPrompt } from "@/components/verification-prompt";
 import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, normalizeLinkUrl, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
 import { EMPTY_RULES, normalizeRules, publicRules, RULE_PRESETS, rulesFilled, type RuleId } from "@/lib/profile-rules";
 import { helpsLine } from "@/lib/morph";
 import { useVerification, type PsyStatus } from "@/lib/psy-verification";
@@ -177,7 +177,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
     <div className="chunk overflow-hidden bg-white">
       <div className="p-4" style={{ background: "var(--purple-soft)" }}>
         <div className="flex items-center gap-3"><ProfilePhoto photo={photo} name={name} size="lg" /><div className="min-w-0"><div className="flex items-center gap-1.5"><h3 className="font-tight text-[22px] font-extrabold leading-tight">{name}</h3><Icon name="check" width={17} weight="fill" color="var(--green-edge)" /></div><p className="mt-1 text-[13px] font-bold text-[var(--muted)]">{[profile?.specialistType, profile?.primaryMethod, profile?.experienceYears ? `${profile.experienceYears} ${yearsLabel(profile.experienceYears)} практики` : ""].filter(Boolean).join(" · ") || "Психолог платформы"}</p>{profile?.style && <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black stroke"><Icon name="spark" width={11} weight="fill" /> стиль: {profile.style}</span>}</div></div>
-        {(profile?.links?.filter((l) => l.url.trim()).length ?? 0) > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{profile!.links.filter((l) => l.url.trim()).map((link, i) => <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white stroke" title={LINK_META[link.kind].label}><Icon name={LINK_META[link.kind].icon} width={15} weight="bold" /></a>)}</div>}
+        {(profile?.links?.filter((l) => normalizeLinkUrl(l.kind, l.url)).length ?? 0) > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{profile!.links.map((link, i) => ({ ...link, href: normalizeLinkUrl(link.kind, link.url), i })).filter((l) => l.href).map((link) => <a key={link.i} href={link.href!} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white stroke" title={LINK_META[link.kind].label}><Icon name={LINK_META[link.kind].icon} width={15} weight="bold" /></a>)}</div>}
       </div>
       <div className="grid grid-cols-3 gap-2 p-3">
         <PreviewStat label="Стоимость" value={profile?.sessionPrice ? `${profile.sessionPrice.toLocaleString("ru-RU")} ₽` : "—"} />

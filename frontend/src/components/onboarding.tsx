@@ -22,7 +22,8 @@ type Intro = {
   title: string;
   /** Хвост заголовка с новой строки и в цвете слайда. */
   titleAccent?: string;
-  points: string[];
+  /** Не просто строки: в пункте бывает слово, выделенное цветом. */
+  points: ReactNode[];
   bg: string;        // яркая заливка экрана-постера
   soft: string;      // мягкий тон для подложки под «арт»
   tone: string;      // акцент рамки скрина / кромок
@@ -35,19 +36,32 @@ const CLIENT_INTRO: Intro[] = [
   {
     key: "overview", kicker: APP_NAME, title: "Психологическое сопровождение под рукой",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
-    points: ["Найти своего специалиста", "Отслеживать динамику настроения и сессий", "Самостоятельная помощь на каждый день"],
+    points: [
+      "Найти проверенного квалифицированного специалиста",
+      "Отслеживайте динамику настроения и сессий со специалистом",
+      "Платформа будет пополняться инструментами для самостоятельной работы",
+    ],
     mock: <OverviewMock />,
   },
   {
     key: "catalog", kicker: "каталог", title: "Умный подбор специалистов",
     bg: "var(--tiffany-soft)", soft: "#effaf7", tone: "var(--tiffany-edge)",
-    points: ["Персональный подбор вместо рейтинга", "Честные отзывы после встреч", "Удобный поиск по запросу"],
+    points: [
+      "Персональный подбор вместо рейтинга",
+      "Честные отзывы после встреч",
+      "Удобный поиск по запросу",
+      "Вы можете пригласить своего специалиста и усилить вашу совместную работу",
+    ],
     mock: <CatalogMock />,
   },
   {
     key: "tools", kicker: "практики", title: "Самостоятельные практики и база знаний",
     bg: "var(--green-soft)", soft: "#eaf0e4", tone: "var(--green-edge)",
-    points: ["Эффективные практики для самостоятельной работы", "Интерактивные инструменты внутри приложения", "Тесты и анализ собственного состояния"],
+    points: [
+      "Цифровые инструменты помогут улучшить состояние",
+      "Пройдите тесты и узнайте себя лучше",
+      "Мы будем постоянно дополнять платформу и делиться практиками из научной психологии",
+    ],
     mock: <ToolsMock />,
   },
 ];
@@ -58,9 +72,9 @@ const PSY_INTRO: Intro[] = [
     key: "crm", kicker: "crm", title: "Записи, расписание", titleAccent: "и напоминания",
     bg: "var(--tiffany-soft)", soft: "#effaf7", tone: "var(--tiffany-edge)",
     points: [
-      "Клиент сам выбирает свободное окно — переписка о времени не нужна",
-      "Напоминание о встрече и о переносе уходит автоматически",
-      "Расписание, история встреч и оплаты — в одном месте",
+      "Клиент сам выберет свободное окно без лишних переписок и согласований",
+      "Напоминания о встрече и переносе не позволят пропустить сеанс",
+      "Гибкие настройки графика, правил записи и отмены встреч для вашей комфортной практики",
     ],
     mock: <ScheduleMock />,
   },
@@ -68,9 +82,9 @@ const PSY_INTRO: Intro[] = [
     key: "catalog", kicker: "каталог", title: "Каталог, в котором", titleAccent: "вас находят",
     bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
     points: [
-      "Профиль с подходом, темами и ценой — вместо переписки в директе",
-      "Запись прямо из карточки, в пару касаний",
-      "Подбор ведёт к вам тех, чей запрос совпадает с вашей практикой",
+      "Подробная анкета о вас и вашем подходе",
+      "Пользователи сразу могут записаться к вам в каталоге на ближайшие даты",
+      "Прозрачная система без покупного рейтинга и накрученных отзывов: оценку ставят только клиенты, с кем вы провели встречу через платформу",
     ],
     mock: <ListingMock />,
   },
@@ -79,8 +93,9 @@ const PSY_INTRO: Intro[] = [
     bg: "var(--purple-soft)", soft: "#f2ecf9", tone: "var(--purple-edge)",
     points: [
       "Клиент отмечает настроение и самочувствие каждый день",
-      "Заметки и задания привязаны к конкретной сессии",
-      "Процесс ощущается сплошным — люди реже выпадают и чаще возвращаются",
+      "Платформа будет наполняться новыми диагностическими инструментами",
+      "Заметки, задания и отметки о проведённых сессиях позволят глубже понять клиента",
+      "Терапия ощущается непрерывным процессом в контакте со специалистом: клиенты реже станут выпадать и чаще возвращаться к вам",
     ],
     mock: <ClientProgressMock />,
   },
@@ -100,7 +115,10 @@ const PSY_INTRO: Intro[] = [
     points: [
       "Платите фиксированно за инструмент — процент со встреч не берём",
       "Сколько бы клиентов ни пришло, доход остаётся вашим",
-      `Первые ${FREE_CLIENT_LIMIT} клиента — бесплатно, карта не нужна`,
+      <>
+        Попробуйте платформу бесплатно на первых {FREE_CLIENT_LIMIT} клиентах, а также две недели размещения в каталоге{" "}
+        <span style={{ color: "var(--purple-edge)" }}>в подарок</span>
+      </>,
     ],
     mock: <PriceMock />,
   },
@@ -230,7 +248,7 @@ export function Onboarding() {
                 </h1>
                 <ul className="mt-3 space-y-1.5 min-[390px]:mt-4 min-[390px]:space-y-2">
                   {cur.points.map((p, i) => (
-                    <motion.li key={p} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
+                    <motion.li key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: `1.5px solid ${cur.tone}` }}><Icon name="check" width={12} weight="bold" color={cur.tone} /></span>
                       {p}
                     </motion.li>
@@ -259,9 +277,11 @@ export function Onboarding() {
   );
 }
 
-// Приветствие и сразу развилка: дальше знакомство идёт под выбранную роль.
-// Под каждой ролью — три строчки о том, что внутри, чтобы выбор был осознанным.
+// Приветствие и сразу развилка. Роль выбирается свитчем, как было раньше:
+// лавандовая плашка едет к выбранной половине, под ней — что даёт эта роль.
 function Welcome({ firstName, onPick }: { firstName?: string; onPick: (role: Role) => void }) {
+  const [index, setIndex] = useState(0); // по умолчанию — пользователь
+  const active = ROLE_OPTIONS[index];
   // Тот же подъём, что у Reveal на остальных экранах: opacity + сдвиг по y.
   // Анимируем только transform и opacity — блюр на каждом кадре роняет вебвью Telegram.
   const rise = (delay: number) => ({
@@ -270,41 +290,64 @@ function Welcome({ firstName, onPick }: { firstName?: string; onPick: (role: Rol
     transition: { delay, duration: 0.5, ease: EASE },
   });
   return (
-    <div className="flex flex-1 flex-col justify-center py-6">
+    <div className="flex flex-1 flex-col py-4">
       <motion.p {...rise(0.1)} className="text-[11px] font-black uppercase tracking-[.18em]" style={{ color: "var(--purple-edge)" }}>
         Платформа психологической поддержки
       </motion.p>
-      <motion.h1 {...rise(0.22)} className="font-tight mt-2.5 text-[clamp(26px,8.5vw,34px)] font-black leading-[1.04] text-[var(--ink)]">
+      <motion.h1 {...rise(0.22)} className="font-tight mt-2.5 text-[clamp(24px,8vw,32px)] font-black leading-[1.04] text-[var(--ink)]">
         {firstName ? `${firstName}, добро пожаловать` : "Добро пожаловать"}<br />в <span style={{ color: "var(--purple-edge)" }}>{APP_NAME_ACC}</span>
       </motion.h1>
-      <motion.p {...rise(0.36)} className="mt-3 max-w-[320px] text-[13.5px] font-bold leading-snug" style={{ color: "rgba(32,28,24,.7)" }}>
-        Терапия, дневник состояния и самостоятельные практики в одном месте. Выберите, с какой стороны вы здесь, — роль потом можно сменить.
+      <motion.p {...rise(0.36)} className="mt-3 text-[13.5px] font-bold leading-snug" style={{ color: "rgba(32,28,24,.7)" }}>
+        Это приложение позволяет сделать процесс оказания и получения психологической помощи наглядным, интерактивным и удобным.
       </motion.p>
-      <div className="mt-5 space-y-3">
-        {ROLE_OPTIONS.map((item, i) => (
-          <motion.button
+
+      {/* Свитч: лавандовая плашка едет к выбранной половине */}
+      <motion.div {...rise(0.48)} className="relative mt-5 grid grid-cols-2 rounded-full bg-white p-1" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+        <motion.span
+          aria-hidden
+          className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-[var(--purple-edge)]"
+          animate={{ left: index === 0 ? 4 : "50%" }}
+          transition={{ type: "spring", stiffness: 340, damping: 32 }}
+        />
+        {ROLE_OPTIONS.map((item, k) => (
+          <button
             key={item.role}
-            {...rise(0.48 + i * 0.12)}
-            onClick={() => onPick(item.role)}
-            className="keep-style w-full rounded-[20px] bg-white p-4 text-left"
-            style={{ border: "var(--bw) solid var(--purple-edge)" }}
+            onClick={() => { select(); setIndex(k); }}
+            className="relative z-[1] flex items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-black transition-colors duration-200"
+            style={{ color: index === k ? "#fff" : "var(--purple-edge)" }}
           >
-            <span className="flex items-center gap-2.5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--purple-edge)]"><Icon name={item.icon} width={19} weight="bold" color="#fff" /></span>
-              <span className="min-w-0 flex-1 text-[15px] font-black leading-tight text-[var(--ink)]">{item.title}</span>
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--purple-soft)" }}><Icon name="plus" width={13} weight="bold" color="var(--purple-edge)" /></span>
-            </span>
-            <span className="mt-3 block space-y-1.5">
-              {item.bullets.map((b) => (
-                <span key={b} className="flex items-start gap-2 text-[11.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.66)" }}>
-                  <Icon name="check" width={13} weight="bold" color="var(--purple-edge)" />
-                  {b}
-                </span>
-              ))}
-            </span>
-          </motion.button>
+            <Icon name={item.icon} width={16} weight="bold" color={index === k ? "#fff" : "var(--purple-edge)"} />
+            {item.title}
+          </button>
         ))}
-      </div>
+      </motion.div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={active.role}
+          initial={{ opacity: 0, x: index === 0 ? -14 : 14 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: index === 0 ? 14 : -14 }}
+          transition={{ duration: 0.24, ease: EASE }}
+          className="mt-4 space-y-2.5"
+        >
+          {active.bullets.map((b, i) => (
+            <div key={i} className="flex items-start gap-2.5 text-[13px] font-bold leading-snug text-[var(--ink)]">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: "1.5px solid var(--purple-edge)" }}>
+                <Icon name="check" width={12} weight="bold" color="var(--purple-edge)" />
+              </span>
+              {b}
+            </div>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+
+      <motion.div {...rise(0.6)} className="mt-auto pt-6">
+        <button onClick={() => onPick(active.role)} className="btn btn-accent w-full py-3.5 text-[14px]">
+          Продолжить как {active.title.replace("Я ", "")}
+        </button>
+        <p className="t-cap mt-2 text-center">Роль потом можно сменить в кабинете</p>
+      </motion.div>
     </div>
   );
 }
@@ -388,7 +431,7 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
             <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" color="#fff" /></span>
             <div>
               <p className="t-head text-[var(--ink)]">{FREE_CLIENT_LIMIT} клиента бесплатно</p>
-              <p className="t-sub mt-0.5">Все функции доступны сразу. Карта не нужна.</p>
+              <p className="t-sub mt-0.5">Все функции сразу доступны для использования.</p>
             </div>
           </div>
         </div>
@@ -430,9 +473,9 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
 
 // Финал ветки клиента: короткая сводка того, что открыто сразу.
 const CLIENT_FINISH: { icon: IconName; title: string; text: string }[] = [
-  { icon: "compass", title: "Каталог специалистов", text: "Фильтры по запросу, цене и формату — и запись в свободное окно" },
-  { icon: "chart", title: "Дневник состояния", text: "Отмечайте настроение между встречами, чтобы видеть динамику" },
-  { icon: "tools", title: "Практики и тесты", text: "Самостоятельная работа в те дни, когда сессии нет" },
+  { icon: "compass", title: "Каталог", text: "Познакомьтесь ближе с нашими специалистами в разделе «Каталог»" },
+  { icon: "therapy", title: "Терапия", text: "Загляните в основной раздел «Терапия», чтобы пройти первую диагностику состояния и ежедневно отслеживать динамику" },
+  { icon: "users", title: "Свой специалист", text: "Если вы уже находитесь в терапии — пригласите вашего специалиста. Если нет — мы поможем укрепить ментальное здоровье" },
 ];
 
 function ClientFinish({ agreed, saving, onAgree, onStart }: FinishProps) {
@@ -444,7 +487,7 @@ function ClientFinish({ agreed, saving, onAgree, onStart }: FinishProps) {
           <div className="min-w-0">
             <p className="t-micro" style={{ color: "var(--purple-edge)" }}>Всё готово</p>
             <h1 className="font-tight mt-1 text-[clamp(22px,6vw,26px)] font-black leading-[1.04] text-[var(--ink)]">
-              Можно <span style={{ color: "var(--purple-edge)" }}>начинать</span>
+              С чего можно <span style={{ color: "var(--purple-edge)" }}>начинать?</span>
             </h1>
           </div>
         </div>
@@ -477,21 +520,24 @@ function ClientFinish({ agreed, saving, onAgree, onStart }: FinishProps) {
   );
 }
 
-const ROLE_OPTIONS: { role: Role; title: string; icon: IconName; bullets: string[] }[] = [
+const ROLE_OPTIONS: { role: Role; title: string; icon: IconName; bullets: ReactNode[] }[] = [
   {
     role: "client", title: "Я пользователь", icon: "heart",
     bullets: [
-      "Подбор специалиста и запись в свободное окно",
-      "Дневник настроения и динамика терапии",
-      "Практики и тесты для самостоятельной работы",
+      "Подбирайте проверенных дипломированных специалистов",
+      "Отмечайте своё состояние каждый день, чтобы ваш специалист находился с вами в контакте",
+      "Пользуйтесь инструментами для самостоятельной практики и диагностики",
     ],
   },
   {
-    role: "psychologist", title: "Я психолог", icon: "users",
+    role: "psychologist", title: "Я специалист", icon: "users",
     bullets: [
-      "Записи, расписание и напоминания клиентам",
-      "Карточки клиентов, заметки и статистика практики",
-      "Размещение в каталоге без комиссии с сессий",
+      "Управляйте записями, расписанием и направляйте автоматические напоминания о встрече",
+      "Пользуйтесь карточкой клиента, в которой видно статистику и подробности о состоянии",
+      <>
+        Размещайте свою анкету в каталоге и получайте клиентов{" "}
+        <span style={{ color: "var(--purple-edge)" }}>без комиссии</span> за сессии
+      </>,
     ],
   },
 ];
