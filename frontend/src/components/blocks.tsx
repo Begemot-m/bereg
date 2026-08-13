@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -10,6 +10,7 @@ import { tap } from "@/lib/haptics";
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
 export function PageHead({ title, sub, subIcon, icon, back, backLight, right, children }: { title: string; sub?: string; subIcon?: IconName; icon?: IconName; back?: string; backLight?: boolean; right?: ReactNode; children?: ReactNode }) {
+  const reduce = useReducedMotion();
   return (
     <div
       className="mb-5 -mx-4 px-5 pb-3 pt-1 @md:mx-0 @md:px-1 @md:pt-4"
@@ -29,7 +30,20 @@ export function PageHead({ title, sub, subIcon, icon, back, backLight, right, ch
               style={{ willChange: "transform", backfaceVisibility: "hidden" }}
               className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] bg-white"
             >
-              <Icon name={icon} width={36} weight="bold" color="var(--edge)" />
+              {/* Сам знак живёт своей жизнью: въезжает с перелётом и потом еле
+                  заметно дышит. Плитка при этом стоит на месте — заголовок
+                  рядом не дрожит, ради этого анимация и вынесена внутрь. */}
+              <motion.span
+                className="flex items-center justify-center"
+                style={{ willChange: "transform", backfaceVisibility: "hidden" }}
+                animate={reduce ? {} : { scale: [1, 1.06, 1], rotate: [0, 3.5, 0, -3.5, 0] }}
+                transition={reduce ? undefined : {
+                  scale: { duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 },
+                  rotate: { duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 },
+                }}
+              >
+                <Icon name={icon} width={36} weight="bold" color="var(--edge)" />
+              </motion.span>
             </motion.span>
           )}
           <div className="min-w-0">

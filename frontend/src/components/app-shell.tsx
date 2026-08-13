@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +26,36 @@ import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
 import { trackSection } from "@/lib/track";
 
 type NavItem = { href: string; label: string; icon: IconName };
+
+/**
+ * Иконка навигации: в момент активации подпрыгивает с пружиной, активная —
+ * медленно покачивается. `key` меняется вместе с состоянием, поэтому пружина
+ * проигрывается на каждый переход, а не один раз при монтировании.
+ *
+ * Анимируем только transform: любые фильтры и тени на каждом кадре роняют
+ * вебвью Telegram.
+ */
+function NavIcon({ icon, active, size, weight, color }: { icon: IconName; active: boolean; size: number; weight?: "regular" | "bold" | "fill"; color?: string }) {
+  const reduce = useReducedMotion();
+  const glyph = <Icon name={icon} width={size} weight={weight} color={color} />;
+  if (reduce) return glyph;
+  return (
+    <motion.span
+      key={active ? "on" : "off"}
+      className="flex items-center justify-center"
+      style={{ willChange: "transform", backfaceVisibility: "hidden" }}
+      initial={{ scale: 0.66, rotate: active ? -18 : 12 }}
+      animate={active ? { scale: 1, rotate: 0, y: [0, -2.5, 0] } : { scale: 1, rotate: 0, y: 0 }}
+      transition={{
+        scale: { type: "spring", stiffness: 520, damping: 11 },
+        rotate: { type: "spring", stiffness: 460, damping: 12 },
+        y: { duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.5 },
+      }}
+    >
+      {glyph}
+    </motion.span>
+  );
+}
 
 const NAV: Record<Role, NavItem[]> = {
   psychologist: [
@@ -259,7 +289,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className="flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
                   style={active ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
                 >
-                  <Icon name={it.icon} width={19} weight="regular" />
+                  <NavIcon icon={it.icon} active={active} size={19} weight="regular" />
                   {it.label}
                 </Link>
               );
@@ -303,7 +333,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               if (it.href === centerHref) return (
                 <Link key={it.href} href={it.href} onClick={select} data-tour={`nav-${it.href.slice(1)}`} className="relative z-[2] flex flex-1 items-center justify-center" aria-label={it.label}>
                   <motion.span whileTap={{ scale: 0.9 }} className="-mt-7 flex h-14 w-14 items-center justify-center rounded-[18px]" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw-lg) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}`, boxShadow: `0 10px 20px -8px ${active ? "rgba(32,28,24,.5)" : `var(--${centerTone}-edge)`}` }}>
-                    <Icon name={it.icon} width={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
+                    <NavIcon icon={it.icon} active={active} size={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
                   </motion.span>
                 </Link>
               );
@@ -312,7 +342,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <span className="relative flex h-9 w-9 items-center justify-center">
                     {active && <motion.span layoutId="navActive" className="absolute inset-0 rounded-full" style={{ background: "var(--head-soft)" }} transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
                     <motion.span whileTap={{ scale: 0.82 }} className="relative z-[1] flex items-center justify-center">
-                      <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
+                      <NavIcon icon={it.icon} active={active} size={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
                     </motion.span>
                   </span>
                 </Link>

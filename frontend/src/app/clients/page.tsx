@@ -115,7 +115,9 @@ function ClientsList() {
 
   return (
     <div>
-      <PageHead title="Клиенты" sub={`Всего: ${clients.length}`} icon="users" />
+      {/* Приглашение — компактной кнопкой в шапке: целая карточка над списком
+          занимала первый экран, а действие это разовое. */}
+      <PageHead title="Клиенты" sub={`Всего: ${clients.length}`} icon="users" right={<InviteClientButton />} />
 
       <div className="sheet">
       <Reveal delay={0.04}>
@@ -143,10 +145,6 @@ function ClientsList() {
             <Icon name="plus" width={22} weight="bold" color="#fff" />
           </motion.button>
         </div>
-
-        {/* Пригласить — отдельным действием: карточку заводить не обязательно,
-            человек сам подключится, и она появится в списке. */}
-        <InviteClientButton />
 
         <QuickAddClient
           open={open}
@@ -233,15 +231,8 @@ function InviteClientButton() {
     }
   };
   return (
-    <button onClick={share} className="card-soft mb-3 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--purple-soft)" }}>
-      <span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}>
-        <Icon name="telegram" width={16} weight="fill" color="var(--purple-edge)" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="t-head block">{copied ? "Ссылка скопирована" : "Пригласить клиента"}</span>
-        <span className="t-sub block">Отправьте ссылку — он подключится сам и появится в списке.</span>
-      </span>
-      <span className="chip chip-strong shrink-0">Отправить ›</span>
+    <button onClick={share} className="btn btn-white h-9 shrink-0 whitespace-nowrap px-2.5 text-[11.5px]" title="Отправьте ссылку — клиент подключится сам и появится в списке">
+      <Icon name="telegram" width={14} weight="fill" color="var(--edge)" /> {copied ? "Скопировано ✓" : "Пригласить"}
     </button>
   );
 }

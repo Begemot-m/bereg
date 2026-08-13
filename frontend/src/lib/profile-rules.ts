@@ -5,13 +5,14 @@ export type RuleId = "cancel" | "contact";
 export type ProfileRule = { text: string; shown: boolean };
 export type ProfileRules = Record<RuleId, ProfileRule>;
 
-export const RULE_PRESETS: { id: RuleId; title: string; hint: string; icon: IconName; tone: string; options: string[] }[] = [
+export const RULE_PRESETS: { id: RuleId; title: string; hint: string; icon: IconName; tone: string; placeholder: string; options: string[] }[] = [
   {
     id: "cancel",
     title: "Отмена и перенос",
     hint: "За сколько можно отменить встречу без оплаты",
     icon: "clock",
     tone: "amber",
+    placeholder: "Напр.: Отмена без оплаты не позднее чем за 12 часов. Позже — оплачивается половина стоимости, один перенос в месяц бесплатно.",
     options: [
       "Бесплатно за 24 часа до встречи. Позже — сессия считается состоявшейся.",
       "Бесплатно за 48 часов до встречи. Позже — оплачивается половина стоимости.",
@@ -25,6 +26,7 @@ export const RULE_PRESETS: { id: RuleId; title: string; hint: string; icon: Icon
     hint: "",
     icon: "note",
     tone: "purple",
+    placeholder: "Напр.: Пишу и отвечаю только по организационным вопросам, содержательное — на встрече.",
     options: [
       "Короткие сообщения по договорённости, ответ в рабочее время. Разбор вопросов — на встрече.",
       "Между встречами не переписываемся: всё важное разбираем на сессии.",

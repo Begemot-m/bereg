@@ -636,7 +636,18 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
             <SettingToggle key={option} bold={false} active={rules[preset.id].text === option} title={option} onToggle={() => setRule(preset.id, { text: option })} />
           ))}
         </div>
-        <div className="mt-2"><ChipInput placeholder="Своя формулировка правила" onAdd={(value) => setRule(preset.id, { text: value })} /></div>
+        {/* Своя формулировка — обычное поле, а не чип: правило редко умещается
+            в строку, и заготовку сверху обычно хочется дописать под себя. */}
+        <div className="mt-2.5">
+          <p className="t-micro mb-1.5">Своя формулировка</p>
+          <Textarea
+            value={rules[preset.id].text}
+            onChange={(event) => setRule(preset.id, { text: event.target.value })}
+            placeholder={preset.placeholder}
+            rows={3}
+          />
+          <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">В карточку уйдёт именно этот текст. Заготовку сверху можно выбрать и дописать словами.</p>
+        </div>
         <div className="mt-2">
           <SettingToggle bare active={rules[preset.id].shown} title="Показывать в профиле" onToggle={() => setRule(preset.id, { shown: !rules[preset.id].shown })} />
         </div>

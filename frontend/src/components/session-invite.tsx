@@ -27,18 +27,17 @@ export function bookingInviteUrl(psyId?: number): string {
   return botDeepLink(`book_${psyId || OWN_PROFILE_ID}`);
 }
 
-// Кнопка живёт в «Сессиях», рядом с графиком: позвать клиента — часть работы
-// с расписанием, а не отдельный раздел.
+// Кнопка живёт в шапке «Сессий»: позвать клиента — обычное действие раздела,
+// и целую карточку внизу страницы оно не стоило. Всё содержательное — в листе.
 export function SessionInviteButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         onClick={() => { tap(); setOpen(true); }}
-        className="card-soft mt-4 flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]"
+        className="btn btn-white h-9 shrink-0 whitespace-nowrap px-2.5 text-[11.5px]"
       >
-        <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="telegram" width={21} weight="fill" color="var(--edge)" /></span>
-        <span className="font-tight min-w-0 flex-1 text-[15px] font-black leading-tight">Направить приглашение на сессию</span>
+        <Icon name="telegram" width={14} weight="fill" color="var(--edge)" /> Пригласить
       </button>
       <AnimatePresence>{open && <SessionInviteSheet onClose={() => setOpen(false)} />}</AnimatePresence>
     </>
