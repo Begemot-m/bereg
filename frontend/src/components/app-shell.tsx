@@ -19,6 +19,7 @@ const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => 
 import { APP_NAME } from "@/lib/brand";
 import { joinClientCard } from "@/lib/clients";
 import { select } from "@/lib/haptics";
+import { iconTrick } from "@/lib/icon-motion";
 import { useMe } from "@/lib/me";
 import { useOnboarded } from "@/lib/profile";
 import { useAuth } from "@/lib/useAuth";
@@ -28,32 +29,29 @@ import { trackSection } from "@/lib/track";
 type NavItem = { href: string; label: string; icon: IconName };
 
 /**
- * Иконка навигации: в момент активации подпрыгивает с пружиной, активная —
- * медленно покачивается. `key` меняется вместе с состоянием, поэтому пружина
- * проигрывается на каждый переход, а не один раз при монтировании.
- *
- * Анимируем только transform: любые фильтры и тени на каждом кадре роняют
- * вебвью Telegram.
+ * Иконка навигации: при активации проигрывает трюк своего раздела — дом
+ * подпрыгивает, календарь перелистывается, компас делает круг. `key` завязан
+ * на состояние, поэтому кадры идут заново на каждом переходе, а не один раз
+ * при монтировании. Неактивная иконка стоит смирно: постоянное шевеление в
+ * меню — визуальный шум.
  */
 function NavIcon({ icon, active, size, weight, color }: { icon: IconName; active: boolean; size: number; weight?: "regular" | "bold" | "fill"; color?: string }) {
   const reduce = useReducedMotion();
   const glyph = <Icon name={icon} width={size} weight={weight} color={color} />;
   if (reduce) return glyph;
   return (
-    <motion.span
-      key={active ? "on" : "off"}
-      className="flex items-center justify-center"
-      style={{ willChange: "transform", backfaceVisibility: "hidden" }}
-      initial={{ scale: 0.66, rotate: active ? -18 : 12 }}
-      animate={active ? { scale: 1, rotate: 0, y: [0, -2.5, 0] } : { scale: 1, rotate: 0, y: 0 }}
-      transition={{
-        scale: { type: "spring", stiffness: 520, damping: 11 },
-        rotate: { type: "spring", stiffness: 460, damping: 12 },
-        y: { duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.5 },
-      }}
-    >
-      {glyph}
-    </motion.span>
+    // Перспектива нужна повороту календаря: без неё rotateY выглядит сжатием.
+    <span className="flex items-center justify-center" style={{ perspective: 520 }}>
+      <motion.span
+        key={active ? "on" : "off"}
+        className="flex items-center justify-center"
+        style={{ willChange: "transform", backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
+        animate={active ? iconTrick(icon) : { scale: 1, rotate: 0, y: 0 }}
+        transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {glyph}
+      </motion.span>
+    </span>
   );
 }
 

@@ -9,7 +9,7 @@ import { APP_NAME, botDeepLink } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
 
-type Variant = "psy" | "client";
+type Variant = "psy" | "client" | "therapist";
 
 // Сколько коллег нужно привести до месяца Pro.
 const GOAL = 5;
@@ -19,6 +19,13 @@ const COPY: Record<Variant, { title: string; sub: ReactNode; share: string }> = 
     title: "Подарки за приглашения",
     sub: <>За <b className="font-black text-[var(--ink)]">{GOAL}</b> приглашённых коллег, кто заполнит профиль в «Хронике», дарим месяц Pro.</>,
     share: "Приглашаю на цифровую платформу для психологов «Хроника»: клиенты, расписание и заметки в одном месте. Упростите работу с клиентами.",
+  },
+  // Клиент зовёт своего специалиста: тот ведёт его вне платформы, а здесь
+  // увидит отметки настроения и сможет назначать встречи.
+  therapist: {
+    title: "Позовите своего психолога",
+    sub: "Если вы уже ходите к специалисту, пригласите его сюда: он будет назначать встречи, отправлять задания и видеть вашу динамику между сессиями. Для него это бесплатно на первых клиентах.",
+    share: "Я веду в «Хронике» дневник состояния между сессиями — тут видно динамику настроения, задания и записи на встречи. Присоединяйтесь, чтобы вести меня здесь:",
   },
   client: {
     title: "Подарите другу заботу о себе",
@@ -139,7 +146,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
         {/* Герой */}
         <div className="relative overflow-hidden p-5" style={{ background: "var(--olive-soft)" }}>
           <button onClick={onClose} className="x-close absolute right-4 top-4 h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
-          {!psy && <span className="ico ico-white relative h-12 w-12"><Icon name="heart" width={24} weight="fill" color="var(--olive-edge)" /></span>}
+          {!psy && <span className="ico ico-white relative h-12 w-12"><Icon name={variant === "therapist" ? "therapy" : "heart"} width={24} weight="fill" color="var(--olive-edge)" /></span>}
           <h3 className={`font-tight relative text-[20px] font-black leading-tight ${psy ? "pr-10" : "mt-3"}`}>{c.title}</h3>
           {c.sub && <p className="t-sub relative mt-1.5">{c.sub}</p>}
         </div>

@@ -11,6 +11,7 @@ import Image from "next/image";
 // день, колесо проходят раз в пару недель: в стартовый бандл ему не место.
 const WheelFlow = dynamic(() => import("@/components/balance-flow").then((m) => m.WheelFlow));
 import { Icon } from "@/components/icons";
+import { InviteButton } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { moodColor } from "@/components/mood-egg";
 import { TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";
@@ -171,6 +172,8 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
           <TherapistBoard value={therapy.board} onSave={onBoard} />
 
           <div data-tour="wheel"><WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" /></div>
+
+          <InviteTherapistBlock />
         </div>
       </main>
       <MoodSheet open={moodSheet} mood={todayEntry?.mood} emotions={todayEntry?.emotions} onClose={() => setMoodSheet(false)} onSave={onMood} />
@@ -194,6 +197,23 @@ function MoodStatsBlock({ moods }: { moods: Mood[] }) {
           <p className="px-1 text-[10px] font-semibold text-[var(--muted-2)]">Отметки видит ваш терапевт — они помогают заметить, что меняется между встречами.</p>
         </div>
       </Disclosure>
+    </div>
+  );
+}
+
+// Свой специалист может вести человека вне платформы — тогда его сюда зовёт
+// сам клиент: записи, задания и динамика окажутся в одном месте.
+function InviteTherapistBlock() {
+  return (
+    <div className="rounded-[20px] bg-white p-4" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--purple-soft)]"><Icon name="therapy" width={20} weight="fill" color="var(--purple-edge)" /></span>
+        <div className="min-w-0">
+          <p className="t-head">Пригласить своего специалиста</p>
+          <p className="t-sub mt-1">Ходите к психологу вне приложения? Позовите его — он будет назначать встречи, давать задания и видеть вашу динамику между сессиями.</p>
+        </div>
+      </div>
+      <InviteButton variant="therapist" label="Отправить приглашение" className="mt-3 w-full py-2.5" />
     </div>
   );
 }
