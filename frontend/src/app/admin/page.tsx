@@ -324,8 +324,18 @@ export default function AdminPage() {
                   <button onClick={() => { tap(); act.mutate({ id: u.id, body: { grantPro: { days: 30, note: "выдано из админки" } } }); }} className="btn btn-accent px-3 py-1.5 text-[11px]">
                     +30 дней PRO
                   </button>
-                  <button onClick={() => { tap(); act.mutate({ id: u.id, body: { grantPro: { days: 365, note: "год из админки" } } }); }} className="btn btn-white px-3 py-1.5 text-[11px]">
-                    +год
+                  {/* Год в подарок — то же самое, что оплата на год: остаток
+                      текущего периода не сгорает, дни приклеиваются к нему. */}
+                  <button
+                    onClick={() => {
+                      tap();
+                      if (confirm(`Подарить ${u.name} год PRO? Это как оплата на год: доступ откроется сразу, деньги не спишутся.`)) {
+                        act.mutate({ id: u.id, body: { grantPro: { days: 365, note: "год в подарок из админки" } } });
+                      }
+                    }}
+                    className="btn btn-white px-3 py-1.5 text-[11px]"
+                  >
+                    подарить год
                   </button>
                   {/* Навсегда — это сто лет с датой: видно в карточке и в аудите,
                       и снимается той же кнопкой «снять PRO». */}
@@ -360,6 +370,15 @@ export default function AdminPage() {
                     {u.blocked ? "разблокировать" : "заблокировать"}
                   </button>
                 </div>
+
+                {/* Раньше кнопки молчали: при отказе сервера казалось, что
+                    ничего не нажалось. Теперь видно и ожидание, и ошибку. */}
+                {act.variables?.id === u.id && act.isPending && <p className="t-cap mt-1.5">Сохраняем…</p>}
+                {act.variables?.id === u.id && act.isError && (
+                  <p className="t-cap mt-1.5" style={{ color: "var(--danger)" }}>
+                    Не вышло: {act.error instanceof Error ? act.error.message : "ошибка сервера"}
+                  </p>
+                )}
               </div>
             ))}
           </div>

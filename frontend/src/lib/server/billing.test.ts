@@ -25,7 +25,7 @@ mock.module("./prisma", () => ({
   },
 }));
 
-const { activatePayment, nextPeriodEnd } = await import("./billing");
+const { activatePayment, extendPeriod, nextPeriodEnd } = await import("./billing");
 
 const paid = (over: Partial<Parameters<typeof activatePayment>[0]> = {}) => ({
   id: "pay-1",
@@ -59,6 +59,24 @@ describe("nextPeriodEnd", () => {
   test("истёкший период не продлевается задним числом", () => {
     const end = new Date("2026-07-01T10:00:00Z");
     expect(nextPeriodEnd(end, now).toISOString()).toBe("2026-09-10T10:00:00.000Z");
+  });
+});
+
+describe("extendPeriod — подарок из админки", () => {
+  const now = new Date("2026-08-11T10:00:00Z");
+
+  test("год в подарок без подписки — ровно 365 дней", () => {
+    expect(extendPeriod(null, 365, now).toISOString()).toBe("2027-08-11T10:00:00.000Z");
+  });
+
+  test("год в подарок поверх оплаченного месяца не сжигает остаток", () => {
+    const end = new Date("2026-08-25T10:00:00Z");
+    expect(extendPeriod(end, 365, now).toISOString()).toBe("2027-08-25T10:00:00.000Z");
+  });
+
+  test("после истёкшей подписки год идёт от сегодня", () => {
+    const end = new Date("2026-07-01T10:00:00Z");
+    expect(extendPeriod(end, 365, now).toISOString()).toBe("2027-08-11T10:00:00.000Z");
   });
 });
 

@@ -164,6 +164,7 @@ function demoRead(): PsyApplication[] {
 
 const SUPPORT_KEY = "bereg_demo_support";
 const ROLES_KEY = "bereg_demo_roles";
+const PRO_KEY = "bereg_demo_admin_pro";
 
 const SUPPORT_SEED: SupportRow[] = [
   {
@@ -230,6 +231,19 @@ function demoSupport(): SupportRow[] {
 
 function demoRoles(): Record<string, string> {
   return demoStore<Record<string, string>>(ROLES_KEY, {});
+}
+
+/** Подарки PRO в демо: та же математика, что на сервере, только в localStorage. */
+type DemoPro = { until: string; granted: boolean };
+
+function demoPro(): Record<string, DemoPro> {
+  return demoStore<Record<string, DemoPro>>(PRO_KEY, {});
+}
+
+function demoProApply(u: UserRow): UserRow {
+  const row = demoPro()[u.id];
+  if (!row) return u;
+  return { ...u, pro: new Date(row.until).getTime() > Date.now(), proUntil: row.until, proGranted: row.granted };
 }
 
 export function useAdminStats() {
@@ -305,6 +319,7 @@ export function useAdminUsers(q: string, page: number) {
         const roles = demoRoles();
         const items = DEMO_USERS
           .map((u) => (roles[u.id] ? { ...u, roles: rolesFor(roles[u.id]) } : u))
+          .map(demoProApply)
           .filter((u) =>
             !needle ||
             u.name.toLowerCase().includes(needle) ||
@@ -333,6 +348,15 @@ export function useUserAction() {
       if (DEMO) {
         if (body.role) {
           localStorage.setItem(ROLES_KEY, JSON.stringify({ ...demoRoles(), [id]: body.role }));
+        }
+        if (body.grantPro) {
+          const current = demoPro()[id]?.until ?? DEMO_USERS.find((u) => u.id === id)?.proUntil ?? null;
+          const base = current && new Date(current).getTime() > Date.now() ? new Date(current) : new Date();
+          base.setDate(base.getDate() + body.grantPro.days);
+          localStorage.setItem(PRO_KEY, JSON.stringify({ ...demoPro(), [id]: { until: base.toISOString(), granted: true } }));
+        }
+        if (body.revokePro) {
+          localStorage.setItem(PRO_KEY, JSON.stringify({ ...demoPro(), [id]: { until: new Date().toISOString(), granted: true } }));
         }
         return;
       }

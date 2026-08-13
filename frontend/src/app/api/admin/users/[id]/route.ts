@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { isAdmin } from "@/lib/server/access";
+import { extendPeriod } from "@/lib/server/billing";
 import { clientIp } from "@/lib/server/client-ip";
 import { prisma } from "@/lib/server/prisma";
 import { grantPsychologist, hasRole, revokePsychologist, setPsyStatus } from "@/lib/server/roles";
@@ -44,31 +45,32 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     if (body.grantPro) {
       const days = Math.min(FOREVER_DAYS, Math.max(1, Math.round(Number(body.grantPro.days) || 30)));
-      const until = new Date();
-      until.setDate(until.getDate() + days);
+      const existing = await prisma.subscription.findUnique({ where: { psychologistId: userId } });
 
+      // Подарок работает как оплата: если оплаченный период ещё не кончился,
+      // подаренные дни приклеиваются к остатку, а не сжигают его.
+      const until = extendPeriod(existing?.currentPeriodEnd, days);
+
+      const data = {
+        plan: "pro",
+        status: "active",
+        currentPeriodEnd: until,
+        grantedBy: admin.id,
+        grantedNote: body.grantPro.note?.slice(0, 200) ?? null,
+      };
       await prisma.subscription.upsert({
         where: { psychologistId: userId },
-        create: {
-          psychologistId: userId,
-          plan: "pro",
-          status: "active",
-          currentPeriodEnd: until,
-          grantedBy: admin.id,
-          grantedNote: body.grantPro.note?.slice(0, 200) ?? null,
-        },
-        update: {
-          plan: "pro",
-          status: "active",
-          currentPeriodEnd: until,
-          grantedBy: admin.id,
-          grantedNote: body.grantPro.note?.slice(0, 200) ?? null,
-        },
+        create: { psychologistId: userId, ...data },
+        update: data,
       });
+
       await prisma.auditLog.create({
         data: {
           userId: admin.id, action: "admin.grant_pro", entity: "Subscription", entityId: String(userId), ip,
-          meta: { days, until: until.toISOString(), note: body.grantPro.note ?? null },
+          meta: {
+            days, until: until.toISOString(), note: body.grantPro.note ?? null,
+            extendedFrom: existing?.currentPeriodEnd?.toISOString() ?? null,
+          },
         },
       });
     }

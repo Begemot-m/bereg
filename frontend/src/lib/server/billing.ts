@@ -11,8 +11,16 @@ const PERIOD_DAYS = 30;
  * за что человек уже заплатил.
  */
 export function nextPeriodEnd(currentEnd: Date | null | undefined, now = new Date()): Date {
+  return extendPeriod(currentEnd, PERIOD_DAYS, now);
+}
+
+/**
+ * То же правило для произвольного числа дней: им пользуется подарок из админки,
+ * чтобы выданный доступ считался ровно как оплата — с остатком, а не вместо него.
+ */
+export function extendPeriod(currentEnd: Date | null | undefined, days: number, now = new Date()): Date {
   const base = currentEnd && currentEnd.getTime() > now.getTime() ? currentEnd : now;
-  return new Date(base.getTime() + PERIOD_DAYS * DAY);
+  return new Date(base.getTime() + days * DAY);
 }
 
 export type Activation = "activated" | "already" | "not_paid" | "foreign";
