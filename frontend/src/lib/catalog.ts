@@ -58,7 +58,16 @@ export type Psy = {
   quote?: string;      // человеческий маркер — короткая цитата от первого лица
   helps?: string;      // «помогаю с…» одной живой строкой
   avoids?: string[];   // темы, с которыми специалист не работает
+  /**
+   * Принимает ли специалист новые заявки через платформу. false — свободных
+   * мест нет: карточка открывается затенённой, запись выключена. Причину
+   * (тариф специалиста) клиенту не показываем — она его не касается.
+   */
+  accepting?: boolean;
 };
+
+/** Единственная формулировка про закрытый приём — чтобы везде звучало одинаково. */
+export const NOT_ACCEPTING_TEXT = "Специалист временно не принимает заявки через платформу";
 
 export type CatalogPrefs = {
   topics: string[];
@@ -320,6 +329,9 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     style: text(row.style) || undefined,
     quote: text(row.quote) || undefined,
     avoids: list(row.avoids),
+    // Молчание сервера читаем как «принимает»: старые ответы без поля не
+    // должны затенять живые карточки.
+    accepting: row.accepting !== false,
   };
 }
 
@@ -334,9 +346,12 @@ export function publishedCatalog(
   subscription: Subscription | null | undefined,
   work?: ScheduleHours | null,
   server: Psy[] = [],
+  // Свободные места на тарифе. false — приём закрыт, и в демо-каталоге своей
+  // карточки нет: в бою то же самое делает сервер.
+  accepting = true,
 ): Psy[] {
   if (!DEMO_CATALOG) return server;
-  if (!hasCatalogPlacement(subscription) || !isCatalogProfileReady(profile)) return PUBLIC_PSYS;
+  if (!hasCatalogPlacement(subscription) || !isCatalogProfileReady(profile) || !accepting) return PUBLIC_PSYS;
   return [profileToCatalogPsy(profile, work), ...PUBLIC_PSYS];
 }
 

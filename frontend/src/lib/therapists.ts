@@ -79,14 +79,21 @@ export async function syncTherapists(): Promise<TherapistStore> {
   }
 }
 
-async function pushLink(psyId: number, action: "attach" | "detach" | "active") {
+/** Отказ «мест нет» приходит кодом 402 — его нельзя проглатывать как сбой сети. */
+const notAccepting = (e: unknown) => e instanceof Error && e.message.includes("API 402");
+
+async function pushLink(psyId: number, action: "attach" | "detach" | "active", name?: string) {
   // В демо сервера нет, но карточка у психолога появиться обязана: прикрепить
   // специалиста и не оказаться у него в клиентах — половина связи.
   if (DEMO) {
     if (action === "attach") {
       try {
         await apiFetch("/clients/from-therapy", { method: "POST", body: JSON.stringify({ clientName: displayName() }) });
-      } catch { /* карточка не завелась — раздел «Терапия» это не ломает */ }
+      } catch (e) {
+        // Мест у специалиста нет — откатываем прикрепление, иначе в разделе
+        // осталась бы карточка терапевта, который клиента не ведёт.
+        if (notAccepting(e) && name) detachTherapist(name);
+      }
     }
     return;
   }
@@ -96,7 +103,10 @@ async function pushLink(psyId: number, action: "attach" | "detach" | "active") {
       method: "PATCH",
       body: JSON.stringify({ psychologistId: psyId, action }),
     }));
-  } catch { /* останемся на кэше — следующая синхронизация подтянет */ }
+  } catch (e) {
+    if (notAccepting(e) && name) detachTherapist(name);
+    /* иначе останемся на кэше — следующая синхронизация подтянет */
+  }
 }
 
 // Прикрепить терапевта. Возвращает true, если добавили (false — уже был).
@@ -114,7 +124,7 @@ export function attachTherapist(name: string, psyId?: number, card?: Psy): boole
       ? { ...store, ids, cards, removed, active: store.active ?? name }
       : { ...store, ids, cards, list: [...store.list, name], removed, active: store.active ?? name },
   );
-  if (id || DEMO) void pushLink(id ?? 0, "attach");
+  if (id || DEMO) void pushLink(id ?? 0, "attach", name);
   return !already;
 }
 

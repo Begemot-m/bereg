@@ -27,6 +27,7 @@ import { zoneFormat } from "@/lib/zone";
 import { listHomework, type MyBooking, type Mood, listMyBookings } from "@/lib/clients";
 import { getMyTherapy, updateMyTherapy, type ReflectionPatch, type TherapyState, type WheelAnswers } from "@/lib/therapy";
 import { serverMessage } from "@/lib/api";
+import { NOT_ACCEPTING_TEXT } from "@/lib/catalog";
 import { asset } from "@/lib/asset";
 import { select, success, tap } from "@/lib/haptics";
 import { getReviews, rateTherapist } from "@/lib/reviews";
@@ -314,9 +315,21 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
         </div>
       </Link>
       <RatingRow psyId={psyId} name={name} />
+      {/* Специалист закрыл приём — новую заявку отправить нельзя. Уже
+          назначенные встречи остаются: их видно через «Моя запись». */}
+      {psy?.accepting === false && (
+        <p className="t-cap mt-2.5 rounded-[13px] p-2.5" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+          {NOT_ACCEPTING_TEXT}
+        </p>
+      )}
       <div className="mt-2.5 flex gap-2">
-        <button onClick={() => { tap(); setBookOpen((v) => !v); }} className="btn btn-accent flex-1 py-2.5" aria-expanded={bookOpen}>
-          <Icon name="calendar" width={14} weight="bold" color="#fff" /> {bookOpen ? "Свернуть" : mine.length ? "Моя запись" : "Записаться"}
+        <button
+          onClick={() => { tap(); setBookOpen((v) => !v); }}
+          disabled={psy?.accepting === false && mine.length === 0}
+          className="btn btn-accent flex-1 py-2.5 disabled:opacity-45"
+          aria-expanded={bookOpen}
+        >
+          <Icon name="calendar" width={14} weight="bold" color="#fff" /> {bookOpen ? "Свернуть" : mine.length ? "Моя запись" : psy?.accepting === false ? "Заявки закрыты" : "Записаться"}
         </button>
         {psy?.tg && (
           <a href={`https://t.me/${psy.tg}?text=${encodeURIComponent("Здравствуйте! Пишу из «Хроники» — хочу обсудить нашу работу.")}`} target="_blank" rel="noopener noreferrer" onClick={tap} className="btn px-4 py-2.5">
@@ -358,9 +371,13 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
                 {/* Ближайшая запись открыта сразу: «Моя запись» — это и есть вход в перенос/отмену */}
                 {mine.map((item, index) => <BookingRow key={item.id} b={item} onChange={invBookings} defaultOpen={index === 0} />)}
               </div>
-              <button onClick={() => { tap(); setPickSlot(true); }} className="btn btn-white mt-2.5 w-full py-2.5">
-                <Icon name="plus" width={14} weight="bold" color="var(--ink)" /> Записаться ещё
-              </button>
+              {psy?.accepting === false ? (
+                <p className="t-cap mt-2.5 text-center">{NOT_ACCEPTING_TEXT}</p>
+              ) : (
+                <button onClick={() => { tap(); setPickSlot(true); }} className="btn btn-white mt-2.5 w-full py-2.5">
+                  <Icon name="plus" width={14} weight="bold" color="var(--ink)" /> Записаться ещё
+                </button>
+              )}
             </>
           ) : (
             <>

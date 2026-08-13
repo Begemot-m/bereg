@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { canWorkWithPsy } from "@/lib/server/access";
+import { acceptingNewClients, canWorkWithPsy, notifyLimitReached, NOT_ACCEPTING } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { leadBlocked } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -86,6 +86,15 @@ export async function POST(req: NextRequest) {
     const psy = await prisma.psyProfile.findUnique({ where: { userId: psychologistId } });
     if (!psy || !(await canWorkWithPsy(user.id, psychologistId))) {
       return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
+    }
+
+    // Свободных мест у специалиста нет — самозапись закрыта всем, включая уже
+    // прикреплённых: платформа не должна добавлять работу, за которую он не
+    // может отвечать. Назначенные встречи это не трогает, и записать клиента
+    // руками психолог по-прежнему может.
+    if (!(await acceptingNewClients(psychologistId)).accepting) {
+      await notifyLimitReached(psychologistId);
+      return NextResponse.json(NOT_ACCEPTING, { status: 402 });
     }
 
     // Предварительная запись: правило психолога, поэтому проверяем здесь, а не

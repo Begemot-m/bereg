@@ -37,6 +37,7 @@ import {
   listCatalog,
   OWN_PROFILE_ID,
   personalSelection,
+  NOT_ACCEPTING_TEXT,
   profileToCatalogPsy,
   publishedCatalog,
   PSYS,
@@ -55,7 +56,8 @@ import { helpsLine } from "@/lib/morph";
 import { publicRules } from "@/lib/profile-rules";
 import { bookSlot } from "@/lib/mybookings";
 import { hasRestrictedLink, INSTAGRAM_NOTE, LINK_META, PROFILE_SYNCED, useProfile, type LinkKind } from "@/lib/profile";
-import { getSubscription } from "@/lib/subscription";
+import { FREE_CLIENT_LIMIT, getSubscription } from "@/lib/subscription";
+import { listClients } from "@/lib/clients";
 import { attachTherapist, isAttached } from "@/lib/therapists";
 
 // Анкеты демо-каталога своих правил не заполняют — показываем базовые.
@@ -171,7 +173,14 @@ export default function CatalogPage() {
     } catch { setSurveyOpen(true); }
   }, []);
 
-  const catalog = useMemo(() => publishedCatalog(profile, subscription, work, serverPsys ?? []), [profile, subscription, work, serverPsys]);
+  // В демо каталог собирается в браузере, поэтому и лимит мест считаем здесь:
+  // забиты все бесплатные карточки — своей анкеты в каталоге нет.
+  const { data: ownClients } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: DEMO });
+  const accepting = Boolean(subscription?.pro) || (ownClients?.length ?? 0) < FREE_CLIENT_LIMIT;
+  const catalog = useMemo(
+    () => publishedCatalog(profile, subscription, work, serverPsys ?? [], accepting),
+    [profile, subscription, work, serverPsys, accepting],
+  );
   const personal = useMemo(() => personalSelection(prefs, catalog), [prefs, catalog]);
   const allFiltered = useMemo(() => sortCatalog(filterCatalog(filters, catalog), sort, prefs), [filters, sort, prefs, catalog]);
   const pageCount = Math.max(1, Math.ceil(allFiltered.length / 10));
@@ -242,7 +251,13 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   const soon = psy.nextDays <= 3;
 
   return (
-    <button onClick={onOpen} className="chunk w-full overflow-hidden rounded-[22px] p-0 text-left transition-transform duration-200 active:scale-[.99]">
+    <button
+      onClick={onOpen}
+      className="chunk w-full overflow-hidden rounded-[22px] p-0 text-left transition-transform duration-200 active:scale-[.99]"
+      // Закрытый специалист приглушён: карточку можно открыть и прочитать,
+      // но глазами она уже не зовёт записываться.
+      style={psy.accepting === false ? { opacity: 0.62 } : undefined}
+    >
       <div className="flex gap-3.5 p-4">
         <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "var(--head-soft)" }}>
           <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="106px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
@@ -270,7 +285,9 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
           <p className="t-head">{psy.price.toLocaleString("ru-RU")} ₽<span className="t-cap"> / {psy.minutes} мин</span></p>
           <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
-        <span className="btn ml-auto shrink-0">Записаться <ArrowGlyph /></span>
+        {psy.accepting === false
+          ? <span className="chip ml-auto shrink-0 text-center leading-tight">Заявки закрыты</span>
+          : <span className="btn ml-auto shrink-0">Записаться <ArrowGlyph /></span>}
       </div>
     </button>
   );
@@ -473,6 +490,9 @@ function Fact({ icon, text }: { icon: IconName; text: string }) {
 // раскрытая — выбор дня и времени.
 function BookingMini({ psy, tone, onDone }: { psy: Psy; tone: { bg: string; soft: string; edge: string }; onDone: () => void }) {
   const [open, setOpen] = useState(false);
+  // Приём закрыт — блок записи затенён и не раскрывается. Формулировка одна на
+  // всё приложение и ничего не говорит о тарифе специалиста.
+  const closed = psy.accepting === false;
   const { data: avail } = useQuery({ queryKey: ["month-avail", psy.id], queryFn: () => getMonthAvailability(psy.id) });
   const nearest = useMemo(() => {
     if (!avail) return null;
@@ -482,6 +502,22 @@ function BookingMini({ psy, tone, onDone }: { psy: Psy; tone: { bg: string; soft
   const label = nearest
     ? dayLongF.format(zoneDay(nearest))
     : null;
+
+  if (closed) {
+    return (
+      <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--surface-2)", opacity: 0.72 }}>
+        <div className="flex w-full items-center gap-3 p-4 text-left">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-white">
+            <Icon name="clock" width={21} weight="bold" color="var(--muted-2)" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="t-head block text-[var(--muted)]">Запись закрыта</span>
+            <span className="t-sub block">{NOT_ACCEPTING_TEXT}</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: tone.soft }}>

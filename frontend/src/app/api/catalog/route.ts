@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { catalogPlacement } from "@/lib/server/access";
+import { acceptingByIds, catalogPlacement } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { buildPsyCards } from "@/lib/server/psy-card";
 import { LIMITS, limited } from "@/lib/server/rate-limit";
@@ -49,20 +49,35 @@ export async function GET(req: NextRequest) {
     select: { psychologistId: true, status: true, currentPeriodEnd: true },
   });
   const subOf = new Map(subs.map((row) => [row.psychologistId, row]));
+
+  // Свободные места кончились — карточки в выдаче нет: незачем показывать
+  // человеку специалиста, у которого он упрётся в отказ на кнопке «записаться».
+  // Место освободилось или подключён PRO — карточка возвращается сама.
+  const ids = found.map((row) => row.userId);
+  const proIds = new Set(
+    subs
+      .filter((row) => row.status === "active" && (!row.currentPeriodEnd || row.currentPeriodEnd.getTime() > Date.now()))
+      .map((row) => row.psychologistId),
+  );
+  const accepting = await acceptingByIds(ids, proIds);
+
   const rows = one > 0
     ? found
     : found.filter((row) => {
         const sub = subOf.get(row.userId);
-        return catalogPlacement({
+        const placed = catalogPlacement({
           status: row.status,
           reviewedAt: row.reviewedAt,
           subStatus: sub?.status,
           currentPeriodEnd: sub?.currentPeriodEnd,
         }).placed;
+        return placed && accepting.has(row.userId);
       });
 
   // Карточку собирает общий сборщик (`lib/server/psy-card`): раздел «Терапия»
   // отдаёт ровно те же поля, иначе закреплённый специалист выглядит не так,
-  // как та же карточка в каталоге.
-  return NextResponse.json(await buildPsyCards(rows));
+  // как та же карточка в каталоге. Флаг приёма едет вместе с карточкой —
+  // по прямой ссылке она открывается, но затенённой.
+  const cards = await buildPsyCards(rows);
+  return NextResponse.json(cards.map((card) => ({ ...card, accepting: accepting.has(card.id) })));
 }

@@ -308,6 +308,27 @@ function resolveSub(db: DB) {
   }
 }
 
+/** Бесплатный тариф «Старт» — три карточки, дальше приём закрывается. */
+const FREE_CLIENT_LIMIT = 3;
+
+/**
+ * Принимает ли специалист новые заявки. Правило то же, что на сервере
+ * (`lib/server/access.ts`): без PRO места кончаются на третьем клиенте.
+ * Уже заведённые карточки продолжают работать — закрыт только вход снаружи.
+ */
+const demoAccepting = (db: DB): boolean => db.sub.pro || db.clients.length < FREE_CLIENT_LIMIT;
+
+const NOT_ACCEPTING = '{"error":"not_accepting","message":"Специалист временно не принимает заявки через платформу"}';
+
+const LIMIT_HEAD = "Заняты все бесплатные карточки";
+
+/** Сорвавшаяся из-за лимита заявка — повод сказать об этом психологу. Раз в сутки. */
+function notifyLimit(db: DB) {
+  const day = Date.now() - 86_400_000;
+  if (db.notifications.some((n) => n.text.startsWith(LIMIT_HEAD) && new Date(n.createdAt).getTime() > day)) return;
+  notify(db, "psychologist", "system", `${LIMIT_HEAD} (${FREE_CLIENT_LIMIT}) — новые клиенты сейчас не могут к вам записаться, а анкета скрыта из каталога. Подписка снимает лимит и возвращает вас в выдачу.`);
+}
+
 /** Ответ /subscription в демо: подписка + окно бесплатного каталога. */
 function subPayload(db: DB) {
   const approved = approvedAt();
@@ -540,6 +561,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   }
   if (clean === "/clients" && method === "POST") {
     if (!demoApproved()) throw new Error(`API 403: ${APPROVED_ONLY}`);
+    if (!demoAccepting(db)) {
+      throw new Error(`API 402: {"error":"limit_reached","message":"На бесплатном тарифе доступно ${FREE_CLIENT_LIMIT} клиента. Подключите PRO, чтобы вести больше."}`);
+    }
     const now = new Date().toISOString();
     const c: Client = {
       id: ++db.seq,
@@ -566,6 +590,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const name = String(body.clientName ?? "").trim() || "Клиент";
     const already = db.clients.find((c) => c.name.toLowerCase() === name.toLowerCase() && c.link === "joined");
     if (already) return delay(withStats(db, already) as T);
+    // Свободных мест нет — карточка не заводится, и клиент видит нейтральный
+    // отказ. Лимит тарифа обойти через «Терапию» нельзя.
+    if (!demoAccepting(db)) { notifyLimit(db); save(db); throw new Error(`API 402: ${NOT_ACCEPTING}`); }
     const now = new Date().toISOString();
     const c: Client = {
       id: ++db.seq,
@@ -900,6 +927,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       .map((b) => ({ ...b, cancelLockDays: lock })) as T);
   }
   if (clean === "/my/appointments" && method === "POST") {
+    // Приём закрыт — самозапись не проходит ни у новых, ни у текущих клиентов.
+    if (!demoAccepting(db)) { notifyLimit(db); save(db); throw new Error(`API 402: ${NOT_ACCEPTING}`); }
     const startsAt = new Date(String(body.startsAt));
     const fmt = (body.format as ApptFormat) ?? "online";
     const lead = leadDaysFor(db.work, fmt);

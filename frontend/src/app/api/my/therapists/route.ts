@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { canWorkWithPsy } from "@/lib/server/access";
+import { acceptingByIds, acceptingNewClients, canWorkWithPsy, notifyLimitReached, NOT_ACCEPTING } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { psyCardsByIds, type PsyCard } from "@/lib/server/psy-card";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 // же полями, что и каталог. Пока роут отдавал только имя, закреплённый терапевт
 // показывался буквой вместо фото — остальное страница искала в статическом
 // списке демо-анкет, которого в бою нет.
-export type TherapistLinkDTO = PsyCard & { active: boolean };
+export type TherapistLinkDTO = PsyCard & { active: boolean; accepting: boolean };
 
 // Закреплённые специалисты клиента. Раньше список жил в localStorage: на
 // втором устройстве раздел «Терапия» был пуст, а прикреплённый из каталога
@@ -60,13 +60,25 @@ async function listFor(userId: number): Promise<TherapistLinkDTO[]> {
   const nameOf = new Map(users.map((u) => [u.id, u.firstName ?? "Специалист"]));
   const activeId = links.find((l) => l.active && !l.detached)?.psychologistId ?? unique[0];
 
+  // Закрытый специалист остаётся в разделе, но заявки к нему не уходят:
+  // раздел затеняет карточку, а не выбрасывает человека из терапии.
+  const proIds = new Set(
+    (await prisma.subscription.findMany({
+      where: { psychologistId: { in: unique }, status: "active" },
+      select: { psychologistId: true, currentPeriodEnd: true },
+    }))
+      .filter((s) => !s.currentPeriodEnd || s.currentPeriodEnd.getTime() > Date.now())
+      .map((s) => s.psychologistId),
+  );
+  const accepting = await acceptingByIds(unique, proIds);
+
   // Анкеты может не быть вовсе (психолог завёл клиента до её заполнения) —
   // тогда карточка минимальная, но список не рвётся.
   return unique.map((id) => {
     const card = cardOf.get(id);
     return card
-      ? { ...card, active: id === activeId }
-      : ({ id, name: nameOf.get(id) ?? "Специалист", active: id === activeId } as TherapistLinkDTO);
+      ? { ...card, active: id === activeId, accepting: accepting.has(id) }
+      : ({ id, name: nameOf.get(id) ?? "Специалист", active: id === activeId, accepting: accepting.has(id) } as TherapistLinkDTO);
   });
 }
 
@@ -79,9 +91,13 @@ async function listFor(userId: number): Promise<TherapistLinkDTO[]> {
  * карточки у этой пары ещё нет: настроение и колесо привязаны к ней, и
  * переносить их между психологами нельзя.
  */
-async function ensureClientCard(clientUserId: number, psychologistId: number) {
+async function ensureClientCard(clientUserId: number, psychologistId: number): Promise<boolean> {
   const existing = await prisma.client.findFirst({ where: { psychologistId, userId: clientUserId }, select: { id: true } });
-  if (existing) return;
+  if (existing) return true;
+
+  // Лимит тарифа считается и здесь: карточка из «Терапии» — такая же карточка,
+  // и обходить ею оплату нельзя. Отказ отдаётся клиенту нейтральным текстом.
+  if (!(await acceptingNewClients(psychologistId)).accepting) return false;
 
   const me = await prisma.user.findUnique({ where: { id: clientUserId }, select: { firstName: true, username: true } });
   const name = me?.firstName?.trim() || (me?.username ? `@${me.username}` : "Клиент");
@@ -102,6 +118,7 @@ async function ensureClientCard(clientUserId: number, psychologistId: number) {
       text: `«${name}» — новый клиент из раздела «Терапия»: карточка появилась в списке`,
     },
   });
+  return true;
 }
 
 export async function GET(req: NextRequest) {
@@ -142,6 +159,14 @@ export async function PATCH(req: NextRequest) {
         update: { detached: true, active: false },
       });
     } else {
+      // Прикрепиться к закрытому специалисту нельзя — иначе раздел «Терапия»
+      // обещал бы человеку работу, которой не будет. Уже прикреплённых это не
+      // касается: у них карточка есть, связь остаётся.
+      if (!(await ensureClientCard(user.id, body.psychologistId))) {
+        await notifyLimitReached(body.psychologistId);
+        return NextResponse.json(NOT_ACCEPTING, { status: 402 });
+      }
+
       // Текущий специалист один: снимаем метку с остальных до того, как ставим
       // её здесь, иначе раздел открывался на том, кого выбрали раньше.
       if (body.action === "active") {
@@ -152,7 +177,6 @@ export async function PATCH(req: NextRequest) {
         create: { clientUserId: user.id, psychologistId: body.psychologistId, detached: false, active: body.action === "active" },
         update: { detached: false, ...(body.action === "active" ? { active: true } : {}) },
       });
-      await ensureClientCard(user.id, body.psychologistId);
     }
 
     return NextResponse.json(await listFor(user.id));

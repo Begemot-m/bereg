@@ -168,7 +168,17 @@ function ClientsList() {
             <span className="ico ico-accent h-9 w-9 shrink-0"><Icon name="spark" width={16} weight="bold" color="#fff" /></span>
             <span className="min-w-0 flex-1">
               <span className="t-head block">{clients.length}/{FREE_CLIENT_LIMIT} на бесплатном тарифе</span>
-              {atCap ? <><strong className="t-head mt-1 block">Лимит достигнут</strong><span className="t-sub block">Перейдите на PRO, чтобы открыть безлимитные функции.</span></> : <span className="t-sub block">Все функции доступны для первых трёх клиентов.</span>}
+              {atCap ? (
+                <>
+                  {/* Прямая речь о последствиях: пока лимит забит, платформа не
+                      приводит новых людей — об этом честнее сказать сразу. */}
+                  <strong className="t-head mt-1 block">Лимит превышен</strong>
+                  <span className="t-sub block">
+                    Ваша карточка скрыта из каталога, новые клиенты не подключаются и не записываются.
+                    Текущие клиенты и все записи работают как раньше. Подписка возвращает карточку и снимает лимит.
+                  </span>
+                </>
+              ) : <span className="t-sub block">Все функции доступны для первых трёх клиентов.</span>}
             </span>
             <span className="chip chip-strong shrink-0">PRO ›</span>
           </button>
@@ -201,7 +211,7 @@ function ClientsList() {
       )}
       </div>
 
-      <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={atCap ? `Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки. PRO открывает клиентов без лимита.` : undefined} />
+      <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={atCap ? `Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки: карточка ушла из каталога, новые клиенты не подключаются. PRO снимает лимит и возвращает вас в каталог.` : undefined} />
     </div>
   );
 }

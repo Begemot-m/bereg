@@ -166,6 +166,74 @@ export async function canAddClient(userId: number): Promise<{ ok: boolean; used:
   return { ok: used < FREE_CLIENT_LIMIT, used, limit: FREE_CLIENT_LIMIT };
 }
 
+/** Что видит клиент, когда специалист закрыт: причину не называем — это его дело. */
+export const NOT_ACCEPTING = {
+  error: "not_accepting",
+  message: "Специалист временно не принимает заявки через платформу",
+} as const;
+
+export type Accepting = {
+  /** Принимает ли специалист новые заявки через платформу. */
+  accepting: boolean;
+  used: number;
+  limit: number | null;
+  pro: boolean;
+};
+
+/**
+ * Приём новых заявок. Закрыт, когда бесплатных мест не осталось: платформа
+ * перестаёт приводить людей, которых специалисту некуда взять, — и молчит о
+ * причине, потому что тариф психолога клиента не касается.
+ *
+ * Уже заведённые карточки продолжают работать: отбирать текущих клиентов за
+ * кончившуюся подписку нельзя. Психолог по-прежнему записывает своих сам —
+ * закрыт только вход снаружи: каталог, прикрепление и самозапись клиента.
+ */
+export async function acceptingNewClients(userId: number): Promise<Accepting> {
+  const { pro } = await access(userId);
+  const used = await prisma.client.count({ where: { psychologistId: userId } });
+  return { accepting: hasFreeSeat(pro, used), used, limit: pro ? null : FREE_CLIENT_LIMIT, pro };
+}
+
+/** Само правило, без базы: у PRO мест сколько угодно, на бесплатном — три. */
+export const hasFreeSeat = (pro: boolean, used: number) => pro || used < FREE_CLIENT_LIMIT;
+
+/**
+ * Сказать психологу, что заявка не дошла из-за лимита. Не чаще раза в сутки:
+ * человек и так это знает из раздела «Клиенты», а колокольчик, звонящий на
+ * каждый отказ, читать перестают.
+ */
+export async function notifyLimitReached(psychologistId: number) {
+  const since = new Date(Date.now() - 86_400_000);
+  // Ищем по началу текста, а не по своему виду уведомления: интерфейс рисует
+  // иконку по известным kind, и новый вид пришлось бы учить всюду.
+  const head = "Заняты все бесплатные карточки";
+  const recent = await prisma.notification.findFirst({
+    where: { userId: psychologistId, text: { startsWith: head }, createdAt: { gte: since } },
+    select: { id: true },
+  });
+  if (recent) return;
+  await prisma.notification.create({
+    data: {
+      userId: psychologistId,
+      kind: "system",
+      text: `${head} (${FREE_CLIENT_LIMIT}) — новые клиенты сейчас не могут к вам записаться, а анкета скрыта из каталога. Подписка снимает лимит и возвращает вас в выдачу.`,
+    },
+  });
+}
+
+/** Те же данные пачкой — каталогу нужно решение сразу по десяткам анкет. */
+export async function acceptingByIds(ids: number[], proIds: Set<number>): Promise<Set<number>> {
+  if (ids.length === 0) return new Set();
+  const counts = await prisma.client.groupBy({
+    by: ["psychologistId"],
+    where: { psychologistId: { in: ids } },
+    _count: { _all: true },
+  });
+  const usedOf = new Map(counts.map((row) => [row.psychologistId as number, row._count._all]));
+  return new Set(ids.filter((id) => hasFreeSeat(proIds.has(id), usedOf.get(id) ?? 0)));
+}
+
 /**
  * Прошёл ли психолог верификацию. До `approved` анкеты нет в каталоге и брать
  * клиентов нельзя — кабинет при этом открыт целиком, чтобы человек видел,
