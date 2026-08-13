@@ -54,7 +54,7 @@ import { useMe } from "@/lib/me";
 import { helpsLine } from "@/lib/morph";
 import { publicRules } from "@/lib/profile-rules";
 import { bookSlot } from "@/lib/mybookings";
-import { LINK_META, PROFILE_SYNCED, useProfile, type LinkKind } from "@/lib/profile";
+import { hasRestrictedLink, INSTAGRAM_NOTE, LINK_META, PROFILE_SYNCED, useProfile, type LinkKind } from "@/lib/profile";
 import { getSubscription } from "@/lib/subscription";
 import { attachTherapist, isAttached } from "@/lib/therapists";
 
@@ -673,6 +673,9 @@ function LinksBlock({ psy }: { psy: Psy }) {
           );
         })}
       </div>
+      {hasRestrictedLink(links) && (
+        <p className="mt-2 text-[9.5px] leading-snug text-[var(--muted-2)]">{INSTAGRAM_NOTE}</p>
+      )}
     </Section>
   );
 }

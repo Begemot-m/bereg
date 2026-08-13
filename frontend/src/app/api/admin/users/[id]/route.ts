@@ -11,10 +11,12 @@ import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/valida
 
 export const runtime = "nodejs";
 
-// Выдать или снять PRO вручную, заблокировать. Дни ограничены годом:
-// «доступ навсегда» одним нажатием — способ забыть про него навсегда.
+// Выдать или снять PRO вручную, заблокировать. Верхняя граница — сто лет:
+// это и есть «навсегда», но с датой, которую видно в карточке и в аудите.
+const FOREVER_DAYS = 36_500;
+
 const patchSchema = z.object({
-  grantPro: z.object({ days: z.coerce.number().int().min(1).max(365), note: z.string().max(200).optional() }).optional(),
+  grantPro: z.object({ days: z.coerce.number().int().min(1).max(FOREVER_DAYS), note: z.string().max(200).optional() }).optional(),
   revokePro: z.boolean().optional(),
   blocked: z.boolean().optional(),
   role: z.enum(["client", "psychologist"]).optional(),
@@ -41,7 +43,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const ip = clientIp(req);
 
     if (body.grantPro) {
-      const days = Math.min(365, Math.max(1, Math.round(Number(body.grantPro.days) || 30)));
+      const days = Math.min(FOREVER_DAYS, Math.max(1, Math.round(Number(body.grantPro.days) || 30)));
       const until = new Date();
       until.setDate(until.getDate() + days);
 

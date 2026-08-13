@@ -70,6 +70,40 @@ async function listFor(userId: number): Promise<TherapistLinkDTO[]> {
   });
 }
 
+/**
+ * Клиент закрепил специалиста — значит специалист видит его в «Клиентах».
+ * Раньше связь была односторонней: у клиента терапевт появлялся, а психолог
+ * узнавал о нём только с первой записи.
+ *
+ * Личную карточку без психолога не трогаем и новую заводим лишь тогда, когда
+ * карточки у этой пары ещё нет: настроение и колесо привязаны к ней, и
+ * переносить их между психологами нельзя.
+ */
+async function ensureClientCard(clientUserId: number, psychologistId: number) {
+  const existing = await prisma.client.findFirst({ where: { psychologistId, userId: clientUserId }, select: { id: true } });
+  if (existing) return;
+
+  const me = await prisma.user.findUnique({ where: { id: clientUserId }, select: { firstName: true, username: true } });
+  const name = me?.firstName?.trim() || (me?.username ? `@${me.username}` : "Клиент");
+  await prisma.client.create({
+    data: {
+      psychologistId,
+      userId: clientUserId,
+      name,
+      contact: me?.username ? `@${me.username}` : null,
+      link: "joined",
+      status: "new",
+    },
+  });
+  await prisma.notification.create({
+    data: {
+      userId: psychologistId,
+      kind: "system",
+      text: `«${name}» — новый клиент из раздела «Терапия»: карточка появилась в списке`,
+    },
+  });
+}
+
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
@@ -118,6 +152,7 @@ export async function PATCH(req: NextRequest) {
         create: { clientUserId: user.id, psychologistId: body.psychologistId, detached: false, active: body.action === "active" },
         update: { detached: false, ...(body.action === "active" ? { active: true } : {}) },
       });
+      await ensureClientCard(user.id, body.psychologistId);
     }
 
     return NextResponse.json(await listFor(user.id));

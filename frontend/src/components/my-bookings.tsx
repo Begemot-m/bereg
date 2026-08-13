@@ -102,10 +102,13 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
               </button>
             </div>
           ) : locked ? (
+            /* Правило психолога действует и на перенос: сдвинуть встречу за
+               день до неё — та же отмена, только другими словами. */
             <div className="rounded-[13px] p-3" style={{ background: "var(--salmon-soft)" }}>
-              <p className="text-[13px] font-black" style={{ color: "var(--salmon-edge)" }}>Отменить нельзя</p>
-              <p className="t-cap mt-0.5">До сессии меньше {lockDays} дн. Чтобы отменить или перенести — свяжитесь с психологом.</p>
-              <button onClick={() => setResch(true)} className="btn btn-white mt-2 px-3 py-1.5 text-[12px]">Перенести</button>
+              <p className="text-[13px] font-black" style={{ color: "var(--salmon-edge)" }}>Отменить и перенести нельзя</p>
+              <p className="t-cap mt-0.5">
+                Терапевт установил запрет на отмену сессии за {lockDays} {plDays(lockDays)} до встречи. Свяжитесь с ним напрямую.
+              </p>
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -117,6 +120,13 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
       </Disclosure>
     </motion.div>
   );
+}
+
+function plDays(n: number): string {
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return "день";
+  if (a >= 2 && a <= 4 && (b < 10 || b >= 20)) return "дня";
+  return "дней";
 }
 
 function cap(value: string): string {

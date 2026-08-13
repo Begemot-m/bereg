@@ -186,6 +186,11 @@ model SlotOverride {
   startsAt DateTime
   removed  Boolean  @default(false)
   fmt      String? // online | offline; null — как в шаблоне
+  /// Разовое окно вне шаблона: психолог открыл его на конкретную дату прямо
+  /// из недели. В следующий раз оно не повторится.
+  added    Boolean  @default(false)
+  /// Длительность разового окна, если она отличается от обычной сессии.
+  dur      Int?
 
   @@unique([userId, startsAt])
   @@index([userId])

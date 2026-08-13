@@ -23,7 +23,7 @@ export type WorkHoursDTO = {
 export type SlotDTO = { start: string; taken: boolean; fmt: SlotFormat };
 /** Занятый интервал психолога: начало записи и её длительность. */
 export type Busy = { start: string; minutes: number };
-export type OverrideDTO = { removed?: boolean; fmt?: SlotFormat };
+export type OverrideDTO = { removed?: boolean; fmt?: SlotFormat; added?: boolean; dur?: number };
 
 const DEFAULT_HOURS: WorkHoursDTO = { hours: {}, sessionMinutes: 50, cancelLockDays: 0, leadDaysOffline: 0, leadDaysOnline: 0, dayFrom: 9, dayTo: 21 };
 
@@ -115,6 +115,8 @@ export async function getOverrides(userId: number, range?: Range): Promise<Recor
     out[r.startsAt.toISOString()] = {
       ...(r.removed ? { removed: true } : {}),
       ...(r.fmt ? { fmt: r.fmt as SlotFormat } : {}),
+      ...(r.added ? { added: true } : {}),
+      ...(r.dur ? { dur: r.dur } : {}),
     };
   }
   return out;
@@ -126,16 +128,19 @@ export async function setOverride(userId: number, iso: string, patch: OverrideDT
   const existing = await prisma.slotOverride.findUnique({ where: { userId_startsAt: { userId, startsAt } } });
   const removed = patch.removed ?? existing?.removed ?? false;
   const fmt = patch.fmt ?? existing?.fmt ?? null;
+  const added = patch.added ?? existing?.added ?? false;
+  const dur = patch.dur ?? existing?.dur ?? null;
 
   // Пустая правка (окно открыто и формат как в шаблоне) не хранится:
-  // иначе таблица растёт от каждого щелчка туда-обратно.
-  if (!removed && !fmt) {
+  // иначе таблица растёт от каждого щелчка туда-обратно. Разовое окно —
+  // не пустая правка: без строки в таблице оно бы исчезло.
+  if (!removed && !fmt && !added) {
     if (existing) await prisma.slotOverride.delete({ where: { id: existing.id } });
   } else {
     await prisma.slotOverride.upsert({
       where: { userId_startsAt: { userId, startsAt } },
-      create: { userId, startsAt, removed, fmt },
-      update: { removed, fmt },
+      create: { userId, startsAt, removed, fmt, added, dur },
+      update: { removed, fmt, added, dur },
     });
   }
   return getOverrides(userId);
@@ -211,6 +216,21 @@ export function slotsFor(
     const to = from + (slot.d || session) * 60000;
     out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt });
   }
+
+  // Разовые окна: психолог открыл их на конкретную дату, в шаблоне их нет.
+  for (const [iso, ov] of Object.entries(overrides)) {
+    if (!ov.added || ov.removed) continue;
+    const at = new Date(iso);
+    if (Number.isNaN(at.getTime()) || at.getTime() < now) continue;
+    if (zoneYmd(at) !== dateStr) continue;
+    if (out.some((s) => s.start === iso)) continue;
+    const fmt = ov.fmt ?? "online";
+    if (applyLead && leadBlocked(at, leadDaysFor(work, fmt), now)) continue;
+    const from = at.getTime();
+    const to = from + (ov.dur || session) * 60000;
+    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt });
+  }
+  out.sort((a, b) => a.start.localeCompare(b.start));
   return out;
 }
 

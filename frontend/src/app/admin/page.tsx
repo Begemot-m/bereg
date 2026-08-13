@@ -13,12 +13,15 @@ import {
   type UsagePeriod, type UsageTotals,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
-import { documentHref } from "@/lib/psy-documents";
+import { openPsyDocument } from "@/lib/psy-documents";
 
 import { zoneFormat } from "@/lib/zone";
 
 const dateF = zoneFormat({ day: "numeric", month: "short", year: "2-digit" });
 const timeF = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+// «Навсегда» = сто лет: сервер принимает ту же цифру, у доступа остаётся дата.
+const FOREVER_DAYS = 36_500;
 
 const TOPICS: Record<string, string> = {
   bug: "не работает", billing: "оплата", data: "данные", other: "другое",
@@ -309,7 +312,13 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {u.proUntil && <p className="t-cap mt-1">PRO до {dateF.format(new Date(u.proUntil))}</p>}
+                {u.proUntil && (
+                  <p className="t-cap mt-1">
+                    {new Date(u.proUntil).getFullYear() - new Date().getFullYear() >= 50
+                      ? "PRO навсегда"
+                      : `PRO до ${dateF.format(new Date(u.proUntil))}`}
+                  </p>
+                )}
 
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   <button onClick={() => { tap(); act.mutate({ id: u.id, body: { grantPro: { days: 30, note: "выдано из админки" } } }); }} className="btn btn-accent px-3 py-1.5 text-[11px]">
@@ -317,6 +326,14 @@ export default function AdminPage() {
                   </button>
                   <button onClick={() => { tap(); act.mutate({ id: u.id, body: { grantPro: { days: 365, note: "год из админки" } } }); }} className="btn btn-white px-3 py-1.5 text-[11px]">
                     +год
+                  </button>
+                  {/* Навсегда — это сто лет с датой: видно в карточке и в аудите,
+                      и снимается той же кнопкой «снять PRO». */}
+                  <button
+                    onClick={() => { tap(); if (confirm(`Выдать ${u.name} PRO навсегда?`)) act.mutate({ id: u.id, body: { grantPro: { days: FOREVER_DAYS, note: "вечный доступ из админки" } } }); }}
+                    className="btn btn-white px-3 py-1.5 text-[11px]"
+                  >
+                    навсегда
                   </button>
                   {u.pro && (
                     <button onClick={() => { if (confirm(`Снять PRO у ${u.name}?`)) act.mutate({ id: u.id, body: { revokePro: true } }); }} className="btn btn-white px-3 py-1.5 text-[11px]">
@@ -449,14 +466,10 @@ function Application({ a, busy, onApprove, onReject }: {
         {/* Новые заявки держат файлы в хранилище — открываем по ссылке роута.
             Старые несут диплом data-URL'ом внутри самой анкеты. */}
         {a.documents?.length
-          ? a.documents.map((doc) => (
-              <a key={doc.id} href={documentHref(doc.id)} target="_blank" rel="noreferrer" className="chip chip-strong">
-                {doc.kind === "diploma" ? "Диплом" : "Сертификат"} · {doc.name}
-              </a>
-            ))
+          ? a.documents.map((doc) => <DocumentChip key={doc.id} doc={doc} />)
           : a.diploma
             ? a.diploma.dataUrl
-              ? <a href={a.diploma.dataUrl} target="_blank" rel="noreferrer" download={a.diploma.name} className="chip chip-strong">Диплом · {a.diploma.name}</a>
+              ? <DocumentChip doc={{ id: 0, kind: "diploma", name: a.diploma.name, mime: a.diploma.type, dataUrl: a.diploma.dataUrl }} />
               : <span className="chip">Диплом «{a.diploma.name}» не поместился в хранилище демо</span>
             : <span className="chip">диплом не приложен</span>}
       </div>
@@ -470,6 +483,26 @@ function Application({ a, busy, onApprove, onReject }: {
         </button>
       </div>
     </div>
+  );
+}
+
+// Документ заявки. Открывается не ссылкой, а загрузкой: у ссылки нет
+// ни обновления сессии, ни вменяемого поведения в Telegram-вебвью.
+function DocumentChip({ doc }: { doc: { id: number; kind: string; name: string; mime: string; dataUrl?: string } }) {
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const label = doc.kind === "diploma" ? "Диплом" : "Сертификат";
+  return (
+    <button
+      onClick={async () => {
+        tap();
+        setState("loading");
+        try { await openPsyDocument(doc); setState("idle"); } catch { setState("error"); }
+      }}
+      className="chip chip-strong"
+      title={doc.name}
+    >
+      {state === "loading" ? "Открываем…" : state === "error" ? `${label} — не открылся, повторить` : `${label} · ${doc.name}`}
+    </button>
   );
 }
 

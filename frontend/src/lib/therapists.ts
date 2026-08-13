@@ -11,6 +11,7 @@ export const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
 import { apiFetch } from "@/lib/api";
 import { apiPsyToCatalogPsy, PSYS, type CatalogApiPsy, type Psy } from "@/lib/catalog";
+import { displayName } from "@/lib/profile";
 
 // Флаг читается напрямую из окружения, а не из lib/demo: мок импортирует
 // ключ хранилища отсюда, и через `DEMO` получился бы цикл.
@@ -79,7 +80,17 @@ export async function syncTherapists(): Promise<TherapistStore> {
 }
 
 async function pushLink(psyId: number, action: "attach" | "detach" | "active") {
-  if (DEMO || !psyId) return;
+  // В демо сервера нет, но карточка у психолога появиться обязана: прикрепить
+  // специалиста и не оказаться у него в клиентах — половина связи.
+  if (DEMO) {
+    if (action === "attach") {
+      try {
+        await apiFetch("/clients/from-therapy", { method: "POST", body: JSON.stringify({ clientName: displayName() }) });
+      } catch { /* карточка не завелась — раздел «Терапия» это не ломает */ }
+    }
+    return;
+  }
+  if (!psyId) return;
   try {
     applyServer(await apiFetch<TherapistLink[]>("/my/therapists", {
       method: "PATCH",
@@ -103,7 +114,7 @@ export function attachTherapist(name: string, psyId?: number, card?: Psy): boole
       ? { ...store, ids, cards, removed, active: store.active ?? name }
       : { ...store, ids, cards, list: [...store.list, name], removed, active: store.active ?? name },
   );
-  if (id) void pushLink(id, "attach");
+  if (id || DEMO) void pushLink(id ?? 0, "attach");
   return !already;
 }
 

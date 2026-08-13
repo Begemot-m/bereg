@@ -74,10 +74,16 @@ export type PsyProfile = {
 };
 
 export type LinkKind = "site" | "telegram" | "instagram" | "vk" | "youtube";
+/** Сноска к Instagram — обязательная в России, поэтому живёт рядом с меткой. */
+export const INSTAGRAM_NOTE = "* Instagram принадлежит Meta Platforms Inc. — организация признана экстремистской, её деятельность запрещена в России.";
+
+/** Есть ли среди ссылок анкеты та, к которой нужна сноска. */
+export const hasRestrictedLink = (links?: { kind: string }[]) => (links ?? []).some((l) => l.kind === "instagram");
+
 export const LINK_META: Record<LinkKind, { label: string; icon: import("@/components/icons").IconName }> = {
   site: { label: "Сайт", icon: "compass" },
   telegram: { label: "Telegram", icon: "spark" },
-  instagram: { label: "Instagram", icon: "heart" },
+  instagram: { label: "Instagram*", icon: "heart" },
   vk: { label: "ВКонтакте", icon: "users" },
   youtube: { label: "YouTube", icon: "video" },
 };

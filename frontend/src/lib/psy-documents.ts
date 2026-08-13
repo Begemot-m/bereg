@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchBlob } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
 
 // Документы верификации. В бою файл уходит на сервер и лежит на диске
@@ -26,6 +26,33 @@ const DEMO_KEY = "bereg_psy_documents";
 
 export function documentHref(id: number): string {
   return `/api/profile/documents/${id}`;
+}
+
+function handOver(url: string, downloadName: string | null) {
+  const a = document.createElement("a");
+  a.href = url;
+  if (downloadName) a.download = downloadName;
+  else { a.target = "_blank"; a.rel = "noreferrer"; }
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/**
+ * Открыть документ модератору. Прямая ссылка на роут этого не умела: сессия
+ * успевает протухнуть (роут отвечает 401 JSON вместо файла), а PDF он отдаёт
+ * вложением — вкладка открывалась и тут же закрывалась пустой. Тянем файл
+ * сами, а дальше картинку показываем во вкладке, остальное отдаём файлом.
+ */
+export async function openPsyDocument(doc: { id: number; name: string; mime: string; dataUrl?: string }): Promise<void> {
+  const asImage = doc.mime.startsWith("image/");
+  // Демо держит сам файл в браузере — сервера, у которого можно спросить, нет.
+  if (doc.dataUrl) { handOver(doc.dataUrl, asImage ? null : doc.name || "документ"); return; }
+  const blob = await apiFetchBlob(`/profile/documents/${doc.id}`);
+  const url = URL.createObjectURL(new Blob([blob], { type: doc.mime || blob.type }));
+  handOver(url, asImage ? null : doc.name || "документ");
+  // Ссылку на blob держим минуту: вкладка успевает открыться, память не течёт.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 function demoRead(): PsyDocument[] {

@@ -32,7 +32,8 @@ export const getMonthAvailability = (psyId?: number | null) =>
   apiFetch<Record<string, DayAvail>>(`/month-availability${psyId ? `?psy=${psyId}` : ""}`);
 
 // Корректировки конкретных дат поверх шаблона
-export type SlotOverride = { removed?: boolean; fmt?: SlotFormat };
+// added — разовое окно на конкретную дату (в шаблоне недели его нет).
+export type SlotOverride = { removed?: boolean; fmt?: SlotFormat; added?: boolean; dur?: number };
 export const getOverrides = () => apiFetch<Record<string, SlotOverride>>("/overrides");
 export const setOverride = (iso: string, patch: SlotOverride) =>
   apiFetch<Record<string, SlotOverride>>("/overrides", { method: "PATCH", body: JSON.stringify({ iso, ...patch }) });

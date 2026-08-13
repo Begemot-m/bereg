@@ -144,6 +144,10 @@ function ClientsList() {
           </motion.button>
         </div>
 
+        {/* Пригласить — отдельным действием: карточку заводить не обязательно,
+            человек сам подключится, и она появится в списке. */}
+        <InviteClientButton />
+
         <QuickAddClient
           open={open}
           first={first}
@@ -199,6 +203,36 @@ function ClientsList() {
 
       <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={atCap ? `Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки. PRO открывает клиентов без лимита.` : undefined} />
     </div>
+  );
+}
+
+// Приглашение без карточки: ссылка уходит в Telegram, а если поделиться нечем
+// (десктоп, браузер) — остаётся в буфере обмена.
+function InviteClientButton() {
+  const [copied, setCopied] = useState(false);
+  const text = "Приглашаю вас в «Хронику» — здесь мы будем видеть настроение между встречами, задания и записи на сессии.";
+  const share = () => {
+    tap();
+    const url = `https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent(text)}`;
+    const win = window.open(url, "_blank", "noopener");
+    if (!win) {
+      void navigator.clipboard?.writeText(`${text} ${APP_URL}`).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      });
+    }
+  };
+  return (
+    <button onClick={share} className="card-soft mb-3 flex w-full items-center gap-3 p-3 text-left" style={{ background: "var(--purple-soft)" }}>
+      <span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}>
+        <Icon name="telegram" width={16} weight="fill" color="var(--purple-edge)" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="t-head block">{copied ? "Ссылка скопирована" : "Пригласить клиента"}</span>
+        <span className="t-sub block">Отправьте ссылку — он подключится сам и появится в списке.</span>
+      </span>
+      <span className="chip chip-strong shrink-0">Отправить ›</span>
+    </button>
   );
 }
 

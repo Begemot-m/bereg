@@ -41,10 +41,20 @@ export function useDayWindows() {
       const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
       return { iso, hour: hh, t: s.t, dur: appt?.durationMin ?? s.d, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, appt, removed: !!ov?.removed };
     });
+    // Разовые окна: открыты на конкретную дату, в шаблоне недели их нет.
+    const extra: Slot[] = Object.entries(overrides)
+      .filter(([iso, ov]) => ov?.added && !ov.removed && sameZoneDay(new Date(iso), d) && !schedule.some((s) => s.iso === iso))
+      .map(([iso, ov]) => {
+        const dt = new Date(iso);
+        const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
+        return { iso, hour: zoneHour(dt), t: timeF.format(dt), dur: appt?.durationMin ?? ov?.dur ?? work?.sessionMinutes ?? 50, fmt: (ov?.fmt ?? "online") as ApptFormat, past: dt.getTime() < Date.now(), appt, removed: false };
+      });
     const apptOnly: Slot[] = appts
-      .filter((a) => a.status !== "cancelled" && sameZoneDay(new Date(a.startsAt), d) && !schedule.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime()))
+      .filter((a) => a.status !== "cancelled" && sameZoneDay(new Date(a.startsAt), d)
+        && !schedule.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime())
+        && !extra.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime()))
       .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: a.durationMin, fmt: a.format, past: dt.getTime() < now, appt: a, removed: false }; });
-    return [...schedule, ...apptOnly].sort((a, b) => a.iso.localeCompare(b.iso));
+    return [...schedule, ...extra, ...apptOnly].sort((a, b) => a.iso.localeCompare(b.iso));
   };
 
   const hasWork = Object.values(work?.hours ?? {}).some((a) => (a ?? []).length > 0);
@@ -114,9 +124,11 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
 export function WeekWindows() {
   const { hasWork } = useDayWindows();
   const days = useMemo(() => { const today = ymdLocal(new Date()); return Array.from({ length: 7 }, (_, i) => addDays(today, i)); }, []);
-  if (!hasWork) return <NoWorkHours />;
+  // График не задан — неделя всё равно рисуется: разовое окно можно открыть
+  // прямо здесь, не уходя в кабинет за расписанием на все недели вперёд.
   return (
     <div className="space-y-4">
+      {!hasWork && <NoWorkHours />}
       {days.map((y, i) => <DayAgenda key={y} date={zoneDay(y)} today={i === 0} />)}
     </div>
   );
@@ -217,6 +229,16 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
   const [dur, setDur] = useState(50);
   // Время выбрано заранее — первое свободное; всё меню видно одним экраном.
   const chosen = iso ?? times[0]?.iso ?? null;
+  // Открыть окно, не назначая никого: клиента в него можно записать позже —
+  // тапом по самому окну, как по любому свободному.
+  const openWindow = useMutation({
+    mutationFn: () => setOverride(chosen!, { added: true, dur, fmt: "online" }),
+    onSuccess: () => {
+      success();
+      setIso(null); onClose();
+      for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] });
+    },
+  });
   const book = useMutation({
     mutationFn: ({ clientId }: { clientId: number }) => createAppointment({ clientId, startsAt: chosen!, format: "online", durationMin: dur }),
     onSuccess: () => {
@@ -272,8 +294,17 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
             <span className="tnum shrink-0 text-[12px] font-black">{dur} мин</span>
           </label>
 
-          {/* Строка 3 — клиент, списком в модалке */}
+          {/* Строка 3 — окно само по себе; клиента можно выбрать сразу или потом */}
+          <button
+            onClick={() => { tap(); if (chosen) openWindow.mutate(); }}
+            disabled={!chosen || openWindow.isPending}
+            className="btn h-9 w-full whitespace-nowrap py-0 text-[12.5px] disabled:opacity-50"
+            style={{ ...THIN_BTN, background: "#fff", borderColor: "var(--olive-edge)", color: "var(--olive-edge)" }}
+          >
+            <Icon name="clock" width={13} weight="bold" color="var(--olive-edge)" /> {openWindow.isPending ? "Открываем…" : "Открыть свободное окно"}
+          </button>
           <PickClient onPick={(clientId) => book.mutate({ clientId })} />
+          <p className="t-cap text-center">Окно останется свободным — клиента можно записать позже.</p>
         </div>
       )}
     </div>

@@ -85,11 +85,8 @@ export default function CabinetPage() {
           </div>
         )}
 
-        {/* Учётная запись */}
-        <div>
-          <SectionTitle>Учётная запись</SectionTitle>
-          <EmailLink />
-        </div>
+        {/* Учётная запись. Привязку почты временно убрали из кабинета —
+            блок и роуты живы, вернём вместе с десктопным входом. */}
 
         {/* Видно только владельцу платформы */}
         <AdminEntry />
@@ -270,6 +267,9 @@ function AdminEntry() {
   );
 }
 
+// Временно не рендерится в кабинете (см. блок «Учётная запись»), но остаётся
+// рабочим: вернём, когда доделаем вход с десктопа.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function EmailLink() {
   const qc = useQueryClient();
   const account = useQuery({

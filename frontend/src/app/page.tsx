@@ -348,22 +348,33 @@ function TourBanner({ role }: { role: Role }) {
     return () => window.removeEventListener("bereg:tour-change", sync);
   }, [role]);
   if (!show) return null;
-  const title = role === "psychologist" ? "Освойте кабинет психолога" : "Познакомьтесь с приложением";
+  const title = role === "psychologist" ? "Что делать в кабинете психолога" : "Что делать в приложении";
+  // Сплошная заливка и белый текст: это первое действие новичка, и раньше
+  // баннер терялся среди светлых карточек — его просто пролистывали.
   return (
-    <button onClick={() => { tap(); startTour(); }} className="relative w-full overflow-hidden p-4 text-left transition-transform active:scale-[0.99]">
+    <motion.button
+      onClick={() => { tap(); startTour(); }}
+      animate={{ boxShadow: ["0 10px 24px -16px rgba(91,91,214,.9)", "0 16px 34px -14px rgba(91,91,214,.75)", "0 10px 24px -16px rgba(91,91,214,.9)"] }}
+      transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+      className="relative w-full overflow-hidden rounded-[var(--r-block)] p-4 text-left transition-transform active:scale-[0.99]"
+      style={{ background: "var(--purple-edge)" }}
+    >
       <div className="relative flex items-center gap-3.5">
         <motion.span
           animate={{ scale: [1, 1.12, 1] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none text-white"
-          style={{ background: "var(--purple-edge)" }}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none"
+          style={{ background: "#fff", color: "var(--purple-edge)" }}
         >!</motion.span>
         <span className="min-w-0 flex-1">
-          <span className="t-head block">{title}</span>
-          <span className="t-cap mt-1.5 block" style={{ color: "var(--purple-edge)" }}>Нажмите, чтобы пошагово ознакомиться с функционалом</span>
+          <span className="block text-[16px] font-black leading-tight text-white">{title}</span>
+          <span className="mt-1.5 block text-[12.5px] font-bold leading-snug" style={{ color: "rgba(255,255,255,.82)" }}>
+            Пошаговая экскурсия: за минуту покажем, с чего начать
+          </span>
         </span>
+        <span className="shrink-0 text-[20px] font-black leading-none text-white">›</span>
       </div>
-    </button>
+    </motion.button>
   );
 }
 

@@ -71,7 +71,7 @@ type WorkHours = {
 };
 
 // Корректировки конкретных дат поверх шаблона: убрать окно / сменить формат
-type SlotOverride = { removed?: boolean; fmt?: ApptFormat };
+type SlotOverride = { removed?: boolean; fmt?: ApptFormat; added?: boolean; dur?: number };
 
 type DB = {
   seq: number;
@@ -387,8 +387,19 @@ const busyOf = (db: DB, isClient: boolean): Busy[] =>
     ? db.myBookings.map((b) => ({ start: b.startsAt, minutes: b.durationMin }))
     : db.appts.filter((a) => a.status !== "cancelled").map((a) => ({ start: a.startsAt, minutes: a.durationMin }));
 
+// Правила приёма — те же формулы, что на сервере (lib/server/schedule.ts):
+// запись не ближе leadDays, отмена не позже cancelLockDays.
+const leadDaysFor = (work: WorkHours, fmt: ApptFormat) =>
+  Math.max(0, (fmt === "offline" ? work.leadDaysOffline : work.leadDaysOnline) ?? 0);
+
+const leadBlocked = (startsAt: Date, leadDays: number, now = Date.now()) =>
+  leadDays > 0 && (startsAt.getTime() - now) / 86_400_000 < leadDays;
+
+const cancelBlocked = (startsAt: string, lockDays: number, now = Date.now()) =>
+  lockDays > 0 && (new Date(startsAt).getTime() - now) / 86_400_000 < lockDays;
+
 // Вычислить свободные слоты на дату из выбранных часов минус занятые времена.
-function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Record<string, SlotOverride>): { start: string; taken: boolean; fmt: ApptFormat }[] {
+function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Record<string, SlotOverride>, applyLead = false): { start: string; taken: boolean; fmt: ApptFormat }[] {
   if (!parseYmd(dateStr)) return [];
   const wd = weekdayOf(dateStr);
   const slots = [...((work.hours ?? {})[wd] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
@@ -407,10 +418,27 @@ function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Rec
     const iso = t.toISOString();
     const ov = overrides[iso];
     if (ov?.removed) continue; // окно снято на эту дату
+    const fmt = ov?.fmt ?? s.fmt ?? "online";
+    // Правило предварительной записи — как на сервере: клиент не видит окон
+    // ближе, чем разрешил психолог. Самому психологу оно не мешает.
+    if (applyLead && leadBlocked(t, leadDaysFor(work, fmt), now)) continue;
     const from = t.getTime();
     const to = from + (s.d || session) * 60000;
-    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt: ov?.fmt ?? s.fmt ?? "online" });
+    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt });
   }
+  // Разовые окна вне шаблона — открыты психологом на конкретную дату.
+  for (const [iso, ov] of Object.entries(overrides)) {
+    if (!ov.added || ov.removed) continue;
+    const at = new Date(iso);
+    if (Number.isNaN(at.getTime()) || at.getTime() < now || zoneYmd(at) !== dateStr) continue;
+    if (out.some((s) => s.start === iso)) continue;
+    const fmt = ov.fmt ?? "online";
+    if (applyLead && leadBlocked(at, leadDaysFor(work, fmt), now)) continue;
+    const from = at.getTime();
+    const to = from + (ov.dur || session) * 60000;
+    out.push({ start: iso, taken: ranges.some(([bs, be]) => bs < to && from < be), fmt });
+  }
+  out.sort((a, b) => a.start.localeCompare(b.start));
   return out;
 }
 
@@ -531,6 +559,34 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     save(db);
     return delay(withStats(db, c) as T);
   }
+  // Клиент прикрепил специалиста в разделе «Терапия» — у психолога появляется
+  // карточка. В бою это делает роут /my/therapists, здесь роли живут в одном
+  // браузере, поэтому карточку заводим прямо тут.
+  if (clean === "/clients/from-therapy" && method === "POST") {
+    const name = String(body.clientName ?? "").trim() || "Клиент";
+    const already = db.clients.find((c) => c.name.toLowerCase() === name.toLowerCase() && c.link === "joined");
+    if (already) return delay(withStats(db, already) as T);
+    const now = new Date().toISOString();
+    const c: Client = {
+      id: ++db.seq,
+      name,
+      contact: (body.contact as string) || null,
+      note: "",
+      status: "new",
+      link: "joined",
+      invitedAt: null,
+      notesModuleEnabled: false,
+      notesModuleShared: true,
+      notesModulePsychologist: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.clients.push(c);
+    notify(db, "psychologist", "join", `«${name}» — новый клиент из раздела «Терапия»: карточка появилась в списке`);
+    save(db);
+    return delay(withStats(db, c) as T);
+  }
+
   // приглашение клиента подключить свой профиль
   const inviteId = clean.match(/^\/clients\/(\d+)\/invite$/)?.[1];
   if (inviteId && method === "POST") {
@@ -778,7 +834,11 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const date = q.get("date")!;
     const isClient = q.get("psy") != null;
     const busy = busyOf(db, isClient);
-    return delay(slotsFor(isClient ? CATALOG_WORK : db.work, date, busy, db.overrides) as T);
+    // Клиент смотрит окна каталожного специалиста, но правила записи берём из
+    // настроек психолога в этом же браузере: в демо обе роли — один человек,
+    // и иначе выставленное правило было бы не проверить.
+    const work = isClient ? { ...CATALOG_WORK, leadDaysOffline: db.work.leadDaysOffline, leadDaysOnline: db.work.leadDaysOnline } : db.work;
+    return delay(slotsFor(work, date, busy, db.overrides, isClient) as T);
   }
 
   // корректировки конкретных дат (убрать окно / сменить формат)
@@ -788,6 +848,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const cur = db.overrides[iso] ?? {};
     if (body.removed !== undefined) cur.removed = Boolean(body.removed);
     if (body.fmt !== undefined) cur.fmt = body.fmt as ApptFormat;
+    if (body.added !== undefined) cur.added = Boolean(body.added);
+    if (body.dur !== undefined) cur.dur = Math.min(240, Math.max(15, Number(body.dur) || 50));
     db.overrides[iso] = cur;
     save(db);
     return delay(db.overrides as T);
@@ -801,9 +863,10 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const withAppt = new Set(busy.map((b) => zoneYmd(new Date(b.start))));
     const out: Record<string, "free" | "full"> = {};
     const base = zoneYmd(new Date());
+    const work = isClient ? { ...CATALOG_WORK, leadDaysOffline: db.work.leadDaysOffline, leadDaysOnline: db.work.leadDaysOnline } : db.work;
     for (let i = 0; i < 60; i++) {
       const ymd = addZoneDays(base, i);
-      const slots = slotsFor(isClient ? CATALOG_WORK : db.work, ymd, busy, db.overrides);
+      const slots = slotsFor(work, ymd, busy, db.overrides, isClient);
       if (slots.length === 0) {
         if (withAppt.has(ymd)) out[ymd] = "full";
         continue;
@@ -830,10 +893,20 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   }
 
   if (clean === "/my/appointments" && method === "GET") {
-    return delay([...db.myBookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt)) as T);
+    // Правило отмены едет вместе с записью — ровно как с сервера.
+    const lock = db.work.cancelLockDays ?? 0;
+    return delay([...db.myBookings]
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+      .map((b) => ({ ...b, cancelLockDays: lock })) as T);
   }
   if (clean === "/my/appointments" && method === "POST") {
-    const b = { id: ++db.seq, psyName: String(body.psyName ?? "Специалист"), startsAt: new Date(String(body.startsAt)).toISOString(), durationMin: Number(body.durationMin ?? db.work.sessionMinutes), format: (body.format as ApptFormat) ?? "online" };
+    const startsAt = new Date(String(body.startsAt));
+    const fmt = (body.format as ApptFormat) ?? "online";
+    const lead = leadDaysFor(db.work, fmt);
+    if (leadBlocked(startsAt, lead)) {
+      throw new Error(`API 422: {"error":"Записаться можно не позже чем за ${lead} дн. до встречи"}`);
+    }
+    const b = { id: ++db.seq, psyName: String(body.psyName ?? "Специалист"), startsAt: startsAt.toISOString(), durationMin: Number(body.durationMin ?? db.work.sessionMinutes), format: fmt };
     db.myBookings.push(b);
     save(db);
     return delay(b as T);
@@ -843,6 +916,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const id = Number(myId);
     const b = db.myBookings.find((x) => x.id === id);
     if (!b) throw new Error("API 404");
+    // Запрет на отмену закрывает и перенос: сдвинуть встречу за день до неё —
+    // та же отмена. Оба ответа человеческие, их показывает интерфейс.
+    const lock = db.work.cancelLockDays ?? 0;
+    if (cancelBlocked(b.startsAt, lock)) {
+      throw new Error(`API 422: {"error":"Терапевт установил запрет на отмену сессии за ${lock} дн. до встречи. Свяжитесь с ним напрямую"}`);
+    }
     if (method === "PATCH") {
       if (body.startsAt) b.startsAt = new Date(String(body.startsAt)).toISOString();
       notify(db, "psychologist", "reschedule", `Клиент перенёс сессию на ${fmtWhen(b.startsAt)}`);

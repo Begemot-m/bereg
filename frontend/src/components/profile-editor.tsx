@@ -10,7 +10,7 @@ import { VerificationPrompt } from "@/components/verification-prompt";
 import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { displayName, displayPhoto, getPsyProfile, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
 import { EMPTY_RULES, normalizeRules, publicRules, RULE_PRESETS, rulesFilled, type RuleId } from "@/lib/profile-rules";
 import { helpsLine } from "@/lib/morph";
 import { useVerification, type PsyStatus } from "@/lib/psy-verification";
@@ -459,6 +459,7 @@ function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange
         </div>
       ))}
       <button onClick={() => onChange([...links, { kind: "site", url: "" }])} className="flex w-full items-center justify-center gap-1.5 rounded-[11px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить ссылку</button>
+      {hasRestrictedLink(links) && <p className="text-[9.5px] leading-snug text-[var(--muted-2)]">{INSTAGRAM_NOTE}</p>}
     </div>
   );
 }
@@ -641,6 +642,15 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
         </div>
       </Field>
     ))}
+
+    {/* Текст правила — обещание клиенту, а не запрет в коде. Сам запрет живёт
+        в графике: без этой строчки психологи ждали, что формулировка сама
+        закроет запись за день до встречи. */}
+    <p className="t-cap">
+      Это формулировки для карточки. Чтобы запись и отмена действительно
+      закрывались, задайте дни в разделе «Сессии» → «Правила приёма»:
+      запрет отмены и предварительная запись очно и онлайн.
+    </p>
   </StepCard>;
 }
 

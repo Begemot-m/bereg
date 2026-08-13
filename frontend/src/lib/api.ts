@@ -52,6 +52,20 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 /**
+ * Файл из API — картинка диплома, PDF. Через `apiFetch` его не получить: он
+ * ждёт JSON. Голая ссылка в `<a href>` тоже не годится — она не умеет
+ * обновлять протухшую сессию и внутри Telegram-вебвью открывается пустой
+ * вкладкой с текстом ошибки вместо документа.
+ */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const doRequest = () => fetch(`${API_URL}${path}`, { cache: "no-store" });
+  let res = await doRequest();
+  if (res.status === 401 && (await tryRefresh())) res = await doRequest();
+  if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return res.blob();
+}
+
+/**
  * Человеческий текст из ошибки `apiFetch`. Он склеивает статус с телом ответа
  * (`API 403: {"error":"…"}`), а показывать пользователю надо только `error`.
  */
