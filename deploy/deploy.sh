@@ -49,7 +49,11 @@ log "Проверяем health"
 for i in $(seq 1 30); do
   if docker compose exec -T app curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
     log "Готово: $IMAGE"
+    # Чистим не только висячие слои, но и старые образы: каждая выкатка весит
+    # больше гигабайта, и 14 августа 2026 диск кончился прямо во время docker
+    # pull. Сутки держим — этого хватает на откат, остальное уходит.
     docker image prune -f >/dev/null 2>&1 || true
+    docker image prune -af --filter "until=24h" >/dev/null 2>&1 || true
     exit 0
   fi
   sleep 2
