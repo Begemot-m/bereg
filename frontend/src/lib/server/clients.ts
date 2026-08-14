@@ -64,6 +64,30 @@ export async function statsFor(clientIds: number[]): Promise<Map<number, ClientS
   return out;
 }
 
+/** Что подмешать к выборке карточки, чтобы отдать аватарку подключённого клиента. */
+export const PHOTO_INCLUDE = { user: { select: { photoUrl: true } } } as const;
+
+type MaybeUser = { user?: { photoUrl: string | null } | null };
+type Photo<T> = Omit<T, "user"> & { photo: string | null };
+
+/**
+ * Фото клиента берётся из его аккаунта: карточку заводит психолог, а аватарка
+ * есть только у того, кто вошёл через Telegram. Сам `user` наружу не отдаём —
+ * интерфейсу нужна одна ссылка, а не кусок чужого профиля. Карточка без
+ * подключённого аккаунта проходит здесь же и получает `photo: null`.
+ */
+export function withPhoto<T extends object>(row: T): Photo<T> {
+  const { user, ...rest } = row as T & MaybeUser;
+  return { ...rest, photo: user?.photoUrl ?? null } as Photo<T>;
+}
+
+/** Клиент внутри записи — те же поля плюс аватарка. */
+export const APPT_CLIENT_SELECT = { id: true, name: true, user: { select: { photoUrl: true } } } as const;
+
+export function apptWithPhoto<T extends { client: object }>(row: T): Omit<T, "client"> & { client: Photo<T["client"]> } {
+  return { ...row, client: withPhoto(row.client) };
+}
+
 type Row = { id: number };
 
 /** Строки карточек + их статистика. Порядок сохраняется. */

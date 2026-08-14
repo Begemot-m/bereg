@@ -37,11 +37,15 @@ export async function POST(req: NextRequest) {
       telegramId: tgUser.telegramId,
       username: tgUser.username,
       firstName: tgUser.firstName,
+      photoUrl: tgUser.photoUrl,
       isAdmin: isOwner,
     },
     update: {
       username: tgUser.username,
       firstName: tgUser.firstName,
+      // Пустое photo_url приходит, когда аватарка скрыта настройками приватности:
+      // старую ссылку в этом случае держать незачем, она уже не откроется.
+      photoUrl: tgUser.photoUrl,
       isAdmin: isOwner,
     },
   });

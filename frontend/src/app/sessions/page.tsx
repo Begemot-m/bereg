@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { MonthCalendar } from "@/components/calendar";
 import { ArrowGlyph, PageHead } from "@/components/blocks";
+import { ClientAvatar } from "@/components/client-avatar";
 import { ClientPicker } from "@/components/day-slots";
 import { SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
 
@@ -470,7 +471,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: open });
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription, enabled: open });
   const atCap = !isPro(sub) && clients.length >= FREE_CLIENT_LIMIT;
-  const [client, setClient] = useState<{ id: number; name: string } | null>(null);
+  const [client, setClient] = useState<{ id: number; name: string; photo?: string | null } | null>(null);
   // Лимит бесплатного тарифа не прячет кнопку, а объясняет себя через пейволл.
   const [paywall, setPaywall] = useState(false);
   const book = useMutation({
@@ -508,11 +509,11 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
             </div>
             <div className="overflow-y-auto p-4">
               {!client ? (
-                <ClientPicker clients={sorted} compact={false} onCreateClient={(name, contact) => { if (atCap) { setPaywall(true); return; } create.mutate({ name, contact }); }} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name }); }} />
+                <ClientPicker clients={sorted} compact={false} onCreateClient={(name, contact) => { if (atCap) { setPaywall(true); return; } create.mutate({ name, contact }); }} onPick={(id) => { const c = sorted.find((x) => x.id === id); if (c) setClient({ id: c.id, name: c.name, photo: c.photo }); }} />
               ) : (
                 <div>
                   <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-[var(--green-soft)] px-3 py-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-white stroke text-[12px] font-black">{client.name.charAt(0)}</span>
+                    <ClientAvatar name={client.name} photo={client.photo} className="h-7 w-7 rounded-[9px] bg-white stroke text-[12px] font-black" />
                     <span className="min-w-0 break-words text-[13px] font-black leading-tight">{client.name}</span>
                   </div>
                   <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>

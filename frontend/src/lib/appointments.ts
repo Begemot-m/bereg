@@ -9,7 +9,7 @@ export type Appointment = {
   status: "scheduled" | "done" | "cancelled";
   note: string;
   format: ApptFormat;
-  client: { id: number; name: string };
+  client: { id: number; name: string; photo?: string | null };
 };
 
 export const listAppointments = (clientId?: number) =>

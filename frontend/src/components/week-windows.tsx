@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { ClientAvatar } from "@/components/client-avatar";
 import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
@@ -404,7 +405,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       <div className="space-y-2.5">
         {/* Имя сверху, действия — строкой под ним */}
         <div className="flex items-center gap-3">
-          <span className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-[16px] text-[21px] font-black" style={{ background: "#fff" }}>{slot.appt.client.name.charAt(0)}</span>
+          <ClientAvatar name={slot.appt.client.name} photo={slot.appt.client.photo} className="h-[54px] w-[54px] rounded-[16px] text-[21px] font-black" style={{ background: "#fff" }} />
           <span className="min-w-0 break-words text-[19px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>

@@ -11,6 +11,7 @@ export type TelegramUser = {
   telegramId: bigint;
   username: string | null;
   firstName: string | null;
+  photoUrl: string | null;
 };
 
 export function validateInitData(
@@ -50,11 +51,16 @@ export function validateInitData(
 
   const userRaw = params.get("user");
   if (!userRaw) throw new InitDataError("missing user");
-  const user = JSON.parse(userRaw) as { id: number; username?: string; first_name?: string };
+  const user = JSON.parse(userRaw) as { id: number; username?: string; first_name?: string; photo_url?: string };
+
+  // Ссылку на аватарку берём только https-ную: в поле приходит то, что прислал
+  // Telegram, а подставлять её потом в <img src> без проверки нельзя.
+  const photo = typeof user.photo_url === "string" && /^https:\/\//i.test(user.photo_url) ? user.photo_url : null;
 
   return {
     telegramId: BigInt(user.id),
     username: user.username ?? null,
     firstName: user.first_name ?? null,
+    photoUrl: photo,
   };
 }

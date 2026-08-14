@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { NOT_APPROVED, canAddClient, psyApproved } from "@/lib/server/access";
-import { withStats, withStatsOne } from "@/lib/server/clients";
+import { PHOTO_INCLUDE, withPhoto, withStats, withStatsOne } from "@/lib/server/clients";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
@@ -31,10 +31,11 @@ export async function GET(req: NextRequest) {
       // note — приватные заметки психолога, в списке они не нужны:
       // лишний трафик и лишняя копия чувствительного текста в браузере.
       omit: { note: true },
+      include: PHOTO_INCLUDE,
       take,
       skip,
     });
-    return NextResponse.json(await withStats(clients));
+    return NextResponse.json(await withStats(clients.map(withPhoto)));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
         note: body.note ?? "",
       },
     });
-    return NextResponse.json(await withStatsOne(client), { status: 201 });
+    return NextResponse.json(await withStatsOne(withPhoto(client)), { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     if (e instanceof InvalidBody) return invalidBodyResponse(e);

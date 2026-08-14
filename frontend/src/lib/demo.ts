@@ -29,6 +29,8 @@ type Client = {
   invitedAt: string | null;
   /** Имя из учётной записи клиента после синхронизации — психолог может им заменить своё. */
   joinedName?: string | null;
+  /** Аватарка клиента. В бою приходит из Telegram, в демо — картинка из public. */
+  photo?: string | null;
   notesModuleEnabled: boolean;
   notesModuleShared: boolean;
   notesModulePsychologist: boolean;
@@ -45,7 +47,7 @@ type Appointment = {
   status: "scheduled" | "done" | "cancelled";
   note: string;
   format: ApptFormat;
-  client: { id: number; name: string };
+  client: { id: number; name: string; photo?: string | null };
 };
 
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
@@ -116,8 +118,10 @@ function seed(): DB {
   // Демо стартует чистым: два клиента, ни одной записи, пустые статистика,
   // настроение, домашки и колесо баланса — всё наполняется руками.
   const clients: Client[] = [
-    { id: 1, name: "Марина Соколова", contact: "@marina", note: "", status: "new", link: "none", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
-    { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
+    // Фото — то же, чем демо показывает аватарку из Telegram в бою. Своих лиц у
+    // демо нет, поэтому берём портреты из каталога.
+    { id: 1, name: "Марина Соколова", contact: "@marina", note: "", status: "new", link: "none", invitedAt: null, photo: "/catalog/irina.webp", notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
+    { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, photo: "/catalog/sergey.webp", notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
   ];
   const appts: Appointment[] = [];
   const homework: Homework[] = [];
@@ -836,7 +840,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       status: "scheduled",
       note: "",
       format: (body.format as ApptFormat) ?? "online",
-      client: { id: cl.id, name: cl.name },
+      client: { id: cl.id, name: cl.name, photo: cl.photo ?? null },
     };
     db.appts.push(a);
     save(db);

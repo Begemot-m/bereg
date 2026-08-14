@@ -9,6 +9,7 @@ import { useDeferredValue, useState } from "react";
 import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
 import { PageHead } from "@/components/blocks";
+import { ClientAvatar } from "@/components/client-avatar";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonRow } from "@/components/ui";
@@ -258,9 +259,12 @@ function ClientCard({ client: c }: { client: Client }) {
 
       <div className="pointer-events-none relative z-10">
         <div className="flex items-stretch gap-3.5">
-          <span className="flex h-[104px] w-[86px] shrink-0 items-center justify-center rounded-[16px] text-[30px] font-black" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone}-edge)` }}>
-            {c.name.charAt(0)}
-          </span>
+          <ClientAvatar
+            name={c.name}
+            photo={c.photo}
+            className="h-[104px] w-[86px] rounded-[16px] text-[30px] font-black"
+            style={{ background: `var(--${tone}-soft)`, color: `var(--${tone}-edge)` }}
+          />
           <div className="min-w-0 flex-1">
             <p className="t-head break-words leading-tight">{c.name}</p>
             <span

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { ClientAvatar } from "@/components/client-avatar";
 import { Icon } from "@/components/icons";
 import { EmotionChips, MoodStats, topEmotions } from "@/components/mood-stats";
 import { PsychologistHomeworkPreview } from "@/components/psychologist-homework";
@@ -147,7 +148,7 @@ export function ClientDetail() {
         <Link href="/clients" className="back-link mb-3 mt-3">Все клиенты</Link>
         <div className="flex items-start gap-3.5">
           {/* Крупная рамка фото */}
-          <div className="flex h-[92px] w-[92px] shrink-0 items-center justify-center rounded-[22px] text-[34px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }}>{client.name.charAt(0)}</div>
+          <ClientAvatar name={client.name} photo={client.photo} className="h-[92px] w-[92px] rounded-[22px] text-[34px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }} />
           <div className="min-w-0 flex-1">
             <h1 className="font-tight break-words text-[clamp(19px,5.6vw,22px)] font-black leading-tight">{client.name}</h1>
             {client.contact

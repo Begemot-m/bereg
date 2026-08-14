@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { APPT_CLIENT_SELECT, apptWithPhoto } from "@/lib/server/clients";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { cancelPendingReminders, queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
@@ -48,7 +49,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
           note: body.note ?? undefined,
           ...(startsAt ? { reminderSent: false } : {}),
         },
-        include: { client: { select: { id: true, name: true, userId: true } } },
+        include: { client: { select: { ...APPT_CLIENT_SELECT, userId: true } } },
       });
       if (body.status === "cancelled") {
         await cancelPendingReminders(tx, appt.id);
@@ -72,7 +73,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       }
       return row;
     });
-    return NextResponse.json(updated);
+    return NextResponse.json(apptWithPhoto(updated));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

@@ -16,6 +16,8 @@ export type Client = {
   invitedAt: string | null;
   /** Имя, которое клиент указал при синхронизации: карточка предлагает им заменить своё. */
   joinedName?: string | null;
+  /** Аватарка из Telegram. Есть только у клиента, подключившего свой профиль. */
+  photo?: string | null;
   sessionsDone: number;
   hoursDone: number;
   nextAt: string | null;

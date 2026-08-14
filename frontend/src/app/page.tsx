@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
+import { ClientAvatar } from "@/components/client-avatar";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
@@ -288,8 +289,8 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
   return (
     <Link href={`/clients/?id=${appointment.client.id}&book=1`} onClick={tap} className="card-lav group relative block overflow-hidden p-4 text-left transition-transform duration-200 active:scale-[0.99]">
       <div className="flex items-center gap-3.5">
-        <span className="ico ico-white relative h-[80px] w-[80px] shrink-0 text-[32px] font-black" style={{ color: "var(--purple-edge)" }}>
-          {appointment.client.name.charAt(0)}
+        <span className="relative h-[80px] w-[80px] shrink-0">
+          <ClientAvatar name={appointment.client.name} photo={appointment.client.photo} className="ico ico-white h-full w-full text-[32px] font-black" style={{ color: "var(--purple-edge)" }} />
           {/* пульсирующая точка «скоро» — на своём слое, иначе от неё дрожит соседний текст */}
           <span className="pulse-dot absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} />
         </span>

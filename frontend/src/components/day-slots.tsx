@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 
+import { ClientAvatar } from "@/components/client-avatar";
 import { Icon } from "@/components/icons";
 import { tap } from "@/lib/haptics";
 
 // Выбор клиента с быстрым поиском; недавние в терапии — сверху.
 // onCreateClient — если задан, показываем «+ Новый клиент» рядом с поиском.
-export function ClientPicker({ clients, onPick, compact = true, onCreateClient, startAdding = false }: { clients: { id: number; name: string; status: string; contact?: string | null }[]; onPick: (id: number) => void; compact?: boolean; onCreateClient?: (name: string, contact: string) => void; startAdding?: boolean }) {
+export function ClientPicker({ clients, onPick, compact = true, onCreateClient, startAdding = false }: { clients: { id: number; name: string; status: string; contact?: string | null; photo?: string | null }[]; onPick: (id: number) => void; compact?: boolean; onCreateClient?: (name: string, contact: string) => void; startAdding?: boolean }) {
   const [q, setQ] = useState("");
   const [adding, setAdding] = useState(startAdding);
   const [newName, setNewName] = useState("");
@@ -16,9 +17,9 @@ export function ClientPicker({ clients, onPick, compact = true, onCreateClient, 
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(query) || (c.contact ?? "").toLowerCase().includes(query));
   const inTherapy = filtered.filter((c) => c.status === "therapy");
   const others = filtered.filter((c) => c.status !== "therapy");
-  const row = (c: { id: number; name: string; status: string }) => (
+  const row = (c: { id: number; name: string; status: string; photo?: string | null }) => (
     <button key={c.id} onClick={() => onPick(c.id)} className="flex w-full items-center gap-2 rounded-[9px] px-2 py-1.5 text-left transition-colors hover:bg-[var(--head-soft)] active:scale-[0.99]">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--olive-soft)" : "var(--head-soft)" }}>{c.name.charAt(0)}</span>
+      <ClientAvatar name={c.name} photo={c.photo} className="h-7 w-7 rounded-[8px] text-[12px] font-extrabold" style={{ background: c.status === "therapy" ? "var(--olive-soft)" : "var(--head-soft)" }} />
       <span className="font-tight min-w-0 flex-1 break-words text-[13px] font-bold leading-tight">{c.name}</span>
       {c.status === "therapy" && <span className="rounded-full px-1.5 text-[9px] font-extrabold uppercase text-[var(--olive-edge)]">терапия</span>}
     </button>

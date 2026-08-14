@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { NOT_APPROVED, psyApproved } from "@/lib/server/access";
+import { APPT_CLIENT_SELECT, apptWithPhoto } from "@/lib/server/clients";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
@@ -31,10 +32,10 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: { startsAt: "asc" },
-      include: { client: { select: { id: true, name: true } } },
+      include: { client: { select: APPT_CLIENT_SELECT } },
       take,
     });
-    return NextResponse.json(appts);
+    return NextResponse.json(appts.map(apptWithPhoto));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
           format: body.format === "offline" ? "offline" : "online",
           note: body.note ?? "",
         },
-        include: { client: { select: { id: true, name: true } } },
+        include: { client: { select: APPT_CLIENT_SELECT } },
       });
       const clientUser = client.userId
         ? await tx.user.findUnique({ where: { id: client.userId }, select: { sessionReminder2h: true } })
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
       });
       return created;
     });
-    return NextResponse.json(appt, { status: 201 });
+    return NextResponse.json(apptWithPhoto(appt), { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
