@@ -194,6 +194,17 @@ function ClientsList() {
         <div className="card-soft p-5 text-center"><p className="t-head">Не удалось загрузить клиентов</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void refetch()} className="btn mt-4">Повторить</button></div>
       ) : isLoading ? (
         <div className="space-y-3"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>
+      ) : clients.length === 0 ? (
+        // Пустой раздел раньше отвечал «Нет клиентов в этом фильтре» — новичок
+        // упирался в это и уходил. Теперь тут прямое предложение первого шага.
+        <div className="card-soft p-5 text-center">
+          <p className="t-head">Здесь появятся ваши клиенты</p>
+          <p className="t-sub mx-auto mt-1 max-w-[320px]">
+            Пришлите человеку ссылку — он подключится сам, и вы увидите его записи, настроение и задания.
+            Или заведите карточку вручную и ведите её без приглашения.
+          </p>
+          <button onClick={() => { tap(); setOpen(true); }} className="btn mt-4">Пригласить клиента</button>
+        </div>
       ) : list.length === 0 ? (
         <p className="t-sub px-1">{search ? "Никого не нашли по этому имени." : "Нет клиентов в этом фильтре."}</p>
       ) : (

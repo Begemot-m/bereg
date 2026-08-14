@@ -69,24 +69,15 @@ const CLIENT_INTRO: Intro[] = [
 // Ветка психолога: пять доводов, зачем платформа практике.
 const PSY_INTRO: Intro[] = [
   {
-    key: "crm", kicker: "crm", title: "Записи, расписание", titleAccent: "и напоминания",
+    key: "crm", kicker: "практика", title: "Ваша практика —", titleAccent: "в одном месте",
     bg: "var(--tiffany-soft)", soft: "#effaf7", tone: "var(--tiffany-edge)",
     points: [
+      "Приводите своих клиентов: карточка, записи и история встреч живут в приложении, к которому у них есть доступ",
       "Клиент сам выберет свободное окно без лишних переписок и согласований",
       "Напоминания о встрече и переносе не позволят пропустить сеанс",
       "Гибкие настройки графика, правил записи и отмены встреч для вашей комфортной практики",
     ],
     mock: <ScheduleMock />,
-  },
-  {
-    key: "catalog", kicker: "каталог", title: "Каталог, в котором", titleAccent: "вас находят",
-    bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
-    points: [
-      "Подробная анкета о вас и вашем подходе",
-      "Пользователи сразу могут записаться к вам в каталоге на ближайшие даты",
-      "Прозрачная система без покупного рейтинга и накрученных отзывов: оценку ставят только клиенты, с кем вы провели встречу через платформу",
-    ],
-    mock: <ListingMock />,
   },
   {
     key: "flow", kicker: "непрерывность", title: "Терапия не обрывается", titleAccent: "между встречами",
@@ -98,6 +89,16 @@ const PSY_INTRO: Intro[] = [
       "Терапия ощущается непрерывным процессом в контакте со специалистом: клиенты реже станут выпадать и чаще возвращаться к вам",
     ],
     mock: <ClientProgressMock />,
+  },
+  {
+    key: "catalog", kicker: "каталог", title: "Анкета в каталоге —", titleAccent: "ваша визитка",
+    bg: "var(--amber-soft)", soft: "#fff7df", tone: "var(--amber-edge)",
+    points: [
+      "Подробная анкета о вас и вашем подходе: ссылку можно отправить кому угодно, а не только тем, кто нашёл вас внутри платформы",
+      "Из каталога к вам записываются на свободные окна — на ближайшие даты, без переписки",
+      "Прозрачная система без покупного рейтинга и накрученных отзывов: оценку ставят только клиенты, с кем вы провели встречу через платформу",
+    ],
+    mock: <ListingMock />,
   },
   {
     key: "reviews", kicker: "отзывы", title: "Рейтинг, который", titleAccent: "нельзя купить",
@@ -414,7 +415,7 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
     { icon: "calendar", label: "Записи и расписание", free: "всё", pro: "всё" },
     { icon: "note", label: "Задания и заметки", free: "всё", pro: "всё" },
     { icon: "chart", label: "Статистика работы", free: "всё", pro: "всё" },
-    { icon: "compass", label: "Размещение в каталоге специалистов", free: "—", pro: "включено" },
+    { icon: "compass", label: "Размещение в каталоге специалистов", free: "14 дней", pro: "включено" },
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -424,7 +425,7 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
           <div className="min-w-0">
             <p className="t-micro" style={{ color: "var(--purple-edge)" }}>Для психологов</p>
             <h1 className="font-tight mt-1 text-[clamp(22px,6vw,26px)] font-black leading-[1.04] text-[var(--ink)]">
-              Больше клиентов <span style={{ color: "var(--purple-edge)" }}>без лимитов</span>
+              Начните вести практику <span style={{ color: "var(--purple-edge)" }}>уже сегодня</span>
             </h1>
           </div>
         </div>
@@ -434,7 +435,7 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
             <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" color="#fff" /></span>
             <div>
               <p className="t-head text-[var(--ink)]">{FREE_CLIENT_LIMIT} клиента бесплатно</p>
-              <p className="t-sub mt-0.5">Все функции сразу доступны для использования.</p>
+              <p className="t-sub mt-0.5">Все функции доступны сразу, а после первой проведённой сессии включаются ещё 14 дней PRO без лимитов.</p>
             </div>
           </div>
         </div>

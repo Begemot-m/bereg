@@ -10,6 +10,7 @@ import { ClientAvatar } from "@/components/client-avatar";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
+import { PsyStart } from "@/components/psy-start";
 import { WorkStats } from "@/components/work-stats";
 import { motion } from "motion/react";
 
@@ -67,9 +68,14 @@ function PsyHome() {
       icon="home"
       focus={<SessionFocus appointment={next} />}
     >
+      <PsyStart hasSession={appts.length > 0} />
+
       <TourBanner role="psychologist" />
 
-      <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" />
+      {/* Статистика в нулях новичку ничего не говорит — до первой записи её место занимают первые шаги. */}
+      {appts.length > 0 && (
+        <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" />
+      )}
 
       <HomeRoutesCarousel items={[
         { title: "Сессии", detail: "окна и записи", icon: "calendar", href: "/sessions" },
