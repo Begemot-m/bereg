@@ -37,6 +37,7 @@ import {
   listCatalog,
   OWN_PROFILE_ID,
   personalSelection,
+  psyCurrency,
   NOT_ACCEPTING_TEXT,
   profileToCatalogPsy,
   publishedCatalog,
@@ -50,6 +51,8 @@ import {
   type Tone,
 } from "@/lib/catalog";
 import { DEMO } from "@/lib/demo";
+import { currencySymbol, formatMoney } from "@/lib/money";
+import { timeInZone, zoneLabel } from "@/lib/timezones";
 import { select, success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
 import { helpsLine } from "@/lib/morph";
@@ -282,7 +285,7 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
       {/* Стоимость + ближайшее окно + переход к профилю */}
       <div className="line-top mt-1 flex items-center gap-2 px-4 py-3">
         <div className="min-w-0">
-          <p className="t-head">{psy.price.toLocaleString("ru-RU")} ₽<span className="t-cap"> / {psy.minutes} мин</span></p>
+          <p className="t-head">{formatMoney(psy.price, psyCurrency(psy))}<span className="t-cap"> / {psy.minutes} мин</span></p>
           <p className="t-cap mt-1 flex items-center gap-1" style={soon ? { color: "var(--ink)" } : undefined}><Icon name="calendar" width={11} weight="bold" color={soon ? "var(--edge)" : "var(--muted-2)"} /> {nextSlotLabel(psy.nextDays)}</p>
         </div>
         {psy.accepting === false
@@ -299,7 +302,7 @@ function CatalogEmpty({ filters, catalogEmpty, onRelax }: { filters: CatalogFilt
   if (catalogEmpty) {
     return <div className="card-soft p-5 text-center"><div className="flex justify-center"><span className="ico ico-white h-12 w-12"><Icon name="compass" width={23} weight="bold" color="var(--edge)" /></span></div><h3 className="font-tight mt-3 text-[19px] font-black">Специалисты скоро появятся</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Мы открываем каталог по мере того, как специалисты проходят проверку документов. Загляните чуть позже — или напишите нам, если вы психолог и хотите здесь работать.</p></div>;
   }
-  const blocker = filters.thisWeek ? "свободное окно на этой неделе" : filters.maxPrice ? `цена до ${filters.maxPrice.toLocaleString("ru-RU")} ₽` : "выбранные условия";
+  const blocker = filters.thisWeek ? "свободное окно на этой неделе" : filters.maxPrice ? `цена до ${formatMoney(filters.maxPrice, filters.currency)}` : "выбранные условия";
   return <div className="card-soft p-5 text-center"><div className="flex justify-center"><span className="ico ico-white h-12 w-12"><Icon name="compass" width={23} weight="bold" color="var(--edge)" /></span></div><h3 className="font-tight mt-3 text-[19px] font-black">Точных совпадений нет</h3><p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">Сильнее всего ограничивает: {blocker}.</p><Button className="mt-4" onClick={onRelax}>Ослабить условие</Button></div>;
 }
 
@@ -463,7 +466,7 @@ function PricePoster({ psy }: { psy: Psy }) {
       <span aria-hidden className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ background: "#fff", opacity: 0.28 }} />
       <p className="t-micro relative">Встреча</p>
       <div className="relative mt-1 flex items-end gap-2">
-        <p className="font-tight tnum text-[38px] font-black leading-none"><CountUp value={psy.price} /> ₽</p>
+        <p className="font-tight tnum text-[38px] font-black leading-none">{psyCurrency(psy) === "RUB" ? <><CountUp value={psy.price} /> ₽</> : <>{currencySymbol(psyCurrency(psy))}<CountUp value={psy.price} /></>}</p>
         <p className="t-sub mb-1">за {psy.minutes} мин</p>
       </div>
       {/* Счётчики платформы — если специалист разрешил их в анкете */}
@@ -596,10 +599,24 @@ function MethodList({ psy }: { psy: Psy }) {
   );
 }
 
+// Где специалист и по какому времени живёт. Для онлайна это важнее адреса:
+// разница в пять часов решает, состоится ли вечерняя встреча.
+function PsyZoneLine({ psy }: { psy: Psy }) {
+  const region = psy.region?.trim() || psy.city.trim();
+  const zone = psy.timezone?.trim() ?? "";
+  if (!region && !zone) return null;
+  return (
+    <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--muted)]">
+      <Icon name="pin" width={12} weight="bold" color="var(--muted-2)" />
+      {[region, zone ? `${zoneLabel(zone)}, сейчас ${timeInZone(zone)}` : ""].filter(Boolean).join(" · ")}
+    </p>
+  );
+}
+
 function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
   const [open, setOpen] = useState(false);
   if (psy.format === "online") {
-    return <Section title="Формат и место"><div className="flex items-start gap-3 panel p-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--head-soft)] stroke"><Icon name="video" width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p></div></div></Section>;
+    return <Section title="Формат и место"><div className="flex items-start gap-3 panel p-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--head-soft)] stroke"><Icon name="video" width={19} weight="bold" /></span><div><p className="text-[13px] font-black">{details}</p><p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Языки: {psy.languages.join(", ")}</p><PsyZoneLine psy={psy} /></div></div></Section>;
   }
   const address = [psy.city, psy.district, psy.metro ? `м. ${psy.metro.replace(/^м\.\s*/i, "")}` : "", psy.publicExactAddress ? psy.address : ""].filter(Boolean).join(", ");
   const routes = [
@@ -609,6 +626,7 @@ function LocationBlock({ psy, details }: { psy: Psy; details: string }) {
   ];
   return (
     <Section title="Формат и место">
+      <div className="mb-2 px-1"><PsyZoneLine psy={psy} /></div>
       <div className="overflow-hidden rounded-[18px] bg-white stroke-lg">
         <button onClick={() => { tap(); setOpen((value) => !value); }} className="block w-full text-left" aria-expanded={open}>
           <div className="relative h-[120px] overflow-hidden" style={{ background: "color-mix(in srgb, var(--tiffany-soft) 65%, white)", backgroundImage: "repeating-linear-gradient(0deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(32,28,24,.05) 0 1px, transparent 1px 22px)" }}>
@@ -891,7 +909,7 @@ function BookFlow({ psy, onDone }: { psy: Psy; onDone: () => void }) {
   const [done, setDone] = useState<{ at: string; format: string } | null>(null);
   const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psy, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
   if (done) return <BookedNext psy={psy} at={done.at} format={done.format} onDone={onDone} />;
-  return <><p className="t-micro mb-2">День и окно</p><SlotPicker psyId={psy.id} variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
+  return <><p className="t-micro mb-2">День и окно</p><SlotPicker psyId={psy.id} psyTimezone={psy.timezone} variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
 }
 
 // Что делать сразу после записи. Для новичка это первый экран приложения:

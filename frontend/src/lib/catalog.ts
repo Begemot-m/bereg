@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { availabilityFits, availabilityFromWorkHours, availabilityScore, EMPTY_AVAILABILITY, nextSlotDays, type Availability, type DayGroup, type ScheduleHours } from "@/lib/availability";
+import { priceFitsScale, toCurrency, type Currency } from "@/lib/money";
 import { helpsLine, languagePrepositional, yearsWord } from "@/lib/morph";
 import type { PsyProfile } from "@/lib/profile";
 import { publicRules, type PublicRule } from "@/lib/profile-rules";
@@ -24,9 +25,15 @@ export type Psy = {
   specialistTypes?: string[]; // психолог / психотерапевт / коуч — можно несколько
   topics: string[];
   price: number;
+  /** Валюта цены: рубли по умолчанию, доллар или евро — у тех, кто вне России. */
+  currency?: Currency;
   minutes: number;
   format: PsyFormat;
   city: string;
+  /** Регион или страна специалиста — рядом с часовым поясом в карточке. */
+  region?: string;
+  /** Часовой пояс специалиста (IANA): по нему клиент понимает разницу. */
+  timezone?: string;
   district?: string;
   metro?: string;
   address?: string;
@@ -73,7 +80,10 @@ export type CatalogPrefs = {
   topics: string[];
   format: "any" | PsyFormat;
   city: string;
-  budget: BudgetKey | null;
+  /** Валюта, в которой человек считает бюджет. */
+  currency: Currency;
+  /** Верхняя граница бюджета; null — «сколько угодно». */
+  maxPrice: number | null;
   days: DayGroup[];
   times: TimeOfDay[];
   gender: "any" | Gender;
@@ -87,6 +97,7 @@ export type CatalogFilters = {
   methods: string[];
   format: "any" | PsyFormat;
   city: string;
+  currency: Currency;
   maxPrice: number | null;
   gender: "any" | Gender;
   language: string;
@@ -97,8 +108,8 @@ export type CatalogFilters = {
 
 export type SortMode = "recommended" | "soon" | "price-asc" | "price-desc" | "experience" | "rating" | "new";
 
-export const EMPTY_PREFS: CatalogPrefs = { topics: [], format: "any", city: "", budget: null, days: [], times: [], gender: "any", language: "any", minYears: 0 };
-export const EMPTY_FILTERS: CatalogFilters = { query: "", topics: [], methods: [], format: "any", city: "", maxPrice: null, gender: "any", language: "any", minYears: 0, verifiedOnly: false, thisWeek: false };
+export const EMPTY_PREFS: CatalogPrefs = { topics: [], format: "any", city: "", currency: "RUB", maxPrice: null, days: [], times: [], gender: "any", language: "any", minYears: 0 };
+export const EMPTY_FILTERS: CatalogFilters = { query: "", topics: [], methods: [], format: "any", city: "", currency: "RUB", maxPrice: null, gender: "any", language: "any", minYears: 0, verifiedOnly: false, thisWeek: false };
 
 export const TOPICS = ["тревога", "выгорание", "отношения", "самооценка", "травма", "утрата", "стресс", "сон", "прокрастинация", "одиночество", "депрессия", "панические атаки", "границы", "эмоции", "работа и карьера", "семья", "родители", "дети", "расставание", "деньги", "зависимости", "пищевое поведение", "здоровье", "поиск себя", "сексуальность", "переезд"];
 /** Тема-«всё остальное» в опросе: человек не обязан укладываться в список. */
@@ -119,18 +130,17 @@ export function catalogCities(catalog: Psy[] = PUBLIC_PSYS): string[] {
   return [...cities].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, "ru"));
 }
 
-/** Бюджет за одну встречу — вилками, а не одним потолком. */
-export type BudgetKey = "to3000" | "from3000" | "from5000" | "from9000";
-export const BUDGET_BANDS: { key: BudgetKey; label: string; min: number; max: number }[] = [
-  { key: "to3000", label: "до 3000 ₽", min: 0, max: 3000 },
-  { key: "from3000", label: "от 3000 ₽", min: 3000, max: Number.POSITIVE_INFINITY },
-  { key: "from5000", label: "от 5000 ₽", min: 5000, max: Number.POSITIVE_INFINITY },
-  { key: "from9000", label: "от 9000 ₽", min: 9000, max: Number.POSITIVE_INFINITY },
-];
-export const budgetBand = (key: BudgetKey | null) => BUDGET_BANDS.find((band) => band.key === key) ?? null;
-export function priceFitsBudget(price: number, key: BudgetKey | null): boolean {
-  const band = budgetBand(key);
-  return !band || (price >= band.min && price <= band.max);
+/** Валюта карточки: анкеты без поля — рублёвые, других раньше не было. */
+export const psyCurrency = (psy: Psy): Currency => toCurrency(psy.currency);
+
+/**
+ * Проходит ли карточка по шкале бюджета. Пока потолок не задан (null), шкала
+ * ничего не отсекает: человек ещё не трогал ползунок, и валюта не повод
+ * прятать специалиста.
+ */
+export function priceFitsBudget(psy: Psy, maxPrice: number | null, currency: Currency): boolean {
+  if (maxPrice == null) return true;
+  return priceFitsScale(psy.price, psyCurrency(psy), maxPrice, currency);
 }
 
 /** «Другой» язык — любой, кроме русского и английского. */
@@ -155,8 +165,11 @@ export const METHOD_DESCRIPTIONS: Record<string, string> = {
 const DEMO_CATALOG = process.env.NEXT_PUBLIC_DEMO === "1";
 
 const DEMO_PSYS: Psy[] = [
-  { id: 1, name: "Ирина Верещагина", portrait: "/catalog/irina.webp", tone: "green", verified: true, rating: 4.9, reviews: 128, method: "КПТ", methods: ["КПТ", "EMDR"], topics: ["тревога", "границы", "панические атаки"], price: 3500, minutes: 50, format: "both", city: "Москва", district: "Хамовники", metro: "Фрунзенская", address: "Комсомольский проспект, 28", publicExactAddress: false, gender: "woman", languages: ["русский", "английский"], years: 8, sessions: 1240, clients: 210, responseHrs: 2, nextDays: 1, availableTimes: ["day", "evening"], exposure: 72, newcomer: false, tg: "irina_v", about: "Помогаю справляться с тревогой и вернуть опору. Работаю бережно, в темпе клиента, с опорой на доказательные методы.", firstSession: "На первой встрече уточним, что происходит сейчас, сформулируем реалистичную цель и договоримся о комфортном темпе работы.", education: ["МГУ, факультет психологии", "Сертификация по КПТ, АКБТ", "EMDR Europe, базовый курс"], style: "мягкий, в темпе клиента", quote: "Тревога — не приговор. Разберём её по шагам.", helps: "тревогой, паническими атаками и границами", avoids: ["зависимости", "расстройства пищевого поведения"] },
-  { id: 2, name: "Сергей Домбровский", portrait: "/catalog/sergey.webp", tone: "amber", verified: true, rating: 4.8, reviews: 94, method: "ACT", methods: ["ACT", "DBT"], topics: ["выгорание", "самооценка", "стресс"], price: 4000, minutes: 60, format: "online", city: "Санкт-Петербург", gender: "man", languages: ["русский"], years: 11, sessions: 1980, clients: 340, responseHrs: 3, nextDays: 4, availableTimes: ["morning", "day"], exposure: 84, newcomer: false, tg: "sergey_act", about: "Работаю с выгоранием и самооценкой. Помогаю находить ценности и действовать вопреки тревоге и прокрастинации.", education: ["СПбГУ, клиническая психология", "ACT — Ассоциация контекстно-поведенческой науки"], style: "структурный, через ценности", quote: "Помогу двигаться к важному, даже когда страшно.", helps: "выгоранием, самооценкой и стрессом", avoids: ["работа с парами", "детская терапия"] },
+  { id: 1, name: "Ирина Верещагина", portrait: "/catalog/irina.webp", tone: "green", verified: true, rating: 4.9, reviews: 128, method: "КПТ", methods: ["КПТ", "EMDR"], topics: ["тревога", "границы", "панические атаки"], price: 3500, currency: "RUB", region: "Москва · Россия", timezone: "Europe/Moscow", minutes: 50, format: "both", city: "Москва", district: "Хамовники", metro: "Фрунзенская", address: "Комсомольский проспект, 28", publicExactAddress: false, gender: "woman", languages: ["русский", "английский"], years: 8, sessions: 1240, clients: 210, responseHrs: 2, nextDays: 1, availableTimes: ["day", "evening"], exposure: 72, newcomer: false, tg: "irina_v", about: "Помогаю справляться с тревогой и вернуть опору. Работаю бережно, в темпе клиента, с опорой на доказательные методы.", firstSession: "На первой встрече уточним, что происходит сейчас, сформулируем реалистичную цель и договоримся о комфортном темпе работы.", education: ["МГУ, факультет психологии", "Сертификация по КПТ, АКБТ", "EMDR Europe, базовый курс"], style: "мягкий, в темпе клиента", quote: "Тревога — не приговор. Разберём её по шагам.", helps: "тревогой, паническими атаками и границами", avoids: ["зависимости", "расстройства пищевого поведения"] },
+  { id: 2, name: "Сергей Домбровский", portrait: "/catalog/sergey.webp", tone: "amber", verified: true, rating: 4.8, reviews: 94, method: "ACT", methods: ["ACT", "DBT"], topics: ["выгорание", "самооценка", "стресс"], price: 4000, currency: "RUB", minutes: 60, format: "online", city: "Санкт-Петербург", gender: "man", languages: ["русский"], years: 11, sessions: 1980, clients: 340, responseHrs: 3, nextDays: 4, availableTimes: ["morning", "day"], exposure: 84, newcomer: false, tg: "sergey_act", about: "Работаю с выгоранием и самооценкой. Помогаю находить ценности и действовать вопреки тревоге и прокрастинации.", education: ["СПбГУ, клиническая психология", "ACT — Ассоциация контекстно-поведенческой науки"], style: "структурный, через ценности", quote: "Помогу двигаться к важному, даже когда страшно.", helps: "выгоранием, самооценкой и стрессом", avoids: ["работа с парами", "детская терапия"], region: "Санкт-Петербург · Россия", timezone: "Europe/Moscow" },
+  // Специалист вне России: оплата в евро и свой часовой пояс — ради него в
+  // каталоге и появились валюта со шкалой.
+  { id: 3, name: "Марина Штерн", portrait: "/catalog/irina.webp", tone: "purple", verified: true, rating: 4.9, reviews: 41, method: "Схема-терапия", methods: ["Схема-терапия", "КПТ"], topics: ["переезд", "одиночество", "отношения"], price: 60, currency: "EUR", minutes: 50, format: "online", city: "", region: "Лиссабон · Португалия", timezone: "Europe/Lisbon", gender: "woman", languages: ["русский", "английский"], years: 9, sessions: 860, clients: 120, responseHrs: 5, nextDays: 2, availableTimes: ["day", "evening"], exposure: 40, newcomer: false, tg: "marina_schema", about: "Работаю с теми, кто переехал: адаптация, одиночество, отношения на расстоянии. Оплата в евро, встречи только онлайн.", education: ["СПбГУ, клиническая психология", "ISST, схема-терапия"], style: "неспешный, глубинный", quote: "Переезд меняет не только адрес — с этим можно бережно разобраться.", helps: "переездом, одиночеством и отношениями", avoids: ["зависимости"] },
 ];
 
 export const PSYS: Psy[] = DEMO_CATALOG ? DEMO_PSYS : [];
@@ -221,7 +234,10 @@ export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | 
     specialistTypes: (profile.specialistTypes?.length ? profile.specialistTypes : [profile.specialistType].filter(Boolean) as string[]),
     topics: profile.topics.filter(Boolean),
     price: profile.sessionPrice,
+    currency: toCurrency(profile.currency),
     minutes: profile.sessionMinutes,
+    region: profile.location.region?.trim() || undefined,
+    timezone: profile.timezone?.trim() || undefined,
     // В каталог карточка попадает только заполненной, но формат в анкете может
     // быть ещё не выбран — тогда считаем встречи онлайн.
     format: profile.format || "online",
@@ -296,9 +312,12 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     specialistTypes: list(row.specialistTypes),
     topics: list(row.topics),
     price: Number(row.price) || 0,
+    currency: toCurrency(row.currency),
     minutes: Number(row.minutes) || 50,
     format: (row.format as Psy["format"]) ?? "online",
     city: text(row.city),
+    region: text(row.region) || undefined,
+    timezone: text(row.timezone) || undefined,
     district: text(row.district) || undefined,
     metro: text(row.metro) || undefined,
     address: text(row.address) || undefined,
@@ -372,7 +391,7 @@ export function matchScore(psy: Psy, prefs: CatalogPrefs): number {
   else score += 16;
   if (formatFits(psy, prefs.format)) score += 16; else score -= 30;
   if (prefs.city && prefs.format !== "online" && psy.city.toLowerCase() === prefs.city.toLowerCase()) score += 8;
-  if (prefs.budget) score += priceFitsBudget(psy.price, prefs.budget) ? 12 : -12;
+  if (prefs.maxPrice != null) score += priceFitsBudget(psy, prefs.maxPrice, prefs.currency) ? 12 : -12;
   if (prefs.times.length || prefs.days.length) score += availabilityScore(psyAvailability(psy), prefs.days, prefs.times) * 4;
   if (prefs.gender !== "any") score += psy.gender === prefs.gender ? 6 : -8;
   if (prefs.language !== "any") score += speaksLanguage(psy, prefs.language) ? 5 : -10;
@@ -389,7 +408,7 @@ export function reasonsFor(psy: Psy, prefs: CatalogPrefs): string[] {
   const topic = prefs.topics.find((value) => value !== TOPIC_OTHER && psy.topics.includes(value));
   if (topic) reasons.push(`работает с запросом «${topic}»`);
   if (reasons.length < 3) reasons.push(`основной подход — ${psy.method}`);
-  if (prefs.budget && priceFitsBudget(psy.price, prefs.budget)) reasons.push("подходит по бюджету");
+  if (prefs.maxPrice != null && priceFitsBudget(psy, prefs.maxPrice, prefs.currency)) reasons.push("подходит по бюджету");
   if (prefs.language !== "any" && speaksLanguage(psy, prefs.language)) reasons.push(prefs.language === LANGUAGE_OTHER ? "консультирует не только на русском" : `консультирует на ${languagePrepositional(prefs.language)}`);
   if (prefs.city && prefs.format !== "online" && psy.city.toLowerCase() === prefs.city.toLowerCase()) reasons.push(`принимает в городе ${psy.city}`);
   if (prefs.minYears > 0 && psy.years >= prefs.minYears) reasons.push(`${psy.years} ${yearsWord(psy.years)} практики`);
@@ -406,7 +425,7 @@ export function exactMatches(prefs: CatalogPrefs, catalog: Psy[] = PUBLIC_PSYS):
   return catalog.filter((psy) => {
     if (!formatFits(psy, prefs.format)) return false;
     if (prefs.city && prefs.format !== "online" && psy.city.toLowerCase() !== prefs.city.toLowerCase()) return false;
-    if (prefs.budget && !priceFitsBudget(psy.price, prefs.budget)) return false;
+    if (!priceFitsBudget(psy, prefs.maxPrice, prefs.currency)) return false;
     if (prefs.gender !== "any" && psy.gender !== prefs.gender) return false;
     if (prefs.language !== "any" && !speaksLanguage(psy, prefs.language)) return false;
     if (topics.length && !overlap(psy.topics, topics)) return false;
@@ -418,9 +437,10 @@ export function exactMatches(prefs: CatalogPrefs, catalog: Psy[] = PUBLIC_PSYS):
 /** Настройки из localStorage могли остаться от прежней версии опроса. */
 export function normalizePrefs(raw: unknown): CatalogPrefs {
   const saved = (raw && typeof raw === "object" ? raw : {}) as Partial<CatalogPrefs>;
-  const budget = typeof saved.budget === "string" && BUDGET_BANDS.some((band) => band.key === saved.budget) ? saved.budget : null;
   const language = typeof saved.language === "string" && saved.language ? saved.language : "any";
-  return { ...EMPTY_PREFS, ...saved, budget, language };
+  // Раньше бюджет хранился ключом вилки («from3000»); шкала считает числом.
+  const maxPrice = typeof saved.maxPrice === "number" && saved.maxPrice > 0 ? saved.maxPrice : null;
+  return { ...EMPTY_PREFS, ...saved, currency: toCurrency(saved.currency), maxPrice, language };
 }
 
 export function personalSelection(prefs: CatalogPrefs, catalog: Psy[] = PUBLIC_PSYS): Psy[] {
@@ -442,7 +462,7 @@ export function filterCatalog(filters: CatalogFilters, catalog: Psy[] = PUBLIC_P
     if (filters.methods.length && !overlap(psy.methods, filters.methods)) return false;
     if (!formatFits(psy, filters.format)) return false;
     if (filters.city && psy.city.toLowerCase() !== filters.city.toLowerCase()) return false;
-    if (filters.maxPrice != null && psy.price > filters.maxPrice) return false;
+    if (!priceFitsBudget(psy, filters.maxPrice, filters.currency)) return false;
     if (filters.gender !== "any" && psy.gender !== filters.gender) return false;
     if (filters.language !== "any" && !speaksLanguage(psy, filters.language)) return false;
     if (psy.years < filters.minYears) return false;

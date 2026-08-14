@@ -6,9 +6,11 @@ import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import { success, tap } from "@/lib/haptics";
 import { profileCompletionPercent } from "@/components/profile-editor";
+import { formatMoney, toCurrency } from "@/lib/money";
 import { displayName, displayPhoto, useProfile } from "@/lib/profile";
+import { DocumentViewer } from "@/components/document-viewer";
 import {
-  demoPrimaryDocument, MAX_DOCUMENT_MB, MAX_DOCUMENTS, useDeleteDocument, usePsyDocuments, useUploadDocument,
+  demoPrimaryDocument, MAX_DOCUMENT_MB, MAX_DOCUMENTS, useDeleteDocument, usePsyDocuments, useUploadDocument, type PsyDocument,
 } from "@/lib/psy-documents";
 import {
   CATALOG_MIN_PERCENT, useSubmitCatalogVerification, useVerification,
@@ -29,6 +31,7 @@ export function CatalogVerification() {
   const upload = useUploadDocument();
   const removeDocument = useDeleteDocument();
   const [fileError, setFileError] = useState("");
+  const [preview, setPreview] = useState<PsyDocument | null>(null);
 
   const percent = profileCompletionPercent(profile);
   const photo = profile?.photos?.[0] ?? profile?.photo ?? displayPhoto();
@@ -38,7 +41,7 @@ export function CatalogVerification() {
   const checks = [
     { ok: percent >= CATALOG_MIN_PERCENT, title: `Профиль заполнен на ${CATALOG_MIN_PERCENT}%`, note: `Сейчас ${percent}%` },
     { ok: Boolean(photo), title: "Фотография", note: photo ? "Загружена" : "Добавьте фото в шаге «Фото и основное»" },
-    { ok: price > 0, title: "Стоимость сессии", note: price > 0 ? `${price.toLocaleString("ru-RU")} ₽` : "Укажите цену в шаге «Условия встречи»" },
+    { ok: price > 0, title: "Стоимость сессии", note: price > 0 ? formatMoney(price, toCurrency(profile?.currency)) : "Укажите цену в шаге «Условия встречи»" },
     { ok: documents.length > 0, title: "Подтверждение образования", note: documents.length ? `${documents.length} ${documents.length === 1 ? "документ" : documents.length < 5 ? "документа" : "документов"}` : "Диплом или сертификат — фото или PDF" },
   ];
   const ready = checks.every((item) => item.ok);
@@ -139,13 +142,17 @@ export function CatalogVerification() {
           {documents.map((doc) => (
             <div key={doc.id} className="card-soft mt-2 flex items-center gap-2.5 p-2.5">
               <span className="ico h-8 w-8 shrink-0"><Icon name="book" width={15} weight="bold" /></span>
-              <span className="min-w-0 flex-1">
+              {/* Свой документ должно быть видно: раньше загруженный диплом
+                  можно было только удалить, и проверить, тот ли файл уехал,
+                  было нечем. */}
+              <button onClick={() => { tap(); setPreview(doc); }} className="min-w-0 flex-1 text-left">
                 <span className="block truncate text-[12px] font-black">{doc.name}</span>
-                <span className="t-cap block">{doc.kind === "diploma" ? "Диплом" : "Сертификат"} · {Math.round(doc.size / 1024)} КБ</span>
-              </span>
+                <span className="t-cap block">{doc.kind === "diploma" ? "Диплом" : "Сертификат"} · {Math.round(doc.size / 1024)} КБ · посмотреть</span>
+              </button>
               <button onClick={() => { tap(); removeDocument.mutate(doc.id); }} className="x-close h-7 w-7 text-[15px]" aria-label={`Убрать ${doc.name}`}>✕</button>
             </div>
           ))}
+          <DocumentViewer doc={preview} onClose={() => setPreview(null)} />
           {fileError && <p className="card-soft mt-2 p-2.5 text-[12px] font-bold" style={{ background: "var(--salmon-soft)" }}>{fileError}</p>}
 
           <Button className="mt-3 w-full" disabled={!ready || submit.isPending} onClick={send}>

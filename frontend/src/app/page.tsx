@@ -73,6 +73,7 @@ function PsyHome() {
       <HomeRoutesCarousel items={[
         { title: "Сессии", detail: "окна и записи", icon: "calendar", href: "/sessions" },
         { title: "Клиенты", detail: "карточки и прогресс", icon: "users", href: "/clients" },
+        { title: "Каталог", detail: "специалисты площадки", icon: "compass", href: "/catalog" },
         { title: "Инструменты", detail: "материалы для практики", icon: "tools", href: "/tools" },
         { title: "Кабинет", detail: "профиль и подписка", icon: "user", href: "/cabinet" },
       ]} />

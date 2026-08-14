@@ -13,7 +13,7 @@ import {
   type UsagePeriod, type UsageTotals,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
-import { openPsyDocument } from "@/lib/psy-documents";
+import { DocumentViewer } from "@/components/document-viewer";
 
 import { zoneFormat } from "@/lib/zone";
 
@@ -505,23 +505,19 @@ function Application({ a, busy, onApprove, onReject }: {
   );
 }
 
-// Документ заявки. Открывается не ссылкой, а загрузкой: у ссылки нет
-// ни обновления сессии, ни вменяемого поведения в Telegram-вебвью.
+// Документ заявки. Открывается не ссылкой и не новой вкладкой, а прямо здесь:
+// в Telegram-вебвью и `target="_blank"`, и `download` молча не срабатывают —
+// модератор нажимал и не получал ничего.
 function DocumentChip({ doc }: { doc: { id: number; kind: string; name: string; mime: string; dataUrl?: string } }) {
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [open, setOpen] = useState(false);
   const label = doc.kind === "diploma" ? "Диплом" : "Сертификат";
   return (
-    <button
-      onClick={async () => {
-        tap();
-        setState("loading");
-        try { await openPsyDocument(doc); setState("idle"); } catch { setState("error"); }
-      }}
-      className="chip chip-strong"
-      title={doc.name}
-    >
-      {state === "loading" ? "Открываем…" : state === "error" ? `${label} — не открылся, повторить` : `${label} · ${doc.name}`}
-    </button>
+    <>
+      <button onClick={() => { tap(); setOpen(true); }} className="chip chip-strong" title={doc.name}>
+        {label} · {doc.name}
+      </button>
+      <DocumentViewer doc={open ? doc : null} onClose={() => setOpen(false)} />
+    </>
   );
 }
 

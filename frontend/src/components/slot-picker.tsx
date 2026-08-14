@@ -9,7 +9,8 @@ import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
 import type { Appointment, ApptFormat } from "@/lib/appointments";
-import { addDays, parseYmd, weekdayOf, zoneDay, zoneFormat } from "@/lib/zone";
+import { sameOffset, timeInZone, zoneLabel } from "@/lib/timezones";
+import { addDays, APP_ZONE, parseYmd, weekdayOf, zoneDay, zoneFormat } from "@/lib/zone";
 
 const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 const monShort = zoneFormat({ month: "short" });
@@ -25,6 +26,7 @@ export function SlotPicker({
   appts = [],
   bookedStart,
   bookedLabel,
+  psyTimezone,
   onPick,
 }: {
   /** Чьи окна показываем. Без id — своё расписание, с id — расписание специалиста. */
@@ -40,6 +42,8 @@ export function SlotPicker({
   /** Окно текущей записи — показываем его в сетке времён с акцентом. */
   bookedStart?: string;
   bookedLabel?: string;
+  /** Часовой пояс специалиста — если он свой, скажем, сколько у него на часах. */
+  psyTimezone?: string;
   onPick: (iso: string, format: ApptFormat) => void;
 }) {
   const todayY = ymdLocal(new Date());
@@ -124,6 +128,26 @@ export function SlotPicker({
           </div>
         )}
       </div>
+
+      <ZoneNote psyTimezone={psyTimezone} />
     </div>
+  );
+}
+
+/**
+ * По какому времени показаны окна. Расписание платформа считает в своей зоне, и
+ * человек из другого пояса иначе читает «15:00»; если у специалиста зона своя —
+ * сразу говорим, сколько у него сейчас на часах.
+ */
+function ZoneNote({ psyTimezone }: { psyTimezone?: string }) {
+  const other = psyTimezone && !sameOffset(psyTimezone, APP_ZONE) ? psyTimezone : "";
+  return (
+    <p className="mt-2.5 flex items-start gap-1.5 text-[10.5px] font-semibold leading-snug text-[var(--muted-2)]">
+      <Icon name="clock" width={12} weight="bold" color="var(--muted-2)" />
+      <span>
+        Время указано по часовому поясу платформы — {zoneLabel(APP_ZONE)}.
+        {other && ` У специалиста (${zoneLabel(other)}) в это время ${timeInZone(other)}.`}
+      </span>
+    </p>
   );
 }

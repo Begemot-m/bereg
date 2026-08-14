@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { apiFetch } from "@/lib/api";
+import { toCurrency, type Currency } from "@/lib/money";
 import { EMPTY_RULES, normalizeRules, type ProfileRules } from "@/lib/profile-rules";
 
 // --- Пользователь из Telegram (initDataUnsafe достаточно для прототипа) ---
@@ -48,13 +49,19 @@ export type PsyProfile = {
   /** Пустая строка — специалист ещё не выбрал формат приёма. */
   format: "online" | "offline" | "both" | "";
   sessionPrice: number;
+  /** Валюта стоимости: рубли либо доллар/евро для специалистов вне России. */
+  currency: Currency;
   location: {
     city: string;
     district: string;
     metro: string;
     address: string;
     publicExactAddress: boolean;
+    /** Регион или страна — показывается в карточке рядом с часовым поясом. */
+    region: string;
   };
+  /** Часовой пояс специалиста (IANA), чтобы клиент понимал разницу во времени. */
+  timezone: string;
   photo: string | null;        // совместимость; дублирует photos[0]
   photos: string[];            // до 3 фото, первое — основное
   sessionMinutes: number;      // длительность сессии
@@ -165,6 +172,8 @@ export function getPsyProfile(): PsyProfile | null {
     if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : [];
     if (typeof p.sessionMinutes !== "number") p.sessionMinutes = 0;
     if (typeof p.sessionPrice !== "number") p.sessionPrice = 0;
+    p.currency = toCurrency(p.currency);
+    if (typeof p.timezone !== "string") p.timezone = "";
     if (typeof p.tg !== "string") p.tg = "";
     p.primaryMethod = p.primaryMethod || p.approach || "";
     p.approach = p.primaryMethod;
@@ -188,8 +197,9 @@ export function getPsyProfile(): PsyProfile | null {
 // чужие умолчания — 3500 ₽ за 50 минут онлайн.
 const EMPTY: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
-  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0,
-  location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
+  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0, currency: "RUB",
+  location: { city: "", district: "", metro: "", address: "", publicExactAddress: false, region: "" },
+  timezone: "",
   photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],
   showStats: true, rules: EMPTY_RULES, status: "review",
 };
@@ -216,7 +226,19 @@ export function savePsyProfile(patch: Partial<PsyProfile>) {
 }
 
 function writeLocal(profile: PsyProfile) {
-  localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
+  try {
+    localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
+  } catch {
+    // Квота localStorage кончилась — обычно на фото. Раньше падала вся запись
+    // вместе с исключением наружу, и анкета переставала сохраняться совсем:
+    // человек видел, что фото «не грузится». Сохраняем без фото — сами файлы
+    // всё равно уезжают на сервер и вернутся оттуда при следующей сверке.
+    try {
+      localStorage.setItem(KEY_PROFILE, JSON.stringify({ ...profile, photos: profile.photos.slice(0, 1), photo: profile.photos[0] ?? null }));
+    } catch {
+      try { localStorage.setItem(KEY_PROFILE, JSON.stringify({ ...profile, photos: [], photo: null })); } catch { /* хранилище недоступно */ }
+    }
+  }
   window.dispatchEvent(new CustomEvent(EVENT));
 }
 

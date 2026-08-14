@@ -7,21 +7,24 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { ArrowGlyph } from "@/components/blocks";
 import { VerificationPrompt } from "@/components/verification-prompt";
-import { Button, Disclosure, Input, Textarea } from "@/components/ui";
+import { Button, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
+import { compressImage } from "@/lib/image";
+import { CURRENCIES, currencySymbol, formatMoney, MIN_PRICE, toCurrency } from "@/lib/money";
+import { deviceTimezone, TIMEZONES, zoneLabel } from "@/lib/timezones";
 import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, normalizeLinkUrl, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
 import { EMPTY_RULES, normalizeRules, publicRules, RULE_PRESETS, rulesFilled, type RuleId } from "@/lib/profile-rules";
 import { helpsLine } from "@/lib/morph";
-import { useVerification, type PsyStatus } from "@/lib/psy-verification";
 
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
 
 const EMPTY_PROFILE: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
-  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0,
-  location: { city: "", district: "", metro: "", address: "", publicExactAddress: false },
+  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0, currency: "RUB",
+  location: { city: "", district: "", metro: "", address: "", publicExactAddress: false, region: "" },
+  timezone: "",
   photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],
   showStats: true, rules: EMPTY_RULES, status: "review",
 };
@@ -77,8 +80,7 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
 }
 
 export function ProfessionalProfileEditor() {
-  const router = useRouter();
-  return <ProfileForm livePreview onDone={() => router.push("/cabinet")} />;
+  return <ProfileForm livePreview />;
 }
 
 // Статус проверки показывает VerificationPrompt под шапкой. Отдельный чип брал
@@ -107,7 +109,9 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
         </div>
         {full && <p className="mt-1 truncate text-[10.5px] font-semibold text-[var(--muted)]">Профиль готов — его увидят ваши клиенты</p>}
       </div>
-      <span className="btn shrink-0 px-4 py-2 text-[12px]">Заполнить</span>
+      {/* Пустую анкету «заполняют», начатую — «редактируют»: кнопка «Заполнить»
+          над заполненной наполовину полосой выглядела так, будто всё сотрут. */}
+      <span className="btn shrink-0 px-4 py-2 text-[12px]">{percent > 0 ? "Редактировать" : "Заполнить"}</span>
     </button>
   );
 }
@@ -180,13 +184,13 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
         {(profile?.links?.filter((l) => normalizeLinkUrl(l.kind, l.url)).length ?? 0) > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{profile!.links.map((link, i) => ({ ...link, href: normalizeLinkUrl(link.kind, link.url), i })).filter((l) => l.href).map((link) => <a key={link.i} href={link.href!} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white stroke" title={LINK_META[link.kind].label}><Icon name={LINK_META[link.kind].icon} width={15} weight="bold" /></a>)}</div>}
       </div>
       <div className="grid grid-cols-3 gap-2 p-3">
-        <PreviewStat label="Стоимость" value={profile?.sessionPrice ? `${profile.sessionPrice.toLocaleString("ru-RU")} ₽` : "—"} />
+        <PreviewStat label="Стоимость" value={profile?.sessionPrice ? formatMoney(profile.sessionPrice, toCurrency(profile.currency)) : "—"} />
         <PreviewStat label="Длительность" value={profile?.sessionMinutes ? `${profile.sessionMinutes} мин` : "—"} />
         <PreviewStat label="Формат" value={format} />
       </div>
     </div>
 
-    {location && <section className="chunk p-4"><SectionTitle icon="pin" title="Формат и место" /><p className="text-[13px] font-bold">{location}</p>{profile?.format !== "online" && profile?.location.address && !profile.location.publicExactAddress && <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Точный адрес клиент получит после подтверждения очной встречи.</p>}</section>}
+    {location && <section className="chunk p-4"><SectionTitle icon="pin" title="Формат и место" /><p className="text-[13px] font-bold">{location}</p>{(profile?.location.region?.trim() || profile?.timezone) && <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{[profile?.location.region?.trim(), profile?.timezone ? zoneLabel(profile.timezone) : ""].filter(Boolean).join(" · ")}</p>}{profile?.format !== "online" && profile?.location.address && !profile.location.publicExactAddress && <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Точный адрес клиент получит после подтверждения очной встречи.</p>}</section>}
     {(profile?.languages?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Языки консультации</p><div className="flex flex-wrap gap-1.5">{profile!.languages.map((language) => <Tag key={language}>{language}</Tag>)}</div></section>}
     {(profile?.topics?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем можно обратиться</p><div className="flex flex-wrap gap-1.5">{profile!.topics.map((topic) => <Tag key={topic}>{topic}</Tag>)}</div></section>}
     {(profile?.avoids?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем не работает</p><div className="flex flex-wrap gap-1.5">{profile!.avoids.map((topic) => <span key={topic} className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-[12px] font-bold text-[var(--muted)] stroke">{topic}</span>)}</div></section>}
@@ -204,7 +208,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
 // Карточка-миниатюра повторяет представление специалиста в каталоге.
 function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; name: string; photo: string | null }) {
   const helps = helpsLine(profile?.topics);
-  const price = profile?.sessionPrice ? profile.sessionPrice.toLocaleString("ru-RU") : "—";
+  const price = profile?.sessionPrice ? formatMoney(profile.sessionPrice, toCurrency(profile.currency)) : "—";
   const minutes = profile?.sessionMinutes || "—";
   const format = formatLabel(profile?.format || "online");
   return (
@@ -226,7 +230,7 @@ function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; na
         </div>
         <div className="mt-1 flex items-center gap-2 border-t px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
           <div className="min-w-0">
-            <p className="text-[15px] font-black leading-none">{price} ₽<span className="text-[11px] font-bold text-[var(--muted)]"> / {minutes} мин</span></p>
+            <p className="text-[15px] font-black leading-none">{price}<span className="text-[11px] font-bold text-[var(--muted)]"> / {minutes} мин</span></p>
             <p className="mt-1 flex items-center gap-1 text-[10px] font-black text-[var(--muted)]"><Icon name="calendar" width={11} weight="bold" /> {format}</p>
           </div>
           <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white">Посмотреть и записаться <ArrowGlyph /></span>
@@ -241,19 +245,15 @@ function Tag({ children }: { children: ReactNode }) { return <span className="ro
 function SectionTitle({ icon, title }: { icon: IconName; title: string }) { return <div className="mb-2 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[var(--head-soft)] stroke"><Icon name={icon} width={14} weight="bold" /></span><p className="text-[12px] font-extrabold text-[var(--muted)]">{title}</p></div>; }
 function PreviewEmpty({ text }: { text: string }) { return <p className="t-sub px-1">{text}</p>; }
 
-function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; livePreview?: boolean }) {
+function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
   const flowSteps = livePreview ? STEPS.slice(0, -1) : STEPS;
   const stored = useProfile();
-  const { data: verification } = useVerification();
   const [draft, setDraft] = useState<PsyProfile>(() => mergeProfile(getPsyProfile()));
   const [step, setStep] = useState<number>(() => {
     const profile = mergeProfile(getPsyProfile());
     const firstGap = flowSteps.findIndex((item) => !isComplete(item.id, profile));
     return firstGap < 0 ? flowSteps.length - 1 : firstGap;
   });
-  const [error, setError] = useState("");
-  const [published, setPublished] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   // Пока пользователь ничего не менял, автосохранение молчит: иначе открытие
   // анкеты само записало бы в профиль значения по умолчанию.
@@ -287,25 +287,13 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
   const update = (patch: Partial<PsyProfile>) => { touched.current = true; setDraft((current) => ({ ...current, ...patch })); };
   const updateLocation = (patch: Partial<PsyProfile["location"]>) => { touched.current = true; setDraft((current) => ({ ...current, location: { ...current.location, ...patch } })); };
 
-  const openStep = (target: number) => { tap(); setError(""); setStep(target); };
-  // Пролистывать можно всегда — незаполненные шаги подсвечены цветом в полосе сверху.
-  const next = () => { select(); setError(""); setStep(Math.min(flowSteps.length - 1, step + 1)); };
-  const back = () => { tap(); setError(""); setStep((current) => Math.max(0, current - 1)); };
-  const save = () => {
-    const firstInvalid = STEPS.slice(0, -1).findIndex((item) => validateStep(item.id, draft));
-    if (firstInvalid >= 0) { setStep(firstInvalid); setError(validateStep(STEPS[firstInvalid].id, draft)); return; }
-    // Завершение анкеты — это сохранение, а не заявка: статус ставит модерация.
-    // Раньше здесь принудительно писалось «review», и подтверждённый специалист
-    // после каждой правки откатывался в «на проверке» — локально анкета
-    // выпадала из каталога до следующей сверки с базой.
-    savePsyProfile({ ...draft, primaryMethod: draft.primaryMethod, approach: draft.primaryMethod, photo: draft.photos[0] ?? null, status: getPsyProfile()?.status ?? "review" });
-    success(); setPublished(true);
-  };
+  const openStep = (target: number) => { tap(); setStep(target); };
 
   const current = flowSteps[step ?? 0];
   const index = step ?? 0;
-
-  if (published) return <PublishedScreen name={draft.name || displayName()} status={verification?.status ?? "none"} onDone={onDone} />;
+  // Чего не хватает в открытом разделе. Раньше это всплывало только по кнопке
+  // «Завершить» — человек доходил до конца и там узнавал про первый шаг.
+  const missing = current.id === "preview" ? "" : validateStep(current.id, draft);
 
   return <div className={livePreview ? "@xl:grid @xl:grid-cols-[minmax(0,0.9fr)_minmax(360px,1.1fr)] @xl:items-start @xl:gap-5" : ""}>
     <div className="min-w-0">
@@ -314,7 +302,7 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
       <div className="flex items-center gap-3 p-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Шаг {index + 1} из {flowSteps.length} · заполнено {percent}%</p>
+          <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Раздел {index + 1} из {flowSteps.length} · анкета заполнена на {percent}%</p>
           <h3 className="font-tight text-[19px] font-black leading-tight">{current.title}</h3>
         </div>
       </div>
@@ -339,13 +327,14 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
           );
         })}
       </div>
-      {/* Полоска показывает только состояние. Чтобы понять, что за раздел и что
-          в нём заполнять, нужен список с названиями — он и раскрывается ниже. */}
-      <button onClick={() => { tap(); setNavOpen((value) => !value); }} className="flex w-full items-center justify-between border-t px-3 py-2.5 text-[12px] font-black text-[var(--muted)]" style={{ borderColor: "var(--edge-neutral)" }} aria-expanded={navOpen}>
-        {navOpen ? "Свернуть разделы" : "Все разделы анкеты"}
-        <motion.span animate={{ rotate: navOpen ? -90 : 90 }} className="flex shrink-0 items-center text-[var(--muted)]"><ArrowGlyph size={14} /></motion.span>
-      </button>
-      <Disclosure open={navOpen}>
+      {/* Полоска показывает только состояние — по цвету не понять, что за
+          раздел. Поэтому список с названиями открыт всегда: он же и есть
+          навигация, кнопок «вперёд-назад» больше нет. */}
+      <div className="flex items-center gap-3 border-t px-3 py-2" style={{ borderColor: "var(--edge-neutral)" }}>
+        <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--green)", border: "2px solid var(--green-edge)" }} /> заполнено</span>
+        <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber)", border: "2px solid var(--amber-edge)" }} /> ещё нужно</span>
+      </div>
+      <div>
         <div className="space-y-1.5 border-t px-3 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
           {flowSteps.map((item, itemIndex) => {
             const isPreview = item.id === "preview";
@@ -354,7 +343,7 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
             return (
               <button
                 key={item.id}
-                onClick={() => { openStep(itemIndex); setNavOpen(false); }}
+                onClick={() => openStep(itemIndex)}
                 aria-current={active}
                 className="flex w-full items-center gap-2.5 rounded-[13px] p-2.5 text-left transition-transform active:scale-[.99]"
                 style={{ background: active ? "var(--ink)" : "transparent", border: `var(--bw) solid ${active ? "var(--ink)" : "var(--edge-neutral)"}`, color: active ? "#fff" : "inherit" }}
@@ -373,7 +362,7 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
             );
           })}
         </div>
-      </Disclosure>
+      </div>
     </div>
 
     {/* Статичная минимальная высота — окно не «скачет» между шагами */}
@@ -391,16 +380,13 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
     </motion.div></AnimatePresence>
     </div>
 
-    {error && <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[13px] bg-[var(--salmon-soft)] px-3 py-2 text-[12px] font-bold stroke" style={{ borderColor: "var(--salmon-edge)" }}>{error}</motion.p>}
+    {missing && <p className="mt-3 rounded-[13px] px-3 py-2 text-[12px] font-bold stroke" style={{ background: "var(--amber-soft)", borderColor: "var(--amber-edge)" }}>{missing}</p>}
 
-    <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
-      <div className="flex gap-2">
-        <button className="btn px-5 disabled:opacity-0" onClick={back} disabled={index === 0} style={{ background: "transparent", color: "var(--ink)", borderColor: "var(--ink)" }}>Назад</button>
-        {index === flowSteps.length - 1
-          ? <Button className="flex-1" onClick={save}>Завершить</Button>
-          : <Button className="flex-1" onClick={next}>Далее</Button>}
-      </div>
-    </div>
+    {/* Кнопок «Далее» и «Завершить» здесь нет намеренно: анкета сохраняется
+        сама, а завершать её нечем — переходы между разделами в списке выше. */}
+    <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] font-bold text-[var(--muted-2)]">
+      <Icon name="check" width={12} weight="bold" color="var(--muted-2)" /> Изменения сохраняются сами — можно уйти в любой момент
+    </p>
     </div>
     {livePreview && (
       <aside className="hidden min-w-0 @xl:sticky @xl:top-4 @xl:block @xl:max-h-[calc(100dvh-32px)] @xl:overflow-y-auto">
@@ -412,13 +398,34 @@ function ProfileForm({ onDone, livePreview = false }: { onDone: () => void; live
 }
 
 function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void; fileRef: React.RefObject<HTMLInputElement | null> }) {
-  const onFile = (file?: File) => { if (!file) return; const reader = new FileReader(); reader.onload = () => { update({ photos: [...draft.photos, String(reader.result)].slice(0, 3), photo: draft.photos[0] || String(reader.result) }); tap(); }; reader.readAsDataURL(file); };
+  const [photoError, setPhotoError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  // Снимок с телефона весит мегабайты: в анкете он не помещался ни в квоту
+  // браузера, ни в разумный запрос — фото «не грузилось». Сжимаем сразу.
+  const onFile = async (file?: File) => {
+    if (!file) return;
+    setPhotoError("");
+    if (!file.type.startsWith("image/")) { setPhotoError("Подойдёт картинка: JPG, PNG или HEIC."); return; }
+    setUploading(true);
+    try {
+      const dataUrl = await compressImage(file);
+      const photos = [...draft.photos, dataUrl].slice(0, 3);
+      update({ photos, photo: photos[0] ?? null });
+      tap();
+    } catch {
+      setPhotoError("Не удалось открыть это фото — попробуйте другое.");
+    } finally {
+      setUploading(false);
+    }
+  };
   const setMain = (index: number) => { select(); const photos = [draft.photos[index], ...draft.photos.filter((_, itemIndex) => itemIndex !== index)]; update({ photos, photo: photos[0] ?? null }); };
   const removePhoto = (index: number) => { tap(); const photos = draft.photos.filter((_, itemIndex) => itemIndex !== index); update({ photos, photo: photos[0] ?? null }); };
   return <StepCard title="Сначала — то, что помогает узнать вас" hint="Первое фото станет крупным портретом в каталоге. Можно добавить до трёх.">
-    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => onFile(event.target.files?.[0])} />
-    <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[15px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[15px] bg-white text-[10px] font-bold text-[var(--muted)]" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
+    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void onFile(file); }} />
+    <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[15px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} disabled={uploading} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[15px] bg-white text-[10px] font-bold text-[var(--muted)] disabled:opacity-50" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />{uploading ? "Грузим…" : "Фото"}</button>}</div>
+    {photoError && <p className="rounded-[12px] px-3 py-2 text-[11px] font-bold" style={{ background: "var(--salmon-soft)" }}>{photoError}</p>}
     <Field label="Имя и фамилия"><Input value={draft.name} onChange={(event) => update({ name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
+    <RegionZoneFields draft={draft} update={update} />
     <Field label="Кто вы" hint="Можно выбрать несколько — все появятся в каталоге">
       <div className="flex flex-wrap gap-2">
         {SPECIALIST_TYPES.map((type) => {
@@ -443,6 +450,39 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
   </StepCard>;
 }
 
+/**
+ * Регион и часовой пояс. Онлайн-приёму адрес не нужен, а вот разница во
+ * времени решает всё: клиент из Москвы и специалист из Лиссабона иначе читают
+ * «вечернее окно». Часовой пояс по умолчанию предлагаем по устройству.
+ */
+function RegionZoneFields({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
+  const zone = draft.timezone || "";
+  const device = deviceTimezone();
+  const options = [...new Set([...(zone ? [zone] : []), ...(device ? [device] : []), ...TIMEZONES.map((item) => item.id)])];
+  return (
+    <>
+      <Field label="Регион или страна" hint="Где вы находитесь — клиент видит это в карточке">
+        <Input value={draft.location.region ?? ""} onChange={(event) => update({ location: { ...draft.location, region: event.target.value } })} placeholder="Москва · Россия" />
+      </Field>
+      <Field label="Часовой пояс" hint="По нему клиент понимает, когда у вас окна">
+        <select
+          value={zone}
+          onChange={(event) => { select(); update({ timezone: event.target.value }); }}
+          className="w-full appearance-none rounded-[13px] bg-white px-3 py-2.5 text-[13px] font-semibold outline-none stroke"
+        >
+          <option value="">Не указан</option>
+          {options.map((id) => <option key={id} value={id}>{zoneLabel(id)}</option>)}
+        </select>
+        {!zone && device && (
+          <button onClick={() => { select(); update({ timezone: device }); }} className="mt-2 text-[11px] font-black" style={{ color: "var(--tiffany-edge)" }}>
+            Подставить пояс устройства — {zoneLabel(device)}
+          </button>
+        )}
+      </Field>
+    </>
+  );
+}
+
 // Ссылки на сайт и соцсети — с выбором типа; в профиле показываем мини-иконками.
 function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange: (links: PsyProfile["links"]) => void }) {
   const kinds = Object.keys(LINK_META) as LinkKind[];
@@ -464,51 +504,8 @@ function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange
   );
 }
 
-// Экран после сохранения анкеты. Раньше он всегда обещал проверку — и человек
-// с пройденной верификацией после каждой правки читал «мы проверим анкету»,
-// хотя проверять уже нечего: изменения уходят в каталог сразу.
-function PublishedScreen({ name, status, onDone }: { name: string; status: PsyStatus; onDone: () => void }) {
-  useEffect(() => { const timer = window.setTimeout(onDone, 2600); return () => window.clearTimeout(timer); }, [onDone]);
-  const greeting = name ? `${name}, спасибо!` : "Спасибо!";
-  const view = status === "approved"
-    ? {
-        icon: "check" as const,
-        bg: "var(--green-soft)",
-        edge: "var(--green-edge)",
-        title: "Изменения сохранены",
-        text: "Анкета уже обновилась в каталоге — клиенты видят её в новом виде. Верификация пройдена, повторно её проходить не нужно.",
-        note: "Правьте профиль в любой момент — проверка больше не потребуется",
-      }
-    : status === "review"
-      ? {
-          icon: "clock" as const,
-          bg: "var(--amber-soft)",
-          edge: "var(--amber-edge)",
-          title: "Анкета на проверке",
-          text: `${greeting} Заявка уже у модератора — обычно это занимает 1–2 рабочих дня. Дозаполнять профиль можно прямо сейчас: правки подтянутся к заявке.`,
-          note: "Пока идёт проверка — профиль виден только вам и вашим клиентам",
-        }
-      : {
-          icon: "seal" as const,
-          bg: "var(--purple-soft)",
-          edge: "var(--purple-edge)",
-          title: "Анкета сохранена",
-          text: `${greeting} Профиль уже видят ваши клиенты. Чтобы карточка появилась в общем каталоге, пройдите верификацию — это делается один раз.`,
-          note: "Верификация — в кабинете, раздел «Пройдите верификацию»",
-        };
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center py-6 text-center">
-      <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="flex h-20 w-20 items-center justify-center rounded-[23px]" style={{ background: view.bg, border: `var(--bw-lg) solid ${view.edge}` }}>
-        <Icon name={view.icon} width={38} weight="bold" />
-      </motion.span>
-      <h3 className="font-tight mt-4 text-[22px] font-black leading-tight">{view.title}</h3>
-      <p className="mt-2 max-w-[300px] text-[13px] font-semibold leading-relaxed text-[var(--muted)]">{view.text}</p>
-      <div className="mt-4 flex items-center gap-2 rounded-[13px] px-3.5 py-2.5 text-[11px] font-black" style={{ background: view.bg, border: `var(--bw) solid ${view.edge}` }}><Icon name="check" width={13} weight="bold" /> {view.note}</div>
-      <Button className="mt-5 w-full" onClick={() => { tap(); onDone(); }}>Готово</Button>
-    </motion.div>
-  );
-}
+// Экран «анкета сохранена» убран вместе с кнопкой «Завершить»: сохранение идёт
+// само на каждый затихший ввод, и отдельного финала у анкеты больше нет.
 
 function TopicsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
   const topicOptions = [...new Set([...TOPICS, ...draft.topics])];
@@ -597,7 +594,17 @@ function FormatToggle({ active, icon, label, onClick }: { active: boolean; icon:
   );
 }
 
-function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) { return <StepCard title="Условия одной встречи" hint="Именно эти значения используются в фильтрах и на карточке каталога."><Field label="Стоимость, ₽"><Input type="number" min={0} step={100} value={draft.sessionPrice || ""} placeholder="3500" onChange={(event) => update({ sessionPrice: Number(event.target.value) })} /></Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.max(30, draft.sessionMinutes - 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[12px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes ? `${draft.sessionMinutes} мин` : "не выбрано"}</span></div><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.min(120, draft.sessionMinutes + 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><p className="t-cap">Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</p></StepCard>; }
+function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
+  const currency = toCurrency(draft.currency);
+  const low = draft.sessionPrice > 0 && draft.sessionPrice < MIN_PRICE[currency];
+  return <StepCard title="Условия одной встречи" hint="Именно эти значения используются в фильтрах и на карточке каталога.">
+    <Field label="Валюта оплаты" hint="Принимаете оплату не в рублях — выберите доллар или евро, каталог отфильтрует по ней">
+      <div className="grid grid-cols-3 gap-2">{CURRENCIES.map((item) => <Choice key={item.code} active={currency === item.code} onClick={() => update({ currency: item.code })}>{item.short}</Choice>)}</div>
+    </Field>
+    <Field label={`Стоимость, ${currencySymbol(currency)}`}>
+      <Input type="number" min={0} step={currency === "RUB" ? 100 : 5} value={draft.sessionPrice || ""} placeholder={currency === "RUB" ? "3500" : "60"} onChange={(event) => update({ sessionPrice: Number(event.target.value) })} />
+      <p className="mt-1 text-[10px] font-semibold" style={{ color: low ? "var(--salmon-edge)" : "var(--muted-2)" }}>Шкала каталога начинается с {formatMoney(MIN_PRICE[currency], currency)}{low ? " — с меньшей ценой вас не найдут по фильтру" : ""}.</p>
+    </Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.max(30, draft.sessionMinutes - 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[12px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes ? `${draft.sessionMinutes} мин` : "не выбрано"}</span></div><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.min(120, draft.sessionMinutes + 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><p className="t-cap">Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</p></StepCard>; }
 
 function ExperienceStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
   const setEducation = (index: number, value: string) => update({ education: draft.education.map((item, itemIndex) => itemIndex === index ? value : item) });

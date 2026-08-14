@@ -6,12 +6,54 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Button, Input } from "@/components/ui";
 import { select, success, tap } from "@/lib/haptics";
-import { BUDGET_BANDS, catalogCities, EMPTY_FILTERS, exactMatches, EXPERIENCE_OPTIONS, LANGUAGES, METHODS, personalSelection, psyAvailability, SURVEY_LANGUAGES, SURVEY_TOPICS, TOPICS, type CatalogFilters, type CatalogPrefs, type Gender, type Psy, type TimeOfDay } from "@/lib/catalog";
+import { catalogCities, EMPTY_FILTERS, exactMatches, EXPERIENCE_OPTIONS, LANGUAGES, METHODS, personalSelection, psyAvailability, SURVEY_LANGUAGES, SURVEY_TOPICS, TOPICS, type CatalogFilters, type CatalogPrefs, type Gender, type Psy, type TimeOfDay } from "@/lib/catalog";
 import { availabilityFits } from "@/lib/availability";
 import { plural } from "@/lib/daily";
+import { budgetLabel, CURRENCIES, formatMoney, MIN_PRICE, PRICE_STEPS, priceAt, priceIndex, type Currency } from "@/lib/money";
 
-const BUDGETS = [2500, 3500, 4500, 5500] as const;
 const TIME_LABEL: Record<TimeOfDay, string> = { morning: "Утро", day: "День", evening: "Вечер" };
+
+/**
+ * Шкала бюджета вместо четырёх вилок: слева нижняя граница (1000 ₽ или 10 в
+ * валюте), справа — «и выше». Валюта переключается тут же: специалисты вне
+ * России берут оплату в долларах и евро.
+ */
+function PriceScale({ currency, maxPrice, onChange }: { currency: Currency; maxPrice: number | null; onChange: (patch: { currency: Currency; maxPrice: number | null }) => void }) {
+  const steps = PRICE_STEPS[currency];
+  const index = priceIndex(maxPrice, currency);
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2">
+        {CURRENCIES.map((item) => (
+          <ToggleChip
+            key={item.code}
+            active={currency === item.code}
+            onClick={() => onChange({ currency: item.code, maxPrice: maxPrice == null ? null : priceAt(index, item.code) })}
+          >
+            {item.short}
+          </ToggleChip>
+        ))}
+      </div>
+      <div className="rounded-[14px] bg-white p-3 stroke">
+        <p className="text-[13px] font-black">{budgetLabel(maxPrice, currency)}</p>
+        <input
+          type="range"
+          min={0}
+          max={steps.length}
+          step={1}
+          value={index}
+          onChange={(event) => { select(); onChange({ currency, maxPrice: priceAt(Number(event.target.value), currency) }); }}
+          className="mt-2 w-full accent-[var(--ink)]"
+          aria-label="Верхняя граница бюджета"
+        />
+        <div className="flex justify-between text-[10px] font-black text-[var(--muted)]">
+          <span>{formatMoney(MIN_PRICE[currency], currency)}</span>
+          <span>без верхней границы</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ToggleChip({ active, children, onClick, className = "" }: { active: boolean; children: React.ReactNode; onClick: () => void; className?: string }) {
   return <button type="button" onClick={() => { select(); onClick(); }} className={`rounded-[12px] px-3 py-2 text-[12px] font-black transition-transform active:scale-95 stroke ${className}`} style={active ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : { background: "#fff" }}>{children}</button>;
@@ -71,7 +113,9 @@ function FormatStep({ prefs, setPrefs, catalog }: { prefs: CatalogPrefs; setPref
   const cities = useMemo(() => catalogCities(catalog), [catalog]);
   return <StepFrame tone="var(--green-soft)" icon="video" title="Как удобно встречаться?" text="Формат можно поменять позже — сейчас выберите наиболее комфортный."><div className="grid grid-cols-3 gap-2">{(["online", "offline", "both"] as const).map((format) => <ToggleChip key={format} active={prefs.format === format} onClick={() => setPrefs({ ...prefs, format })}>{format === "online" ? "Онлайн" : format === "offline" ? "Очно" : "Оба"}</ToggleChip>)}</div>{prefs.format !== "online" && <label className="mt-3 block"><span className="mb-1.5 block text-[10px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Город для очных встреч</span><select value={prefs.city} onChange={(event) => { select(); setPrefs({ ...prefs, city: event.target.value }); }} className="w-full appearance-none bg-white px-3.5 py-2.5 text-sm font-semibold text-[var(--ink)] outline-none" style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)" }}><option value="">Любой город</option>{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select></label>}</StepFrame>;
 }
-function BudgetStep({ prefs, setPrefs }: { prefs: CatalogPrefs; setPrefs: (prefs: CatalogPrefs) => void }) { return <StepFrame tone="var(--purple-soft)" icon="chart" title="Какой бюджет комфортен?" text="Цена указана за одну встречу."><div className="grid grid-cols-2 gap-2">{BUDGET_BANDS.map((band) => <ToggleChip key={band.key} active={prefs.budget === band.key} onClick={() => setPrefs({ ...prefs, budget: band.key })}>{band.label}</ToggleChip>)}<ToggleChip className="col-span-2" active={prefs.budget == null} onClick={() => setPrefs({ ...prefs, budget: null })}>Неважно</ToggleChip></div></StepFrame>; }
+function BudgetStep({ prefs, setPrefs }: { prefs: CatalogPrefs; setPrefs: (prefs: CatalogPrefs) => void }) {
+  return <StepFrame tone="var(--purple-soft)" icon="chart" title="Какой бюджет комфортен?" text="Цена за одну встречу. Выберите валюту и потяните ползунок — правый край значит «без верхней границы»."><PriceScale currency={prefs.currency} maxPrice={prefs.maxPrice} onChange={(patch) => setPrefs({ ...prefs, ...patch })} /></StepFrame>;
+}
 function TimeStep({ prefs, setPrefs, catalog }: { prefs: CatalogPrefs; setPrefs: (prefs: CatalogPrefs) => void; catalog: Psy[] }) {
   // Фильтр опирается на графики специалистов: сколько из них реально открывают
   // выбранные дни и время.
@@ -89,6 +133,6 @@ export function CatalogFiltersSheet({ open, value, resultCount, onClose, onApply
   const [draft, setDraft] = useState(value);
   useEffect(() => { if (open) setDraft(value); }, [open, value]);
   const count = useMemo(() => resultCount(draft), [draft, resultCount]);
-  return <AnimatePresence>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3 backdrop-blur-[2px]" onClick={onClose}><motion.div initial={{ y: 42 }} animate={{ y: 0 }} exit={{ y: 42, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 34 }} onClick={(event) => event.stopPropagation()} className="chunk flex max-h-[min(91vh,calc(100dvh-var(--top-pad)))] w-full max-w-md flex-col overflow-hidden bg-[#ffffff]"><div className="flex items-center justify-between px-5 py-4"><div><p className="font-tight text-[21px] font-black">Все фильтры</p><p className="text-[11px] font-bold text-[var(--muted)]">Покажем только подходящие анкеты</p></div><button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-white font-black stroke" aria-label="Закрыть">×</button></div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto border-y px-5 py-4" style={{ borderColor: "var(--edge-neutral)" }}><FilterSection title="Запросы"><div className="flex flex-wrap gap-2">{TOPICS.map((topic) => <ToggleChip key={topic} active={draft.topics.includes(topic)} onClick={() => setDraft({ ...draft, topics: toggleValue(draft.topics, topic) })}>{topic}</ToggleChip>)}</div></FilterSection><FilterSection title="Методы"><div className="flex flex-wrap gap-2">{METHODS.map((method) => <ToggleChip key={method} active={draft.methods.includes(method)} onClick={() => setDraft({ ...draft, methods: toggleValue(draft.methods, method) })}>{method}</ToggleChip>)}</div></FilterSection><FilterSection title="Цена за встречу"><div className="grid grid-cols-2 gap-2">{BUDGETS.map((budget) => <ToggleChip key={budget} active={draft.maxPrice === budget} onClick={() => setDraft({ ...draft, maxPrice: budget })}>до {budget.toLocaleString("ru-RU")} ₽</ToggleChip>)}<ToggleChip active={draft.maxPrice == null} onClick={() => setDraft({ ...draft, maxPrice: null })}>Неважно</ToggleChip></div></FilterSection><FilterSection title="Формат"><div className="grid grid-cols-3 gap-2">{(["any", "online", "offline"] as const).map((format) => <ToggleChip key={format} active={draft.format === format} onClick={() => setDraft({ ...draft, format })}>{format === "any" ? "Любой" : format === "online" ? "Онлайн" : "Очно"}</ToggleChip>)}</div>{draft.format === "offline" && <Input className="mt-2" placeholder="Город" value={draft.city} onChange={(event) => setDraft({ ...draft, city: event.target.value })} />}</FilterSection><FilterSection title="Специалист"><div className="grid grid-cols-3 gap-2">{(["any", "woman", "man"] as const).map((gender) => <ToggleChip key={gender} active={draft.gender === gender} onClick={() => setDraft({ ...draft, gender })}>{gender === "any" ? "Неважно" : gender === "woman" ? "Женщина" : "Мужчина"}</ToggleChip>)}</div><div className="mt-2 grid grid-cols-3 gap-2">{EXPERIENCE_OPTIONS.map((years) => <ToggleChip key={years} active={draft.minYears === years} onClick={() => setDraft({ ...draft, minYears: years })}>{years ? `от ${years} лет` : "Опыт любой"}</ToggleChip>)}</div></FilterSection><FilterSection title="Язык консультации"><div className="flex flex-wrap gap-2"><ToggleChip active={draft.language === "any"} onClick={() => setDraft({ ...draft, language: "any" })}>Неважно</ToggleChip>{LANGUAGES.map((language) => <ToggleChip key={language} active={draft.language === language} onClick={() => setDraft({ ...draft, language })}>{language}</ToggleChip>)}</div></FilterSection><FilterSection title="Дополнительно"><div className="grid grid-cols-2 gap-2"><ToggleChip active={draft.verifiedOnly} onClick={() => setDraft({ ...draft, verifiedOnly: !draft.verifiedOnly })}>Подтверждённые</ToggleChip><ToggleChip active={draft.thisWeek} onClick={() => setDraft({ ...draft, thisWeek: !draft.thisWeek })}>Окно на неделе</ToggleChip></div></FilterSection></div><div className="flex gap-2 px-5 py-4"><Button variant="soft" onClick={() => { tap(); setDraft(EMPTY_FILTERS); }}>Сбросить</Button><Button className="flex-1" onClick={() => { success(); onApply(draft); }}>Показать {count}</Button></div></motion.div></motion.div>}</AnimatePresence>;
+  return <AnimatePresence>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-end justify-center bg-[rgba(32,28,24,.44)] p-3 backdrop-blur-[2px]" onClick={onClose}><motion.div initial={{ y: 42 }} animate={{ y: 0 }} exit={{ y: 42, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 34 }} onClick={(event) => event.stopPropagation()} className="chunk flex max-h-[min(91vh,calc(100dvh-var(--top-pad)))] w-full max-w-md flex-col overflow-hidden bg-[#ffffff]"><div className="flex items-center justify-between px-5 py-4"><div><p className="font-tight text-[21px] font-black">Все фильтры</p><p className="text-[11px] font-bold text-[var(--muted)]">Покажем только подходящие анкеты</p></div><button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-white font-black stroke" aria-label="Закрыть">×</button></div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto border-y px-5 py-4" style={{ borderColor: "var(--edge-neutral)" }}><FilterSection title="Запросы"><div className="flex flex-wrap gap-2">{TOPICS.map((topic) => <ToggleChip key={topic} active={draft.topics.includes(topic)} onClick={() => setDraft({ ...draft, topics: toggleValue(draft.topics, topic) })}>{topic}</ToggleChip>)}</div></FilterSection><FilterSection title="Методы"><div className="flex flex-wrap gap-2">{METHODS.map((method) => <ToggleChip key={method} active={draft.methods.includes(method)} onClick={() => setDraft({ ...draft, methods: toggleValue(draft.methods, method) })}>{method}</ToggleChip>)}</div></FilterSection><FilterSection title="Цена за встречу"><PriceScale currency={draft.currency} maxPrice={draft.maxPrice} onChange={(patch) => setDraft({ ...draft, ...patch })} /></FilterSection><FilterSection title="Формат"><div className="grid grid-cols-3 gap-2">{(["any", "online", "offline"] as const).map((format) => <ToggleChip key={format} active={draft.format === format} onClick={() => setDraft({ ...draft, format })}>{format === "any" ? "Любой" : format === "online" ? "Онлайн" : "Очно"}</ToggleChip>)}</div>{draft.format === "offline" && <Input className="mt-2" placeholder="Город" value={draft.city} onChange={(event) => setDraft({ ...draft, city: event.target.value })} />}</FilterSection><FilterSection title="Специалист"><div className="grid grid-cols-3 gap-2">{(["any", "woman", "man"] as const).map((gender) => <ToggleChip key={gender} active={draft.gender === gender} onClick={() => setDraft({ ...draft, gender })}>{gender === "any" ? "Неважно" : gender === "woman" ? "Женщина" : "Мужчина"}</ToggleChip>)}</div><div className="mt-2 grid grid-cols-3 gap-2">{EXPERIENCE_OPTIONS.map((years) => <ToggleChip key={years} active={draft.minYears === years} onClick={() => setDraft({ ...draft, minYears: years })}>{years ? `от ${years} лет` : "Опыт любой"}</ToggleChip>)}</div></FilterSection><FilterSection title="Язык консультации"><div className="flex flex-wrap gap-2"><ToggleChip active={draft.language === "any"} onClick={() => setDraft({ ...draft, language: "any" })}>Неважно</ToggleChip>{LANGUAGES.map((language) => <ToggleChip key={language} active={draft.language === language} onClick={() => setDraft({ ...draft, language })}>{language}</ToggleChip>)}</div></FilterSection><FilterSection title="Дополнительно"><div className="grid grid-cols-2 gap-2"><ToggleChip active={draft.verifiedOnly} onClick={() => setDraft({ ...draft, verifiedOnly: !draft.verifiedOnly })}>Подтверждённые</ToggleChip><ToggleChip active={draft.thisWeek} onClick={() => setDraft({ ...draft, thisWeek: !draft.thisWeek })}>Окно на неделе</ToggleChip></div></FilterSection></div><div className="flex gap-2 px-5 py-4"><Button variant="soft" onClick={() => { tap(); setDraft(EMPTY_FILTERS); }}>Сбросить</Button><Button className="flex-1" onClick={() => { success(); onApply(draft); }}>Показать {count}</Button></div></motion.div></motion.div>}</AnimatePresence>;
 }
 function FilterSection({ title, children }: { title: string; children: React.ReactNode }) { return <section><p className="mb-2 text-[10px] font-black uppercase tracking-[.08em] text-[var(--muted)]">{title}</p>{children}</section>; }

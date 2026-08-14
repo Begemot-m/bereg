@@ -34,7 +34,12 @@ function mapCard(row: PsyProfileRow, ctx: {
     methods: data.methods ?? [],
     years: row.experienceYears,
     price: row.sessionPrice,
+    // Валюта, регион и часовой пояс живут в JSON анкеты: колонок под них нет,
+    // а карточке они нужны — специалисты вне России берут оплату не в рублях.
+    currency: data.currency ?? "RUB",
     minutes: row.sessionMinutes,
+    region: location.region ?? "",
+    timezone: data.timezone ?? "",
     format: row.format,
     topics: data.topics ?? [],
     avoids: data.avoids ?? [],
