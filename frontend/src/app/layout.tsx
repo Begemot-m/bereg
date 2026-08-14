@@ -21,7 +21,9 @@ const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 const head = Nunito({ subsets: ["latin", "cyrillic"], weight: ["700", "800", "900"], variable: "--font-head", display: "swap" });
 // Текст — Golos Text: сделан под русские интерфейсы и лучше читается в мелких
 // кеглях, а у нас основная масса текста как раз 11–14 px.
-const body = Golos_Text({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700"], variable: "--font-body", display: "swap" });
+// Веса до 900: в интерфейсе полно `font-black`, и без настоящего начертания
+// браузер синтезирует жирный — буквы расплываются и выглядят кривыми.
+const body = Golos_Text({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700", "800", "900"], variable: "--font-body", display: "swap" });
 
 // Демо на Pages — копия прода по текстам. Пускать его в индекс нельзя:
 // поисковик увидит два одинаковых сайта и размажет позиции между ними.
