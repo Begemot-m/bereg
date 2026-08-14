@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { PHOTO_INCLUDE, withPhoto, withStatsOne } from "@/lib/server/clients";
-import { createInviteToken } from "@/lib/server/jwt";
+import { inviteCode } from "@/lib/server/invite-code";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
     // Подпись карточки едет вместе с ней: из неё собирается ссылка-приглашение,
     // и она нужна экрану до того, как психолог нажал «Пригласить».
-    return NextResponse.json({ ...(await withStatsOne(withPhoto(client))), inviteToken: await createInviteToken(client.id) });
+    return NextResponse.json({ ...(await withStatsOne(withPhoto(client))), inviteToken: await inviteCode("card", client.id) });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

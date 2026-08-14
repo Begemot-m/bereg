@@ -124,10 +124,13 @@ const PSY_INTRO: Intro[] = [
   },
 ];
 
-export function Onboarding() {
+// startRole — знакомство без выбора роли: так приходят по ссылке-приглашению,
+// где человек уже назвался клиентом специалиста, и спрашивать его «вы психолог?»
+// после экрана приглашения было бы странно.
+export function Onboarding({ startRole }: { startRole?: Role } = {}) {
   const qc = useQueryClient();
   // Роль выбирается на первом же экране, дальше знакомство идёт под неё.
-  const [picked, setPicked] = useState<Role | null>(null);
+  const [picked, setPicked] = useState<Role | null>(startRole ?? null);
   const [step, setStep] = useState(1); // 1..slides.length — слайды, последний+1 — финал
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -169,7 +172,7 @@ export function Onboarding() {
   // С первого слайда «назад» возвращает к выбору роли: её можно передумать.
   const back = () => {
     tap();
-    if (step <= 1) { setPicked(null); return; }
+    if (step <= 1) { if (!startRole) setPicked(null); return; }
     setStep((s) => s - 1);
   };
   const endSwipe = (x: number) => {

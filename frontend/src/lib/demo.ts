@@ -540,6 +540,23 @@ export function enterDemoWebGuest() {
   localStorage.setItem(WEB_GUEST_KEY, "1");
 }
 
+// Кто «пригласил» в демо: анкета психолога из этого же браузера. Читаем
+// localStorage напрямую — тянуть сюда lib/profile ради трёх полей незачем.
+function demoPsyName(): { name: string; photo: string; method: string } {
+  const fallback = { name: "Ваш специалист", photo: "", method: "" };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = JSON.parse(localStorage.getItem("bereg_psy_profile") ?? "{}") as { name?: string; photos?: string[]; photo?: string | null; primaryMethod?: string };
+    return {
+      name: (raw.name ?? "").trim() || fallback.name,
+      photo: raw.photos?.[0] ?? raw.photo ?? "",
+      method: raw.primaryMethod ?? "",
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export async function mockFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const db = load();
   const method = (init.method ?? "GET").toUpperCase();
@@ -573,6 +590,42 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       save(db);
       return delay(undefined as T);
     }
+  }
+
+  // Приглашение клиента ссылкой. В демо кода приглашения нет — ссылка ведёт в
+  // то же демо, а карточку «пришедшего» заводим сразу, чтобы сценарий было
+  // видно целиком.
+  if (clean === "/invite/link" && method === "GET") return delay(({ token: "demo" }) as T);
+
+  if (clean === "/invite/preview" && method === "GET") {
+    const psy = demoPsyName();
+    return delay(({ kind: q.get("token")?.startsWith("demo") ? "psy" : "card", psy: { id: 1, name: psy.name, photo: psy.photo, method: psy.method, city: "" } }) as T);
+  }
+
+  if (clean === "/invite/accept" && method === "POST") {
+    const name = "Клиент по ссылке";
+    const already = db.clients.find((c) => c.name === name);
+    if (already) return delay(({ ok: true, clientId: already.id }) as T);
+    if (!demoAccepting(db)) { notifyLimit(db); save(db); throw new Error(`API 402: ${NOT_ACCEPTING}`); }
+    const now = new Date().toISOString();
+    const c: Client = {
+      id: ++db.seq,
+      name,
+      contact: null,
+      note: "",
+      status: "new",
+      link: "joined",
+      invitedAt: null,
+      notesModuleEnabled: false,
+      notesModuleShared: true,
+      notesModulePsychologist: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.clients.push(c);
+    notify(db, "psychologist", "join", `«${name}» пришёл по вашей ссылке — карточка создана`);
+    save(db);
+    return delay(({ ok: true, clientId: c.id }) as T);
   }
 
   if (clean === "/my/reminders") {

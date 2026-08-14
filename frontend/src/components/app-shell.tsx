@@ -16,8 +16,11 @@ import { startParam, target } from "@/components/start-route";
 const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.RoomTour));
 // Лендинг видят только гости из браузера — в бандл вошедшего он не нужен.
 const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => m.WebLanding));
+// Экран приглашения видят только те, кто пришёл по ссылке специалиста.
+const InviteWelcome = dynamic(() => import("@/components/invite-welcome").then((m) => m.InviteWelcome));
 import { APP_NAME } from "@/lib/brand";
 import { joinClientCard } from "@/lib/clients";
+import { acceptPsyInvite, readInvitePayload, type InviteKind } from "@/lib/invite";
 import { select } from "@/lib/haptics";
 import { iconLoop } from "@/lib/icon-motion";
 import { useMe } from "@/lib/me";
@@ -113,6 +116,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [onboarded] = useOnboarded();
   const [fastEntry, setFastEntry] = useState<boolean | null>(null);
+  // Пришли по ссылке специалиста: показать, кто позвал, и только потом знакомство.
+  const [invite, setInvite] = useState<{ kind: InviteKind; token: string } | null>(null);
+  const [greeted, setGreeted] = useState(false);
   const items = NAV[role];
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
@@ -128,11 +134,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (authState !== "authed") return;
     const token = sessionStorage.getItem("bereg_pending_invite");
-    if (!token) return;
-    sessionStorage.removeItem("bereg_pending_invite");
-    joinClientCard(token)
-      .then(() => { qc.invalidateQueries(); })
-      .catch(() => { /* просроченное или чужое приглашение — молча пропускаем */ });
+    if (token) {
+      sessionStorage.removeItem("bereg_pending_invite");
+      joinClientCard(token)
+        .then(() => { qc.invalidateQueries(); })
+        .catch(() => { /* просроченное или чужое приглашение — молча пропускаем */ });
+    }
+    // Общая ссылка специалиста: карточки ещё нет, её заводит сам переход.
+    const psyToken = sessionStorage.getItem("bereg_pending_psy");
+    if (psyToken) {
+      sessionStorage.removeItem("bereg_pending_psy");
+      acceptPsyInvite(psyToken)
+        .then(() => { qc.invalidateQueries(); })
+        .catch(() => { /* лимит мест или неподтверждённая анкета — человека это не касается */ });
+    }
   }, [authState, qc]);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
   // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
@@ -151,7 +166,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     const params = new URLSearchParams(window.location.search);
     const invite = params.get("invite");
     const ref = params.get("ref");
-    if (invite) sessionStorage.setItem("bereg_pending_invite", invite);
     if (ref) sessionStorage.setItem("bereg_pending_ref", ref);
 
     const enter = (psy: string | null) => {
@@ -160,8 +174,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (psy && navRef.current.pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}&book=1`);
     };
 
+    // Пришли по приглашению специалиста: сначала экран «вас пригласили», потом
+    // знакомство в роли клиента. Быстрый вход (fastEntry) тут не годится — он
+    // проносит человека мимо и того и другого прямо в приложение.
+    const greet = (kind: InviteKind, token: string) => {
+      sessionStorage.setItem(kind === "psy" ? "bereg_pending_psy" : "bereg_pending_invite", token);
+      setRole("client");
+      setInvite({ kind, token });
+      setFastEntry(false);
+    };
+
     const psy = params.get("psy") || params.get("book");
-    if (psy || invite || ref) {
+    if (invite) {
+      // Ссылка старого образца — сразу на сайт, с подписанным токеном карточки.
+      greet("card", invite);
+    } else if (psy || ref) {
       enter(psy);
     } else {
       // Метка из ссылки-приглашения приходит от скрипта Telegram, а он
@@ -171,6 +198,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       const poll = () => {
         if (stopped) return;
         const payload = startParam();
+        // Приглашение в боте — та же метка, что и запись, только с приставкой
+        // psy_ или inv_. Разбираем её до target(), иначе человек уедет в
+        // каталог мимо экрана приглашения.
+        const asInvite = payload ? readInvitePayload(payload) : null;
+        if (asInvite) {
+          greet(asInvite.kind, asInvite.token);
+          return;
+        }
         const href = payload ? target(payload) : null;
         if (href) {
           const id = new URLSearchParams(href.split("?")[1]).get("psy");
@@ -267,7 +302,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       ? <WebLanding />
       : <AuthGate env={env} reason={authReason} detail={authDetail} />;
   }
-  if (!onboarded && !fastEntry) return <Onboarding />;
+  // Экран приглашения — только новичкам: тому, кто уже пользуется приложением,
+  // достаточно того, что специалист молча появился в «Терапии».
+  if (invite && !greeted && !onboarded) {
+    return <InviteWelcome token={invite.token} kind={invite.kind} onStart={() => setGreeted(true)} />;
+  }
+  if (!onboarded && !fastEntry) return <Onboarding startRole={invite ? "client" : undefined} />;
 
   return (
     <div data-accent={accent} className="@container fixed inset-0 overflow-hidden" style={{ background: "var(--page)" }}>

@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
@@ -17,7 +17,9 @@ import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
 import { NewSlotCell, SlotCell, useDayWindows } from "@/components/week-windows";
 import { Disclosure, Input, Spinner, Textarea } from "@/components/ui";
+import { InviteShare } from "@/components/invite-share";
 import {
+  deleteClient,
   derivedStatus,
   formatContact,
   getClient,
@@ -34,8 +36,8 @@ import {
 } from "@/lib/clients";
 import { plural } from "@/lib/daily";
 import { createAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
-import { PROD_URL } from "@/lib/brand";
-import { select, success, tap } from "@/lib/haptics";
+import { success, tap } from "@/lib/haptics";
+import { inviteDeepLink } from "@/lib/invite";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { getClientTherapy, setClientNotesModule } from "@/lib/therapy";
 
@@ -44,10 +46,12 @@ import { zoneDay, zoneFormat } from "@/lib/zone";
 const dtf = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
 
-// Ссылка-приглашение клиента подключить свой профиль. В ней подписанная метка
-// карточки, а не её номер: по номеру перебором подключались бы к чужой.
+// Ссылка-приглашение клиента подключить свой профиль. Ведёт в мини-приложение
+// бота, а не на сайт: человек сразу оказывается внутри под своим аккаунтом.
+// В метке подписанный код карточки, а не её номер: по номеру перебором
+// подключались бы к чужой.
 function inviteLink(client: Client): string {
-  return `${PROD_URL}?invite=${encodeURIComponent(client.inviteToken ?? String(client.id))}`;
+  return inviteDeepLink("card", client.inviteToken ?? String(client.id));
 }
 
 export function ClientDetail() {
@@ -223,6 +227,12 @@ export function ClientDetail() {
           </button>
         )}
 
+        {/* Приглашение — сразу под строкой, из которой его открыли, и над
+            кнопками записи: иначе оно уезжало под календарь. */}
+        <Disclosure open={connectOpen}>
+          <ClientConnect client={client} onChanged={inv} />
+        </Disclosure>
+
         {/* Кнопки — в тонах приложения */}
         <div className="mt-4 flex gap-2">
           <button onClick={() => { tap(); setBookOpen((v) => !v); setConnectOpen(false); }} className={`btn flex-1 py-3 ${bookOpen ? "btn-white" : "btn-accent"}`} aria-expanded={bookOpen}>
@@ -264,11 +274,6 @@ export function ClientDetail() {
             </motion.div>
           )}
         </AnimatePresence>
-        {/* Подключение клиента: контакт + приглашение + авто-синхронизация */}
-        {/* Панель открывают стрелкой из шапки — доводим её до глаз сами */}
-        <Disclosure open={connectOpen}>
-          <ClientConnect client={client} onChanged={inv} />
-        </Disclosure>
       </header>
 
       <main className="-mt-8 space-y-4 rounded-t-[27px] bg-white px-4 pb-10 pt-6 @md:px-9">
@@ -321,6 +326,8 @@ export function ClientDetail() {
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={5} placeholder="Приватные заметки о работе…" />
           <button onClick={() => { tap(); patch.mutate({ note }); }} className="btn btn-accent mt-2 w-full py-2.5">{patch.isSuccess ? "Сохранено" : "Сохранить"}</button>
         </div>
+
+        <RemoveClient client={client} />
 
       </main>
     </div>
@@ -398,57 +405,87 @@ function ClientEdit({ client, onChanged, onClose }: { client: Client; onChanged:
   );
 }
 
-// Панель подключения: контакт (Telegram/телефон) + приглашение. После входа клиента
-// карточка синхронизируется автоматически (в демо — через пару секунд).
-function ClientConnect({ client, onChanged }: { client: Client; onChanged: () => void }) {
-  const [kind, setKind] = useState<"tg" | "phone">(() => (client.contact && isPhone(client.contact) ? "phone" : "tg"));
-  const [contact, setContact] = useState(client.contact ?? "");
-  const [copied, setCopied] = useState(false);
-  const link = inviteLink(client);
-  const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Веду вас в «Хронику» — подключите свой профиль, чтобы видеть записи, задания и практики:")}`;
+/**
+ * Удаление карточки из списка психолога. Спрашиваем подтверждение и говорим,
+ * что именно исчезнет: вместе с карточкой уходят записи, задания и заметки по
+ * этому человеку, а вернуть их нельзя. Сам клиент при этом остаётся в
+ * приложении со своим аккаунтом — удаляется связь, а не человек.
+ */
+function RemoveClient({ client }: { client: Client }) {
+  const router = useRouter();
+  const qc = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+  const remove = useMutation({
+    mutationFn: () => deleteClient(client.id),
+    onSuccess: () => {
+      success();
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+      router.replace("/clients");
+    },
+  });
 
-  const invite = useMutation({ mutationFn: () => inviteClient(client.id, contact.trim()), onSuccess: () => { success(); onChanged(); } });
-  const saveContact = useMutation({ mutationFn: () => updateClient(client.id, { contact: contact.trim() }), onSuccess: () => { tap(); onChanged(); } });
-  const copy = async () => { try { await navigator.clipboard.writeText(link); success(); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ } };
+  return (
+    <div className="pt-2 text-center">
+      {confirming ? (
+        <div className="card-plain p-3.5 text-left">
+          <p className="text-[13px] font-black leading-snug">Удалить {client.name} из вашего списка?</p>
+          <p className="t-cap mt-1 leading-snug">Пропадут записи, задания и ваши заметки по этому клиенту. Отменить не получится. У самого клиента приложение и его данные останутся.</p>
+          <div className="mt-2.5 flex gap-2">
+            <button
+              onClick={() => { tap(); remove.mutate(); }}
+              disabled={remove.isPending}
+              className="btn flex-1 py-2.5 text-[12px] disabled:opacity-60"
+              style={{ background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)", color: "#fff" }}
+            >
+              {remove.isPending ? "Удаляем…" : "Удалить"}
+            </button>
+            <button onClick={() => { tap(); setConfirming(false); }} className="btn btn-white flex-1 py-2.5 text-[12px]">Отмена</button>
+          </div>
+          {remove.isError && <p className="mt-2 text-[12px] font-bold" style={{ color: "var(--salmon-edge)" }}>Не получилось удалить. Попробуйте ещё раз.</p>}
+        </div>
+      ) : (
+        <button
+          onClick={() => { tap(); setConfirming(true); }}
+          className="py-2 text-[13px] font-black"
+          style={{ color: "var(--salmon-edge)" }}
+        >
+          Удалить из вашего списка
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Панель подключения: приглашение ссылкой. После входа клиента карточка
+// синхронизируется автоматически (в демо — через пару секунд).
+function ClientConnect({ client, onChanged }: { client: Client; onChanged: () => void }) {
+  const link = inviteLink(client);
+  const invite = useMutation({ mutationFn: () => inviteClient(client.id), onSuccess: () => { success(); onChanged(); } });
 
   return (
     <div className="card-plain mt-2.5 p-3.5">
-      {/* Контакт */}
-      <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Контакт клиента</p>
-      <div className="mb-2 flex gap-1 rounded-full p-1" style={{ background: "var(--head-soft)" }}>
-        {([["tg", "Telegram"], ["phone", "Телефон"]] as const).map(([k, label]) => (
-          <button key={k} onClick={() => { select(); setKind(k); }} className="flex-1 rounded-full py-1.5 text-[12px] font-extrabold transition-colors" style={kind === k ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>{label}</button>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={kind === "tg" ? "@username" : "+7 900 000-00-00"} inputMode={kind === "phone" ? "tel" : "text"} />
-        <button onClick={() => saveContact.mutate()} disabled={saveContact.isPending || contact.trim() === (client.contact ?? "")} className="btn btn-accent shrink-0 px-3 text-[12px]">Сохранить</button>
-      </div>
-
-      {/* Состояние подключения + приглашение */}
-      <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
+      {/* Полей тут нет: приглашение уходит ссылкой, а контакт правится в
+          «Редактировать» — два места для одного и того же только путали. */}
+      <div>
         {client.link === "joined" ? (
           <div className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
             <Icon name="check" width={18} weight="bold" color="var(--green-edge)" />
             <div><p className="text-[12.5px] font-black leading-tight">Профиль клиента подключён</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">Настроение, задания и записи синхронизируются автоматически.</p></div>
           </div>
-        ) : client.link === "invited" ? (
-          <>
-            <div className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5" style={{ background: "var(--amber-soft)", border: "var(--bw) solid var(--amber-edge)" }}>
-              <span className="relative flex h-2.5 w-2.5 shrink-0"><span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "var(--amber-edge)" }} /><span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber-edge)" }} /></span>
-              <div className="min-w-0 flex-1"><p className="text-[12.5px] font-black leading-tight">Ждём подключения…</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">{client.invitedAt ? `Отправлено ${dtf.format(new Date(client.invitedAt))}. ` : ""}Когда клиент войдёт по ссылке — карточка обновится сама.</p></div>
-            </div>
-            <div className="mt-2 flex gap-2">
-              <button onClick={copy} className="btn btn-accent flex-1 py-2 text-[12px]">{copied ? "Ссылка скопирована" : "Скопировать ссылку"}</button>
-              <a href={share} target="_blank" rel="noopener noreferrer" className="btn btn-accent flex-1 py-2 text-[12px]"><Icon name="spark" width={13} weight="fill" /> В Telegram</a>
-            </div>
-          </>
         ) : (
-          <>
-            <p className="text-[12px] font-semibold text-[var(--muted)]">Пригласите клиента — он войдёт по ссылке, подключит свой профиль, и карточка синхронизируется: настроение, задания, записи.</p>
-            <button onClick={() => invite.mutate()} disabled={invite.isPending} className="btn btn-accent mt-2.5 w-full py-2.5"><Icon name="spark" width={15} weight="fill" /> Пригласить подключиться</button>
-            <a href={share} target="_blank" rel="noopener noreferrer" onClick={() => invite.mutate()} className="mt-1.5 flex w-full items-center justify-center gap-1.5 py-1.5 text-[12px] font-black text-[var(--muted)] hover:text-[var(--ink)]"><Icon name="spark" width={13} weight="fill" /> Отправить приглашение в Telegram</a>
-          </>
+          <InviteShare
+            link={link}
+            onSent={() => { if (client.link !== "invited") invite.mutate(); }}
+            status={client.link === "invited" ? (
+              <div className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5" style={{ background: "var(--amber-soft)", border: "var(--bw) solid var(--amber-edge)" }}>
+                <span className="relative flex h-2.5 w-2.5 shrink-0"><span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "var(--amber-edge)" }} /><span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber-edge)" }} /></span>
+                <div className="min-w-0 flex-1"><p className="text-[12.5px] font-black leading-tight">Ждём подключения…</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">{client.invitedAt ? `Отправлено ${dtf.format(new Date(client.invitedAt))}. ` : ""}Когда клиент войдёт по ссылке — карточка обновится сама.</p></div>
+              </div>
+            ) : (
+              <p className="text-[12px] font-semibold text-[var(--muted)]">Отправьте ссылку — клиент откроет приложение, подключит свой профиль, и карточка синхронизируется: настроение, задания, записи.</p>
+            )}
+          />
         )}
       </div>
     </div>

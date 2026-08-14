@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
+import { readInviteCode } from "@/lib/server/invite-code";
 import { verifyInviteToken } from "@/lib/server/jwt";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -17,12 +18,11 @@ export async function POST(req: NextRequest) {
     const user = await requireUser(req);
     const body = await parseBody(req, z.object({ token: z.string().min(1).max(2000) }));
 
-    let clientId: number;
-    try {
-      clientId = await verifyInviteToken(body.token);
-    } catch {
-      return NextResponse.json({ error: "Приглашение недействительно" }, { status: 400 });
-    }
+    // Ссылки теперь ведут в бота, а там метка короткая. Прежний подписанный
+    // токен продолжаем принимать: он уехал в чужие переписки.
+    let clientId = await readInviteCode("card", body.token);
+    if (!clientId) clientId = await verifyInviteToken(body.token).catch(() => null);
+    if (!clientId) return NextResponse.json({ error: "Приглашение недействительно" }, { status: 400 });
 
     const card = await prisma.client.findUnique({ where: { id: clientId } });
     if (!card) return NextResponse.json({ error: "Not found" }, { status: 404 });

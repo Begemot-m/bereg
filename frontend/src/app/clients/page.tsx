@@ -4,24 +4,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 
 import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
 import { PageHead } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { InviteShare } from "@/components/invite-share";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonRow } from "@/components/ui";
 import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
+import { getPsyInviteToken, inviteDeepLink } from "@/lib/invite";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
-import { PROD_URL } from "@/lib/brand";
 
 import { zoneDayDiff, zoneFormat } from "@/lib/zone";
-
-const APP_URL = PROD_URL;
 
 // Анонс модулей закрывается насовсем: показывать его на каждом заходе — шум.
 const MODULES_TEASER_KEY = "bereg_modules_teaser_hidden";
@@ -87,7 +86,6 @@ function ClientsList() {
     // Пока кого-то пригласили — тихо подтягиваем список, чтобы поймать подключение.
     refetchInterval: (q) => (q.state.data?.some((c) => c.link === "invited") ? 2500 : false),
   });
-  const [inviteAfter, setInviteAfter] = useState(false);
   const [paywall, setPaywall] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const pro = isPro(sub);
@@ -96,13 +94,8 @@ function ClientsList() {
     mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), contact.trim()),
     onSuccess: (c) => {
       success();
-      const name = first.trim();
       setFirst(""); setLast(""); setOpen(false);
       qc.invalidateQueries({ queryKey: ["clients"] });
-      if (inviteAfter) {
-        const text = `${name}, приглашаю вас в «Хронику» — там мы будем видеть настроение между встречами и задания к сессии.`;
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent(text)}`, "_blank", "noopener");
-      }
       router.push(`/clients/?id=${c.id}`);
     },
   });
@@ -116,9 +109,9 @@ function ClientsList() {
 
   return (
     <div>
-      {/* Приглашение — компактной кнопкой в шапке: целая карточка над списком
-          занимала первый экран, а действие это разовое. */}
-      <PageHead title="Клиенты" sub={`Всего: ${clients.length}`} icon="users" right={<InviteClientButton />} />
+      {/* Приглашение переехало в меню плюсика: в шапке оно спорило с заголовком,
+          а по смыслу это один из двух способов завести клиента. */}
+      <PageHead title="Клиенты" sub={`Всего: ${clients.length}`} icon="users" />
 
       <div className="sheet">
       <Reveal delay={0.04}>
@@ -147,7 +140,7 @@ function ClientsList() {
           </motion.button>
         </div>
 
-        <QuickAddClient
+        <AddClientMenu
           open={open}
           first={first}
           last={last}
@@ -156,7 +149,7 @@ function ClientsList() {
           contact={contact}
           setContact={setContact}
           pending={add.isPending}
-          onCreate={(invite) => { if (!first.trim()) return; setInviteAfter(invite); add.mutate(); }}
+          onCreate={() => { if (!first.trim()) return; add.mutate(); }}
         />
 
         <ModulesTeaser />
@@ -212,33 +205,6 @@ function ClientsList() {
 
       <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={atCap ? `Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки: карточка ушла из каталога, новые клиенты не подключаются. PRO снимает лимит и возвращает вас в каталог.` : undefined} />
     </div>
-  );
-}
-
-// Приглашение без карточки: ссылка уходит в Telegram, а если поделиться нечем
-// (десктоп, браузер) — остаётся в буфере обмена.
-function InviteClientButton() {
-  const [copied, setCopied] = useState(false);
-  const text = "Приглашаю вас в «Хронику» — здесь мы будем видеть настроение между встречами, задания и записи на сессии.";
-  const share = () => {
-    tap();
-    const url = `https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent(text)}`;
-    const win = window.open(url, "_blank", "noopener");
-    if (!win) {
-      void navigator.clipboard?.writeText(`${text} ${APP_URL}`).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      });
-    }
-  };
-  return (
-    <button
-      onClick={share}
-      className="btn btn-white h-auto max-w-[112px] shrink-0 px-2.5 py-1.5 text-center text-[11px] leading-[1.15]"
-      title="Отправьте ссылку — клиент подключится сам и появится в списке"
-    >
-      <Icon name="telegram" width={13} weight="fill" color="var(--edge)" /> {copied ? "Скопировано ✓" : "Пригласить клиента"}
-    </button>
   );
 }
 
@@ -371,32 +337,57 @@ function plural(n: number) {
 }
 
 // Быстрое добавление: имя + фамилия → создаём карточку и открываем её.
-function QuickAddClient({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: (invite: boolean) => void }) {
+// Два способа завести клиента, и оба видны сразу: по ссылке человек приходит
+// сам и появляется в списке подключённым, вручную — карточку ведёт психолог,
+// а пригласить её владельца можно позже из самой карточки.
+function AddClientMenu({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: () => void }) {
+  const [manual, setManual] = useState(false);
+  useEffect(() => { if (!open) setManual(false); }, [open]);
+
+  // Ссылка одна на всех клиентов, поэтому и запрос один — на весь сеанс.
+  const { data: invite } = useQuery({ queryKey: ["psy-invite"], queryFn: getPsyInviteToken, staleTime: Infinity, enabled: open, retry: false });
+  const link = invite ? inviteDeepLink("psy", invite.token) : "";
+
   const fullName = [first, last].filter(Boolean).join(" ");
   const setFullName = (value: string) => {
     const [nextFirst = "", ...rest] = value.split(/\s+/);
     setFirst(nextFirst);
     setLast(rest.join(" "));
   };
+
   return (
     <Disclosure open={open} autoScroll={false}>
-      {/* Тот же порядок полей, что и при добавлении из окна сессии */}
-      <div className="card mb-4 p-3.5">
-        <div className="mb-2.5 flex items-center gap-2">
-          <span className="ico h-8 w-8"><Icon name="user" width={16} weight="bold" color="var(--edge)" /></span>
-          <p className="text-[13px] font-black leading-none">Новый клиент</p>
+      <div className="card mb-4 space-y-2.5 p-3.5">
+        <div className="card-plain p-3">
+          <div className="flex items-center gap-2">
+            <span className="ico ico-accent h-8 w-8"><Icon name="telegram" width={15} weight="fill" color="#fff" /></span>
+            <p className="text-[13px] font-black leading-none">Пригласить клиента</p>
+          </div>
+          <p className="t-cap mt-1.5 leading-snug">
+            Клиент откроет приложение по ссылке и сам появится в этом списке — уже подключённым, вместе с настроением, заданиями и записями. Заполнять ничего не нужно.
+          </p>
+          <div className="mt-2.5"><InviteShare link={link} /></div>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); onCreate(false); }} className="space-y-2">
-          <Input className="[caret-color:var(--ink)]" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Имя и фамилия" autoFocus enterKeyHint="next" />
-          <Input className="[caret-color:var(--ink)]" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Телефон или Telegram" enterKeyHint="done" />
-          <button type="submit" disabled={pending || !first.trim()} className="btn w-full py-2.5">
-            <Icon name="plus" width={15} weight="bold" color="#fff" /> Создать карточку
+
+        <div className="card-plain p-3">
+          <button onClick={() => { tap(); setManual((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={manual}>
+            <span className="ico h-8 w-8 shrink-0"><Icon name="user" width={15} weight="bold" color="var(--edge)" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-black leading-none">Ручной ввод</span>
+              <span className="t-cap mt-1.5 block leading-snug">Карточку заведёте сами — по имени и контакту. Пригласить человека подключиться можно потом, прямо из его карточки.</span>
+            </span>
+            <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{manual ? "↑" : "↓"}</span>
           </button>
-          <button type="button" disabled={pending || !first.trim()} onClick={() => onCreate(true)} className="btn btn-accent w-full py-2.5">
-            <Icon name="telegram" width={15} weight="fill" color="#fff" /> Создать и пригласить в Telegram
-          </button>
-          <p className="t-cap text-center">Направьте приглашение, чтобы у клиента синхронизировалась ваша карточка и его учётная запись и он смог заполнять данные.</p>
-        </form>
+          <Disclosure open={manual} autoScroll={false}>
+            <form onSubmit={(e) => { e.preventDefault(); onCreate(); }} className="mt-2.5 space-y-2">
+              <Input className="[caret-color:var(--ink)]" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Имя и фамилия" enterKeyHint="next" />
+              <Input className="[caret-color:var(--ink)]" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Телефон или Telegram" enterKeyHint="done" />
+              <button type="submit" disabled={pending || !first.trim()} className="btn w-full py-2.5">
+                <Icon name="plus" width={15} weight="bold" color="#fff" /> Создать карточку
+              </button>
+            </form>
+          </Disclosure>
+        </div>
       </div>
     </Disclosure>
   );
