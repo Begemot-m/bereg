@@ -18,7 +18,8 @@ import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, logout } from "@/lib/api";
+import { asset } from "@/lib/asset";
 import { CENTER_SITE, CENTER_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
@@ -26,6 +27,7 @@ import { select, success, tap } from "@/lib/haptics";
 import { resetOnboarding } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
+import { isTelegramMiniApp } from "@/lib/telegram";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
@@ -133,6 +135,9 @@ export default function CabinetPage() {
         {/* Роль психолога — только для тех, кто выбрал клиента в онбординге */}
         <PsyRoleRequest />
 
+        {/* Выход — только для браузера: в Telegram вход происходит сам */}
+        <WebExit />
+
         {/* О приложении */}
         <div>
           <SectionTitle>О приложении</SectionTitle>
@@ -151,6 +156,46 @@ export default function CabinetPage() {
 
       </div>
       </Reveal>
+    </div>
+  );
+}
+
+// Выход из аккаунта. В Telegram он бессмыслен: приложение тут же войдёт снова
+// по initData, поэтому кнопку показываем только браузеру. Среду спрашиваем
+// после гидрации — telegram-web-app.js подключается отложенно.
+function WebExit() {
+  const [web, setWeb] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setWeb(DEMO || !isTelegramMiniApp()), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!web) return null;
+
+  const leave = async () => {
+    if (busy) return;
+    setBusy(true);
+    tap();
+    await logout();
+    // Полная перезагрузка на корень: сессии больше нет, приложение поднимется
+    // гостем и покажет лендинг.
+    window.location.replace(asset("/"));
+  };
+
+  return (
+    <div>
+      <SectionTitle>Вход в браузере</SectionTitle>
+      <div className="space-y-1 overflow-hidden rounded-[20px] px-2.5 py-2" style={{ background: "var(--surface)" }}>
+        <ActionRow
+          icon="exit"
+          title={busy ? "Выходим…" : "Выйти из аккаунта"}
+          danger
+          onClick={() => void leave()}
+        />
+      </div>
+      <p className="t-cap mt-2 px-1 leading-snug opacity-70">Вернётесь на главную. Чтобы войти снова, понадобится код на привязанную почту.</p>
     </div>
   );
 }

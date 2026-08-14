@@ -1,6 +1,6 @@
 // Тонкий клиент API. Токены живут только в httpOnly-cookie.
 
-import { DEMO, mockFetch } from "@/lib/demo";
+import { DEMO, enterDemoWebGuest, mockFetch } from "@/lib/demo";
 
 // Бэкенд внутри Next — тот же origin, префикс /api.
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
@@ -135,6 +135,20 @@ export const requestEmailCode = (email: string) => authPost("/auth/email/request
 
 /** Проверка кода: сервер ставит куки сессии, дальше приложение открывается само. */
 export const loginWithEmail = (email: string, code: string) => authPost("/auth/email/verify", { email, code });
+
+/**
+ * Выход из браузера. Сессию гасит сервер, куки снимает он же. В демо сервера
+ * нет — там достаточно вернуть человека в гости, чтобы снова показался лендинг.
+ */
+export async function logout(): Promise<void> {
+  if (DEMO) {
+    enterDemoWebGuest();
+    return;
+  }
+  // Отказ сервера не повод держать человека внутри: куки всё равно снимутся
+  // на следующем входе, а он просил выйти сейчас.
+  await fetch(`${API_URL}/auth/logout`, { method: "POST" }).catch(() => undefined);
+}
 
 /**
  * Вход по данным Telegram. Одна неудачная попытка — ещё не отказ: холодный

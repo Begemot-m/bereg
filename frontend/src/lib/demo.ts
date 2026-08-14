@@ -535,6 +535,11 @@ export function leaveDemoWebGuest() {
   localStorage.removeItem(WEB_GUEST_KEY);
 }
 
+/** Выход в демо: сервера нет, поэтому просто возвращаем человека в гости. */
+export function enterDemoWebGuest() {
+  localStorage.setItem(WEB_GUEST_KEY, "1");
+}
+
 export async function mockFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const db = load();
   const method = (init.method ?? "GET").toUpperCase();

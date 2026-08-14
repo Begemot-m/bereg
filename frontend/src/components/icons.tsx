@@ -31,6 +31,7 @@ import {
   Question,
   PaperPlaneTilt,
   ShareNetwork,
+  SignOut,
   LockSimple,
   MapPinLine,
   X,
@@ -87,6 +88,7 @@ export type IconName =
   | "question"
   | "telegram"
   | "share"
+  | "exit"
   | "lock"
   | "route"
   | "close"
@@ -142,6 +144,7 @@ const MAP: Record<IconName, PhIcon> = {
   // а не про конкретный мессенджер.
   telegram: PaperPlaneTilt,
   share: ShareNetwork,
+  exit: SignOut,
   lock: LockSimple,
   route: MapPinLine,
   close: X,
