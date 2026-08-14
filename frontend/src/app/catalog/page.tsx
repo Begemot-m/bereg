@@ -52,7 +52,9 @@ import {
 } from "@/lib/catalog";
 import { DEMO } from "@/lib/demo";
 import { currencySymbol, formatMoney } from "@/lib/money";
-import { timeInZone, zoneLabel } from "@/lib/timezones";
+import { timeInZone, zoneOffset } from "@/lib/timezones";
+import { serverMessage } from "@/lib/api";
+import { getReviews, rateTherapist } from "@/lib/reviews";
 import { select, success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
 import { helpsLine } from "@/lib/morph";
@@ -271,13 +273,17 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
             {psy.verified && <Icon name="seal" width={17} weight="fill" color="var(--green)" className="shrink-0" />}
           </div>
           <p className="mt-0.5 text-[11px] font-black" style={{ color: "var(--edge)" }}>{specialistLine(psy)}</p>
+          <PsyZoneLine psy={psy} />
            <p className="t-body mt-1.5"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
            {psy.quote && <p className="t-sub mt-2 pl-2.5 italic" style={{ borderLeft: "2px solid var(--edge)" }}>«{psy.quote}»</p>}
          </div>
        </div>
 
       <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        <span className="t-cap inline-flex items-center gap-1" style={{ color: "var(--ink)" }}><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /> {psy.rating.toFixed(1)} <span className="text-[var(--muted)]">({psy.reviews})</span></span>
+        {/* Ноль оценок — не «0.0»: новый специалист не должен выглядеть плохим. */}
+        {psy.reviews > 0
+          ? <span className="t-cap inline-flex items-center gap-1" style={{ color: "var(--ink)" }}><Icon name="star" width={14} weight="fill" color="var(--amber-edge)" /> {psy.rating.toFixed(1)} <span className="text-[var(--muted)]">({psy.reviews})</span></span>
+          : <span className="t-cap inline-flex items-center gap-1"><Icon name="star" width={14} weight="bold" color="var(--muted-2)" /> Пока без оценок</span>}
         <span className="chip">{psy.method}</span>
         <span className="t-cap">{psy.years} {yearsWord(psy.years)} практики</span>
       </div>
@@ -367,9 +373,10 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
           <p className="t-cap mt-1">{psy.method} · {psy.years} {yearsWord(psy.years)} практики</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="chip" style={{ background: "#fff" }}>
-              <Icon name="star" width={12} weight="fill" color="var(--amber-edge)" />
-              <span className="tnum">{psy.rating.toFixed(1)}</span>
-              <span className="text-[var(--muted)]">· {psy.reviews}</span>
+              <Icon name="star" width={12} weight={psy.reviews > 0 ? "fill" : "bold"} color={psy.reviews > 0 ? "var(--amber-edge)" : "var(--muted-2)"} />
+              {psy.reviews > 0
+                ? <><span className="tnum">{psy.rating.toFixed(1)}</span><span className="text-[var(--muted)]">· {psy.reviews}</span></>
+                : <span className="text-[var(--muted)]">без оценок</span>}
             </span>
             {psy.style && <span className="chip" style={{ background: "#fff" }}><Icon name="spark" width={11} weight="fill" color={tone.edge} /> {psy.style}</span>}
           </div>
@@ -608,7 +615,7 @@ function PsyZoneLine({ psy }: { psy: Psy }) {
   return (
     <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--muted)]">
       <Icon name="pin" width={12} weight="bold" color="var(--muted-2)" />
-      {[region, zone ? `${zoneLabel(zone)}, сейчас ${timeInZone(zone)}` : ""].filter(Boolean).join(" · ")}
+      {[region, zoneOffset(zone), timeInZone(zone)].filter(Boolean).join(" · ")}
     </p>
   );
 }
@@ -848,13 +855,28 @@ function detailLocation(psy: Psy) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) { return <section className="relative"><p className="t-micro mb-2">{title}</p>{children}</section>; }
 
-const RATING_KEY = "bereg_ratings";
+// Оценка уходит на сервер и оттуда же читается. Раньше она лежала в
+// localStorage: звёзды загорались, средняя не менялась, на другом устройстве
+// оценки не было вовсе — и человек не понимал, поставилась она или нет.
 function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
-  const [mine, setMine] = useState(0);
-  useEffect(() => { try { const ratings = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); setMine(ratings[psy.id] ?? 0); } catch { /* ignore */ } }, [psy.id]);
-  const rate = (value: number) => { success(); setMine(value); try { const ratings = JSON.parse(localStorage.getItem(RATING_KEY) || "{}"); ratings[psy.id] = value; localStorage.setItem(RATING_KEY, JSON.stringify(ratings)); } catch { /* ignore */ } };
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["reviews", psy.id], queryFn: () => getReviews(psy.id) });
+  const [denied, setDenied] = useState("");
+  const saved = data?.list.find((review) => review.mine)?.rating ?? 0;
+  const rate = useMutation({
+    mutationFn: (value: number) => rateTherapist(psy.id, value),
+    onSuccess: (next) => { success(); setDenied(""); qc.setQueryData(["reviews", psy.id], next); qc.invalidateQueries({ queryKey: ["catalog"] }); },
+    onError: (e: Error) => setDenied(serverMessage(e) || "Оценка не сохранилась — попробуйте позже"),
+  });
+  // Пока запрос летит, звёзды показывают нажатое: иначе тап выглядит как промах.
+  const mine = rate.isPending ? rate.variables ?? saved : saved;
+  // Пока оценок нет, средняя берётся из карточки каталога: обе цифры считаются
+  // по одной таблице, и расхождение «в карточке 4.9, в блоке ноль» — только
+  // из-за пустого ответа (демо-режим, холодный кеш).
+  const average = data?.count ? data.rating : psy.rating;
+  const count = data?.count || psy.reviews;
   // Оценки появляются только после встреч: пока их нет, показываем честный ноль.
-  const rated = psy.reviews > 0 && psy.rating > 0;
+  const rated = count > 0 && average > 0;
   return (
     <Section title="Рейтинг и оценка">
       <div className="overflow-hidden rounded-[20px] bg-[var(--amber-soft)]">
@@ -866,10 +888,10 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
               <div className="relative flex h-[86px] w-[86px] shrink-0 items-center justify-center">
                 <svg viewBox="0 0 36 36" className="h-[86px] w-[86px] -rotate-90">
                   <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,.7)" strokeWidth="3.5" />
-                  <motion.circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--amber-edge)" strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} whileInView={{ strokeDashoffset: C * (1 - psy.rating / 5) }} viewport={{ once: true }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} />
+                  <motion.circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--amber-edge)" strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - average / 5) }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} />
                 </svg>
                 <div className="absolute flex flex-col items-center leading-none">
-                  <span className="font-tight tnum text-[26px] font-black"><CountUp value={psy.rating} decimals={1} /></span>
+                  <span className="font-tight tnum text-[26px] font-black">{rated ? <CountUp value={average} decimals={1} /> : "—"}</span>
                   <span className="text-[8px] font-black uppercase tracking-[.08em] text-[var(--muted)]">из 5</span>
                 </div>
               </div>
@@ -881,7 +903,7 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
               // Без отзывов распределения нет: прежняя формула при нулевом
               // рейтинге растягивала полосу «одна звезда» почти на всю ширину,
               // и новый специалист выглядел разгромленным.
-              const raw = [5, 4, 3, 2, 1].map((s) => (rated ? Math.max(0.02, 1 - Math.abs(s - psy.rating) * 0.62) : 0));
+              const raw = [5, 4, 3, 2, 1].map((s) => (rated ? Math.max(0.02, 1 - Math.abs(s - average) * 0.62) : 0));
               const sum = raw.reduce((a, b) => a + b, 0) || 1;
               return [5, 4, 3, 2, 1].map((s, i) => (
                 <div key={s} className="flex items-center gap-1.5">
@@ -893,11 +915,34 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
                 </div>
               ));
             })()}
-            <p className="pt-0.5 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted)]">{rated ? `${psy.reviews} отзывов после встреч` : "оценок пока нет"}</p>
+            <p className="pt-0.5 text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted)]">{rated ? `оценок: ${count}` : "оценок пока нет"}</p>
           </div>
         </div>
         <div className="border-t bg-white/55 p-4" style={{ borderColor: "var(--amber-edge)" }}>
-          {canRate ? <><p className="mb-2 text-center text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Ваша оценка после встречи</p><div className="flex justify-center gap-2">{[1,2,3,4,5].map((value) => <motion.button key={value} whileTap={{ scale: .78 }} animate={mine === value ? { scale: [1, 1.16, 1] } : { scale: 1 }} onClick={() => rate(value)} className="flex h-10 w-10 items-center justify-center rounded-[11px] bg-white stroke" aria-label={`Оценка ${value}`}><Icon name="star" width={21} weight={mine >= value ? "fill" : "regular"} color="var(--amber-edge)" /></motion.button>)}</div>{mine > 0 && <p className="mt-2 text-center text-[11px] font-black">Спасибо — оценку можно изменить</p>}</> : <p className="text-center text-[11px] font-semibold text-[var(--muted)]">Оценку можно оставить после состоявшейся сессии.</p>}
+          {canRate ? (
+            <>
+              <p className="mb-2 text-center text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">{saved ? "Ваша оценка" : "Оцените работу"}</p>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <motion.button
+                    key={value}
+                    whileTap={{ scale: .78 }}
+                    animate={mine === value ? { scale: [1, 1.16, 1] } : { scale: 1 }}
+                    onClick={() => { tap(); rate.mutate(value); }}
+                    disabled={rate.isPending}
+                    className="flex h-10 w-10 items-center justify-center rounded-[11px] bg-white stroke disabled:opacity-60"
+                    aria-label={`Оценка ${value}`}
+                  >
+                    <Icon name="star" width={21} weight={mine >= value ? "fill" : "regular"} color="var(--amber-edge)" />
+                  </motion.button>
+                ))}
+              </div>
+              {/* Что произошло после тапа — словами, а не догадками по звёздам. */}
+              <p className="mt-2 text-center text-[11px] font-black" style={denied ? { color: "var(--coral-edge, var(--muted))" } : undefined}>
+                {denied || (rate.isPending ? "Сохраняем…" : saved ? "Оценка сохранена — её можно изменить" : "Оценка видна другим только в средней")}
+              </p>
+            </>
+          ) : <p className="text-center text-[11px] font-semibold text-[var(--muted)]">Оценку можно оставить после состоявшейся сессии.</p>}
         </div>
       </div>
     </Section>

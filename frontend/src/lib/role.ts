@@ -7,7 +7,8 @@ export type Role = "guest" | "client" | "psychologist";
 export const ROLE_LABEL: Record<Role, string> = {
   guest: "Гость",
   client: "Пользователь",
-  psychologist: "Психолог",
+  // «Специалист», а не «Психолог»: в кабинете сидят и психиатры, и коучи.
+  psychologist: "Специалист",
 };
 
 const KEY = "psy_demo_role";

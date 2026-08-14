@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui";
 import { select, tap } from "@/lib/haptics";
 import { getMonthAvailability, getSlots, WEEKDAYS, ymdLocal, type Slot } from "@/lib/schedule";
 import type { Appointment, ApptFormat } from "@/lib/appointments";
-import { sameOffset, timeInZone, zoneLabel } from "@/lib/timezones";
+import { sameOffset, timeInZone, zoneCity, zoneOffset } from "@/lib/timezones";
 import { addDays, APP_ZONE, parseYmd, weekdayOf, zoneDay, zoneFormat } from "@/lib/zone";
 
 const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
@@ -145,8 +145,8 @@ function ZoneNote({ psyTimezone }: { psyTimezone?: string }) {
     <p className="mt-2.5 flex items-start gap-1.5 text-[10.5px] font-semibold leading-snug text-[var(--muted-2)]">
       <Icon name="clock" width={12} weight="bold" color="var(--muted-2)" />
       <span>
-        Время указано по часовому поясу платформы — {zoneLabel(APP_ZONE)}.
-        {other && ` У специалиста (${zoneLabel(other)}) в это время ${timeInZone(other)}.`}
+        Время по {zoneCity(APP_ZONE)}, {zoneOffset(APP_ZONE)}.
+        {other && ` У специалиста сейчас ${timeInZone(other)} (${zoneOffset(other)}).`}
       </span>
     </p>
   );

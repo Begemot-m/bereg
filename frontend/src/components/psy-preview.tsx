@@ -9,7 +9,7 @@ import { DEMO } from "@/lib/demo";
 import { tap } from "@/lib/haptics";
 import { formatMoney } from "@/lib/money";
 import { getPsyProfile, LINK_META, normalizeLinkUrl, type LinkKind } from "@/lib/profile";
-import { timeInZone, zoneLabel } from "@/lib/timezones";
+import { timeInZone, zoneOffset } from "@/lib/timezones";
 
 /**
  * Анкета глазами клиента — для модерации. Раньше решение принималось по трём
@@ -132,7 +132,7 @@ function PreviewBody({ psy }: { psy: Psy }) {
           <p className="t-cap mt-1">{[psy.specialistTypes?.join(" · "), psy.method, psy.years ? `${psy.years} лет практики` : ""].filter(Boolean).join(" · ")}</p>
           <p className="mt-1.5 text-[13px] font-black">{psy.price ? formatMoney(psy.price, psyCurrency(psy)) : "цена не указана"}<span className="t-cap"> / {psy.minutes || "—"} мин</span></p>
           {(psy.region || psy.city || zone) && (
-            <p className="t-cap mt-1">{[psy.region || psy.city, zone ? `${zoneLabel(zone)}, сейчас ${timeInZone(zone)}` : ""].filter(Boolean).join(" · ")}</p>
+            <p className="t-cap mt-1">{[psy.region || psy.city, zoneOffset(zone), timeInZone(zone)].filter(Boolean).join(" · ")}</p>
           )}
         </div>
       </div>

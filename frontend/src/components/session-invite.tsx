@@ -5,11 +5,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/icons";
-import { botDeepLink } from "@/lib/brand";
+import { APP_NAME, botDeepLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
-import { useProfile } from "@/lib/profile";
 import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
 import { zoneDay, zoneFormat } from "@/lib/zone";
 
@@ -45,7 +44,6 @@ export function SessionInviteButton() {
 }
 
 function SessionInviteSheet({ onClose }: { onClose: () => void }) {
-  const profile = useProfile();
   const { data: me } = useMe();
   const [copied, setCopied] = useState(false);
   const { data: avail } = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability() });
@@ -67,15 +65,9 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
   // увидит именно его окна. OWN_PROFILE_ID — запасной вариант для демо.
   const link = bookingInviteUrl(me?.id);
   const dayLabel = firstFree ? cap(dayF.format(zoneDay(firstFree))) : null;
-  const times = free.map((s) => timeF.format(new Date(s.start))).join(", ");
-  const name = profile?.name?.trim();
 
   // Текст, который человек прочитает в мессенджере. Без давления и канцелярита.
-  const suggested = [
-    name ? `Здравствуйте! Это ${name.split(" ")[0]}.` : "Здравствуйте!",
-    dayLabel && times ? `Ближайшие свободные окна: ${dayLabel} — ${times}.` : "У меня открылись свободные окна для записи.",
-    "Выбрать удобное время и записаться можно здесь:",
-  ].join(" ");
+  const suggested = `Приглашаю Вас на платформу «${APP_NAME}». Чтобы записаться ко мне на приём, перейдите в приложение по ссылке`;
 
   // Свой текст приглашения хранится локально: психолог правит его один раз,
   // дальше кнопка отправки берёт сохранённый вариант.

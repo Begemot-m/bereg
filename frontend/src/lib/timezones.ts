@@ -64,10 +64,25 @@ export function zoneName(timezone: string): string {
   return TIMEZONES.find((item) => item.id === timezone)?.label ?? timezone.split("/").pop()?.replace(/_/g, " ") ?? timezone;
 }
 
-/** Подпись зоны целиком: «Москва, Санкт-Петербург · UTC+3». */
+/** Подпись зоны целиком: «Москва, Санкт-Петербург · UTC+3». Для списка выбора. */
 export function zoneLabel(timezone: string): string {
   if (!timezone) return "";
   return [zoneName(timezone), zoneOffset(timezone)].filter(Boolean).join(" · ");
+}
+
+/** Первый город подписи: «Москва» из «Москва, Санкт-Петербург». */
+export function zoneCity(timezone: string): string {
+  return zoneName(timezone).split(",")[0].trim();
+}
+
+/**
+ * Короткая подпись для интерфейса: «Москва, UTC+3». Полная («Москва,
+ * Санкт-Петербург · UTC+3») хороша в выпадающем списке, но в карточке и под
+ * календарём занимает полторы строки ради одной цифры сдвига.
+ */
+export function zoneShort(timezone: string): string {
+  if (!timezone) return "";
+  return [zoneCity(timezone), zoneOffset(timezone)].filter(Boolean).join(", ");
 }
 
 /** Который час у человека в этой зоне — «14:30». */

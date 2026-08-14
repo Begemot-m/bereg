@@ -238,7 +238,7 @@ function RatingRow({ psyId, name }: { psyId: number | undefined; name: string })
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["reviews", psyId ?? null], queryFn: () => getReviews(psyId as number), enabled: Boolean(psyId) });
   const [denied, setDenied] = useState("");
-  const mine = data?.list.find((r) => r.mine)?.rating ?? 0;
+  const saved = data?.list.find((r) => r.mine)?.rating ?? 0;
   const rate = useMutation({
     mutationFn: (value: number) => rateTherapist(psyId as number, value),
     onSuccess: (next) => { success(); setDenied(""); qc.setQueryData(["reviews", psyId ?? null], next); qc.invalidateQueries({ queryKey: ["catalog"] }); },
@@ -247,14 +247,21 @@ function RatingRow({ psyId, name }: { psyId: number | undefined; name: string })
     onError: (e: Error) => setDenied(serverMessage(e) || "Оценка не сохранилась — попробуйте позже"),
   });
 
+  // Нажатая звезда горит сразу, пока ответ в пути.
+  const mine = rate.isPending ? rate.variables ?? saved : saved;
+
   if (!psyId) return null;
   return (
     <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[14px] px-3 py-2" style={{ background: "var(--page)" }}>
       <span className="min-w-0">
-        <span className="block text-[11.5px] font-black">{mine ? "Ваша оценка" : `Как вам работа с ${name.split(" ")[0]}?`}</span>
+        <span className="block text-[11.5px] font-black">{saved ? "Ваша оценка" : `Как вам работа с ${name.split(" ")[0]}?`}</span>
         {denied
           ? <span className="t-cap block" style={{ color: "var(--rose-edge, var(--muted))" }}>{denied}</span>
-          : Boolean(data?.count) && <span className="t-cap block">Средняя {data?.rating} · {data?.count} оценок</span>}
+          : rate.isPending
+            ? <span className="t-cap block">Сохраняем…</span>
+            : saved
+              ? <span className="t-cap block">Сохранена · средняя {data?.rating} из {data?.count}</span>
+              : Boolean(data?.count) && <span className="t-cap block">Средняя {data?.rating} · оценок {data?.count}</span>}
       </span>
       <span className="flex shrink-0 gap-0.5">
         {[1, 2, 3, 4, 5].map((value) => (
