@@ -97,6 +97,19 @@ describe("анкета доезжает до каталога", () => {
     expect(card.verified).toBe(true);
   });
 
+  test("счётчики платформы молчат, пока их не включили", async () => {
+    // Анкеты, заполненные до появления переключателя, поля showStats не имеют:
+    // карточка не должна показывать по ним нули за специалиста.
+    const { showStats: _dropped, ...withoutFlag } = patch;
+    const { data, fields } = mergeProfilePatch({}, withoutFlag);
+    const [card] = await buildPsyCards([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { userId: 43, name: fields.name ?? "", primaryMethod: "", experienceYears: 0, sessionPrice: 0, sessionMinutes: 0, format: "", city: "", status: "approved", reviewedAt: new Date(), data } as any,
+    ]);
+    expect(card.showStats).toBe(false);
+    expect(apiPsyToCatalogPsy(JSON.parse(JSON.stringify(card))).showStats).toBe(false);
+  });
+
   test("контакты и ссылки не теряются", async () => {
     const [card] = await cardFromPatch();
     expect(card.tg).toBe("vetrova");

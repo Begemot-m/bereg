@@ -470,7 +470,7 @@ function PricePoster({ psy }: { psy: Psy }) {
         <p className="t-sub mb-1">за {psy.minutes} мин</p>
       </div>
       {/* Счётчики платформы — если специалист разрешил их в анкете */}
-      {psy.showStats !== false && (
+      {psy.showStats === true && (
         <div className="relative mt-3.5 flex flex-wrap gap-1.5">
           <Fact icon="users" text={`${psy.clients} клиентов`} />
           <Fact icon="calendar" text={`${psy.sessions} сессий`} />

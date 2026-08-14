@@ -53,7 +53,9 @@ function mapCard(row: PsyProfileRow, ctx: {
     gender: data.gender ?? "unspecified",
     // Настройки анкеты: счётчики и правила показываются, только если
     // специалист отметил это у себя в профиле.
-    showStats: data.showStats !== false,
+    // Счётчики платформы — только по явному согласию: анкеты без этого поля
+    // (а такими были все до сегодняшнего дня) карточка показывает без цифр.
+    showStats: data.showStats === true,
     rules: publicRules(data.rules),
     style: data.style ?? "",
     quote: data.quote ?? "",

@@ -184,7 +184,9 @@ export function getPsyProfile(): PsyProfile | null {
     if (!(["online", "offline", "both", ""] as const).includes(p.format)) p.format = "";
     if (!(["woman", "man", "unspecified"] as const).includes(p.gender)) p.gender = "unspecified";
     p.location = { ...EMPTY.location, ...(source.location ?? {}) };
-    if (typeof p.showStats !== "boolean") p.showStats = true;
+    // Счётчики платформы включает сам специалист: у новичка нули в карточке
+    // работают против него, поэтому по умолчанию их нет.
+    if (typeof p.showStats !== "boolean") p.showStats = false;
     p.rules = normalizeRules(source.rules);
     return p;
   } catch {
@@ -201,7 +203,7 @@ const EMPTY: PsyProfile = {
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false, region: "" },
   timezone: "",
   photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],
-  showStats: true, rules: EMPTY_RULES, status: "review",
+  showStats: false, rules: EMPTY_RULES, status: "review",
 };
 
 // Мержим с текущим — можно сохранять по частям (онбординг и правки в кабинете).

@@ -26,7 +26,7 @@ const EMPTY_PROFILE: PsyProfile = {
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false, region: "" },
   timezone: "",
   photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],
-  showStats: true, rules: EMPTY_RULES, status: "review",
+  showStats: false, rules: EMPTY_RULES, status: "review",
 };
 
 type StepId = "identity" | "topics" | "methods" | "format" | "conditions" | "experience" | "story" | "rules" | "preview";
@@ -306,7 +306,7 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
       <div className="flex items-center gap-3 p-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] stroke" style={{ background: current.tone }}><Icon name={current.icon} width={19} weight="bold" /></span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Раздел {index + 1} из {flowSteps.length} · анкета заполнена на {percent}%</p>
+          <p className="text-[10px] font-black uppercase tracking-[.09em] text-[var(--muted)]">Раздел {index + 1} из {flowSteps.length} · анкета заполнена на <span className="tnum" style={{ color: "var(--tiffany-edge)" }}>{percent}%</span></p>
           <h3 className="font-tight text-[19px] font-black leading-tight">{current.title}</h3>
         </div>
       </div>
@@ -331,16 +331,11 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
           );
         })}
       </div>
-      {/* Полоска показывает только цвет-состояние. Нажал на неё — тут же
-          написано, что это за раздел и что в нём заполняют; легенда цветов
-          рядом, чтобы янтарный не приходилось угадывать. */}
-      <div className="border-t px-3 py-2" style={{ borderColor: "var(--edge-neutral)" }}>
-        <p className="text-[11.5px] font-black leading-tight">{index + 1}. {current.title}</p>
-        <p className="t-cap mt-0.5">{current.short}</p>
-        <div className="mt-1.5 flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--green)", border: "2px solid var(--green-edge)" }} /> заполнено</span>
-          <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber)", border: "2px solid var(--amber-edge)" }} /> ещё нужно</span>
-        </div>
+      {/* Под полосками — только расшифровка цвета: название открытого раздела
+          и так стоит в шапке выше, повторять его здесь незачем. */}
+      <div className="flex items-center gap-3 border-t px-3 py-2" style={{ borderColor: "var(--edge-neutral)" }}>
+        <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--green)", border: "2px solid var(--green-edge)" }} /> заполнено</span>
+        <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber)", border: "2px solid var(--amber-edge)" }} /> ещё нужно заполнить</span>
       </div>
       <button onClick={() => { tap(); setNavOpen((value) => !value); }} className="flex w-full items-center justify-between border-t px-3 py-2.5 text-[12px] font-black text-[var(--muted)]" style={{ borderColor: "var(--edge-neutral)" }} aria-expanded={navOpen}>
         {navOpen ? "Свернуть разделы" : "Все разделы анкеты"}
@@ -650,37 +645,19 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
   const setRule = (id: RuleId, patch: Partial<{ text: string; shown: boolean }>) => update({ rules: { ...rules, [id]: { ...rules[id], ...patch } } });
   return <StepCard title="Настройки анкеты и правила работы">
     <Field label="Статистика в анкете">
-      <SettingToggle
-        active={draft.showStats !== false}
+      {/* Счётчики по умолчанию выключены: у новичка «0 клиентов, 0 сессий» —
+          это не аргумент за него, а против. Включает тот, кому есть что
+          показать. */}
+      <SwitchRow
+        active={draft.showStats === true}
         title="Показывать счётчики платформы"
         text="Сколько у вас клиентов, сколько проведено сессий и сколько лет практики."
-        onToggle={() => update({ showStats: draft.showStats === false })}
+        onToggle={() => update({ showStats: draft.showStats !== true })}
       />
     </Field>
 
     {RULE_PRESETS.map((preset) => (
-      <Field key={preset.id} label={preset.title} hint={preset.hint}>
-        <div className="space-y-2">
-          {preset.options.map((option) => (
-            <SettingToggle key={option} bold={false} active={rules[preset.id].text === option} title={option} onToggle={() => setRule(preset.id, { text: option })} />
-          ))}
-        </div>
-        {/* Своя формулировка — обычное поле, а не чип: правило редко умещается
-            в строку, и заготовку сверху обычно хочется дописать под себя. */}
-        <div className="mt-2.5">
-          <p className="t-micro mb-1.5">Своя формулировка</p>
-          <Textarea
-            value={rules[preset.id].text}
-            onChange={(event) => setRule(preset.id, { text: event.target.value })}
-            placeholder={preset.placeholder}
-            rows={3}
-          />
-          <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">В карточку уйдёт именно этот текст. Заготовку сверху можно выбрать и дописать словами.</p>
-        </div>
-        <div className="mt-2">
-          <SettingToggle bare active={rules[preset.id].shown} title="Показывать в профиле" onToggle={() => setRule(preset.id, { shown: !rules[preset.id].shown })} />
-        </div>
-      </Field>
+      <RuleField key={preset.id} preset={preset} rule={rules[preset.id]} onChange={(patch) => setRule(preset.id, patch)} />
     ))}
 
     {/* Текст правила — обещание клиенту, а не запрет в коде. Сам запрет живёт
@@ -692,6 +669,79 @@ function RulesStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
       запрет отмены и предварительная запись очно и онлайн.
     </p>
   </StepCard>;
+}
+
+/**
+ * Одно правило работы: заготовки и своя формулировка — одинаковыми блоками,
+ * между которыми выбирают. Раньше «своя формулировка» была просто полем под
+ * списком: непонятно, выбрана она или нет, и что в итоге уйдёт в карточку.
+ */
+function RuleField({ preset, rule, onChange }: {
+  preset: (typeof RULE_PRESETS)[number];
+  rule: { text: string; shown: boolean };
+  onChange: (patch: Partial<{ text: string; shown: boolean }>) => void;
+}) {
+  const matched = preset.options.includes(rule.text);
+  // Своё правило выбрано, когда текст не совпал ни с одной заготовкой, — либо
+  // когда человек сам открыл этот блок под пустым текстом.
+  const [customOpen, setCustomOpen] = useState(!matched && rule.text.trim().length > 0);
+  const custom = customOpen || (!matched && rule.text.trim().length > 0);
+
+  return (
+    <Field label={preset.title} hint={preset.hint}>
+      <div className="space-y-2">
+        {preset.options.map((option) => (
+          <SettingToggle key={option} bold={false} active={!custom && rule.text === option} title={option} onToggle={() => { setCustomOpen(false); onChange({ text: option }); }} />
+        ))}
+        <SettingToggle
+          bold={false}
+          active={custom}
+          title="Своя формулировка"
+          text={custom ? undefined : "Написать правило своими словами"}
+          onToggle={() => { setCustomOpen(true); if (matched) onChange({ text: rule.text }); }}
+        />
+        {custom && (
+          <div className="rounded-[13px] p-3" style={{ background: "var(--surface-2)", border: "var(--bw) solid var(--tiffany-edge)" }}>
+            <Textarea value={rule.text} onChange={(event) => onChange({ text: event.target.value })} placeholder={preset.placeholder} rows={3} />
+            <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">В карточку уйдёт именно этот текст.</p>
+          </div>
+        )}
+      </div>
+      <div className="mt-2.5">
+        <SwitchRow
+          active={rule.shown}
+          title="Показывать это правило в профиле"
+          text={rule.shown ? "Клиент увидит формулировку в карточке" : "Правило останется только у вас"}
+          onToggle={() => onChange({ shown: !rule.shown })}
+        />
+      </div>
+    </Field>
+  );
+}
+
+/**
+ * Настройка «включено / выключено» тумблером и словом. Круглая галочка на её
+ * месте читалась как «выбор из списка», и было не понять, что сейчас включено.
+ */
+function SwitchRow({ active, title, text, onToggle }: { active: boolean; title: string; text?: string; onToggle: () => void }) {
+  return (
+    <button
+      onClick={() => { select(); onToggle(); }}
+      role="switch"
+      aria-checked={active}
+      className="flex w-full items-center gap-3 rounded-[13px] bg-white p-3 text-left transition-transform active:scale-[.99]"
+      style={{ border: `var(--bw) solid ${active ? "var(--tiffany-edge)" : "var(--edge-neutral)"}` }}
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-black leading-snug">{title}</span>
+        {text && <span className="t-cap mt-0.5 block">{text}</span>}
+        <span className="mt-1 block text-[10px] font-black uppercase tracking-[.06em]" style={{ color: active ? "var(--tiffany-edge)" : "var(--muted-2)" }}>{active ? "включено" : "выключено"}</span>
+      </span>
+      <span className="relative h-6 w-11 shrink-0 rounded-full stroke" style={{ background: active ? "var(--tiffany-edge)" : "white" }}>
+        <motion.span animate={{ x: active ? 20 : 2 }} transition={{ type: "spring", stiffness: 420, damping: 32 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white stroke" />
+      </span>
+    </button>
+  );
 }
 
 // Строка-переключатель настроек анкеты: квадрат-галочка слева по центру,
