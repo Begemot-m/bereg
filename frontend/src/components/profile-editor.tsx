@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { ArrowGlyph } from "@/components/blocks";
 import { VerificationPrompt } from "@/components/verification-prompt";
-import { Button, Input, Textarea } from "@/components/ui";
+import { Button, Disclosure, Input, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { compressImage } from "@/lib/image";
@@ -111,7 +111,7 @@ function ProfileProgress({ profile, onContinue }: { profile: PsyProfile | null; 
       </div>
       {/* Пустую анкету «заполняют», начатую — «редактируют»: кнопка «Заполнить»
           над заполненной наполовину полосой выглядела так, будто всё сотрут. */}
-      <span className="btn shrink-0 px-4 py-2 text-[12px]">{percent > 0 ? "Редактировать" : "Заполнить"}</span>
+      <span className="btn shrink-0 px-4 py-2 text-[12px]">{percent > 0 ? "Правка" : "Заполнить"}</span>
     </button>
   );
 }
@@ -254,6 +254,8 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
     const firstGap = flowSteps.findIndex((item) => !isComplete(item.id, profile));
     return firstGap < 0 ? flowSteps.length - 1 : firstGap;
   });
+  const [navOpen, setNavOpen] = useState(false);
+  const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   // Пока пользователь ничего не менял, автосохранение молчит: иначе открытие
   // анкеты само записало бы в профиль значения по умолчанию.
@@ -288,6 +290,8 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
   const updateLocation = (patch: Partial<PsyProfile["location"]>) => { touched.current = true; setDraft((current) => ({ ...current, location: { ...current.location, ...patch } })); };
 
   const openStep = (target: number) => { tap(); setStep(target); };
+  const next = () => { select(); setStep(Math.min(flowSteps.length - 1, index + 1)); };
+  const back = () => { tap(); setStep((current) => Math.max(0, current - 1)); };
 
   const current = flowSteps[step ?? 0];
   const index = step ?? 0;
@@ -327,14 +331,22 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
           );
         })}
       </div>
-      {/* Полоска показывает только состояние — по цвету не понять, что за
-          раздел. Поэтому список с названиями открыт всегда: он же и есть
-          навигация, кнопок «вперёд-назад» больше нет. */}
-      <div className="flex items-center gap-3 border-t px-3 py-2" style={{ borderColor: "var(--edge-neutral)" }}>
-        <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--green)", border: "2px solid var(--green-edge)" }} /> заполнено</span>
-        <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber)", border: "2px solid var(--amber-edge)" }} /> ещё нужно</span>
+      {/* Полоска показывает только цвет-состояние. Нажал на неё — тут же
+          написано, что это за раздел и что в нём заполняют; легенда цветов
+          рядом, чтобы янтарный не приходилось угадывать. */}
+      <div className="border-t px-3 py-2" style={{ borderColor: "var(--edge-neutral)" }}>
+        <p className="text-[11.5px] font-black leading-tight">{index + 1}. {current.title}</p>
+        <p className="t-cap mt-0.5">{current.short}</p>
+        <div className="mt-1.5 flex items-center gap-3">
+          <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--green)", border: "2px solid var(--green-edge)" }} /> заполнено</span>
+          <span className="flex items-center gap-1.5 text-[10px] font-black text-[var(--muted)]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber)", border: "2px solid var(--amber-edge)" }} /> ещё нужно</span>
+        </div>
       </div>
-      <div>
+      <button onClick={() => { tap(); setNavOpen((value) => !value); }} className="flex w-full items-center justify-between border-t px-3 py-2.5 text-[12px] font-black text-[var(--muted)]" style={{ borderColor: "var(--edge-neutral)" }} aria-expanded={navOpen}>
+        {navOpen ? "Свернуть разделы" : "Все разделы анкеты"}
+        <motion.span animate={{ rotate: navOpen ? -90 : 90 }} className="flex shrink-0 items-center text-[var(--muted)]"><ArrowGlyph size={14} /></motion.span>
+      </button>
+      <Disclosure open={navOpen}>
         <div className="space-y-1.5 border-t px-3 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
           {flowSteps.map((item, itemIndex) => {
             const isPreview = item.id === "preview";
@@ -343,7 +355,7 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
             return (
               <button
                 key={item.id}
-                onClick={() => openStep(itemIndex)}
+                onClick={() => { openStep(itemIndex); setNavOpen(false); }}
                 aria-current={active}
                 className="flex w-full items-center gap-2.5 rounded-[13px] p-2.5 text-left transition-transform active:scale-[.99]"
                 style={{ background: active ? "var(--ink)" : "transparent", border: `var(--bw) solid ${active ? "var(--ink)" : "var(--edge-neutral)"}`, color: active ? "#fff" : "inherit" }}
@@ -362,7 +374,7 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
             );
           })}
         </div>
-      </div>
+      </Disclosure>
     </div>
 
     {/* Статичная минимальная высота — окно не «скачет» между шагами */}
@@ -382,11 +394,17 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
 
     {missing && <p className="mt-3 rounded-[13px] px-3 py-2 text-[12px] font-bold stroke" style={{ background: "var(--amber-soft)", borderColor: "var(--amber-edge)" }}>{missing}</p>}
 
-    {/* Кнопок «Далее» и «Завершить» здесь нет намеренно: анкета сохраняется
-        сама, а завершать её нечем — переходы между разделами в списке выше. */}
-    <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] font-bold text-[var(--muted-2)]">
-      <Icon name="check" width={12} weight="bold" color="var(--muted-2)" /> Изменения сохраняются сами — можно уйти в любой момент
-    </p>
+    {/* «Завершения» у анкеты нет — она сохраняется сама, — но листать разделы
+        подряд удобнее кнопками, чем каждый раз открывая список. */}
+    <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t bg-[var(--surface)] px-4 pb-1 pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
+      <div className="flex gap-2">
+        <button className="btn px-5 disabled:opacity-0" onClick={back} disabled={index === 0} style={{ background: "transparent", color: "var(--ink)", borderColor: "var(--ink)" }}>Назад</button>
+        {index === flowSteps.length - 1
+          ? <Button className="flex-1" onClick={() => { tap(); router.push("/cabinet"); }}>В кабинет</Button>
+          : <Button className="flex-1" onClick={next}>Далее</Button>}
+      </div>
+      <p className="mt-2 text-center text-[10px] font-semibold text-[var(--muted-2)]">Всё сохраняется само — уйти можно на любом разделе</p>
+    </div>
     </div>
     {livePreview && (
       <aside className="hidden min-w-0 @xl:sticky @xl:top-4 @xl:block @xl:max-h-[calc(100dvh-32px)] @xl:overflow-y-auto">
@@ -487,6 +505,9 @@ function RegionZoneFields({ draft, update }: { draft: PsyProfile; update: (patch
 function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange: (links: PsyProfile["links"]) => void }) {
   const kinds = Object.keys(LINK_META) as LinkKind[];
   const setAt = (i: number, patch: Partial<PsyProfile["links"][number]>) => onChange(links.map((l, idx) => idx === i ? { ...l, ...patch } : l));
+  // Ник, а не адрес: «https://» никто не пишет от руки, а @nick специалисты
+  // диктуют не задумываясь — схему допишет normalizeLinkUrl.
+  const hint = (kind: LinkKind) => (kind === "site" ? "site.ru" : "@nickname");
   return (
     <div className="space-y-2">
       {links.map((link, i) => (
@@ -494,11 +515,12 @@ function LinksEditor({ links, onChange }: { links: PsyProfile["links"]; onChange
           <select value={link.kind} onChange={(e) => setAt(i, { kind: e.target.value as LinkKind })} className="shrink-0 rounded-[11px] bg-white px-2 py-2.5 text-[12px] font-black stroke outline-none">
             {kinds.map((k) => <option key={k} value={k}>{LINK_META[k].label}</option>)}
           </select>
-          <Input value={link.url} onChange={(e) => setAt(i, { url: e.target.value })} placeholder="https://…" />
+          <Input value={link.url} onChange={(e) => setAt(i, { url: e.target.value })} placeholder={hint(link.kind)} />
           <button onClick={() => onChange(links.filter((_, idx) => idx !== i))} className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-[11px] bg-white stroke" aria-label="Удалить">×</button>
         </div>
       ))}
       <button onClick={() => onChange([...links, { kind: "site", url: "" }])} className="flex w-full items-center justify-center gap-1.5 rounded-[11px] bg-white py-2 text-[13px] font-bold stroke"><Icon name="plus" width={15} /> Добавить ссылку</button>
+      <p className="text-[10px] font-semibold leading-snug text-[var(--muted-2)]">Для соцсетей достаточно ника через собаку — @nickname. Для сайта хватит адреса вида site.ru, «https://» дописывать не нужно.</p>
       {hasRestrictedLink(links) && <p className="text-[9.5px] leading-snug text-[var(--muted-2)]">{INSTAGRAM_NOTE}</p>}
     </div>
   );

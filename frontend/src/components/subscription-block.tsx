@@ -9,7 +9,7 @@ import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon, type IconName } from "@/components/icons";
 import { ProCta } from "@/components/pro-sell";
 import { Disclosure } from "@/components/ui";
-import { CATALOG_FREE_DAYS, catalogDaysLeft, FREE_CLIENT_LIMIT, getSubscription, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
+import { CATALOG_FREE_DAYS, catalogDaysLeft, FREE_CLIENT_LIMIT, getSubscription, paidDaysLeft, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
 import { tap } from "@/lib/haptics";
 
 import { zoneFormat } from "@/lib/zone";
@@ -117,7 +117,14 @@ export const PRO_BENEFITS: HelpPage[] = [
 // именно эту строку, поэтому она говорит про срок, а не про список функций.
 function bannerPitch(sub: Subscription | undefined): string {
   if (!sub) return "Клиенты без лимита и место в каталоге, когда бесплатные дни вышли.";
-  if (sub.status === "active") return "Подписка активна — лимитов нет, карточка в каталоге.";
+  if (sub.status === "active") {
+    // Оплаченный период виден сразу в свёрнутом баннере: «активна» без срока
+    // не отвечает на единственный вопрос — сколько ещё осталось.
+    const left = paidDaysLeft(sub);
+    return left > 0
+      ? `Подписка активна — осталось ${left} ${plural(left, "день", "дня", "дней")}${sub.currentPeriodEnd ? `, до ${dF.format(new Date(sub.currentPeriodEnd))}` : ""}.`
+      : "Подписка активна — лимитов нет, карточка в каталоге.";
+  }
   if (sub.status === "pending") return "Ждём подтверждение платежа.";
   const cat = catalogDaysLeft(sub);
   if (sub.status === "trial") {
@@ -272,7 +279,11 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     };
   }
   if (sub.status === "pending") return { badge: null, title: "Подтверждаем оплату…", subtitle: "Обычно занимает пару секунд.", progress: null };
-  if (sub.status === "active") return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Хроника PRO активен", subtitle: `Продлится ${sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически"}.`, progress: null };
+  if (sub.status === "active") {
+    const left = paidDaysLeft(sub);
+    const until = sub.currentPeriodEnd ? `до ${dF.format(new Date(sub.currentPeriodEnd))}` : "автоматически";
+    return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Хроника PRO активен", subtitle: left > 0 ? `Осталось ${left} ${plural(left, "день", "дня", "дней")} — продлится ${until}.` : `Продлится ${until}.`, progress: null };
+  }
 
   // Триал ещё не начинался: он включится сам, когда пройдёт первая сессия.
   // Про это важно сказать вслух, иначе бесплатный тариф выглядит как отказ.

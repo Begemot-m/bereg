@@ -43,6 +43,12 @@ export function catalogDaysLeft(sub: Subscription, now = Date.now()): number {
   return Math.max(0, Math.ceil((new Date(sub.catalogUntil).getTime() - now) / 86_400_000));
 }
 
+// Сколько дней осталось от оплаченного (или подаренного) периода PRO.
+export function paidDaysLeft(sub: Subscription, now = Date.now()): number {
+  if (!sub.currentPeriodEnd) return 0;
+  return Math.max(0, Math.ceil((new Date(sub.currentPeriodEnd).getTime() - now) / 86_400_000));
+}
+
 export const getSubscription = () => apiFetch<Subscription>("/subscription");
 
 // Создаёт платёж и возвращает ссылку на оплату ЮKassa (в демо — возврат в кабинет).

@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
 import { DocumentViewer } from "@/components/document-viewer";
+import { PsyPreviewSheet } from "@/components/psy-preview";
 
 import { zoneFormat } from "@/lib/zone";
 
@@ -455,6 +456,7 @@ function Application({ a, busy, onApprove, onReject }: {
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const [preview, setPreview] = useState(false);
   return (
     <div className="card p-3">
       <div className="flex items-start gap-2.5">
@@ -500,7 +502,16 @@ function Application({ a, busy, onApprove, onReject }: {
         <button disabled={busy} onClick={() => { tap(); onReject(); }} className="btn btn-white px-3 py-1.5 text-[11px] disabled:opacity-40">
           На доработку
         </button>
+        {/* Решение принимается по анкете целиком, а не по трём строкам заявки. */}
+        <button onClick={() => { tap(); setPreview(true); }} className="btn btn-white px-3 py-1.5 text-[11px]">
+          Смотреть профиль
+        </button>
       </div>
+
+      <PsyPreviewSheet
+        source={preview ? { userId: a.userId, name: a.name, about: a.about, education: a.education, method: a.method, experienceYears: a.experienceYears, sessionPrice: a.sessionPrice, city: a.city, format: a.format, photo: a.photo } : null}
+        onClose={() => setPreview(false)}
+      />
     </div>
   );
 }
