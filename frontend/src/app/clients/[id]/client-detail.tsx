@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { ArrowGlyph } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
 import { Icon } from "@/components/icons";
 import { EmotionChips, MoodStats, topEmotions } from "@/components/mood-stats";
@@ -88,6 +89,7 @@ export function ClientDetail() {
   // С главной («Управление записью») приходим сразу с раскрытым календарём.
   const [bookOpen, setBookOpen] = useState(() => search.get("book") === "1");
   const [connectOpen, setConnectOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [booked, setBooked] = useState<{ at: string; format: "online" | "offline" } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [stateOpen, setStateOpen] = useState(false);
@@ -148,7 +150,9 @@ export function ClientDetail() {
         <Link href="/clients" className="back-link mb-3 mt-3">Все клиенты</Link>
         <div className="flex items-start gap-3.5">
           {/* Крупная рамка фото */}
-          <ClientAvatar name={client.name} photo={client.photo} className="h-[92px] w-[92px] rounded-[22px] text-[34px] font-black" style={{ background: `var(--${st}-soft)`, border: `var(--bw-lg) solid var(--${st}-edge)` }} />
+          {/* Пока клиент не подключился, фото у него нет — толстая рамка вокруг
+              буквы выглядела как обводка пустоты. Такому клиенту рамка тонкая. */}
+          <ClientAvatar name={client.name} photo={client.photo} className="h-[92px] w-[92px] rounded-[22px] text-[34px] font-black" style={{ background: `var(--${st}-soft)`, border: `${client.link === "joined" ? "var(--bw-lg)" : "var(--bw)"} solid var(--${st}-edge)` }} />
           <div className="min-w-0 flex-1">
             <h1 className="font-tight break-words text-[clamp(19px,5.6vw,22px)] font-black leading-tight">{client.name}</h1>
             {client.contact
@@ -162,14 +166,15 @@ export function ClientDetail() {
                   <Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Профиль подключён
                 </span>
               ) : (
+                // Клиент ещё не подключился — карточку целиком ведёт психолог,
+                // и полезнее кнопка правки, чем надпись о том, чего нет.
                 <button
-                  onClick={() => { tap(); setConnectOpen((v) => !v); setBookOpen(false); }}
-                  aria-expanded={connectOpen}
+                  onClick={() => { tap(); setEditOpen((v) => !v); setConnectOpen(false); setBookOpen(false); }}
+                  aria-expanded={editOpen}
                   className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-black"
                   style={{ background: "var(--alt-soft)", color: "var(--alt-edge)" }}
                 >
-                  <Icon name={client.link === "invited" ? "clock" : "spark"} width={11} weight="bold" color="var(--alt-edge)" />
-                  {client.link === "invited" ? "Приглашение отправлено" : "Профиль не подключён"}
+                  <Icon name="edit" width={11} weight="bold" color="var(--alt-edge)" /> Редактировать
                 </button>
               )}
             </div>
@@ -190,6 +195,29 @@ export function ClientDetail() {
             </p>
           </div>
         </div>
+
+        {/* Правка карточки — прямо под шапкой, там же, где её открыли */}
+        <Disclosure open={editOpen} autoScroll={false}>
+          <ClientEdit client={client} onChanged={inv} onClose={() => setEditOpen(false)} />
+        </Disclosure>
+
+        {/* Зачем вообще подключать клиента — и сразу переход к приглашению */}
+        {client.link !== "joined" && (
+          <button
+            onClick={() => { tap(); setConnectOpen(true); setEditOpen(false); setBookOpen(false); }}
+            aria-expanded={connectOpen}
+            className="mt-3 flex w-full items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-left"
+            style={{ background: "var(--alt-soft)", color: "var(--alt-edge)" }}
+          >
+            <Icon name={client.link === "invited" ? "clock" : "spark"} width={14} weight="bold" color="var(--alt-edge)" />
+            <span className="min-w-0 flex-1 text-[11.5px] font-black leading-snug">
+              {client.link === "invited"
+                ? "Приглашение отправлено — открыть, чтобы отправить ещё раз"
+                : "Подключить клиента к платформе, чтобы он мог пользоваться карточкой"}
+            </span>
+            <ArrowGlyph size={14} className="shrink-0" />
+          </button>
+        )}
 
         {/* Кнопки — в тонах приложения */}
         <div className="mt-4 flex gap-2">
@@ -232,7 +260,8 @@ export function ClientDetail() {
           )}
         </AnimatePresence>
         {/* Подключение клиента: контакт + приглашение + авто-синхронизация */}
-        <Disclosure open={connectOpen} autoScroll={false}>
+        {/* Панель открывают стрелкой из шапки — доводим её до глаз сами */}
+        <Disclosure open={connectOpen}>
           <ClientConnect client={client} onChanged={inv} />
         </Disclosure>
       </header>
@@ -289,6 +318,40 @@ export function ClientDetail() {
         </div>
 
       </main>
+    </div>
+  );
+}
+
+/**
+ * Правка карточки неподключённого клиента: имя и контакт. Пока человек не вошёл
+ * по приглашению, эти поля ведёт психолог — заводил-то он их на слух, и опечатка
+ * в имени или в @нике до сих пор чинилась только заведением карточки заново.
+ */
+function ClientEdit({ client, onChanged, onClose }: { client: Client; onChanged: () => void; onClose: () => void }) {
+  const [name, setName] = useState(client.name);
+  const [contact, setContact] = useState(client.contact ?? "");
+  const save = useMutation({
+    mutationFn: () => updateClient(client.id, { name: name.trim(), contact: contact.trim() }),
+    onSuccess: () => { success(); onChanged(); onClose(); },
+  });
+  const dirty = name.trim() !== client.name || contact.trim() !== (client.contact ?? "");
+
+  return (
+    <div className="card-plain mt-2.5 space-y-2.5 p-3">
+      <label className="block">
+        <span className="t-micro">Имя и фамилия</span>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Имя и фамилия" autoFocus />
+      </label>
+      <label className="block">
+        <span className="t-micro">Telegram или телефон</span>
+        <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="@username или +7 900 000-00-00" />
+      </label>
+      <div className="flex gap-2">
+        <button onClick={() => { tap(); save.mutate(); }} disabled={!name.trim() || !dirty || save.isPending} className="btn btn-accent flex-1 py-2.5 disabled:opacity-50">
+          {save.isPending ? "Сохраняем…" : "Сохранить"}
+        </button>
+        <button onClick={() => { tap(); onClose(); }} className="btn btn-white px-4 py-2.5">Отмена</button>
+      </div>
     </div>
   );
 }
