@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
         select,
       }),
       prisma.psyProfile.findMany({
-        where: { status: { in: ["approved", "rejected"] }, reviewedAt: { not: null } },
+        where: { status: { in: ["approved", "rejected", "declined"] }, reviewedAt: { not: null } },
         orderBy: { reviewedAt: "desc" },
         take: 10,
         select,

@@ -13,6 +13,7 @@ import {
   type UsagePeriod, type UsageTotals,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
+import { CATALOG_DECLINE_TEXT } from "@/lib/pricing";
 import { DocumentViewer } from "@/components/document-viewer";
 import { PsyPreviewSheet } from "@/components/psy-preview";
 
@@ -85,6 +86,12 @@ export default function AdminPage() {
                   const reason = prompt(`Что переделать ${a.name}? Причина уйдёт ему в уведомление.`)?.trim();
                   if (reason && reason.length >= 5) review.mutate({ userId: a.userId, reason });
                 }}
+                onDecline={() => {
+                  // Отказ окончательный: подтверждаем и даём поправить текст,
+                  // который человек увидит у себя в кабинете.
+                  const reason = prompt(`Отказать ${a.name} в размещении в каталоге? Текст уйдёт ему в кабинет — можно оставить как есть.`, CATALOG_DECLINE_TEXT)?.trim();
+                  if (reason) review.mutate({ userId: a.userId, reason, decline: true });
+                }}
               />
             ))}
           </div>
@@ -95,7 +102,7 @@ export default function AdminPage() {
               <div className="mt-2 space-y-1">
                 {verification.data?.recent.map((a) => (
                   <p key={a.userId} className="t-cap">
-                    {a.name} — {a.status === "approved" ? "подтверждён" : `отказ: ${a.rejectReason ?? "без причины"}`}
+                    {a.name} — {a.status === "approved" ? "подтверждён" : a.status === "declined" ? `отказ в каталоге: ${a.rejectReason ?? "без причины"}` : `на доработку: ${a.rejectReason ?? "без причины"}`}
                     {a.reviewedAt && ` · ${dateF.format(new Date(a.reviewedAt))}`}
                   </p>
                 ))}
@@ -450,11 +457,12 @@ export default function AdminPage() {
   );
 }
 
-function Application({ a, busy, onApprove, onReject }: {
+function Application({ a, busy, onApprove, onReject, onDecline }: {
   a: PsyApplication;
   busy: boolean;
   onApprove: () => void;
   onReject: () => void;
+  onDecline: () => void;
 }) {
   const [preview, setPreview] = useState(false);
   return (
@@ -501,6 +509,10 @@ function Application({ a, busy, onApprove, onReject }: {
         </button>
         <button disabled={busy} onClick={() => { tap(); onReject(); }} className="btn btn-white px-3 py-1.5 text-[11px] disabled:opacity-40">
           На доработку
+        </button>
+        {/* Третий исход: в каталог не берём совсем, платформа остаётся. */}
+        <button disabled={busy} onClick={() => { tap(); onDecline(); }} className="btn btn-white px-3 py-1.5 text-[11px] disabled:opacity-40" style={{ borderColor: "var(--salmon-edge)", color: "var(--salmon-edge)" }}>
+          Отказать в каталоге
         </button>
         {/* Решение принимается по анкете целиком, а не по трём строкам заявки. */}
         <button onClick={() => { tap(); setPreview(true); }} className="btn btn-white px-3 py-1.5 text-[11px]">

@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { PRO_PRICE_RUB } from "@/lib/pricing";
 
 // Тариф один: Хроника PRO. Размещение в каталоге входит в него, а до подписки
 // работает бесплатные 14 дней с момента одобрения анкеты.
@@ -13,10 +14,21 @@ export type Subscription = {
   catalog: boolean;           // карточка сейчас видна в каталоге
   catalogUntil: string | null; // до какого числа каталог бесплатно
   pendingPlan: PlanId | null;
+  /** Цена месяца для этого человека: со скидкой она ниже базовой. */
+  priceRub?: number;
+  /** Что перечеркнуть рядом со скидкой. null — скидки нет. */
+  fullPriceRub?: number | null;
+  /** Модерация отказала в каталоге — платформа остаётся, подписка дешевле. */
+  catalogDeclined?: boolean;
 };
 
-export const PLAN_PRICE: Record<PlanId, number> = { pro: 990 };
+export const PLAN_PRICE: Record<PlanId, number> = { pro: PRO_PRICE_RUB };
 export const rub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
+
+/** Цена месяца для конкретного человека: со скидкой за отказ в каталоге — ниже. */
+export const monthlyPrice = (sub?: Subscription | null) => sub?.priceRub ?? PLAN_PRICE.pro;
+/** Что перечеркнуть рядом с ценой; null — перечёркивать нечего. */
+export const crossedPrice = (sub?: Subscription | null) => sub?.fullPriceRub ?? null;
 
 // Бесплатный тариф «Старт»: до 3 клиентов, дальше — PRO.
 export const FREE_CLIENT_LIMIT = 3;

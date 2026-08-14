@@ -8,6 +8,7 @@ const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
 // Зона платформы — единственный внешний импорт: модуль ни от чего не зависит,
 // круга на инициализации не будет. Мок обязан резать сутки как сервер.
+import { PRO_DISCOUNT_PRICE_RUB, PRO_PRICE_RUB } from "@/lib/pricing";
 import { addDays as addZoneDays, parseYmd, weekdayOf, zoneAt, zoneYmd } from "@/lib/zone";
 
 export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
@@ -343,7 +344,28 @@ function subPayload(db: DB) {
     catalog: pro || Boolean(catalogUntil && catalogUntil.getTime() > Date.now()),
     catalogUntil: catalogUntil?.toISOString() ?? null,
     pendingPlan,
+    // Скидка за отказ в каталоге: в бою её считает сервер по статусу анкеты,
+    // в демо статус лежит рядом, в записи о верификации.
+    ...(() => {
+      const declined = demoCatalogDeclined();
+      return {
+        priceRub: declined ? PRO_DISCOUNT_PRICE_RUB : PRO_PRICE_RUB,
+        fullPriceRub: declined ? PRO_PRICE_RUB : null,
+        catalogDeclined: declined,
+      };
+    })(),
   };
+}
+
+/** Отказ модерации в демо живёт в той же записи, что читает кабинет. */
+function demoCatalogDeclined(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = localStorage.getItem("psy_verification");
+    return Boolean(raw) && (JSON.parse(raw as string) as { status?: string }).status === "declined";
+  } catch {
+    return false;
+  }
 }
 
 // Демо-симуляция: спустя ~6с после приглашения клиент «заходит и подключает профиль».

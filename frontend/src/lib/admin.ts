@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
+import { CATALOG_DECLINE_TEXT } from "@/lib/pricing";
 
 export type PsyApplication = {
   userId: number;
@@ -387,18 +388,25 @@ export function useVerificationQueue() {
   });
 }
 
+/**
+ * Решение модератора: одобрить, вернуть на доработку или отказать в каталоге.
+ * Отказ (`decline`) — исход, после которого заявку не переподают: человек
+ * остаётся на платформе со своими клиентами и со скидкой на подписку.
+ */
 export function useReviewVerification() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, reason }: { userId: number; reason?: string }) => {
-      const body = reason ? { action: "reject", reason } : { action: "approve" };
+    mutationFn: async ({ userId, reason, decline }: { userId: number; reason?: string; decline?: boolean }) => {
+      const body = decline
+        ? { action: "decline", ...(reason ? { reason } : {}) }
+        : reason ? { action: "reject", reason } : { action: "approve" };
       if (DEMO) {
         const next = demoRead().map((a) =>
           a.userId === userId
             ? {
                 ...a,
-                status: reason ? "rejected" : "approved",
-                rejectReason: reason ?? null,
+                status: decline ? "declined" : reason ? "rejected" : "approved",
+                rejectReason: decline ? reason ?? CATALOG_DECLINE_TEXT : reason ?? null,
                 reviewedAt: new Date().toISOString(),
               }
             : a,

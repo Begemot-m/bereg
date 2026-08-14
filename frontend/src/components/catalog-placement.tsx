@@ -47,7 +47,13 @@ export function CatalogPlacement({ className }: { className?: string }) {
   // блок. Состояние сменилось (например, анкету одобрили) — покажем снова.
   const state = status !== "approved" ? status : gaps.length ? "gaps" : sub?.pro ? "pro" : daysLeft > 0 ? "free" : "expired";
 
-  if (status !== "approved") {
+  if (status === "declined") {
+    // Отказ окончательный — обещать «после верификации» тут было бы враньём.
+    icon = "seal";
+    tone = "var(--amber-edge)";
+    title = "Каталог недоступен";
+    note = "Модерация отказала в размещении, но профиль и анкету видят ваши клиенты. Подписка для вас дешевле.";
+  } else if (status !== "approved") {
     icon = status === "review" ? "clock" : "seal";
     tone = status === "review" ? "var(--amber-edge)" : "var(--muted)";
     title = status === "review" ? "Анкета на проверке" : "Анкеты в каталоге пока нет";

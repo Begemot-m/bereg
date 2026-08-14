@@ -1,13 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { DailyDot } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { tap } from "@/lib/haptics";
+import { CATALOG_DECLINE_TEXT, PRO_DISCOUNT_PRICE_RUB, PRO_PRICE_RUB } from "@/lib/pricing";
 import { useVerification } from "@/lib/psy-verification";
+import { rub } from "@/lib/subscription";
 
 export const VERIFICATION_HREF = "/cabinet/verification";
+
+// Окно с отказом закрывается насовсем: перечитать решение можно на странице
+// верификации, а висеть в кабинете вечно ему незачем.
+const DECLINE_HIDDEN_KEY = "bereg_catalog_decline_hidden";
+
+export function CatalogDeclineNote({ reason, className }: { reason?: string | null; className?: string }) {
+  const [hidden, setHidden] = useState(true);
+  useEffect(() => { setHidden(localStorage.getItem(DECLINE_HIDDEN_KEY) === "1"); }, []);
+  if (hidden) return null;
+  const close = () => { tap(); localStorage.setItem(DECLINE_HIDDEN_KEY, "1"); setHidden(true); };
+
+  return (
+    <section className={`rounded-[16px] p-4 ${className ?? ""}`} style={{ background: "var(--amber-soft)" }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2.5">
+          <span className="ico h-9 w-9 shrink-0" style={{ background: "#fff" }}><Icon name="seal" width={17} weight="bold" color="var(--amber-edge)" /></span>
+          <p className="text-[14px] font-black leading-tight">Каталог: решение модерации</p>
+        </div>
+        <button onClick={close} aria-label="Закрыть сообщение" className="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/70 transition-transform active:scale-90">
+          <Icon name="close" width={13} weight="bold" color="var(--ink)" />
+        </button>
+      </div>
+      <p className="mt-2.5 text-[12.5px] font-semibold leading-relaxed">{reason?.trim() || CATALOG_DECLINE_TEXT}</p>
+      <p className="mt-2 text-[12px] font-bold leading-snug">
+        Подписка для вас дешевле — {rub(PRO_DISCOUNT_PRICE_RUB)} в месяц вместо {rub(PRO_PRICE_RUB)}.
+      </p>
+    </section>
+  );
+}
 
 /**
  * Приглашение пройти верификацию. Стоит выше заполнения анкеты — и в кабинете,
@@ -19,6 +51,9 @@ export function VerificationPrompt({ className, compact }: { className?: string;
   const { data: verification } = useVerification();
   const status = verification?.status ?? "none";
   if (status === "approved") return null;
+  // Отказ по каталогу — не задача «пройти верификацию», а сообщение, которое
+  // человек прочитал и закрыл. Ссылку на заявку тут показывать незачем.
+  if (status === "declined") return <CatalogDeclineNote reason={verification?.rejectReason} className={className} />;
 
   const view =
     status === "review"

@@ -8,7 +8,9 @@
 import { prisma } from "@/lib/server/prisma";
 
 export type Role = "client" | "psychologist";
-export type PsyStatus = "none" | "draft" | "review" | "approved" | "rejected";
+// declined — в каталог не берём (например, образование не подходит), но
+// платформой человек пользуется дальше: клиенты видят его анкету и профиль.
+export type PsyStatus = "none" | "draft" | "review" | "approved" | "rejected" | "declined";
 
 /**
  * Роли пользователя. Пустой массив — это клиент, а не аккаунт без ролей:
@@ -36,7 +38,7 @@ export function activeRoleOf(user: { roles?: string[] | null; activeRole?: strin
 /** Статус верификации с тем же фолбэком на анкету для незабэкофилленных строк. */
 export function psyStatusOf(user: { psyStatus?: string | null }): PsyStatus {
   const value = user.psyStatus ?? "none";
-  return (["none", "draft", "review", "approved", "rejected"] as const).includes(value as PsyStatus)
+  return (["none", "draft", "review", "approved", "rejected", "declined"] as const).includes(value as PsyStatus)
     ? (value as PsyStatus)
     : "none";
 }

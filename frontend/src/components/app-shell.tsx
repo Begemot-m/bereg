@@ -333,7 +333,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               if (it.href === centerHref) return (
                 <Link key={it.href} href={it.href} onClick={select} data-tour={`nav-${it.href.slice(1)}`} className="relative z-[2] flex flex-1 items-center justify-center" aria-label={it.label}>
                   <motion.span whileTap={{ scale: 0.9 }} className="-mt-7 flex h-14 w-14 items-center justify-center rounded-[18px]" style={{ background: active ? "var(--ink)" : `var(--${centerTone})`, border: `var(--bw-lg) solid ${active ? "var(--ink)" : `var(--${centerTone}-edge)`}`, boxShadow: `0 10px 20px -8px ${active ? "rgba(32,28,24,.5)" : `var(--${centerTone}-edge)`}` }}>
-                    <NavIcon icon={it.icon} active={active} size={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
+                    {/* В нижнем меню иконки не двигаются: трюки читались как
+                        рябь под пальцем, а не как отклик. */}
+                    <Icon name={it.icon} width={26} weight="fill" color={active ? "#fff" : "var(--ink)"} />
                   </motion.span>
                 </Link>
               );
@@ -342,7 +344,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <span className="relative flex h-9 w-9 items-center justify-center">
                     {active && <motion.span layoutId="navActive" className="absolute inset-0 rounded-full" style={{ background: "var(--head-soft)" }} transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
                     <motion.span whileTap={{ scale: 0.82 }} className="relative z-[1] flex items-center justify-center">
-                      <NavIcon icon={it.icon} active={active} size={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
+                      <Icon name={it.icon} width={22} weight={active ? "fill" : "regular"} color={active ? "var(--edge)" : "var(--ink)"} />
                     </motion.span>
                   </span>
                 </Link>

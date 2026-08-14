@@ -1,12 +1,12 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, type ReactNode } from "react";
 
 import { Icon } from "@/components/icons";
 import { tap } from "@/lib/haptics";
-import { CATALOG_FREE_DAYS, FREE_CLIENT_LIMIT, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
+import { CATALOG_FREE_DAYS, FREE_CLIENT_LIMIT, getSubscription, monthlyPrice, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
 
 // PRO отличается от бесплатного двумя вещами: масштаб и новые клиенты.
 // Весь функционал по клиенту (карточка, настроение, домашки, аналитика,
@@ -42,6 +42,9 @@ export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: {
 // Кнопка запуска PRO (чёрная) + цена. Триал уже активен в демо — оплата подтверждается через ЮKassa.
 export function ProCta({ label = "Подключить PRO", note = true }: { label?: string; note?: boolean }) {
   const qc = useQueryClient();
+  // Цену берём из подписки: у того, кому отказали в каталоге, она ниже, и
+  // кнопка не должна обещать одну сумму, а касса выставлять другую.
+  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const subscribe = useMutation({
     mutationFn: () => startSubscription("pro"),
     onSuccess: (r) => { if (r.confirmation_url) window.location.href = r.confirmation_url; else qc.invalidateQueries({ queryKey: ["subscription"] }); },
@@ -49,7 +52,7 @@ export function ProCta({ label = "Подключить PRO", note = true }: { la
   return (
     <div>
       <button onClick={() => { tap(); subscribe.mutate(); }} disabled={subscribe.isPending} className="btn w-full py-3.5 text-[14px]">
-        {subscribe.isPending ? "Готовим оплату…" : `${label} · ${rub(PLAN_PRICE.pro)}/мес`}
+        {subscribe.isPending ? "Готовим оплату…" : `${label} · ${rub(monthlyPrice(sub))}/мес`}
       </button>
       {note && <p className="mt-2 text-center text-[10.5px] font-semibold text-[var(--muted)]">Отмена в любой момент · комиссии за запись нет</p>}
     </div>

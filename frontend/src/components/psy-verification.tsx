@@ -7,6 +7,8 @@ import { Button } from "@/components/ui";
 import { success, tap } from "@/lib/haptics";
 import { profileCompletionPercent } from "@/components/profile-editor";
 import { formatMoney, toCurrency } from "@/lib/money";
+import { CATALOG_DECLINE_TEXT, PRO_DISCOUNT_PRICE_RUB, PRO_PRICE_RUB } from "@/lib/pricing";
+import { rub } from "@/lib/subscription";
 import { displayName, displayPhoto, useProfile } from "@/lib/profile";
 import { DocumentViewer } from "@/components/document-viewer";
 import {
@@ -87,6 +89,23 @@ export function CatalogVerification() {
       diploma: demoPrimaryDocument(),
     });
   };
+
+  // Отказ по каталогу окончательный: заявку повторно не принимаем, но и в
+  // тупик человека не ставим — платформа с его клиентами остаётся.
+  if (status === "declined") {
+    return (
+      <section className="chunk mt-4 p-4" style={{ background: "var(--amber-soft)" }}>
+        <div className="flex items-start gap-3">
+          <span className="ico h-10 w-10 shrink-0" style={{ background: "#fff" }}><Icon name="seal" width={19} weight="bold" color="var(--amber-edge)" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="font-tight text-[16px] font-black leading-tight">Каталог недоступен</p>
+            <p className="t-sub mt-1">{verification?.rejectReason?.trim() || CATALOG_DECLINE_TEXT}</p>
+            <p className="mt-2 text-[12px] font-bold">Подписка для вас — {rub(PRO_DISCOUNT_PRICE_RUB)} в месяц вместо {rub(PRO_PRICE_RUB)}.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (status === "approved") {
     return (

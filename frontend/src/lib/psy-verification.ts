@@ -6,7 +6,9 @@ import { apiFetch } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
 import { applyServerStatus } from "@/lib/profile";
 
-export type PsyStatus = "none" | "draft" | "review" | "approved" | "rejected";
+// declined — отказ по каталогу: карточки в общей выдаче не будет, но платформа
+// с клиентами остаётся, и подписка для таких специалистов дешевле.
+export type PsyStatus = "none" | "draft" | "review" | "approved" | "rejected" | "declined";
 
 export type Verification = {
   status: PsyStatus;
@@ -63,6 +65,7 @@ export const STATUS_LABEL: Record<PsyStatus, string> = {
   review: "На проверке",
   approved: "Подтверждён",
   rejected: "Нужны правки",
+  declined: "Каталог недоступен",
 };
 
 // Верификация нужна ровно для каталога: своих клиентов психолог ведёт с
@@ -97,7 +100,7 @@ function demoSyncWithQueue(cur: Verification): Verification {
   if (!row || row.status === "review") return cur;
   const next: Verification = {
     ...cur,
-    status: row.status === "approved" ? "approved" : "rejected",
+    status: row.status === "approved" ? "approved" : row.status === "declined" ? "declined" : "rejected",
     rejectReason: row.rejectReason ?? null,
   };
   demoWrite(next);

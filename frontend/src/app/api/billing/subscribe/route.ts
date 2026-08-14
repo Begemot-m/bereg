@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { hasCatalogDecline, PRO_DISCOUNT_PRICE_RUB, PRO_PRICE_RUB } from "@/lib/pricing";
 import { env } from "@/lib/server/env";
 import { prisma } from "@/lib/server/prisma";
 import { hit } from "@/lib/server/rate-limit";
@@ -19,7 +20,12 @@ export async function POST(req: NextRequest) {
     if (!hit(`billing-subscribe:${user.id}`, LIMIT).ok) {
       return NextResponse.json({ error: "too many requests" }, { status: 429 });
     }
-    const priceRub = Number(process.env.SUBSCRIPTION_PRICE_RUB ?? 990);
+    // Кому отказали в каталоге — платит меньше: карточки в общей выдаче у него
+    // нет, а инструменты для своих клиентов остаются.
+    const profile = await prisma.psyProfile.findUnique({ where: { userId: user.id }, select: { status: true } });
+    const priceRub = hasCatalogDecline(profile?.status)
+      ? Number(process.env.SUBSCRIPTION_DISCOUNT_PRICE_RUB ?? PRO_DISCOUNT_PRICE_RUB)
+      : Number(process.env.SUBSCRIPTION_PRICE_RUB ?? PRO_PRICE_RUB);
     // Адрес возврата берём из APP_URL — того же, что проверяет Origin и знает
     // бот. Отдельный NEXT_PUBLIC_APP_URL на проде отставал и уводил плательщика
     // на отключённый домен.
