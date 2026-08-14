@@ -209,7 +209,7 @@ function ClientModal({ onClose, onPick }: { onClose: () => void; onPick: (id: nu
 }
 
 // Пустая плитка «+»: выбрать время и клиента прямо в сетке дня.
-function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; taken: string[]; active: boolean; onTap: () => void; onClose: () => void }) {
+export function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; taken: string[]; active: boolean; onTap: () => void; onClose: () => void }) {
   const qc = useQueryClient();
   const [iso, setIso] = useState<string | null>(null);
   const takenSet = new Set(taken);
@@ -312,7 +312,7 @@ function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Date; take
   );
 }
 
-function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolean; onTap: () => void; onClose: () => void }) {
+export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolean; onTap: () => void; onClose: () => void }) {
   const st = look(slot);
   return (
     <div

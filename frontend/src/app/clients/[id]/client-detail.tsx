@@ -15,6 +15,7 @@ import { PsychologistSessionJourney } from "@/components/session-reflections";
 import { TherapistBoardView } from "@/components/therapy-work";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
+import { NewSlotCell, SlotCell, useDayWindows } from "@/components/week-windows";
 import { Disclosure, Input, Spinner, Textarea } from "@/components/ui";
 import {
   derivedStatus,
@@ -38,7 +39,7 @@ import { select, success, tap } from "@/lib/haptics";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { getClientTherapy, setClientNotesModule } from "@/lib/therapy";
 
-import { zoneFormat } from "@/lib/zone";
+import { zoneDay, zoneFormat } from "@/lib/zone";
 
 const dtf = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS_TONE: Record<ClientStatus, string> = { therapy: "green", new: "purple", paused: "amber" };
@@ -90,6 +91,9 @@ export function ClientDetail() {
   const [bookOpen, setBookOpen] = useState(() => search.get("book") === "1");
   const [connectOpen, setConnectOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  // Какой день открыт в календаре записи — под ним рисуем плитки дня.
+  const [pickDay, setPickDay] = useState<string | null>(null);
+  const todayY = ymdLocal(new Date());
   const [booked, setBooked] = useState<{ at: string; format: "online" | "offline" } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [stateOpen, setStateOpen] = useState(false);
@@ -252,7 +256,8 @@ export function ClientDetail() {
                   <>
                     <p className="t-micro mb-2">{nextAppt ? "Новое время вместо текущей записи" : "Свободное окно из вашего расписания"}</p>
                     {/* Есть запись — открываемся на её дне, иначе на ближайшем свободном */}
-                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} bookedStart={nextAppt?.startsAt} bookedLabel={`${client.name} ${verbEnding(client.name, "записан")}`} onPick={(iso, format) => book.mutate({ iso, format })} />
+                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} onDayChange={setPickDay} onPick={(iso, format) => book.mutate({ iso, format })} />
+                    <ClientDayTools day={pickDay ?? apptDay ?? firstFree ?? todayY} clientId={client.id} />
                   </>
                 )}
               </motion.div>
@@ -318,6 +323,43 @@ export function ClientDetail() {
         </div>
 
       </main>
+    </div>
+  );
+}
+
+/**
+ * Плитки выбранного дня — те же, что в «Сессиях». Запись этого клиента раскрыта
+ * сразу: раньше на её месте была зелёная полоска со статусом, и «Перезаписать»
+ * умело только одно — выбрать другое окно. Теперь тут всё меню занятого окна:
+ * перенести, освободить, формат, написать. Рядом — плитка «добавить» с тем же
+ * контекстным меню, что в неделе: разовое окно открывается, не уходя из карточки.
+ */
+function ClientDayTools({ day, clientId }: { day: string; clientId: number }) {
+  const { daySlots } = useDayWindows();
+  const [collapsed, setCollapsed] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  useEffect(() => { setCollapsed(false); setAddOpen(false); }, [day]);
+
+  const cells = daySlots(zoneDay(day)).filter((s) => !s.removed);
+  const mine = cells.find((s) => s.appt?.client.id === clientId);
+
+  return (
+    <div className="mt-3 grid grid-cols-3 items-start gap-2">
+      {mine && (
+        <SlotCell
+          slot={mine}
+          active={!collapsed}
+          onTap={() => { tap(); setCollapsed((v) => !v); }}
+          onClose={() => setCollapsed(true)}
+        />
+      )}
+      <NewSlotCell
+        date={zoneDay(day)}
+        taken={cells.map((s) => s.iso)}
+        active={addOpen}
+        onTap={() => { tap(); setAddOpen((v) => !v); }}
+        onClose={() => setAddOpen(false)}
+      />
     </div>
   );
 }

@@ -27,6 +27,7 @@ export function SlotPicker({
   bookedStart,
   bookedLabel,
   psyTimezone,
+  onDayChange,
   onPick,
 }: {
   /** Чьи окна показываем. Без id — своё расписание, с id — расписание специалиста. */
@@ -44,6 +45,8 @@ export function SlotPicker({
   bookedLabel?: string;
   /** Часовой пояс специалиста — если он свой, скажем, сколько у него на часах. */
   psyTimezone?: string;
+  /** Какой день сейчас открыт — чтобы рядом можно было дорисовать свои плитки. */
+  onDayChange?: (ymd: string) => void;
   onPick: (iso: string, format: ApptFormat) => void;
 }) {
   const todayY = ymdLocal(new Date());
@@ -54,6 +57,7 @@ export function SlotPicker({
   // пока пользователь сам не выбрал другой.
   const touched = useRef(false);
   useEffect(() => { if (startDay && !touched.current) setActive(startDay); }, [startDay]);
+  useEffect(() => { onDayChange?.(active); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: slots = [], isLoading } = useQuery({
     queryKey: ["slots", active, psyId ?? null],
