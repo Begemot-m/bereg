@@ -455,7 +455,7 @@ function ScreensTabs() {
           className="relative overflow-hidden rounded-[24px] md:rounded-[36px]"
           animate={{ backgroundColor: tab.tone }}
           transition={{ duration: 0.5, ease: EASE }}
-          style={{ height: "clamp(230px, 46vw, 620px)" }}
+          style={{ height: "clamp(420px, 78vw, 700px)" }}
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -464,14 +464,14 @@ function ScreensTabs() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.45, ease: EASE }}
-              className="absolute inset-0"
+              className="absolute inset-x-0 bottom-0 top-8 flex justify-center md:top-12"
             >
               <Image
                 src={asset(`/shots/d-${tab.key}.webp`)}
                 alt={`Раздел «${tab.label}» в Хронике — платформе для психологов и клиентов`}
-                width={1632}
-                height={1120}
-                className="h-full w-full object-cover object-top"
+                width={780}
+                height={1688}
+                className="h-full w-auto rounded-t-[26px] object-contain object-top shadow-[0_20px_60px_rgba(32,28,24,.16)] md:rounded-t-[34px]"
                 unoptimized
                 priority={active === 0}
               />
@@ -632,7 +632,7 @@ function FeatureCard({
         </div>
 
         <div
-          className="relative -mb-6 min-h-[200px] overflow-hidden rounded-[20px] sm:-mb-7 sm:min-h-[240px] md:-mb-12 md:mr-0 md:min-h-[380px] md:rounded-r-none"
+          className="relative -mb-6 min-h-[320px] overflow-hidden rounded-[20px] sm:-mb-7 sm:min-h-[360px] md:-mb-12 md:mr-0 md:min-h-[460px] md:rounded-r-none"
           style={{ background: block.tone }}
         >
           <motion.div
@@ -640,15 +640,15 @@ function FeatureCard({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8, delay: 0.15, ease: EASE }}
-            className="absolute inset-x-0 -bottom-10 -top-10"
+            className="absolute inset-x-0 bottom-0 top-7 flex justify-center md:top-10"
             style={stack ? { y: shotY } : undefined}
           >
             <Image
               src={asset(`/shots/d-${block.shot}.webp`)}
               alt={`${block.title} в Хронике — экран приложения для психолога`}
-              width={1632}
-              height={1120}
-              className="h-full w-full object-cover object-left-top"
+              width={780}
+              height={1688}
+              className="h-full w-auto rounded-t-[22px] object-contain object-top shadow-[0_18px_50px_rgba(32,28,24,.15)] md:rounded-t-[28px]"
               unoptimized
             />
           </motion.div>

@@ -590,8 +590,12 @@ Framer-шаблона **Sunbeam** (`sunbeam.framer.media`), но на палит
 бесконечным скроллом». Портал монтируется после гидратации (`useState(host)`),
 до этого узел рендерится на месте, чтобы разметка попала в статический HTML.
 
-**Скриншоты — десктопные, 1280×800 @2x**, `public/shots/d-*.png`: sessions,
-clients, therapy, catalog, tools. Снимаются Playwright'ом с демо-сервера
+**Скриншоты — мобильные, 390×844 @2x** (`scripts/landing-shots.mjs`),
+`public/shots/d-*.webp`: sessions, clients, therapy, catalog, tools. Кадр —
+весь экран телефона вместе с нижней навигацией: по ней видно, между чем
+переключаешься. Демо-база заводится лениво, поэтому скрипт сначала греет
+`/clients`, потом на каждом кадре наполняет базу и перезагружает страницу.
+Снимаются Playwright'ом с демо-сервера
 (`NEXT_PUBLIC_DEMO=1 next dev`), рамка телефона распрямляется инъекцией CSS по
 `[data-testid="phone-screen"]`, роль — через `localStorage.psy_demo_role`, тур —
 `bereg:tour:<role>:v5`, первичные подсказки снимаются кликом по «Позже».

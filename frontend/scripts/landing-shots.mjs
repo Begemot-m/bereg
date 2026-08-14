@@ -1,4 +1,5 @@
-// Снимает кадры разделов для лендинга: в фокусе колонка контента, а не весь экран.
+// Снимает кадры разделов для лендинга: телефон целиком, вертикально,
+// вместе с нижней навигацией — по ней видно, между чем переключаешься.
 // Запуск: bun run demo (порт из BASE), потом node scripts/landing-shots.mjs
 import puppeteer from "puppeteer-core";
 import { mkdirSync, readdirSync, unlinkSync } from "node:fs";
@@ -6,8 +7,8 @@ import { mkdirSync, readdirSync, unlinkSync } from "node:fs";
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const BASE = process.env.BASE || "http://localhost:3001";
 const OUT = "public/shots";
-const PAD = 26;   // воздух слева и справа от колонки
-const H = 560;    // высота кадра: основные блоки раздела, без «пустого низа»
+const W = 390;    // ширина экрана телефона
+const H = 844;    // высота: обычный современный телефон, 9:19.5
 mkdirSync(OUT, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -16,7 +17,7 @@ const say = (...a) => log.push(a.join(" "));
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const page = await browser.newPage();
-await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 2 });
+await page.setViewport({ width: W, height: H, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 page.setDefaultNavigationTimeout(120000);
 page.on("pageerror", (e) => say("PAGEERROR:", e.message));
 
@@ -37,7 +38,7 @@ await page.evaluateOnNewDocument(() => {
     WebApp: {
       platform: "tdesktop", version: "7.10", initData: "", initDataUnsafe: {},
       colorScheme: "light", themeParams: {}, isExpanded: true,
-      viewportHeight: 900, viewportStableHeight: 900,
+      viewportHeight: 844, viewportStableHeight: 844,
       ready: noop, expand: noop, close: noop, sendData: noop,
       setHeaderColor: noop, setBackgroundColor: noop, setBottomBarColor: noop,
       enableClosingConfirmation: noop, disableClosingConfirmation: noop,
@@ -70,46 +71,44 @@ const dismiss = async () => {
   await sleep(450);
 };
 
-/** Кадр вокруг колонки контента: её ширина + воздух, высота — верхние блоки. */
+/** Экран телефона целиком: от шапки раздела до нижней навигации. */
 const shot = async (name, path, { skip = 0 } = {}) => {
   await page.goto(BASE + path, { waitUntil: "domcontentloaded" });
   await sleep(2600);
   await dismiss();
+  // Живая страница сохраняет свой стейт поверх нашего, поэтому наполняем
+  // демо-базу и сразу перезагружаемся: снимаем уже наполненный раздел.
+  await seedDb();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await sleep(2600);
+  await dismiss();
+  await page.addStyleTag({ content: "nextjs-portal{display:none!important}" });
   await sleep(1200);
-  const box = await page.evaluate((up) => {
-    const col = document.querySelector("div.max-w-3xl");
-    if (!col) return null;
-    const scroller = col.parentElement;
-    if (scroller && up) scroller.scrollTop = up;
-    const r = col.getBoundingClientRect();
-    return { x: r.x, y: r.y, w: r.width };
-  }, skip);
-  if (!box) { say("НЕ НАЙДЕНА колонка:", name); return; }
+  if (skip) {
+    await page.evaluate((up) => {
+      const col = document.querySelector("div.max-w-3xl");
+      const scroller = col?.parentElement || document.scrollingElement;
+      if (scroller) scroller.scrollTop = up;
+    }, skip);
+  }
   await sleep(600);
-  const x = Math.max(0, box.x - PAD);
-  const y = Math.max(0, box.y + (skip ? 0 : 8));
   await page.screenshot({
     path: `${OUT}/${name}.png`,
-    clip: { x, y, width: Math.min(box.w + PAD * 2, 1280 - x), height: Math.min(H, 900 - y) },
+    clip: { x: 0, y: 0, width: W, height: H },
     captureBeyondViewport: false,
   });
   say("ok", name);
 };
 
 // --- состояние: психолог, онбординг пройден, две записи на ближайший рабочий день
-await page.goto(BASE, { waitUntil: "domcontentloaded" });
-await page.evaluate(() => {
+const patchDb = () => page.evaluate(() => {
   localStorage.setItem("bereg_onboarded", "1");
   localStorage.setItem("psy_demo_role", "psychologist");
   localStorage.setItem("bereg:schedule-setup-seen:v1", "1");
-});
-await page.goto(BASE + "/sessions", { waitUntil: "domcontentloaded" });
-await sleep(2600);
-await dismiss();
-await page.evaluate(() => {
+  localStorage.setItem("bereg_therapy_guide_seen_v1", "1");
   const KEY = "psy_demo_db_v12";
   const raw = localStorage.getItem(KEY);
-  if (!raw) return;
+  if (!raw) return false;
   const db = JSON.parse(raw);
   const slot = (t, fmt = "online") => ({ t, d: 50, fmt });
   db.work.hours = {
@@ -141,7 +140,24 @@ await page.evaluate(() => {
   db.therapyTutorialSeen = true;
   db.seq = 400;
   localStorage.setItem(KEY, JSON.stringify(db));
+  return true;
 });
+
+// Демо заводит базу лениво, при первом обращении страницы, поэтому ждём её.
+const seedDb = async () => {
+  for (let i = 0; i < 14; i++) {
+    if (await patchDb()) return;
+    await sleep(500);
+  }
+  say("НЕ СОЗДАЛАСЬ демо-база");
+};
+
+// Прогрев: на самом первом заходе демо-база ещё не заведена, и первый кадр
+// вышел бы пустым. Поэтому сначала заводим её на «Клиентах».
+await page.goto(BASE + "/clients", { waitUntil: "domcontentloaded" });
+await sleep(2600);
+await dismiss();
+await patchDb();
 
 await shot("d-sessions", "/sessions");
 await shot("d-clients", "/clients");
