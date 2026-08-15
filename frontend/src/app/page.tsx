@@ -59,6 +59,13 @@ function PsyHome() {
     [appts, todayKey],
   );
   const next = upcoming[0];
+  // Статистика — только о том, что уже произошло. Предстоящие записи в зачёт
+  // не идут: неделя с тремя записями впереди рисовала «три сессии» ещё до
+  // первой встречи, а состоявшиеся при этом оседали в той же куче.
+  const held = useMemo(
+    () => appts.filter((a) => a.status === "done" || (a.status !== "cancelled" && new Date(a.startsAt).getTime() + a.durationMin * 60_000 < Date.now())),
+    [appts],
+  );
 
   return (
     <HomeFrame
@@ -74,7 +81,7 @@ function PsyHome() {
 
       {/* Статистика в нулях новичку ничего не говорит — до первой записи её место занимают первые шаги. */}
       {appts.length > 0 && (
-        <WorkStats items={appts.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id), cancelled: a.status === "cancelled" }))} title="Статистика работы" />
+        <WorkStats items={held.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id) }))} title="Статистика работы" />
       )}
 
       <HomeRoutesCarousel items={[

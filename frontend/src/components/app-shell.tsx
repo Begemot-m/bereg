@@ -194,7 +194,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         .then(() => { qc.invalidateQueries(); })
         .catch(onSelf /* лимит мест или неподтверждённая анкета — человека это не касается */);
     }
-  }, [authState, qc, setRole]);
+    // invite в зависимостях не для красоты: разбор ссылки живёт в соседнем
+    // эффекте, и когда вход успевал пройти раньше него, метка ложилась в
+    // sessionStorage уже после этой проверки — специалист так и не цеплялся.
+  }, [authState, invite, qc, setRole]);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
   // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;
@@ -254,6 +257,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         const asInvite = payload ? readInvitePayload(payload) : null;
         if (asInvite) {
           greet(asInvite.kind, asInvite.token);
+          return;
+        }
+        // Приглашение друга: код тот же, что в `?ref=`, только приехал меткой
+        // из бота — без этой ветки он терялся по дороге.
+        const asRef = payload ? /^ref_(.+)$/.exec(payload) : null;
+        if (asRef) {
+          sessionStorage.setItem("bereg_pending_ref", asRef[1]);
+          enter(null);
           return;
         }
         const href = payload ? target(payload) : null;

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { NOT_APPROVED, psyApproved } from "@/lib/server/access";
+import { settlePastAppointments } from "@/lib/server/appointments";
 import { APPT_CLIENT_SELECT, apptWithPhoto } from "@/lib/server/clients";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -21,6 +22,10 @@ export async function GET(req: NextRequest) {
     const take = Math.min(500, Math.max(1, Number(url.searchParams.get("limit") ?? 200)));
     const defaultFrom = new Date();
     defaultFrom.setMonth(defaultFrom.getMonth() - 3);
+
+    // Прошедшие встречи закрываем перед выдачей: расписание и статистика должны
+    // говорить об одном и том же, а состоявшаяся сессия — оставаться в истории.
+    await settlePastAppointments(user.id);
 
     const appts = await prisma.appointment.findMany({
       where: {

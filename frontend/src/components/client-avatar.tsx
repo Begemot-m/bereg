@@ -35,8 +35,20 @@ export function ClientAvatar({
   return (
     <span className={`flex shrink-0 items-center justify-center overflow-hidden ${className ?? ""}`} style={style}>
       {src ? (
+        // Ленивая загрузка и асинхронное декодирование: в списке клиентов и в
+        // сетке окон таких картинок десятки, и все они грузились разом, отбирая
+        // канал у данных экрана.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+        <img
+          src={src}
+          alt=""
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          referrerPolicy="no-referrer"
+          onError={() => setBroken(true)}
+        />
       ) : (
         letter
       )}

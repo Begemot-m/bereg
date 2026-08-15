@@ -102,7 +102,7 @@ export function HelpDeck({ title, pages, onClose, onDone, doneLabel = "Поня�
 
           <motion.div key={i} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>
             <div className="mb-3">
-              {p.image ? <img src={p.image} alt={p.imageAlt ?? ""} className="aspect-[16/10] w-full rounded-[14px] object-cover stroke" /> : p.illo}
+              {p.image ? <img src={p.image} alt={p.imageAlt ?? ""} loading="lazy" decoding="async" className="aspect-[16/10] w-full rounded-[14px] object-cover stroke" /> : p.illo}
             </div>
             <h4 className="text-[15px] font-extrabold">{p.title}</h4>
             <p className="mt-1 text-[13px] leading-relaxed text-[var(--muted)]">{p.text}</p>

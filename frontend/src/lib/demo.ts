@@ -892,6 +892,17 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // appointments (психолог)
   if (clean === "/appointments" && method === "GET") {
     const cf = q.get("clientId");
+    // Прошедшая встреча становится состоявшейся сама — как на сервере
+    // (lib/server/appointments.ts): без этого «проведено» и статистика стояли
+    // в нулях при полном расписании.
+    let settled = false;
+    for (const a of db.appts) {
+      if (a.status !== "scheduled") continue;
+      if (new Date(a.startsAt).getTime() + a.durationMin * 60_000 >= Date.now()) continue;
+      a.status = "done";
+      settled = true;
+    }
+    if (settled) save(db);
     let list = [...db.appts];
     if (cf) list = list.filter((a) => a.clientId === Number(cf));
     list.sort((a, b) => a.startsAt.localeCompare(b.startsAt));

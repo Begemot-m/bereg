@@ -77,10 +77,13 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
   const [open, setOpen] = useState<string | null>(null);
   // Закрытые окна и пустые прошедшие не показываем — они только шумят.
   const visible = daySlots(date).filter((s) => !s.removed && !(s.past && !s.appt));
-  // «Ближайшие» — только занятые окна впереди: раздел про встречи, не про график.
-  const slots = busyOnly ? visible.filter((s) => !!s.appt && !s.past) : visible;
+  // «Ближайшие» — занятые окна дня целиком, вместе с уже состоявшимися:
+  // сессия, которая прошла час назад, пропадала с экрана вместе с днём, будто
+  // её и не было. Пустые прошедшие окна по-прежнему не показываем.
+  const slots = busyOnly ? visible.filter((s) => !!s.appt) : visible;
   const free = slots.filter((s) => !s.appt && !s.past).length;
   const busy = slots.filter((s) => !!s.appt).length;
+  const held = slots.filter((s) => !!s.appt && s.past).length;
 
   return (
     <section>
@@ -93,7 +96,7 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
         </div>
         <p className="text-[10.5px] font-black text-[var(--muted-2)]">
           {busyOnly
-            ? `${busy} ${pl(busy, "запись", "записи", "записей")}`
+            ? `${busy} ${pl(busy, "запись", "записи", "записей")}${held ? ` · ${held} ${pl(held, "состоялась", "состоялось", "состоялось")}` : ""}`
             : busy > 0 ? `${free} свободно · ${busy} ${pl(busy, "запись", "записи", "записей")}` : free > 0 ? `${free} свободно` : "окон нет"}
         </p>
       </div>
@@ -142,7 +145,10 @@ type Look = { bg: string; ring?: string; label: string; labelColor: string };
 function look(s: Slot): Look {
   // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
   // Занятое окно тоже в рамке — плитки дня выглядят одной сеткой.
-  if (s.appt) return { bg: s.past ? "var(--surface-2)" : "var(--head-soft)", ring: "var(--edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
+  // Состоявшаяся встреча — зелёная, с галочкой в углу: она не «потухшая
+  // запись», а сделанная работа, и в дне должна читаться именно так.
+  if (s.appt && s.past) return { bg: "var(--green-soft)", ring: "var(--green-edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
+  if (s.appt) return { bg: "var(--head-soft)", ring: "var(--edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
   // Свободное окно белое и в тонкой рамке: заливка отличает занятое от пустого,
   // цвет времени суток живёт в редакторе графика и мешал бы здесь.
   return { bg: "#fff", ring: "var(--olive-edge)", label: "свободно", labelColor: "var(--olive-edge)" };
@@ -321,7 +327,7 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
         borderRadius: 13,
         background: st.bg,
         border: st.ring ? `1px solid ${st.ring}` : "none",
-        opacity: slot.past && !active ? 0.6 : 1,
+        opacity: slot.past && !slot.appt && !active ? 0.6 : 1,
         boxShadow: active ? "0 14px 30px -18px rgba(32,28,24,.45)" : "none",
         zIndex: active ? 2 : 1,
       }}
@@ -332,7 +338,25 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
         className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : "relative flex min-h-[60px] w-full flex-col items-center justify-center gap-0.5 px-1 py-2"}
         aria-expanded={active}
       >
-        <span className={`tnum font-black leading-none ${active ? "text-[17px]" : "text-[13.5px]"} ${slot.past ? "line-through" : ""}`}>{slot.t}</span>
+        {active ? (
+          <span className="tnum text-[17px] font-black leading-none">{slot.t}</span>
+        ) : (
+          // Занятое окно узнаётся по лицу: крошечный квадратик клиента слева от
+          // времени, ровно в строку — не в высоту плитки.
+          <span className="flex items-center gap-1">
+            {slot.appt && (
+              <ClientAvatar
+                name={slot.appt.client.name}
+                photo={slot.appt.client.photo}
+                className="h-[15px] w-[15px] rounded-[5px] text-[8.5px] font-black leading-none"
+                style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}
+              />
+            )}
+            {/* Зачёркнуто только пустое прошедшее окно: состоявшаяся встреча
+                не «просрочена», её провели. */}
+            <span className={`tnum text-[13.5px] font-black leading-none ${slot.past && !slot.appt ? "line-through" : ""}`}>{slot.t}</span>
+          </span>
+        )}
         <span className={`min-w-0 ${active ? "flex-1" : "max-w-full"}`}>
           {/* В раскрытом окне дата и время — чернилами, а не тоном окна */}
           {active ? (
@@ -350,7 +374,11 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
               <Icon name="clock" width={9} weight="bold" color="var(--muted-2)" />
               <span className="tnum text-[8.5px] font-black text-[var(--muted-2)]">{slot.dur}</span>
             </span>
-            <span className="absolute right-1.5 top-1.5"><Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" /></span>
+            <span className="absolute right-1.5 top-1.5">
+              {slot.appt && slot.past
+                ? <Icon name="check" width={10} weight="bold" color="var(--green-edge)" />
+                : <Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" />}
+            </span>
           </>
         )}
         {/* Не кнопка: вся шапка окна и так сворачивает его по тапу */}
@@ -409,6 +437,12 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           <span className="min-w-0 break-words text-[19px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
+        {slot.past && (
+          <div className="flex items-center gap-1.5 rounded-[11px] px-2.5 py-1.5" style={{ background: "var(--green-soft)" }}>
+            <Icon name="check" width={12} weight="bold" color="var(--green-edge)" />
+            <span className="text-[11.5px] font-black" style={{ color: "var(--green-edge)" }}>Сессия состоялась</span>
+          </div>
+        )}
         {/* Перенести и «Написать» — строкой, «Освободить» под «Перенести»
             той же шириной: отмена в общей сетке, но своим рядом. */}
         <div className="grid grid-cols-2 gap-1.5">

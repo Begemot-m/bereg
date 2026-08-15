@@ -158,10 +158,11 @@ function PsySessions() {
   const todayY = ymdLocal(new Date());
   const noWorkHours = !!work && !Object.values(work.hours ?? {}).some((list) => (list ?? []).length > 0);
   const markedDays = new Set(appts.filter((a) => a.status !== "cancelled").map((a) => ymdLocal(new Date(a.startsAt))));
-  // Ближайшие дни (сегодня, завтра …) с ещё не прошедшими записями
-  const now = Date.now();
+  // Ближайшие дни (сегодня, завтра …) с записями. Сегодняшние уже проведённые
+  // сессии считаются наравне с предстоящими: раньше день исчезал из раздела
+  // сразу после встречи, и работа выглядела так, будто её не было.
   const soonDays = Array.from({ length: 30 }, (_, i) => addDays(todayY, i)).filter((y) => {
-    const hasAppt = appts.some((a) => a.status !== "cancelled" && ymdLocal(new Date(a.startsAt)) === y && new Date(a.startsAt).getTime() >= now);
+    const hasAppt = appts.some((a) => a.status !== "cancelled" && ymdLocal(new Date(a.startsAt)) === y);
     return selDay ? y === selDay && hasAppt : hasAppt;
   });
 

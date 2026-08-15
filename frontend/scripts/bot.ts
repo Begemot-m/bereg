@@ -26,6 +26,13 @@ const format = (value: Date | string) => `${dateFmt.format(new Date(value))} · 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "Клиент";
 const formatLabel = (value: string) => value === "offline" ? "очно" : "онлайн";
 
+// Метка приглашения из ссылки: psy_<код> — общая ссылка специалиста,
+// inv_<код> — именная, к заведённой карточке. Приложение разбирает её из
+// адреса (?startapp=), поэтому кнопка ведёт туда вместе с меткой.
+const INVITE_PAYLOAD = /^(?:psy|inv)_[A-Za-z0-9_-]{1,60}$/;
+// Остальные метки-ссылки: запись к специалисту и приглашение друга.
+const LINK_PAYLOAD = /^(?:book|ref)_[A-Za-z0-9_-]{1,60}$/;
+
 bot.command("start", async (ctx) => {
   const from = ctx.from;
   if (from) {
@@ -35,6 +42,33 @@ bot.command("start", async (ctx) => {
       update: { username: from.username ?? null, firstName: from.first_name ?? null },
     });
   }
+
+  // Пришли по приглашению специалиста. Обычная приветственная кнопка ведёт на
+  // главную и метку теряет — человек оказывался в приложении сам по себе, без
+  // экрана «вас пригласили» и без привязки к специалисту.
+  const payload = (ctx.match ?? "").trim();
+  if (INVITE_PAYLOAD.test(payload)) {
+    await ctx.reply(
+      [
+        "Вас пригласили в «Хронику» — приложение вашего специалиста.",
+        "",
+        "Нажмите кнопку ниже: познакомимся с приложением и подключим вас к специалисту.",
+      ].join("\n"),
+      { reply_markup: new InlineKeyboard().webApp("Принять приглашение", appLink(`/?startapp=${payload}`)) },
+    );
+    return;
+  }
+
+  if (LINK_PAYLOAD.test(payload)) {
+    await ctx.reply(
+      payload.startsWith("book_")
+        ? "Специалист ждёт вас в «Хронике». Откройте приложение — покажу свободные окна для записи."
+        : "Вас позвали в «Хронику». Откройте приложение — знакомство займёт минуту.",
+      { reply_markup: new InlineKeyboard().webApp("Открыть приложение", appLink(`/?startapp=${payload}`)) },
+    );
+    return;
+  }
+
   await ctx.reply(
     [
       "Рады вас приветствовать!",
@@ -115,11 +149,23 @@ function messageFor(delivery: Delivery): { text: string; keyboard: InlineKeyboar
   return { text: `Напоминаем: завтра встреча с ${psychologist}\n${when}\n${details}`, keyboard };
 }
 
+// Прошедшая встреча закрывается сама — тем же правилом, что и в приложении
+// (lib/server/appointments.ts). Здесь это нужно для тех, кто в приложение не
+// заходит: от статуса зависят статистика, счётчики каталога и старт триала.
+async function settlePastAppointments() {
+  await prisma.$executeRaw`
+    UPDATE "Appointment"
+    SET "status" = 'done'
+    WHERE "status" = 'scheduled'
+      AND "startsAt" + ("durationMin" * INTERVAL '1 minute') < now()`;
+}
+
 let delivering = false;
 async function sendDueDeliveries() {
   if (delivering) return;
   delivering = true;
   try {
+    await settlePastAppointments().catch((error) => console.error("settle error", error));
     const due = await dueDeliveries();
     for (const delivery of due) {
       const { text, keyboard } = messageFor(delivery);

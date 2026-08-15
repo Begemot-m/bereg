@@ -1,7 +1,7 @@
 "use client";
 
 import { apiFetch } from "@/lib/api";
-import { APP_NAME, botDeepLink } from "@/lib/brand";
+import { APP_NAME, botStartLink } from "@/lib/brand";
 
 /**
  * Приглашение клиента. Ссылка ведёт в мини-приложение бота, а не на сайт:
@@ -19,7 +19,7 @@ export const INVITE_TEXT = `Приглашаю Вас на платформу «
 
 const PREFIX: Record<InviteKind, string> = { psy: "psy", card: "inv" };
 
-export const inviteDeepLink = (kind: InviteKind, token: string) => botDeepLink(`${PREFIX[kind]}_${token}`);
+export const inviteDeepLink = (kind: InviteKind, token: string) => botStartLink(`${PREFIX[kind]}_${token}`);
 
 export const inviteShareLink = (link: string, text = INVITE_TEXT) =>
   `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;

@@ -21,3 +21,16 @@ export const BOT_NAME = process.env.NEXT_PUBLIC_DEMO === "1" ? "murpsybot" : "ch
 export function botDeepLink(payload: string): string {
   return `https://t.me/${BOT_NAME}?startapp=${payload}`;
 }
+
+/**
+ * Ссылка через чат бота: Telegram присылает метку в `/start <payload>`, бот
+ * отвечает кнопкой, открывающей приложение с ней же.
+ *
+ * Приглашения ходят так, а не через `startapp`: тот открывает мини-приложение
+ * сразу, но только если у бота настроено главное мини-приложение. Пока его нет,
+ * ссылка `startapp` приводила человека в пустой чат, метка терялась, и он не
+ * видел ни экрана приглашения, ни знакомства.
+ */
+export function botStartLink(payload: string): string {
+  return `https://t.me/${BOT_NAME}?start=${payload}`;
+}

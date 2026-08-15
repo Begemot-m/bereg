@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon } from "@/components/icons";
-import { APP_NAME, botDeepLink } from "@/lib/brand";
+import { APP_NAME, botStartLink } from "@/lib/brand";
 import { select, success, tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
 
@@ -117,7 +117,7 @@ function InviteSheet({ variant, onClose }: { variant: Variant; onClose: () => vo
 
   // Ссылка ведёт в бота: мини-приложение должно открыться внутри Telegram,
   // а не в браузере. Реферальный код уезжает в start_param.
-  const link = botDeepLink(`ref_${code}`);
+  const link = botStartLink(`ref_${code}`);
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(c.share)}`;
   const bump = () => { const n = invited + 1; setInvited(n); localStorage.setItem("bereg_invited", String(n)); };
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ } };
