@@ -12,9 +12,9 @@ import { CatalogPlacement } from "@/components/catalog-placement";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
+import { Onboarding } from "@/components/onboarding";
 import { ProfileEditor } from "@/components/profile-editor";
 import { RemindersModule } from "@/components/reminders";
-import { resetTours } from "@/components/room-tour";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
@@ -24,7 +24,6 @@ import { CENTER_SITE, CENTER_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
-import { resetOnboarding } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
 import { isTelegramMiniApp } from "@/lib/telegram";
@@ -46,9 +45,14 @@ export default function CabinetPage() {
   const [role, switchRole] = useRole();
   const router = useRouter();
   const psy = role === "psychologist";
+  // Знакомство из кабинета — просмотр поверх приложения. Ничего не сбрасываем:
+  // раньше кнопка снимала флаг онбординга, и человек оказывался в развилке
+  // ролей, будто он тут впервые.
+  const [intro, setIntro] = useState(false);
 
   return (
     <div className="stroke-mid">
+      {intro && <Onboarding startRole={role} preview onClose={() => setIntro(false)} />}
       <PageHead title="Личный кабинет">
         <ProfileEditor
           key={role}
@@ -108,7 +112,7 @@ export default function CabinetPage() {
             </div>
           </div>
           <div className="mt-2 space-y-1 overflow-hidden rounded-[20px] px-2.5 py-2" style={{ background: "var(--surface)" }}>
-            <ActionRow icon="compass" title="Пройти знакомство заново" tone="var(--amber-edge)" onClick={() => { resetTours(); resetOnboarding(); }} />
+            <ActionRow icon="compass" title="Посмотреть знакомство заново" tone="var(--amber-edge)" onClick={() => { tap(); setIntro(true); }} />
             <WipeDataRow />
           </div>
         </div>

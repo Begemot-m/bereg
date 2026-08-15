@@ -15,10 +15,9 @@ import { createAppointment, listAppointments, updateAppointment, type Appointmen
 import { createClient, isPhone, listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
-import { addDays, weekdayOf, zoneAt, zoneDay, zoneDayNumber, zoneFormat, zoneHour, sameZoneDay } from "@/lib/zone";
+import { addDays, weekdayOf, zoneAt, zoneDay, zoneFormat, zoneHour, sameZoneDay } from "@/lib/zone";
 
 const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
-const wdF = zoneFormat({ weekday: "long" });
 const dLong = zoneFormat({ weekday: "long", day: "numeric", month: "long" });
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pl = (n: number, one: string, few: string, many: string) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
@@ -89,7 +88,9 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
     <section>
       <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
         <div className="flex items-center gap-2">
-          <h3 className="text-[13.5px] font-black">{cap(wdF.format(date))}, {zoneDayNumber(date)}</h3>
+          {/* Число само по себе не говорит, какой это день: в ленте дней
+              заголовок называет и месяц, и день недели. */}
+          <h3 className="text-[13.5px] font-black">{cap(dLong.format(date))}</h3>
           {badge
             ? <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: `var(--${badge.tone}-soft)`, color: `var(--${badge.tone}-edge)` }}>{badge.label}</span>
             : today && <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ background: "var(--olive-soft)", color: "var(--olive-edge)" }}>сегодня</span>}
@@ -335,7 +336,7 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
       <button
         onClick={onTap}
         disabled={slot.past && !slot.appt && !active}
-        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : `relative flex min-h-[60px] w-full items-center gap-1.5 px-1.5 pb-1.5 pt-4 ${slot.appt ? "justify-center" : ""}`}
+        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : `relative flex min-h-[60px] w-full items-center gap-1.5 pb-1.5 pl-1.5 pt-4 ${slot.appt ? "justify-center pr-3" : "pr-1.5"}`}
         aria-expanded={active}
       >
         {active ? (

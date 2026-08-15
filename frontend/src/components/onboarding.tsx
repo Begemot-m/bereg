@@ -128,12 +128,15 @@ const PSY_INTRO: Intro[] = [
 // startRole — знакомство без выбора роли: так приходят по ссылке-приглашению,
 // где человек уже назвался клиентом специалиста, и спрашивать его «вы психолог?»
 // после экрана приглашения было бы странно.
-export function Onboarding({ startRole }: { startRole?: Role } = {}) {
+// preview — знакомство открыто из кабинета «просто посмотреть»: роль не
+// переключается, согласие повторно не подписывается, флаг пройденного
+// онбординга остаётся как был. Закрытие — onClose, а не вход в приложение.
+export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; preview?: boolean; onClose?: () => void } = {}) {
   const qc = useQueryClient();
   // Роль выбирается на первом же экране, дальше знакомство идёт под неё.
   const [picked, setPicked] = useState<Role | null>(startRole ?? null);
   const [step, setStep] = useState(1); // 1..slides.length — слайды, последний+1 — финал
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreed] = useState(!!preview);
   const [saving, setSaving] = useState(false);
   const tg = tgUser();
   const swipeX = useRef<number | null>(null);
@@ -143,7 +146,7 @@ export function Onboarding({ startRole }: { startRole?: Role } = {}) {
   const isFinish = !isWelcome && step === FINISH_STEP;
   const cur = isWelcome || isFinish ? undefined : slides[step - 1];
 
-  const finish = () => { success(); completeOnboarding(); };
+  const finish = () => { success(); if (preview) onClose?.(); else completeOnboarding(); };
 
   // Согласие даётся здесь же, галочкой на последнем шаге: отдельная стена
   // перед знакомством встречала человека юридическим текстом раньше, чем он
@@ -164,8 +167,10 @@ export function Onboarding({ startRole }: { startRole?: Role } = {}) {
   };
   const pick = (role: Role) => {
     select();
-    setRole(role);
-    setRoleIntent(role);
+    if (!preview) {
+      setRole(role);
+      setRoleIntent(role);
+    }
     setPicked(role);
     setStep(1);
   };
@@ -216,7 +221,7 @@ export function Onboarding({ startRole }: { startRole?: Role } = {}) {
           <div className="flex flex-1 gap-1.5">
             {!isWelcome && Array.from({ length: FINISH_STEP }).map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k < step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />)}
           </div>
-          <button onClick={finish} className="shrink-0 text-[11px] font-black" style={{ color: "rgba(32,28,24,.6)" }}>Пропустить</button>
+          <button onClick={finish} className="shrink-0 text-[11px] font-black" style={{ color: "rgba(32,28,24,.6)" }}>{preview ? "Закрыть" : "Пропустить"}</button>
         </div>
 
         <AnimatePresence mode="wait">
@@ -239,7 +244,7 @@ export function Onboarding({ startRole }: { startRole?: Role } = {}) {
                   agreed,
                   saving,
                   onAgree: () => { tap(); setAgreed((v) => !v); },
-                  onStart: () => { void acceptAndGo(finish); },
+                  onStart: () => { if (preview) { finish(); return; } void acceptAndGo(finish); },
                 };
                 return picked === "psychologist" ? <PsySell {...consent} /> : <ClientFinish {...consent} />;
               })()
