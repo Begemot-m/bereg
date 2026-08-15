@@ -69,6 +69,16 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     const client = await getOwned(Number(id), user.id);
     if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+    // Карточки не стало — специалист не должен остаться у человека в «Терапии»
+    // закреплённым. Связь помечаем открепленной, а не удаляем: история
+    // прикреплений живёт в ней же.
+    if (client.userId) {
+      await prisma.therapistLink.updateMany({
+        where: { clientUserId: client.userId, psychologistId: user.id },
+        data: { detached: true, active: false },
+      });
+    }
+
     await prisma.client.delete({ where: { id: client.id } });
     return new NextResponse(null, { status: 204 });
   } catch (e) {
