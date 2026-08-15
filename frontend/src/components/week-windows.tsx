@@ -335,39 +335,40 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
       <button
         onClick={onTap}
         disabled={slot.past && !slot.appt && !active}
-        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : "relative flex min-h-[60px] w-full flex-col items-center justify-center gap-0.5 px-1 py-2"}
+        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : "relative flex min-h-[60px] w-full items-center gap-1.5 px-1.5 pb-1.5 pt-4"}
         aria-expanded={active}
       >
         {active ? (
-          <span className="tnum text-[17px] font-black leading-none">{slot.t}</span>
+          <>
+            <span className="tnum text-[17px] font-black leading-none">{slot.t}</span>
+            {/* В раскрытом окне дата и время — чернилами, а не тоном окна */}
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] font-bold leading-[1.05] text-[var(--ink)]">
+                <span className="inline-flex items-center gap-1"><Icon name="clock" width={12} weight="bold" color="var(--muted)" />{slot.dur} мин</span>
+                <span className="inline-flex items-center gap-1"><Icon name="calendar" width={12} weight="bold" color="var(--muted)" />{cap(dLong.format(new Date(slot.iso)))}</span>
+              </span>
+            </span>
+          </>
         ) : (
-          // Занятое окно узнаётся по лицу: крошечный квадратик клиента слева от
-          // времени, ровно в строку — не в высоту плитки.
-          <span className="flex items-center gap-1">
+          // Занятое окно узнаётся по лицу: квадратик клиента слева и высотой во
+          // всю подпись, а время с именем встают от его правого края.
+          <>
             {slot.appt && (
               <ClientAvatar
                 name={slot.appt.client.name}
                 photo={slot.appt.client.photo}
-                className="h-[15px] w-[15px] rounded-[5px] text-[8.5px] font-black leading-none"
+                className="h-[27px] w-[27px] rounded-[8px] text-[12px] font-black leading-none"
                 style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}
               />
             )}
-            {/* Зачёркнуто только пустое прошедшее окно: состоявшаяся встреча
-                не «просрочена», её провели. */}
-            <span className={`tnum text-[13.5px] font-black leading-none ${slot.past && !slot.appt ? "line-through" : ""}`}>{slot.t}</span>
-          </span>
-        )}
-        <span className={`min-w-0 ${active ? "flex-1" : "max-w-full"}`}>
-          {/* В раскрытом окне дата и время — чернилами, а не тоном окна */}
-          {active ? (
-            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] font-bold leading-[1.05] text-[var(--ink)]">
-              <span className="inline-flex items-center gap-1"><Icon name="clock" width={12} weight="bold" color="var(--muted)" />{slot.dur} мин</span>
-              <span className="inline-flex items-center gap-1"><Icon name="calendar" width={12} weight="bold" color="var(--muted)" />{cap(dLong.format(new Date(slot.iso)))}</span>
+            <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
+              {/* Зачёркнуто только пустое прошедшее окно: состоявшаяся встреча
+                  не «просрочена», её провели. */}
+              <span className={`tnum text-[13.5px] font-black leading-none ${slot.past && !slot.appt ? "line-through" : ""}`}>{slot.t}</span>
+              <span className="block w-full break-words text-[9.5px] font-bold leading-[1.05]" style={{ color: st.labelColor }}>{st.label}</span>
             </span>
-          ) : (
-            <span className="block break-words text-[9.5px] font-bold leading-[1.05]" style={{ color: st.labelColor }}>{st.label}</span>
-          )}
-        </span>
+          </>
+        )}
         {!active && (
           <>
             <span className="absolute left-1.5 top-1.5 flex items-center gap-0.5">

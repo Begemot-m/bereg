@@ -19,7 +19,6 @@ import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
 import { DayAgenda, WeekWindows } from "@/components/week-windows";
-import { SessionInviteButton } from "@/components/session-invite";
 // Редактор графика — самый тяжёлый компонент раздела: перетаскивание,
 // пружины, мини-неделя. В начальный бандл «Сессий» ему попадать незачем,
 // его открывают редко и осознанно.
@@ -175,13 +174,9 @@ function PsySessions() {
         icon="calendar"
         sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : undefined) : "Неделя целиком"}
         right={
-          <div className="flex shrink-0 flex-col items-center gap-1.5">
-            <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
-              <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как это работает?
-            </button>
-            {/* Приглашение на сессию — компактной кнопкой в шапке, а не блоком внизу */}
-            <SessionInviteButton />
-          </div>
+          <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
+            <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как это работает?
+          </button>
         }
       >
         {/* Календарь занимает шапку целиком, лента дат сворачивается. */}

@@ -78,11 +78,17 @@ type Photo<T> = Omit<T, "user"> & { photo: string | null };
  */
 export function withPhoto<T extends object>(row: T): Photo<T> {
   const { user, ...rest } = row as T & MaybeUser;
-  return { ...rest, photo: user?.photoUrl ?? null } as Photo<T>;
+  // У карточки-примера аккаунта нет и быть не может, а буква вместо лица делает
+  // её похожей на недозаполненную настоящую. Отдаём рисованного персонажа.
+  const demo = (row as { demo?: boolean }).demo === true;
+  return { ...rest, photo: user?.photoUrl ?? (demo ? DEMO_CLIENT_PHOTO : null) } as Photo<T>;
 }
 
+/** Портрет карточки-примера — рисунок из public, не фотография человека. */
+export const DEMO_CLIENT_PHOTO = "/demo-client.svg";
+
 /** Клиент внутри записи — те же поля плюс аватарка. */
-export const APPT_CLIENT_SELECT = { id: true, name: true, user: { select: { photoUrl: true } } } as const;
+export const APPT_CLIENT_SELECT = { id: true, name: true, demo: true, user: { select: { photoUrl: true } } } as const;
 
 export function apptWithPhoto<T extends { client: object }>(row: T): Omit<T, "client"> & { client: Photo<T["client"]> } {
   return { ...row, client: withPhoto(row.client) };

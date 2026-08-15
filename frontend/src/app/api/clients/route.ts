@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { NOT_APPROVED, canAddClient, psyApproved } from "@/lib/server/access";
 import { PHOTO_INCLUDE, withPhoto, withStats, withStatsOne } from "@/lib/server/clients";
+import { ensureDemoClient } from "@/lib/server/demo-client";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
@@ -24,6 +25,10 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const take = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") ?? 100)));
     const skip = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+
+    // Первый заход специалиста: заводим карточку-пример, чтобы раздел не
+    // встречал пустотой. Делается один раз за всю жизнь аккаунта.
+    await ensureDemoClient(user.id);
 
     const clients = await prisma.client.findMany({
       where: { psychologistId: user.id },

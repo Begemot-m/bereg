@@ -73,8 +73,12 @@ export async function getTherapy(clientId: number, opts: { allCards?: boolean } 
     : { clientId };
 
   const [moods, notes, profile, reflections] = await Promise.all([
-    prisma.mood.findMany({ where: { clientId: ownerId }, orderBy: { day: "asc" }, take: 30 }),
-    prisma.goodNote.findMany({ where: { clientId: ownerId }, orderBy: { day: "asc" }, take: 60 }),
+    // Свежие записи, а не первые в истории. `asc` + `take` отдавал самые
+    // старые 30 отметок: у клиента, который ведёт дневник полгода, психолог
+    // видел прошлогоднюю картину, а «за всё время» посчитать было не из чего.
+    // Разворачиваем обратно в хронологию — на ней держатся линия и календарь.
+    prisma.mood.findMany({ where: { clientId: ownerId }, orderBy: { day: "desc" }, take: 400 }),
+    prisma.goodNote.findMany({ where: { clientId: ownerId }, orderBy: { day: "desc" }, take: 120 }),
     prisma.therapyProfile.findUnique({ where: { clientId: ownerId } }),
     prisma.sessionReflection.findMany({
       where: reflectionScope,
@@ -93,12 +97,12 @@ export async function getTherapy(clientId: number, opts: { allCards?: boolean } 
   ]);
 
   return {
-    moods: moods.map((m) => ({
+    moods: [...moods].reverse().map((m) => ({
       date: m.day.toISOString(),
       mood: m.mood,
       emotions: (m.emotions as string[]) ?? [],
     })),
-    notes: notes.map((n) => ({ date: n.day.toISOString(), text: dec(n.text) })),
+    notes: [...notes].reverse().map((n) => ({ date: n.day.toISOString(), text: dec(n.text) })),
     board: profile ? dec(profile.board) : "",
     wheel: (profile?.wheel as WheelDTO) ?? null,
     tutorialSeen: profile?.tutorialSeen ?? false,

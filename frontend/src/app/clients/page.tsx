@@ -244,12 +244,20 @@ function ClientCard({ client: c }: { client: Client }) {
           />
           <div className="min-w-0 flex-1">
             <p className="t-head break-words leading-tight">{c.name}</p>
-            <span
-              className="mt-1 inline-flex rounded-full px-2 py-1 text-[12px] font-black"
-              style={{ background: "var(--purple-soft)", color: "var(--purple-edge)" }}
-            >
-              {STATUS_LABEL[s]}
-            </span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span
+                className="inline-flex rounded-full px-2 py-1 text-[12px] font-black"
+                style={{ background: "var(--purple-soft)", color: "var(--purple-edge)" }}
+              >
+                {STATUS_LABEL[s]}
+              </span>
+              {/* Карточка-пример: чтобы её не приняли за настоящего человека */}
+              {c.demo && (
+                <span className="inline-flex rounded-full px-2 py-1 text-[12px] font-black" style={{ background: "var(--tiffany-soft)", color: "var(--tiffany-edge)" }}>
+                  пример
+                </span>
+              )}
+            </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="t-cap inline-flex items-center gap-1.5">
                 <Icon name="check" width={13} weight="bold" color={`var(--${tone}-edge)`} />

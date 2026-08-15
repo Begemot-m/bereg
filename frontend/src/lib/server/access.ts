@@ -87,7 +87,9 @@ const NO_ACCESS: Access = {
  */
 async function firstSessionAt(userId: number): Promise<Date | null> {
   const first = await prisma.appointment.findFirst({
-    where: { psychologistId: userId, status: { not: "cancelled" }, startsAt: { lte: new Date() } },
+    // Встречи с карточкой-примером триал не запускают: она заведена
+    // платформой, и её «история» — рисунок, а не работа.
+    where: { psychologistId: userId, status: { not: "cancelled" }, startsAt: { lte: new Date() }, client: { demo: false } },
     orderBy: { startsAt: "asc" },
     select: { startsAt: true },
   });
@@ -162,7 +164,8 @@ export async function canAddClient(userId: number): Promise<{ ok: boolean; used:
   const { pro } = await access(userId);
   if (pro) return { ok: true, used: 0, limit: null };
 
-  const used = await prisma.client.count({ where: { psychologistId: userId } });
+  // Карточка-пример места не занимает: она заведена платформой, а не работой.
+  const used = await prisma.client.count({ where: { psychologistId: userId, demo: false } });
   return { ok: used < FREE_CLIENT_LIMIT, used, limit: FREE_CLIENT_LIMIT };
 }
 
@@ -191,7 +194,8 @@ export type Accepting = {
  */
 export async function acceptingNewClients(userId: number): Promise<Accepting> {
   const { pro } = await access(userId);
-  const used = await prisma.client.count({ where: { psychologistId: userId } });
+  // Карточка-пример места не занимает: она заведена платформой, а не работой.
+  const used = await prisma.client.count({ where: { psychologistId: userId, demo: false } });
   return { accepting: hasFreeSeat(pro, used), used, limit: pro ? null : FREE_CLIENT_LIMIT, pro };
 }
 

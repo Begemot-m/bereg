@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch, apiFetchBlob } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
+import { compressImageFile } from "@/lib/image";
 
 // Документы верификации. В бою файл уходит на сервер и лежит на диске
 // зашифрованным (api/profile/documents), в браузере от него остаются только
@@ -95,7 +96,11 @@ export function usePsyDocuments() {
 export function useUploadDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ file, kind = "diploma" }: { file: File; kind?: PsyDocument["kind"] }) => {
+    mutationFn: async ({ file: picked, kind = "diploma" }: { file: File; kind?: PsyDocument["kind"] }) => {
+      // Скан диплома с телефона — те же мегабайты. Сжимаем щадяще: текст в
+      // документе должен остаться читаемым, поэтому сторона и вес больше, чем
+      // у фото анкеты. PDF проходит мимо сжатия нетронутым.
+      const file = await compressImageFile(picked, { maxSide: 1800, targetBytes: 700_000 });
       if (DEMO) {
         const doc: PsyDocument = {
           id: Date.now(),

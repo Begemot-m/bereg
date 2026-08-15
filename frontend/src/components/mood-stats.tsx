@@ -42,7 +42,7 @@ export function EmotionChips({ items, showCount = true }: { items: [string, numb
 
 // Динамика настроения: линия за период + календарь месяца + частые эмоции.
 export function MoodStats({ moods, title = "Настроение", compact }: { moods: Mood[]; title?: string; compact?: boolean }) {
-  const [range, setRange] = useState<7 | 30>(compact ? 7 : 30);
+  const [range, setRange] = useState<7 | 30 | "all">(compact ? 7 : 30);
   const [month, setMonth] = useState(() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; });
   const [calendar, setCalendar] = useState(false);
 
@@ -53,6 +53,38 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
   }, [moods]);
 
   const series = useMemo(() => {
+    // Всё время: от первой отметки до сегодня. Длинную историю сворачиваем по
+    // неделям — иначе на трёхсантиметровой линии оказывается триста точек, и
+    // читать в ней нечего.
+    if (range === "all") {
+      const days = [...byDay.values()].map((entry) => new Date(entry.date)).sort((a, b) => a.getTime() - b.getTime());
+      if (!days.length) return [];
+      const first = days[0];
+      const span = Math.ceil((Date.now() - first.getTime()) / 86_400_000) + 1;
+      if (span <= 60) {
+        return Array.from({ length: span }, (_, index) => {
+          const date = new Date(first);
+          date.setHours(0, 0, 0, 0);
+          date.setDate(date.getDate() + index);
+          const key = dayKey(date);
+          return { key, date, mood: byDay.get(key)?.mood };
+        });
+      }
+      const weeks = Math.ceil(span / 7);
+      return Array.from({ length: weeks }, (_, index) => {
+        const date = new Date(first);
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + index * 7);
+        const marks: number[] = [];
+        for (let day = 0; day < 7; day++) {
+          const cursor = new Date(date);
+          cursor.setDate(cursor.getDate() + day);
+          const found = byDay.get(dayKey(cursor))?.mood;
+          if (found) marks.push(found);
+        }
+        return { key: dayKey(date), date, mood: marks.length ? marks.reduce((sum, value) => sum + value, 0) / marks.length : undefined };
+      });
+    }
     const out: { key: string; date: Date; mood?: number }[] = [];
     for (let i = range - 1; i >= 0; i--) {
       const date = new Date();
@@ -85,9 +117,9 @@ export function MoodStats({ moods, title = "Настроение", compact }: { 
             </p>
           </div>
           <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-            {([7, 30] as const).map((option) => (
+            {([7, 30, "all"] as const).map((option) => (
               <button key={option} onClick={() => { select(); setRange(option); }} className="rounded-full px-2.5 py-1 text-[10.5px] font-black transition-colors" style={range === option ? { background: "var(--ink)", color: "#fff" } : { color: "var(--muted)" }}>
-                {option} дн.
+                {option === "all" ? "всё" : `${option} дн.`}
               </button>
             ))}
           </div>

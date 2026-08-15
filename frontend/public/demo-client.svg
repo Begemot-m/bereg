@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Карточка-пример">
+  <rect width="128" height="128" fill="#e9e8fb"/>
+  <!-- плечи -->
+  <path d="M18 128c0-24 20-38 46-38s46 14 46 38z" fill="#5b5bd6"/>
+  <path d="M64 90c-7 0-13 1-19 3l19 14 19-14c-6-2-12-3-19-3z" fill="#f4f3fb"/>
+  <!-- шея -->
+  <path d="M55 74h18v18a9 9 0 0 1-18 0z" fill="#e8bfa0"/>
+  <!-- лицо -->
+  <ellipse cx="64" cy="56" rx="24" ry="27" fill="#f2cfb2"/>
+  <!-- волосы -->
+  <path d="M64 24c15 0 25 11 25 26v6l-6-4-2-11c-9 3-19 4-29 2l-4 9-3 4c-4-4-6-9-6-15 0-10 9-17 25-17z" fill="#2c2e31"/>
+  <path d="M39 50c-4 6-4 14 0 21 2-7 2-14 0-21zM89 50c4 6 4 14 0 21-2-7-2-14 0-21z" fill="#2c2e31"/>
+  <!-- глаза и улыбка -->
+  <circle cx="55" cy="56" r="2.6" fill="#2c2e31"/>
+  <circle cx="73" cy="56" r="2.6" fill="#2c2e31"/>
+  <path d="M56 66c4 4 12 4 16 0" fill="none" stroke="#2c2e31" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M47 47c3-2 6-2 9 0M72 47c3-2 6-2 9 0" fill="none" stroke="#2c2e31" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

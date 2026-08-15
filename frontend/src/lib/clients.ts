@@ -18,6 +18,8 @@ export type Client = {
   joinedName?: string | null;
   /** Аватарка из Telegram. Есть только у клиента, подключившего свой профиль. */
   photo?: string | null;
+  /** Карточка-пример от платформы: не занимает место в лимите, её можно удалить. */
+  demo?: boolean;
   sessionsDone: number;
   hoursDone: number;
   nextAt: string | null;

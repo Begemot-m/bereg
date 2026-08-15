@@ -100,7 +100,9 @@ export async function buildPsyCards(rows: PsyProfileRow[]): Promise<PsyCard[]> {
     prisma.review.groupBy({ by: ["psychologistId"], where: { psychologistId: { in: ids } }, _avg: { rating: true }, _count: { _all: true } }),
     prisma.appointment.groupBy({
       by: ["psychologistId"],
-      where: { psychologistId: { in: ids }, status: "done" },
+      // Карточка-пример в публичные счётчики не идёт: в каталоге должна стоять
+      // настоящая практика, а не показательные встречи из демо-карточки.
+      where: { psychologistId: { in: ids }, status: "done", client: { demo: false } },
       _count: { _all: true },
     }),
   ]);

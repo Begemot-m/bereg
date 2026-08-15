@@ -37,6 +37,8 @@ type Client = {
   joinedName?: string | null;
   /** Аватарка клиента. В бою приходит из Telegram, в демо — картинка из public. */
   photo?: string | null;
+  /** Карточка-пример от платформы: лимит не занимает, удаляется как обычная. */
+  demo?: boolean;
   notesModuleEnabled: boolean;
   notesModuleShared: boolean;
   notesModulePsychologist: boolean;
@@ -112,28 +114,84 @@ type DB = {
   };
 };
 
-const KEY = "psy_demo_db_v12";
+// v13 — появилась карточка-пример: старую базу демо пересобираем.
+const KEY = "psy_demo_db_v13";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const day = addZoneDays(zoneYmd(new Date()), daysFromNow);
   return (zoneAt(day, hour, min) ?? new Date()).toISOString();
 }
 
+// Карточка-пример: тот же набор, что заводит сервер новому специалисту
+// (lib/server/demo-client.ts). Три недели дневника, четыре проведённые встречи,
+// задания, заметки и колесо баланса — чтобы разделы не встречали пустотой.
+const DEMO_CLIENT_ID = 3;
+const DEMO_MOODS: [number, number, string[]][] = [
+  [20, 2, ["напряжение", "страх"]], [19, 2, ["печаль"]], [18, 3, ["напряжение"]],
+  [17, 2, ["страх", "вина"]], [16, 3, ["облегчение"]], [15, 3, ["напряжение"]],
+  [13, 4, ["облегчение", "интерес"]], [12, 3, ["печаль"]], [11, 3, ["напряжение"]],
+  [10, 4, ["интерес"]], [9, 4, ["облегчение"]], [8, 3, ["страх"]],
+  [6, 4, ["радость", "гордость"]], [5, 4, ["интерес"]], [4, 5, ["радость"]],
+  [3, 4, ["облегчение"]], [2, 4, ["интерес", "гордость"]], [1, 5, ["радость", "облегчение"]],
+];
+const DEMO_WHEEL: Record<string, number[]> = {
+  health: [6, 5, 6], emotions: [4, 3, 5], relationships: [7, 6, 7], family: [8, 8, 7], social: [7, 6, 6],
+  work: [3, 4, 3], finance: [5, 6, 5], growth: [6, 7, 6], leisure: [3, 3, 4], environment: [6, 6, 7],
+};
+
 function seed(): DB {
   const now = new Date().toISOString();
-  // Демо стартует чистым: два клиента, ни одной записи, пустые статистика,
-  // настроение, домашки и колесо баланса — всё наполняется руками.
+  // Демо стартует почти чистым: карточка-пример со всем наполнением и два
+  // пустых клиента — записи, настроение и задания у них наполняются руками.
   const clients: Client[] = [
     // Фото — то же, чем демо показывает аватарку из Telegram в бою. Своих лиц у
     // демо нет, поэтому берём портреты из каталога.
     { id: 1, name: "Марина Соколова", contact: "@marina", note: "", status: "new", link: "none", invitedAt: null, photo: "/catalog/irina.webp", notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
     { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, photo: "/catalog/sergey.webp", notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
+    {
+      id: DEMO_CLIENT_ID,
+      name: "Анна (пример)",
+      contact: null,
+      note: "Тревога перед защитой диплома, сон 4–5 часов.\nХорошо отзывается на дыхание 4-7-8, дома делает через раз.\nДержим фокус на сне и опоре в семье.",
+      status: "therapy",
+      link: "none",
+      invitedAt: null,
+      photo: "/demo-client.svg",
+      demo: true,
+      notesModuleEnabled: false,
+      notesModuleShared: true,
+      notesModulePsychologist: false,
+      createdAt: iso(-30),
+      updatedAt: now,
+    },
   ];
-  const appts: Appointment[] = [];
-  const homework: Homework[] = [];
-  const moods: Record<number, Mood[]> = {};
-  const goodNotes: Record<number, { date: string; text: string }[]> = {};
-  const wheel: Record<number, WheelResult | null> = {};
+  const appts: Appointment[] = [28, 21, 14, 7].map((back, index) => ({
+    id: 40 + index,
+    clientId: DEMO_CLIENT_ID,
+    startsAt: iso(-back, 12),
+    durationMin: 50,
+    status: "done" as const,
+    note: "",
+    format: "online" as const,
+    client: { id: DEMO_CLIENT_ID, name: "Анна (пример)", photo: "/demo-client.svg" },
+  }));
+  const homework: Homework[] = [
+    { id: 50, clientId: DEMO_CLIENT_ID, text: "Дыхание 4-7-8 перед сном, 5 минут", status: "done", sentAt: iso(-21) },
+    { id: 51, clientId: DEMO_CLIENT_ID, text: "Дневник тревоги: ситуация → мысль → что помогло", status: "doing", sentAt: iso(-14) },
+    { id: 52, clientId: DEMO_CLIENT_ID, text: "Прогулка 20 минут без телефона", status: "assigned", sentAt: iso(-7) },
+  ];
+  const moods: Record<number, Mood[]> = {
+    [DEMO_CLIENT_ID]: DEMO_MOODS.map(([back, mood, emotions]) => ({ date: iso(-back, 0), mood, emotions })),
+  };
+  const goodNotes: Record<number, { date: string; text: string }[]> = {
+    [DEMO_CLIENT_ID]: [
+      { date: iso(-9, 0), text: "Пошла на встречу выпускников, хотя собиралась отменить" },
+      { date: iso(-4, 0), text: "Впервые за месяц выспалась" },
+    ],
+  };
+  const wheel: Record<number, WheelResult | null> = {
+    [DEMO_CLIENT_ID]: { answers: DEMO_WHEEL, completedAt: iso(-6, 12) },
+  };
   const reflections: Record<number, SessionReflection[]> = {};
   return {
     seq: 100,
@@ -142,7 +200,7 @@ function seed(): DB {
     homework,
     moods,
     goodNotes,
-    board: {},
+    board: { [DEMO_CLIENT_ID]: "Цель: спать 7 часов и дожить до защиты без паники." },
     wheel,
     therapyTutorialSeen: false,
     reflections,
@@ -327,7 +385,8 @@ const FREE_CLIENT_LIMIT = 3;
  * (`lib/server/access.ts`): без PRO места кончаются на третьем клиенте.
  * Уже заведённые карточки продолжают работать — закрыт только вход снаружи.
  */
-const demoAccepting = (db: DB): boolean => db.sub.pro || db.clients.length < FREE_CLIENT_LIMIT;
+// Карточка-пример места не занимает — как и на сервере (lib/server/access.ts).
+const demoAccepting = (db: DB): boolean => db.sub.pro || db.clients.filter((c) => !c.demo).length < FREE_CLIENT_LIMIT;
 
 const NOT_ACCEPTING = '{"error":"not_accepting","message":"Специалист временно не принимает заявки через платформу"}';
 

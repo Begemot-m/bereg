@@ -277,6 +277,16 @@ export function ClientDetail() {
       </header>
 
       <main className="-mt-8 space-y-4 rounded-t-[27px] bg-white px-4 pb-10 pt-6 @md:px-9">
+        {client.demo && (
+          <div className="flex items-start gap-2.5 rounded-[16px] px-3.5 py-3" style={{ background: "var(--tiffany-soft)" }}>
+            <Icon name="spark" width={16} weight="fill" color="var(--tiffany-edge)" className="mt-0.5 shrink-0" />
+            <p className="text-[12.5px] font-black leading-snug">
+              Это карточка-пример: так выглядит клиент, с которым уже поработали.
+              <span className="block font-semibold text-[var(--muted)]">Место в бесплатном тарифе не занимает — удалите, когда перестанет быть нужной.</span>
+            </p>
+          </div>
+        )}
+
         <PsychologistHomeworkPreview items={homework} href={`/clients/homework?id=${id}`} />
 
         {therapy && <TherapistBoardView value={therapy.board} name={client.name} />}
