@@ -311,6 +311,46 @@ export function useAdminUsage() {
   });
 }
 
+export type Retention = {
+  stickiness: { dau: number; wau: number; mau: number; repeat30: number; once30: number; ratio: number; repeatShare: number };
+  cohorts: { week: string; people: number; w1: number; w2: number; w3: number; w4: number; shares: number[] }[];
+  lifecycle: FunnelRow[];
+  sleeping: { psychologists: number; clients: number };
+  since: string | null;
+};
+
+const DEMO_RETENTION: Retention = {
+  stickiness: { dau: 38, wau: 164, mau: 428, repeat30: 172, once30: 256, ratio: 9, repeatShare: 40 },
+  cohorts: [
+    { week: "2026-08-03", people: 96, w1: 41, w2: 0, w3: 0, w4: 0, shares: [43, 0, 0, 0] },
+    { week: "2026-07-27", people: 88, w1: 37, w2: 26, w3: 0, w4: 0, shares: [42, 30, 0, 0] },
+    { week: "2026-07-20", people: 74, w1: 29, w2: 21, w3: 17, w4: 0, shares: [39, 28, 23, 0] },
+    { week: "2026-07-13", people: 61, w1: 24, w2: 18, w3: 14, w4: 12, shares: [39, 30, 23, 20] },
+  ],
+  lifecycle: [
+    { key: "registered", label: "Специалистов всего", n: 34, ofFirst: 100, ofPrev: 100 },
+    { key: "returned", label: "Зашли больше одного дня", n: 21, ofFirst: 62, ofPrev: 62 },
+    { key: "withClient", label: "Завели клиента", n: 14, ofFirst: 41, ofPrev: 67 },
+    { key: "withSession", label: "Провели сессию", n: 9, ofFirst: 26, ofPrev: 64 },
+    { key: "active28", label: "Ведут практику сейчас (28 дней)", n: 6, ofFirst: 18, ofPrev: 67 },
+  ],
+  sleeping: { psychologists: 11, clients: 43 },
+  since: "2026-07-01T00:00:00.000Z",
+};
+
+/** Удержание: возвращаются ли люди и где перестают. */
+export function useAdminRetention() {
+  return useQuery<Retention>({
+    queryKey: ["admin-retention"],
+    queryFn: async () => {
+      if (DEMO) return DEMO_RETENTION;
+      return apiFetch<Retention>("/admin/retention");
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
 export function useAdminUsers(q: string, page: number) {
   return useQuery<{ items: UserRow[]; total: number; pages: number }>({
     queryKey: ["admin-users", q, page],

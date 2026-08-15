@@ -1151,22 +1151,6 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     }
   }
 
-  // stats
-  if (clean === "/stats" && method === "GET") {
-    const days = Number(q.get("days") ?? 30);
-    const from = new Date();
-    from.setDate(from.getDate() - days);
-    const inRange = db.appts.filter((a) => new Date(a.startsAt) >= from);
-    const done = inRange.filter((a) => a.status === "done");
-    return delay({
-      periodDays: days,
-      sessions: inRange.length,
-      done: done.length,
-      hours: Math.round(done.reduce((s, a) => s + a.durationMin, 0) / 60),
-      clientsActive: db.clients.filter((c) => c.status === "therapy").length,
-    } as T);
-  }
-
   // subscription / billing
   if (clean === "/subscription" && method === "GET") {
     resolveSub(db);

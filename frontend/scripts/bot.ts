@@ -4,12 +4,16 @@
 import { PrismaClient } from "@prisma/client";
 import { Bot, InlineKeyboard } from "grammy";
 
+import { claimNudge, loadPsyRows, pickNudges } from "../src/lib/server/nudges";
+
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) throw new Error("TELEGRAM_BOT_TOKEN not set");
 
 const APP_URL = process.env.APP_URL ?? "https://chronika.space";
 const TIME_ZONE = process.env.APP_TIME_ZONE ?? "Europe/Moscow";
 const TICK_MS = 30_000;
+// Догоняющие сообщения проверяются реже: они привязаны к часу, а не к минуте.
+const NUDGE_TICK_MS = 5 * 60_000;
 
 const prisma = new PrismaClient();
 const bot = new Bot(token);
@@ -191,18 +195,47 @@ async function sendDueDeliveries() {
   }
 }
 
+// Итог недели и возврат тех, кто перестал заходить. Повтор ловится строкой
+// Nudge: она пишется до отправки, ключ «получатель + вид + период» уникален.
+let nudging = false;
+async function sendNudges() {
+  if (nudging) return;
+  nudging = true;
+  try {
+    const plans = pickNudges(await loadPsyRows(prisma), new Date(), TIME_ZONE);
+    for (const plan of plans) {
+      const id = await claimNudge(prisma, plan);
+      if (id === null) continue;
+      const keyboard = new InlineKeyboard().webApp(plan.button, appLink(plan.path));
+      try {
+        await bot.api.sendMessage(Number(plan.telegramId), plan.text, { reply_markup: keyboard });
+        await prisma.nudge.update({ where: { id }, data: { sentAt: new Date() } });
+      } catch (error) {
+        const apiError = error as { description?: string; message?: string };
+        const message = (apiError.description ?? apiError.message ?? "Telegram nudge failed").slice(0, 500);
+        await prisma.nudge.update({ where: { id }, data: { error: message } });
+        console.error(`Не удалось отправить ${plan.kind} #${id}: ${message}`);
+      }
+    }
+  } finally {
+    nudging = false;
+  }
+}
+
 async function main() {
   await sendDueDeliveries();
   const tick = setInterval(() => void sendDueDeliveries().catch((error) => console.error("notification tick error", error)), TICK_MS);
+  const nudgeTick = setInterval(() => void sendNudges().catch((error) => console.error("nudge tick error", error)), NUDGE_TICK_MS);
   const shutdown = async () => {
     clearInterval(tick);
+    clearInterval(nudgeTick);
     await bot.stop();
     await prisma.$disconnect();
     process.exit(0);
   };
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
-  console.log("Telegram worker запущен: события расписания и напоминания клиента.");
+  console.log("Telegram worker запущен: события расписания, напоминания клиента, итог недели специалиста.");
   await bot.start();
 }
 

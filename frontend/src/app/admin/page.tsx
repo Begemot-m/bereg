@@ -6,10 +6,10 @@ import { PageHead } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Input, SkeletonRow } from "@/components/ui";
 import {
-  useAdminStats, useAdminUsage, useAdminUsers, useUserAction,
+  useAdminRetention, useAdminStats, useAdminUsage, useAdminUsers, useUserAction,
   useReviewVerification, useVerificationQueue,
   useAuditLog, useFunnels, useSeries, useSupportAction, useSupportInbox,
-  type FunnelRow, type PsyApplication, type Series, type SupportRow,
+  type FunnelRow, type PsyApplication, type Retention, type Series, type SupportRow,
   type UsagePeriod, type UsageTotals,
 } from "@/lib/admin";
 import { tap } from "@/lib/haptics";
@@ -39,6 +39,7 @@ export default function AdminPage() {
   const [period, setPeriod] = useState<UsagePeriod>("week");
 
   const usage = useAdminUsage();
+  const retention = useAdminRetention();
   const stats = useAdminStats();
   const users = useAdminUsers(q, page);
   const act = useUserAction();
@@ -178,6 +179,13 @@ export default function AdminPage() {
           {usage.isLoading ? <SkeletonRow /> : usage.data && (
             <UsageBlock totals={usage.data.periods[period]} since={usage.data.since} />
           )}
+        </section>
+
+        {/* Удержание: заходят — это одно, возвращаются — совсем другое.
+            Воронка рядом может быть зелёной, пока все уходят после первого дня. */}
+        <section>
+          <p className="t-micro mb-2">Удержание</p>
+          {retention.isLoading ? <SkeletonRow /> : retention.data && <RetentionBlock data={retention.data} />}
         </section>
 
         {/* Сводка */}
@@ -710,6 +718,70 @@ function UsageBlock({ totals, since }: { totals: UsageTotals; since: string | nu
         </div>
       )}
       {since && <p className="t-cap mt-2">Считаем с {dateF.format(new Date(since))}</p>}
+    </>
+  );
+}
+
+function RetentionBlock({ data }: { data: Retention }) {
+  const { stickiness: s, cohorts, sleeping } = data;
+  const seen = s.repeat30 + s.once30;
+  return (
+    <>
+      <div className="grid grid-cols-4 gap-2">
+        <Tile value={s.dau} label="за сутки" />
+        <Tile value={s.wau} label="за неделю" />
+        <Tile value={s.mau} label="за месяц" />
+        <Tile value={s.ratio} label="% суточных к месячным" />
+      </div>
+
+      <p className="t-cap mt-2">
+        {seen === 0
+          ? "За месяц заходов не было."
+          : `Из ${seen} человек за месяц вернулись в другой день ${s.repeat30} (${s.repeatShare}%), зашли один раз и пропали ${s.once30}.`}
+      </p>
+
+      <p className="t-micro mb-2 mt-4">Возвраты по неделям прихода</p>
+      {cohorts.length === 0 ? (
+        <p className="t-cap">Заходов накопилось меньше недели — когорты появятся позже.</p>
+      ) : (
+        <div className="card-soft p-2.5">
+          <div className="grid grid-cols-6 gap-1 text-[10px] font-black uppercase tracking-[.04em] text-[var(--muted)]">
+            <span className="col-span-2">неделя</span>
+            <span className="text-right">+1</span>
+            <span className="text-right">+2</span>
+            <span className="text-right">+3</span>
+            <span className="text-right">+4</span>
+          </div>
+          <div className="mt-1.5 space-y-1">
+            {cohorts.map((c) => (
+              <div key={c.week} className="grid grid-cols-6 items-baseline gap-1 tabular-nums text-[11px] font-black">
+                <span className="col-span-2 truncate">
+                  {dateF.format(new Date(c.week))} <span className="opacity-60">· {c.people} чел.</span>
+                </span>
+                {c.shares.map((share, i) => (
+                  // Ноль в свежей когорте — «неделя ещё не наступила», а не провал.
+                  <span key={i} className="text-right" style={{ opacity: share === 0 ? 0.35 : 1 }}>{share}%</span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="t-micro mb-2 mt-4">Где отваливаются специалисты</p>
+      <Funnel
+        title="После регистрации"
+        note="Последняя ступень — те, кто ведёт практику прямо сейчас. Разрыв с предыдущей и есть отток."
+        rows={data.lifecycle}
+        color="var(--iris)"
+      />
+
+      <p className="t-micro mb-2 mt-4">Спят дольше двух недель</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Tile value={sleeping.psychologists} label="специалистов" />
+        <Tile value={sleeping.clients} label="клиентов" />
+      </div>
+      {data.since && <p className="t-cap mt-2">Заходы пишутся с {dateF.format(new Date(data.since))}</p>}
     </>
   );
 }

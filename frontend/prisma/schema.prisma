@@ -74,6 +74,30 @@ model User {
   clientLinks        TherapistLink[]    @relation("PsychologistLinks")
   reviewsWritten     Review[]           @relation("ReviewAuthor")
   reviewsReceived    Review[]           @relation("ReviewTarget")
+  nudges             Nudge[]
+}
+
+/// Догоняющее сообщение в Telegram вне расписания: итог недели специалиста и
+/// возврат того, кто перестал заходить. В TelegramDelivery такому места нет —
+/// там каждая строка привязана к встрече, а этим сообщениям встреча не нужна.
+/// Строка пишется до отправки и заодно защищает от повторов: пара
+/// «получатель + вид + период» уникальна, так что второй тик того же дня
+/// ничего не пришлёт.
+model Nudge {
+  id          Int       @id @default(autoincrement())
+  recipient   User      @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId Int
+  /// weekly | idle_clients | no_client
+  kind        String
+  /// Период, за который уже отправлено: 2026-W33 для итога недели, дата для
+  /// остальных.
+  periodKey   String
+  sentAt      DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([recipientId, kind, periodKey])
+  @@index([createdAt])
 }
 
 /// Оценка специалиста клиентом. Рейтинга не существовало вовсе: каталог

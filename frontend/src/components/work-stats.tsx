@@ -16,7 +16,7 @@ const shiftMonth = (y: number, m: number, delta: number) => {
 const MON = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 // Плавный счётчик — число «набегает» при появлении/смене периода.
-function CountUp({ value, suffix = "" }: { value: number; suffix?: string }) {
+function CountUp({ value, suffix = "", digits = 0 }: { value: number; suffix?: string; digits?: number }) {
   const [n, setN] = useState(0);
   const from = useRef(0);
   useEffect(() => {
@@ -24,15 +24,22 @@ function CountUp({ value, suffix = "" }: { value: number; suffix?: string }) {
     let raf = 0;
     const step = (t: number) => {
       const p = Math.min(1, (t - start) / dur);
-      setN(Math.round(a + (b - a) * (1 - Math.pow(1 - p, 3))));
+      setN(a + (b - a) * (1 - Math.pow(1 - p, 3)));
       if (p < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [value]);
   useEffect(() => { from.current = value; }, [value]);
-  return <>{n}{suffix}</>;
+  return <>{n.toFixed(digits).replace(".", ",")}{suffix}</>;
 }
+
+const plural = (n: number, one: string, few: string, many: string) => {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+};
 
 type Item = { startsAt: string; durationMin: number; clientKey: string; cancelled?: boolean };
 
@@ -46,6 +53,19 @@ export function WorkStats({ items, title = "Статистика работы" }
     const todayY = zoneYmd(new Date());
     const today = parseYmd(todayY)!;
     const active = items.filter((i) => !i.cancelled);
+
+    // Итог за отрезок дней, обе границы включительно.
+    const range = (fromY: string, toY: string) => {
+      const start = zoneDay(fromY);
+      const end = zoneDay(addDays(toY, 1));
+      const within = active.filter((i) => { const t = new Date(i.startsAt); return t >= start && t < end; });
+      return {
+        sessions: within.length,
+        hours: within.reduce((s, i) => s + i.durationMin, 0) / 60,
+        clients: new Set(within.map((i) => i.clientKey)).size,
+      };
+    };
+
     if (period === "all") {
       // Всё время — последние 6 месяцев по месяцам.
       const bars = Array.from({ length: 6 }).map((_, mi) => {
@@ -56,37 +76,46 @@ export function WorkStats({ items, title = "Статистика работы" }
         const within = active.filter((i) => { const t = new Date(i.startsAt); return t >= start && t < end; });
         return { label: MON[from.m - 1], value: within.length, today: mi === 5 };
       });
-      return { bars, sessions: active.length, hours: Math.round(active.reduce((s, i) => s + i.durationMin, 0) / 60), clients: new Set(active.map((i) => i.clientKey)).size };
+      return {
+        bars,
+        sessions: active.length,
+        hours: active.reduce((s, i) => s + i.durationMin, 0) / 60,
+        clients: new Set(active.map((i) => i.clientKey)).size,
+        prev: null as number | null,
+        prevLabel: "",
+      };
     }
+
     if (period === "week") {
-      const mondayY = addDays(todayY, -weekdayOf(todayY));
-      const monday = zoneDay(mondayY);
-      const bars = WD.map((label, d) => {
-        const dayY = addDays(mondayY, d);
+      // Неделя скользящая — последние 7 дней, а не с понедельника. С
+      // календарной в зачёт шли только состоявшиеся встречи, и утром
+      // понедельника работающий специалист видел три нуля.
+      const startY = addDays(todayY, -6);
+      const bars = Array.from({ length: 7 }).map((_, d) => {
+        const dayY = addDays(startY, d);
         const day = zoneDay(dayY);
         const next = zoneDay(addDays(dayY, 1));
         const inDay = active.filter((i) => { const t = new Date(i.startsAt); return t >= day && t < next; });
-        return { label, value: inDay.length, today: dayY === todayY };
+        return { label: WD[weekdayOf(dayY)], value: inDay.length, today: dayY === todayY };
       });
-      const weekEnd = zoneDay(addDays(mondayY, 7));
-      const within = active.filter((i) => new Date(i.startsAt) >= monday && new Date(i.startsAt) < weekEnd);
-      return { bars, sessions: within.length, hours: Math.round(within.reduce((s, i) => s + i.durationMin, 0) / 60), clients: new Set(within.map((i) => i.clientKey)).size };
+      const now = range(startY, todayY);
+      return { bars, ...now, prev: range(addDays(todayY, -13), addDays(todayY, -7)).sessions, prevLabel: "в прошлые 7 дней" };
     }
+
     // Месяц — последние 4 недели.
     const bars = Array.from({ length: 4 }).map((_, wi) => {
       const endY = addDays(todayY, -(3 - wi) * 7);
       const startY = addDays(endY, -6);
-      const start = zoneDay(startY);
-      const nextEnd = zoneDay(addDays(endY, 1));
-      const within = active.filter((i) => { const t = new Date(i.startsAt); return t >= start && t < nextEnd; });
-      return { label: `${parseYmd(startY)!.d}–${parseYmd(endY)!.d}`, value: within.length, today: wi === 3 };
+      return { label: `${parseYmd(startY)!.d}–${parseYmd(endY)!.d}`, value: range(startY, endY).sessions, today: wi === 3 };
     });
-    const monthStart = zoneDay(addDays(todayY, -27));
-    const within = active.filter((i) => new Date(i.startsAt) >= monthStart);
-    return { bars, sessions: within.length, hours: Math.round(within.reduce((s, i) => s + i.durationMin, 0) / 60), clients: new Set(within.map((i) => i.clientKey)).size };
+    const now = range(addDays(todayY, -27), todayY);
+    return { bars, ...now, prev: range(addDays(todayY, -55), addDays(todayY, -28)).sessions, prevLabel: "в прошлые 4 недели" };
   }, [items, period]);
 
   const max = Math.max(1, ...data.bars.map((b) => b.value));
+  const hours = Math.round(data.hours * 10) / 10;
+  // Сравнивать не с чем, пока в обоих периодах пусто — тогда строки нет.
+  const delta = data.prev === null || (data.sessions === 0 && data.prev === 0) ? null : data.sessions - data.prev;
 
   return (
     // Рамка в цвет собственного фона: блок держит форму, но не режет лист
@@ -119,20 +148,33 @@ export function WorkStats({ items, title = "Статистика работы" }
       </div>
 
       {/* Плитки метрик */}
-      <div className="line-top mt-3 grid grid-cols-3 gap-2 p-3">
-        <Tile icon="calendar" value={data.sessions} label={period === "week" ? "сессий за неделю" : period === "month" ? "сессий за месяц" : "сессий всего"} tone="green" />
-        <Tile icon="clock" value={data.hours} suffix=" ч" label="длительность" tone="amber" />
-        <Tile icon="users" value={data.clients} label="клиентов" tone="purple" />
+      <div className="line-top mt-3 p-3">
+        <div className="grid grid-cols-3 gap-2">
+          <Tile icon="calendar" value={data.sessions} label={period === "week" ? "сессий за 7 дней" : period === "month" ? "сессий за 4 недели" : "сессий всего"} tone="green" />
+          <Tile icon="clock" value={hours} digits={Number.isInteger(hours) ? 0 : 1} suffix=" ч" label="длительность" tone="amber" />
+          <Tile icon="users" value={data.clients} label="клиентов" tone="purple" />
+        </div>
+        {/* Число без сравнения ничего не говорит: «12 сессий» — это больше или
+            меньше? Ради ответа на этот вопрос сюда и возвращаются. */}
+        {delta !== null && (
+          <p className="mt-2.5 text-center text-[11px] font-black" style={{ color: delta > 0 ? "var(--green-edge)" : "var(--muted)" }}>
+            {delta > 0
+              ? `На ${delta} ${plural(delta, "встречу", "встречи", "встреч")} больше, чем ${data.prevLabel}`
+              : delta < 0
+                ? `На ${-delta} ${plural(-delta, "встречу", "встречи", "встреч")} меньше, чем ${data.prevLabel}`
+                : `Столько же, сколько ${data.prevLabel}`}
+          </p>
+        )}
       </div>
     </section>
   );
 }
 
-function Tile({ icon, value, label, suffix, tone }: { icon: IconName; value: number; label: string; suffix?: string; tone?: "green" | "amber" | "purple" }) {
+function Tile({ icon, value, label, suffix, tone, digits }: { icon: IconName; value: number; label: string; suffix?: string; tone?: "green" | "amber" | "purple"; digits?: number }) {
   return (
     <div className="card-soft relative p-2.5 pt-3" style={tone ? { background: `var(--${tone}-soft)` } : undefined}>
       <Icon name={icon} width={14} weight="bold" className="absolute right-2.5 top-2.5 opacity-60" color={tone ? `var(--${tone}-edge)` : undefined} />
-      <p className="font-tight tabular-nums text-[28px] font-black leading-none"><CountUp value={value} suffix={suffix} /></p>
+      <p className="font-tight tabular-nums text-[28px] font-black leading-none"><CountUp value={value} suffix={suffix} digits={digits} /></p>
       <p className="mt-1.5 text-[8.5px] font-black uppercase leading-tight tracking-[.04em] text-[var(--muted)]">{label}</p>
     </div>
   );

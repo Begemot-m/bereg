@@ -15,6 +15,7 @@ import { InviteButton } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { moodColor } from "@/components/mood-egg";
 import { TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";
+import { ClientProgress } from "@/components/client-progress";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { BookingRow } from "@/components/my-bookings";
@@ -165,6 +166,8 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
             <MoodStatsBlock moods={therapy.moods} />
           </section>
 
+          <ClientProgress moods={therapy.moods} meetings={bookings} homework={homework} />
+
           <WorkWithSpecialist homework={homework} />
 
           <ClientSessionJourney meetings={bookings} reflections={therapy.reflections} module={therapy.notesModule} saving={reflectionSaving} onSave={onReflection} onModuleChange={onNotesModule} />
@@ -184,7 +187,9 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
 
 // Динамика настроения — разворачивается кнопкой, чтобы не спорить с блоком «сегодня».
 function MoodStatsBlock({ moods }: { moods: Mood[] }) {
-  const [stats, setStats] = useState(false);
+  // Набралась неделя отметок — динамика уже что-то показывает, и прятать её за
+  // кнопкой незачем: ради неё эти отметки и ставились.
+  const [stats, setStats] = useState(moods.length >= 7);
   return (
     <div className="border-t border-black/10 px-3 pb-3 pt-2.5">
       <button onClick={() => { tap(); setStats(!stats); }} className="flex w-full items-center justify-between rounded-full bg-white/70 px-3 py-2 text-[11px] font-black" aria-expanded={stats}>
