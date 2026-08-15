@@ -53,14 +53,20 @@ function relDay(iso: string): string {
   return nextF.format(d);
 }
 
-// Ранжирование: сначала в терапии и записанные, затем новые, затем пауза.
-function rank(c: Client): number {
-  const s = derivedStatus(c);
-  if (s === "therapy") return 0;
-  if (c.nextAt) return 1;
-  if (s === "new") return 2;
-  return 3;
+// Порядок списка — по записям, а не по статусу: сверху те, к кому встреча
+// ближе всего, за ними те, кто был недавно (свежая встреча выше), в конце —
+// карточки без единой записи, по алфавиту.
+function byAppointments(a: Client, b: Client): number {
+  if (a.nextAt && b.nextAt) return a.nextAt.localeCompare(b.nextAt);
+  if (a.nextAt !== b.nextAt && (a.nextAt || b.nextAt)) return a.nextAt ? -1 : 1;
+  if (a.lastAt && b.lastAt) return b.lastAt.localeCompare(a.lastAt);
+  if (a.lastAt !== b.lastAt && (a.lastAt || b.lastAt)) return a.lastAt ? -1 : 1;
+  return a.name.localeCompare(b.name, "ru");
 }
+
+// Длинный список утомляет и в нём теряются свежие карточки: показываем
+// десяток, остальные — страницами.
+const PER_PAGE = 10;
 
 export default function ClientsPage() {
   const search = useSearchParams();
@@ -105,7 +111,15 @@ function ClientsList() {
   const list = clients
     .filter((c) => (filter === "all" ? true : derivedStatus(c) === filter))
     .filter((c) => c.name.toLowerCase().includes(q))
-    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, "ru"));
+    .sort(byAppointments);
+
+  const [page, setPage] = useState(1);
+  const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+  // Отфильтровали до одной страницы, стоя на третьей — показываем последнюю,
+  // а не пустоту.
+  const current = Math.min(page, pages);
+  const shown = list.slice((current - 1) * PER_PAGE, current * PER_PAGE);
+  useEffect(() => { setPage(1); }, [filter, q]);
 
   return (
     <div>
@@ -208,14 +222,64 @@ function ClientsList() {
       ) : list.length === 0 ? (
         <p className="t-sub px-1">{search ? "Никого не нашли по этому имени." : "Нет клиентов в этом фильтре."}</p>
       ) : (
-        <Stagger className="space-y-3">
-          {list.map((c: Client, i) => <StaggerItem key={c.id}><div data-tour={i === 0 ? "client-card" : undefined}><ClientCard client={c} /></div></StaggerItem>)}
-        </Stagger>
+        <>
+          <Stagger className="space-y-3">
+            {shown.map((c: Client, i) => <StaggerItem key={c.id}><div data-tour={i === 0 ? "client-card" : undefined}><ClientCard client={c} /></div></StaggerItem>)}
+          </Stagger>
+          {pages > 1 && <Pager page={current} pages={pages} total={list.length} onChange={setPage} />}
+        </>
       )}
       </div>
 
       <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={atCap ? `Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки: карточка ушла из каталога, новые клиенты не подключаются. PRO снимает лимит и возвращает вас в каталог.` : undefined} />
     </div>
+  );
+}
+
+// Страницы списка. Номера показываем окном вокруг текущей: у психолога
+// десятки клиентов, а не тысячи, но ряд из двадцати кнопок всё равно не нужен.
+function Pager({ page, pages, total, onChange }: { page: number; pages: number; total: number; onChange: (p: number) => void }) {
+  const go = (next: number) => {
+    if (next < 1 || next > pages || next === page) return;
+    select();
+    onChange(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const numbers: number[] = [];
+  for (let n = 1; n <= pages; n++) {
+    if (n === 1 || n === pages || Math.abs(n - page) <= 1) numbers.push(n);
+  }
+  const from = (page - 1) * PER_PAGE + 1;
+  const to = Math.min(total, page * PER_PAGE);
+  return (
+    <div className="mt-5">
+      <div className="flex items-center justify-center gap-1.5">
+        <PagerButton label="‹" disabled={page === 1} onClick={() => go(page - 1)} title="Предыдущая страница" />
+        {numbers.map((n, i) => (
+          <span key={n} className="flex items-center gap-1.5">
+            {i > 0 && n - numbers[i - 1] > 1 && <span className="text-[12px] font-black text-[var(--muted-2)]">…</span>}
+            <PagerButton label={String(n)} active={n === page} onClick={() => go(n)} />
+          </span>
+        ))}
+        <PagerButton label="›" disabled={page === pages} onClick={() => go(page + 1)} title="Следующая страница" />
+      </div>
+      <p className="t-cap mt-2 text-center">{from}–{to} из {total}</p>
+    </div>
+  );
+}
+
+function PagerButton({ label, onClick, active, disabled, title }: { label: string; onClick: () => void; active?: boolean; disabled?: boolean; title?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={title}
+      aria-current={active ? "page" : undefined}
+      className="flex h-8 min-w-8 items-center justify-center rounded-full px-2.5 text-[12px] font-black transition-colors disabled:opacity-40"
+      style={active ? { background: "var(--ink)", color: "var(--bg)" } : { background: "var(--surface-2)", color: "var(--muted)" }}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -393,7 +457,7 @@ function AddClientMenu({ open, first, last, contact, setFirst, setLast, setConta
             <span className="ico h-8 w-8 shrink-0"><Icon name="user" width={15} weight="bold" color="var(--edge)" /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-black leading-none">Ручной ввод</span>
-              <span className="t-cap mt-1.5 block leading-snug">Карточку заведёте сами — по имени и контакту. Пригласить человека подключиться можно потом, прямо из его карточки.</span>
+              <span className="t-cap mt-1.5 block leading-snug">Нажмите, чтобы заполнить самостоятельно</span>
             </span>
             <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{manual ? "↑" : "↓"}</span>
           </button>

@@ -30,18 +30,21 @@ export function InviteShare({ link, status, onSent }: { link: string; status?: R
   return (
     <div>
       {status}
+      {/* Кнопки низкие и в одну строку: это вспомогательное действие, а не
+          главный призыв экрана — длинная подпись «Отправить в Telegram»
+          растягивала блок на две строки. */}
       <div className={`flex gap-2 ${status ? "mt-2" : ""}`}>
-        <button onClick={() => void copy()} disabled={!link} className="btn btn-white flex-1 py-2.5 text-[12px] disabled:opacity-50">
-          {copied ? "Ссылка скопирована" : "Скопировать ссылку"}
+        <button onClick={() => void copy()} disabled={!link} className="btn btn-white flex-1 py-1.5 text-[11.5px] disabled:opacity-50">
+          {copied ? "Скопировано" : "Скопировать"}
         </button>
         <a
           href={link ? inviteShareLink(link) : undefined}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => { tap(); onSent?.(); }}
-          className={`btn btn-accent flex-1 py-2.5 text-[12px] ${link ? "" : "pointer-events-none opacity-50"}`}
+          className={`btn btn-accent flex-1 py-1.5 text-[11.5px] ${link ? "" : "pointer-events-none opacity-50"}`}
         >
-          <Icon name="telegram" width={13} weight="fill" color="#fff" /> Отправить в Telegram
+          <Icon name="telegram" width={12} weight="fill" color="#fff" /> В Telegram
         </a>
       </div>
     </div>

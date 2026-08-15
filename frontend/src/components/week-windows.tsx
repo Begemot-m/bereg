@@ -336,7 +336,7 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
       <button
         onClick={onTap}
         disabled={slot.past && !slot.appt && !active}
-        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : `relative flex min-h-[60px] w-full items-center gap-1.5 pb-1.5 pl-1.5 pt-4 ${slot.appt ? "justify-center pr-3" : "pr-1.5"}`}
+        className={active ? "flex w-full items-center gap-3 px-3.5 pt-3.5 text-left" : `relative flex min-h-[60px] w-full items-center justify-center gap-1.5 pb-1.5 pt-4 ${slot.appt ? "pl-1.5 pr-3" : "px-1.5"}`}
         aria-expanded={active}
       >
         {active ? (
@@ -362,7 +362,8 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
                 style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}
               />
             )}
-            <span className={`flex min-w-0 flex-col gap-0.5 ${slot.appt ? "items-center text-center" : "flex-1 items-start text-left"}`}>
+            {/* И свободное, и занятое окно держат содержимое по центру плитки */}
+            <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
               {/* Зачёркнуто только пустое прошедшее окно: состоявшаяся встреча
                   не «просрочена», её провели. */}
               <span className={`tnum text-[13.5px] font-black leading-none ${slot.past && !slot.appt ? "line-through" : ""}`}>{slot.t}</span>

@@ -89,7 +89,9 @@ export function WorkStats({ items, title = "Статистика работы" }
   const max = Math.max(1, ...data.bars.map((b) => b.value));
 
   return (
-    <section className="card overflow-hidden">
+    // Рамка в цвет собственного фона: блок держит форму, но не режет лист
+    // контуром — по просьбе владельца статистика на главной без обводки.
+    <section className="card overflow-hidden" style={{ borderColor: "var(--surface)" }}>
       <div className="flex items-center justify-between px-4 pb-2 pt-4">
         <p className="t-micro">{title}</p>
         <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1">

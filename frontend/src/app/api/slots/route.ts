@@ -14,8 +14,15 @@ export async function GET(req: NextRequest) {
     if (!date) return NextResponse.json({ error: "date required" }, { status: 422 });
 
     // psy=<id> — окна специалиста, к которому записывается клиент.
-    const owner = await resolveScheduleOwner(user.id, params.get("psy"));
+    const psy = params.get("psy");
+    const owner = await resolveScheduleOwner(user.id, psy);
     if (!owner) return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
+    // Правило «записываться не позже чем за N дней» действует везде, где окна
+    // показаны как окна для записи, — в том числе когда специалист открывает
+    // собственную анкету в каталоге. Иначе в анкете видны ближние окна,
+    // которых клиент не увидит. Своё расписание в «Сессиях» идёт без `psy` —
+    // там психолог по-прежнему видит и ближние окна, чтобы записать сам.
+    const asClient = Boolean(psy) || owner !== user.id;
 
     // Окна считаются на один день — читаем сутки вокруг него, а не всю
     // историю записей и корректировок. Сутки берём по зоне платформы: в
@@ -30,7 +37,7 @@ export async function GET(req: NextRequest) {
       getOverrides(owner, range),
       takenTimes(owner, range),
     ]);
-    return NextResponse.json(slotsFor(work, date, taken, overrides, owner !== user.id));
+    return NextResponse.json(slotsFor(work, date, taken, overrides, asClient));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
