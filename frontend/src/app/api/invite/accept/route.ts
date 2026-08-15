@@ -22,7 +22,12 @@ export async function POST(req: NextRequest) {
 
     const psychologistId = await readInviteCode("psy", body.token);
     if (!psychologistId) return NextResponse.json({ error: "Приглашение недействительно" }, { status: 400 });
-    if (psychologistId === user.id) return NextResponse.json({ error: "Это ваша собственная ссылка" }, { status: 400 });
+    // Специалист открыл собственную ссылку — обычно чтобы проверить, как она
+    // выглядит. Ни карточки, ни связи: приложение по этому коду вернёт его в
+    // роль специалиста и объяснит, что ссылка для клиента.
+    if (psychologistId === user.id) {
+      return NextResponse.json({ error: "self", message: "Это ваша собственная ссылка" }, { status: 400 });
+    }
 
     if (!(await psyApproved(psychologistId))) return NextResponse.json(NOT_APPROVED, { status: 403 });
 

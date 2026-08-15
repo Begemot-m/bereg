@@ -18,6 +18,7 @@ const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.Ro
 const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => m.WebLanding));
 // Экран приглашения видят только те, кто пришёл по ссылке специалиста.
 const InviteWelcome = dynamic(() => import("@/components/invite-welcome").then((m) => m.InviteWelcome));
+import { serverMessage } from "@/lib/api";
 import { APP_NAME } from "@/lib/brand";
 import { joinClientCard } from "@/lib/clients";
 import { acceptPsyInvite, readInvitePayload, type InviteKind } from "@/lib/invite";
@@ -26,7 +27,7 @@ import { iconLoop } from "@/lib/icon-motion";
 import { useMe } from "@/lib/me";
 import { useOnboarded } from "@/lib/profile";
 import { useAuth } from "@/lib/useAuth";
-import { ROLE_LABEL, useRole, type Role } from "@/lib/role";
+import { getRole, ROLE_LABEL, useRole, type Role } from "@/lib/role";
 import { trackSection } from "@/lib/track";
 
 type NavItem = { href: string; label: string; icon: IconName };
@@ -82,6 +83,38 @@ const NAV: Record<Role, NavItem[]> = {
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
+/**
+ * Специалист открыл собственную ссылку приглашения. Ничего не привязалось —
+ * говорим об этом прямо, иначе выглядит как молчаливый сбой.
+ */
+function SelfInviteNote({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 backdrop-blur-[2px] @md:items-center"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 24, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-[var(--r-block)] p-5"
+        style={{ background: "var(--surface)" }}
+      >
+        <span className="ico h-11 w-11"><Icon name="share" width={22} weight="fill" color="var(--ink)" /></span>
+        <h3 className="font-tight mt-3 text-[19px] font-black leading-tight">Это ваша ссылка приглашения</h3>
+        <p className="t-sub mt-1.5">
+          Вы открыли её со своего аккаунта, поэтому ничего не изменилось: карточка клиента не создана, вы остались специалистом.
+          Ссылка сработает у того, кому вы её отправили, — он откроет её под своим Telegram и появится у вас в «Клиентах».
+        </p>
+        <button onClick={onClose} className="btn mt-4 w-full py-3.5 text-[15px]">Понятно</button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function accentFor(pathname: string) {
   if (pathname.startsWith("/therapy/notes") || pathname.startsWith("/clients/notes")) return "tiffany";
   if (pathname.startsWith("/sessions")) return "green";
@@ -119,6 +152,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Пришли по ссылке специалиста: показать, кто позвал, и только потом знакомство.
   const [invite, setInvite] = useState<{ kind: InviteKind; token: string } | null>(null);
   const [greeted, setGreeted] = useState(false);
+  // Специалист перешёл по своей же ссылке: ничего не привязываем, объясняем.
+  const [selfInvite, setSelfInvite] = useState(false);
   const items = NAV[role];
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
@@ -133,12 +168,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   // неё не доезжала.
   useEffect(() => {
     if (authState !== "authed") return;
+    // Специалист открыл собственную ссылку (проверить, как она выглядит):
+    // сервер отвечает `self`, привязки не происходит. Возвращаем его в свою
+    // роль — до ответа оболочка могла увести его в клиентскую — и объясняем,
+    // что по ссылке подключается клиент, а не он сам.
+    const onSelf = (e: unknown) => {
+      if (serverMessage(e) !== "self") return;
+      setRole("psychologist");
+      setInvite(null);
+      setSelfInvite(true);
+    };
+
     const token = sessionStorage.getItem("bereg_pending_invite");
     if (token) {
       sessionStorage.removeItem("bereg_pending_invite");
       joinClientCard(token)
         .then(() => { qc.invalidateQueries(); })
-        .catch(() => { /* просроченное или чужое приглашение — молча пропускаем */ });
+        .catch(onSelf /* просроченное или чужое приглашение — молча пропускаем */);
     }
     // Общая ссылка специалиста: карточки ещё нет, её заводит сам переход.
     const psyToken = sessionStorage.getItem("bereg_pending_psy");
@@ -146,9 +192,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       sessionStorage.removeItem("bereg_pending_psy");
       acceptPsyInvite(psyToken)
         .then(() => { qc.invalidateQueries(); })
-        .catch(() => { /* лимит мест или неподтверждённая анкета — человека это не касается */ });
+        .catch(onSelf /* лимит мест или неподтверждённая анкета — человека это не касается */);
     }
-  }, [authState, qc]);
+  }, [authState, qc, setRole]);
   const tabs: NavItem[] = [...items, { href: "/cabinet", label: "Кабинет", icon: "user" }];
   // Центральная акцентная вкладка: у клиента — терапия, у психолога — сессии.
   const centerHref = role === "psychologist" ? "/sessions" : role === "client" ? "/therapy" : null;
@@ -177,9 +223,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Пришли по приглашению специалиста: сначала экран «вас пригласили», потом
     // знакомство в роли клиента. Быстрый вход (fastEntry) тут не годится — он
     // проносит человека мимо и того и другого прямо в приложение.
+    // Роль специалиста тут не трогаем: по ссылке чаще всего проходит он сам,
+    // проверяя, что она открывается, — и до ответа сервера успевал оказаться в
+    // клиентском интерфейсе. Клиенту роль по-прежнему ставим сразу: на ней
+    // держатся экран приглашения и знакомство.
     const greet = (kind: InviteKind, token: string) => {
       sessionStorage.setItem(kind === "psy" ? "bereg_pending_psy" : "bereg_pending_invite", token);
-      setRole("client");
+      if (getRole() !== "psychologist") setRole("client");
       setInvite({ kind, token });
       setFastEntry(false);
     };
@@ -313,6 +363,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div data-accent={accent} className="@container fixed inset-0 overflow-hidden" style={{ background: "var(--page)" }}>
       {/* Обучение с прожекторной подсветкой — поверх всего, по запуску из баннера */}
       {tourActive && <RoomTour role={role} onDone={() => setTourActive(false)} />}
+      {selfInvite && <SelfInviteNote onClose={() => setSelfInvite(false)} />}
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>

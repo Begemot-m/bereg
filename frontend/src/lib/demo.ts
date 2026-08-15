@@ -6,6 +6,12 @@
 // круг на инициализации модуля.
 const THERAPISTS_KEY = "bereg_my_therapists_v1";
 
+// Приём собственного приглашения: ответ сервера один в один, чтобы демо и бой
+// вели себя одинаково.
+const SELF_INVITE = `API 400: {"error":"self","message":"Это ваша собственная ссылка"}`;
+const SELF_INVITE_PATHS = new Set(["/invite/accept", "/clients/join"]);
+const demoIsPsy = () => typeof window !== "undefined" && localStorage.getItem("psy_demo_role") === "psychologist";
+
 // Зона платформы — единственный внешний импорт: модуль ни от чего не зависит,
 // круга на инициализации не будет. Мок обязан резать сутки как сервер.
 import { PRO_DISCOUNT_PRICE_RUB, PRO_PRICE_RUB } from "@/lib/pricing";
@@ -596,6 +602,11 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // то же демо, а карточку «пришедшего» заводим сразу, чтобы сценарий было
   // видно целиком.
   if (clean === "/invite/link" && method === "GET") return delay(({ token: "demo" }) as T);
+
+  // Специалист открыл свою же ссылку — в бою сервер отвечает `self` и ничего не
+  // привязывает. Роль читаем строкой по той же причине, что и ключи выше:
+  // импорт lib/role замкнул бы круг на инициализации.
+  if (SELF_INVITE_PATHS.has(clean) && method === "POST" && demoIsPsy()) throw new Error(SELF_INVITE);
 
   if (clean === "/invite/preview" && method === "GET") {
     const psy = demoPsyName();

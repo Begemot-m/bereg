@@ -26,6 +26,13 @@ export async function POST(req: NextRequest) {
 
     const card = await prisma.client.findUnique({ where: { id: clientId } });
     if (!card) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // Своя же ссылка: специалист проверяет, как она открывается. Без этой
+    // проверки карточка занималась его аккаунтом (`userId` психолога, связь
+    // «терапевт сам себе»), и настоящий клиент по той же ссылке получал
+    // «Карточка уже подключена к другому аккаунту».
+    if (card.psychologistId === user.id) {
+      return NextResponse.json({ error: "self", message: "Это ваша собственная ссылка" }, { status: 400 });
+    }
     if (card.userId && card.userId !== user.id) {
       return NextResponse.json({ error: "Карточка уже подключена к другому аккаунту" }, { status: 409 });
     }
