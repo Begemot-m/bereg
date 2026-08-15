@@ -63,6 +63,16 @@ const WHEEL_ANSWERS: Record<string, number[]> = {
   environment: [6, 6, 7],
 };
 
+// Заметки о встречах: по одной на каждую проведённую сессию, в том же порядке,
+// что и встречи ниже. Текст короткий и будничный — это пример формата, а не
+// история успеха.
+const REFLECTIONS: { preparation: string; takeaway: string; feeling: number }[] = [
+  { preparation: "Плохо сплю вторую неделю, хочу понять, с чем это связано.", takeaway: "Договорились неделю записывать, во сколько ложусь и как засыпаю.", feeling: 6 },
+  { preparation: "Обсудить, что происходит перед защитой диплома.", takeaway: "Попробую дыхание перед сном, посмотрю, помогает ли.", feeling: 7 },
+  { preparation: "Дневник веду не каждый день, хочу поговорить почему.", takeaway: "Решили не требовать от себя ежедневных записей.", feeling: 7 },
+  { preparation: "Разговор с родителями о переезде.", takeaway: "Стало понятнее, что я хочу им сказать.", feeling: 8 },
+];
+
 export async function ensureDemoClient(psychologistId: number): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: psychologistId },
@@ -81,9 +91,15 @@ export async function ensureDemoClient(psychologistId: number): Promise<void> {
   const client = await prisma.client.create({
     data: {
       psychologistId,
-      name: "Анна (пример)",
+      name: "Анна (демо)",
       status: "therapy",
       demo: true,
+      // Заметки о встречах в демо-карточке уже подключены с обеих сторон:
+      // иначе модуль виден только предложением «подключить», и непонятно, что
+      // именно приходит от клиента.
+      notesModuleEnabled: true,
+      notesModuleShared: true,
+      notesModulePsychologist: true,
       // Заметка психолога хранится как есть: её роут не шифрует (см. PATCH
       // /api/clients/[id]) — зашифруй мы здесь, человек увидел бы абракадабру.
       note: [
@@ -95,20 +111,36 @@ export async function ensureDemoClient(psychologistId: number): Promise<void> {
     },
   });
 
-  await prisma.appointment.createMany({
-    data: [28, 21, 14, 7].map((back) => ({
-      psychologistId,
-      clientId: client.id,
-      startsAt: daysAgo(back, 12),
-      durationMin: 50,
-      format: "online",
-      status: "done",
-    })),
-  });
+  // Встречи заводим по одной: их id нужны для заметок о встречах, а
+  // `createMany` в PostgreSQL их не возвращает.
+  for (const [index, back] of [28, 21, 14, 7].entries()) {
+    const appointment = await prisma.appointment.create({
+      data: {
+        psychologistId,
+        clientId: client.id,
+        startsAt: daysAgo(back, 12),
+        durationMin: 50,
+        format: "online",
+        status: "done",
+      },
+      select: { id: true },
+    });
+    const note = REFLECTIONS[index];
+    await prisma.sessionReflection.create({
+      data: {
+        clientId: client.id,
+        appointmentId: appointment.id,
+        preparation: encryptText(note.preparation),
+        takeaway: encryptText(note.takeaway),
+        feeling: note.feeling,
+      },
+    });
+  }
 
   await prisma.homework.createMany({
     data: [
       { clientId: client.id, text: "Дыхание 4-7-8 перед сном, 5 минут", status: "done", sentAt: daysAgo(21) },
+      { clientId: client.id, text: "Отмечать настроение вечером, одной строкой", status: "done", sentAt: daysAgo(18) },
       { clientId: client.id, text: "Дневник тревоги: ситуация → мысль → что помогло", status: "doing", sentAt: daysAgo(14) },
       { clientId: client.id, text: "Прогулка 20 минут без телефона", status: "assigned", sentAt: daysAgo(7) },
     ].map((row) => ({ ...row, text: encryptText(row.text) })),
@@ -133,7 +165,7 @@ export async function ensureDemoClient(psychologistId: number): Promise<void> {
   await prisma.therapyProfile.create({
     data: {
       clientId: client.id,
-      board: encryptText("Цель: спать 7 часов и дожить до защиты без паники."),
+      board: encryptText("Ушла в отпуск, меня не будет 3 недели."),
       wheel: { answers: WHEEL_ANSWERS, completedAt: new Date(Date.now() - 6 * DAY).toISOString() },
       tutorialSeen: true,
     },

@@ -114,8 +114,8 @@ type DB = {
   };
 };
 
-// v13 — появилась карточка-пример: старую базу демо пересобираем.
-const KEY = "psy_demo_db_v13";
+// v14 — демо-карточка обзавелась фото и заметками о встречах.
+const KEY = "psy_demo_db_v14";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const day = addZoneDays(zoneYmd(new Date()), daysFromNow);
@@ -138,6 +138,14 @@ const DEMO_WHEEL: Record<string, number[]> = {
   health: [6, 5, 6], emotions: [4, 3, 5], relationships: [7, 6, 7], family: [8, 8, 7], social: [7, 6, 6],
   work: [3, 4, 3], finance: [5, 6, 5], growth: [6, 7, 6], leisure: [3, 3, 4], environment: [6, 6, 7],
 };
+// Заметки о встречах — по одной на проведённую сессию, тот же набор, что
+// заводит сервер (lib/server/demo-client.ts).
+const DEMO_REFLECTIONS: { preparation: string; takeaway: string; feeling: number }[] = [
+  { preparation: "Плохо сплю вторую неделю, хочу понять, с чем это связано.", takeaway: "Договорились неделю записывать, во сколько ложусь и как засыпаю.", feeling: 6 },
+  { preparation: "Обсудить, что происходит перед защитой диплома.", takeaway: "Попробую дыхание перед сном, посмотрю, помогает ли.", feeling: 7 },
+  { preparation: "Дневник веду не каждый день, хочу поговорить почему.", takeaway: "Решили не требовать от себя ежедневных записей.", feeling: 7 },
+  { preparation: "Разговор с родителями о переезде.", takeaway: "Стало понятнее, что я хочу им сказать.", feeling: 8 },
+];
 
 function seed(): DB {
   const now = new Date().toISOString();
@@ -145,22 +153,23 @@ function seed(): DB {
   // пустых клиента — записи, настроение и задания у них наполняются руками.
   const clients: Client[] = [
     // Фото — то же, чем демо показывает аватарку из Telegram в бою. Своих лиц у
-    // демо нет, поэтому берём портреты из каталога.
-    { id: 1, name: "Марина Соколова", contact: "@marina", note: "", status: "new", link: "none", invitedAt: null, photo: "/catalog/irina.webp", notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
+    // демо нет, поэтому берём портреты из каталога. У Марины лица нет намеренно:
+    // так видно, как выглядит карточка без подключённого профиля.
+    { id: 1, name: "Марина Соколова", contact: "@marina", note: "", status: "new", link: "none", invitedAt: null, photo: null, notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
     { id: 2, name: "Дмитрий Орлов", contact: "@dmitry_orlov", note: "", status: "new", link: "none", invitedAt: null, photo: "/catalog/sergey.webp", notesModuleEnabled: false, notesModuleShared: true, notesModulePsychologist: false, createdAt: now, updatedAt: now },
     {
       id: DEMO_CLIENT_ID,
-      name: "Анна (пример)",
+      name: "Анна (демо)",
       contact: null,
       note: "Тревога перед защитой диплома, сон 4–5 часов.\nХорошо отзывается на дыхание 4-7-8, дома делает через раз.\nДержим фокус на сне и опоре в семье.",
       status: "therapy",
       link: "none",
       invitedAt: null,
-      photo: "/demo-client.svg",
+      photo: "/demo-client.webp",
       demo: true,
-      notesModuleEnabled: false,
+      notesModuleEnabled: true,
       notesModuleShared: true,
-      notesModulePsychologist: false,
+      notesModulePsychologist: true,
       createdAt: iso(-30),
       updatedAt: now,
     },
@@ -173,10 +182,11 @@ function seed(): DB {
     status: "done" as const,
     note: "",
     format: "online" as const,
-    client: { id: DEMO_CLIENT_ID, name: "Анна (пример)", photo: "/demo-client.svg" },
+    client: { id: DEMO_CLIENT_ID, name: "Анна (демо)", photo: "/demo-client.webp" },
   }));
   const homework: Homework[] = [
     { id: 50, clientId: DEMO_CLIENT_ID, text: "Дыхание 4-7-8 перед сном, 5 минут", status: "done", sentAt: iso(-21) },
+    { id: 53, clientId: DEMO_CLIENT_ID, text: "Отмечать настроение вечером, одной строкой", status: "done", sentAt: iso(-18) },
     { id: 51, clientId: DEMO_CLIENT_ID, text: "Дневник тревоги: ситуация → мысль → что помогло", status: "doing", sentAt: iso(-14) },
     { id: 52, clientId: DEMO_CLIENT_ID, text: "Прогулка 20 минут без телефона", status: "assigned", sentAt: iso(-7) },
   ];
@@ -192,7 +202,18 @@ function seed(): DB {
   const wheel: Record<number, WheelResult | null> = {
     [DEMO_CLIENT_ID]: { answers: DEMO_WHEEL, completedAt: iso(-6, 12) },
   };
-  const reflections: Record<number, SessionReflection[]> = {};
+  const reflections: Record<number, SessionReflection[]> = {
+    [DEMO_CLIENT_ID]: appts.map((appt, index) => ({
+      appointmentId: appt.id,
+      startsAt: appt.startsAt,
+      status: "done",
+      therapistName: "Специалист",
+      preparation: DEMO_REFLECTIONS[index].preparation,
+      takeaway: DEMO_REFLECTIONS[index].takeaway,
+      feeling: DEMO_REFLECTIONS[index].feeling,
+      updatedAt: appt.startsAt,
+    })).reverse(),
+  };
   return {
     seq: 100,
     clients,
@@ -200,7 +221,7 @@ function seed(): DB {
     homework,
     moods,
     goodNotes,
-    board: { [DEMO_CLIENT_ID]: "Цель: спать 7 часов и дожить до защиты без паники." },
+    board: { [DEMO_CLIENT_ID]: "Ушла в отпуск, меня не будет 3 недели." },
     wheel,
     therapyTutorialSeen: false,
     reflections,

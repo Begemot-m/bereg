@@ -251,10 +251,10 @@ function ClientCard({ client: c }: { client: Client }) {
               >
                 {STATUS_LABEL[s]}
               </span>
-              {/* Карточка-пример: чтобы её не приняли за настоящего человека */}
+              {/* Демо-карточка: чтобы её не приняли за настоящего человека */}
               {c.demo && (
                 <span className="inline-flex rounded-full px-2 py-1 text-[12px] font-black" style={{ background: "var(--tiffany-soft)", color: "var(--tiffany-edge)" }}>
-                  пример
+                  демо
                 </span>
               )}
             </div>
