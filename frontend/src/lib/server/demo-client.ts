@@ -70,14 +70,6 @@ export async function ensureDemoClient(psychologistId: number): Promise<void> {
   });
   if (!user || user.demoClientSeeded) return;
 
-  // Только новичку. У действующего специалиста карточки уже есть, и пример
-  // среди живых людей выглядел бы подставным клиентом, а не подсказкой.
-  const clients = await prisma.client.count({ where: { psychologistId } });
-  if (clients > 0) {
-    await prisma.user.update({ where: { id: psychologistId }, data: { demoClientSeeded: true } });
-    return;
-  }
-
   // Метку ставим первой: если два запроса придут разом, карточка заведётся
   // один раз, а не в двух экземплярах.
   const claimed = await prisma.user.updateMany({
