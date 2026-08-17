@@ -115,12 +115,13 @@ const PSY_INTRO: Intro[] = [
     key: "price", kicker: "оплата", title: "Ни рубля комиссии", titleAccent: "с ваших сессий",
     bg: "var(--coral-soft)", soft: "#fbe6df", tone: "var(--coral-edge)",
     points: [
-      "Платите фиксированно за инструмент — процент со встреч не берём",
+      "Никаких процентов за проведённые сессии",
       "Сколько бы клиентов ни пришло, доход остаётся вашим",
       <>
-        Первые {FREE_CLIENT_LIMIT} клиента и анкета в каталоге — бесплатно всегда, а после верификации ещё{" "}
-        <span style={{ color: "var(--purple-edge)" }}>14 дней PRO без лимитов</span>
+        Первые {FREE_CLIENT_LIMIT} клиента и размещение в каталоге{" "}
+        <span style={{ color: "var(--purple-edge)" }}>бесплатно всегда</span>
       </>,
+      "Подписка даёт расширенные возможности",
     ],
     mock: <PriceMock />,
   },
@@ -419,11 +420,12 @@ function Consent({ agreed, onAgree }: { agreed: boolean; onAgree: () => void }) 
 
 // Финал ветки психолога — тарифы: что открыто бесплатно и что даёт PRO.
 function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
-  const rows: { icon: IconName; label: string; free: string; pro: string }[] = [
+  // true в колонке — галочка вместо слова «всё».
+  const rows: { icon: IconName; label: string; free: string | true; pro: string | true }[] = [
     { icon: "users", label: "Клиенты", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
-    { icon: "calendar", label: "Записи и расписание", free: "всё", pro: "всё" },
-    { icon: "note", label: "Задания и заметки", free: "всё", pro: "всё" },
-    { icon: "chart", label: "Статистика работы", free: "всё", pro: "всё" },
+    { icon: "calendar", label: "Записи и расписание", free: true, pro: true },
+    { icon: "note", label: "Задания и заметки", free: true, pro: true },
+    { icon: "chart", label: "Статистика работы", free: true, pro: true },
     { icon: "compass", label: "Анкета в каталоге специалистов", free: "бесплатно", pro: "бесплатно" },
     { icon: "check", label: "Подтверждение новых записей", free: `в пределах ${FREE_CLIENT_LIMIT}`, pro: "любых" },
   ];
@@ -460,8 +462,12 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--purple-edge)]"><Icon name={row.icon} width={13} weight="bold" color="#fff" /></span>
                 <span className="text-[11px] font-bold leading-tight text-[var(--ink)]">{row.label}</span>
               </span>
-              <span className="text-center text-[10.5px] font-bold text-[var(--muted)]">{row.free}</span>
-              <span className="text-center text-[10.5px] font-black" style={{ color: "var(--purple-edge)" }}>{row.pro}</span>
+              <span className="flex items-center justify-center text-[10.5px] font-bold text-[var(--muted)]">
+                {row.free === true ? <Icon name="check" width={14} weight="bold" color="var(--muted)" /> : row.free}
+              </span>
+              <span className="flex items-center justify-center text-[10.5px] font-black" style={{ color: "var(--purple-edge)" }}>
+                {row.pro === true ? <Icon name="check" width={14} weight="bold" color="var(--purple-edge)" /> : row.pro}
+              </span>
             </div>
           ))}
         </div>
@@ -554,7 +560,7 @@ const ROLE_OPTIONS: { role: Role; title: string; icon: IconName; bullets: ReactN
       "Пользуйтесь карточкой клиента, в которой видно статистику и подробности о состоянии",
       <>
         Размещайте свою анкету в каталоге и получайте клиентов{" "}
-        <span style={{ color: "var(--purple-edge)" }}>без комиссии</span> за сессии
+        <span style={{ color: "var(--purple-edge)" }}>без комиссий</span>
       </>,
     ],
   },
