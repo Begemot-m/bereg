@@ -9,7 +9,6 @@ import {
   useTransform,
   type MotionValue,
 } from "motion/react";
-import Image from "next/image";
 import { createPortal } from "react-dom";
 
 import { LEGAL, LEGAL_DOCS } from "@/lib/legal";
@@ -25,8 +24,8 @@ import {
 } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { LandingScreen } from "@/components/landing-screens";
 import { WebLogin } from "@/components/web-login";
-import { asset } from "@/lib/asset";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
 import { FAQ_ITEMS } from "@/lib/seo";
 
@@ -60,12 +59,12 @@ const NAV = [
 ] as const;
 
 /** Вкладки над большим экраном: реальные страницы приложения. */
-const TABS: { key: string; label: string; icon: IconName; tone: string }[] = [
-  { key: "sessions", label: "Сессии", icon: "calendar", tone: "var(--green-soft)" },
-  { key: "clients", label: "Клиенты", icon: "users", tone: "var(--purple-soft)" },
-  { key: "therapy", label: "Терапия", icon: "pulse", tone: "var(--coral-soft)" },
-  { key: "catalog", label: "Каталог", icon: "compass", tone: "var(--amber-soft)" },
-  { key: "tools", label: "Инструменты", icon: "spark", tone: "var(--tiffany-soft)" },
+const TABS: { key: string; label: string; icon: IconName; tone: string; accent: string }[] = [
+  { key: "sessions", label: "Сессии", icon: "calendar", tone: "var(--green-soft)", accent: "var(--green)" },
+  { key: "clients", label: "Клиенты", icon: "users", tone: "var(--purple-soft)", accent: "var(--purple)" },
+  { key: "therapy", label: "Терапия", icon: "pulse", tone: "var(--coral-soft)", accent: "var(--coral)" },
+  { key: "catalog", label: "Каталог", icon: "compass", tone: "var(--amber-soft)", accent: "var(--amber)" },
+  { key: "tools", label: "Инструменты", icon: "spark", tone: "var(--tiffany-soft)", accent: "var(--tiffany)" },
 ];
 
 const TRIO: { icon: IconName; tone: string; edge: string; title: string; text: string }[] = [
@@ -110,6 +109,7 @@ const FEATURES: {
   tags: { icon: IconName; label: string }[];
   shot: string;
   tone: string;
+  accent: string;
 }[] = [
   {
     title: "Клиенты и история",
@@ -122,6 +122,7 @@ const FEATURES: {
     ],
     shot: "clients",
     tone: "var(--purple-soft)",
+    accent: "var(--purple)",
   },
   {
     title: "Расписание и онлайн-запись",
@@ -134,6 +135,7 @@ const FEATURES: {
     ],
     shot: "sessions",
     tone: "var(--green-soft)",
+    accent: "var(--green)",
   },
   {
     title: "Каталог психологов и подбор",
@@ -146,6 +148,7 @@ const FEATURES: {
     ],
     shot: "catalog",
     tone: "var(--amber-soft)",
+    accent: "var(--amber)",
   },
 ];
 
@@ -452,10 +455,10 @@ function ScreensTabs() {
         transition={{ duration: 0.9, ease: EASE }}
       >
         <motion.div
-          className="relative overflow-hidden rounded-[24px] md:rounded-[36px]"
+          className="relative overflow-hidden rounded-[24px] p-3 md:rounded-[36px] md:p-8"
           animate={{ backgroundColor: tab.tone }}
           transition={{ duration: 0.5, ease: EASE }}
-          style={{ height: "clamp(420px, 78vw, 700px)" }}
+          style={{ height: "clamp(420px, 62vw, 620px)" }}
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -464,17 +467,9 @@ function ScreensTabs() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.45, ease: EASE }}
-              className="absolute inset-x-0 bottom-0 top-8 flex justify-center md:top-12"
+              className="h-full w-full drop-shadow-[0_20px_60px_rgba(32,28,24,.16)]"
             >
-              <Image
-                src={asset(`/shots/d-${tab.key}.webp`)}
-                alt={`Раздел «${tab.label}» в Хронике — платформе для психологов и клиентов`}
-                width={780}
-                height={1688}
-                className="h-full w-auto rounded-t-[26px] object-contain object-top shadow-[0_20px_60px_rgba(32,28,24,.16)] md:rounded-t-[34px]"
-                unoptimized
-                priority={active === 0}
-              />
+              <LandingScreen tab={tab.key} accent={tab.accent} />
             </motion.div>
           </AnimatePresence>
         </motion.div>
@@ -640,17 +635,10 @@ function FeatureCard({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8, delay: 0.15, ease: EASE }}
-            className="absolute inset-x-0 bottom-0 top-7 flex justify-center md:top-10"
+            className="absolute inset-x-4 bottom-0 top-7 md:inset-x-7 md:top-10"
             style={stack ? { y: shotY } : undefined}
           >
-            <Image
-              src={asset(`/shots/d-${block.shot}.webp`)}
-              alt={`${block.title} в Хронике — экран приложения для психолога`}
-              width={780}
-              height={1688}
-              className="h-full w-auto rounded-t-[22px] object-contain object-top shadow-[0_18px_50px_rgba(32,28,24,.15)] md:rounded-t-[28px]"
-              unoptimized
-            />
+            <LandingScreen tab={block.shot} accent={block.accent} compact />
           </motion.div>
         </div>
 

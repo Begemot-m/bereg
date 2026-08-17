@@ -16,7 +16,13 @@ type TelegramWebApp = {
   checkHomeScreenStatus?: (cb: (status: HomeScreenStatus) => void) => void;
   onEvent?: (event: string, cb: (payload?: unknown) => void) => void;
   offEvent?: (event: string, cb: (payload?: unknown) => void) => void;
+  platform?: string;
 };
+
+// Клиенты Telegram, работающие на компьютере. Список закрытый, а не «всё, что
+// не android/ios»: незнакомую платформу пускаем внутрь — лучше показать
+// приложение лишнему десктопу, чем закрыть его перед новым мобильным клиентом.
+const DESKTOP_PLATFORMS = new Set(["tdesktop", "macos", "linux", "web", "weba", "webk", "unigram"]);
 
 declare global {
   interface Window {
@@ -32,6 +38,17 @@ export function getTelegramWebApp(): TelegramWebApp | null {
 export function isTelegramMiniApp(): boolean {
   const wa = getTelegramWebApp();
   return Boolean(wa && wa.initData);
+}
+
+export function telegramPlatform(): string | null {
+  const p = getTelegramWebApp()?.platform;
+  return p && p !== "unknown" ? p : null;
+}
+
+/** Мини-приложение открыто в Telegram на компьютере. */
+export function isDesktopTelegram(): boolean {
+  const p = telegramPlatform();
+  return Boolean(p && DESKTOP_PLATFORMS.has(p));
 }
 
 export function getInitData(): string | null {
