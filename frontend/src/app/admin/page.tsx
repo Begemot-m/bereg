@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
 import { Icon } from "@/components/icons";
-import { Input, SkeletonRow } from "@/components/ui";
+import { Input, Prose, SkeletonRow } from "@/components/ui";
 import {
   useAdminRetention, useAdminStats, useAdminUsage, useAdminUsers, useUserAction,
   useReviewVerification, useVerificationQueue,
@@ -488,7 +488,7 @@ function Application({ a, busy, onApprove, onReject, onDecline }: {
         {a.city && ` · ${a.city}`}
       </p>
       {a.education && <p className="t-body mt-1.5">{a.education}</p>}
-      {a.about && <p className="t-cap mt-1">{a.about}</p>}
+      {a.about && <Prose text={a.about} className="t-cap mt-1" />}
       {a.publicLink && (
         <a href={a.publicLink} target="_blank" rel="noreferrer" className="t-cap mt-1 block underline">
           {a.publicLink}

@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { ArrowGlyph } from "@/components/blocks";
 import { VerificationPrompt } from "@/components/verification-prompt";
-import { Button, Disclosure, Input, Textarea } from "@/components/ui";
+import { Button, Disclosure, Input, Prose, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { compressImage } from "@/lib/image";
@@ -20,9 +20,15 @@ import { helpsLine } from "@/lib/morph";
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
 
+/** Запросы в порядке показа: отмеченные звёздочкой впереди остальных. */
+const orderedTopics = (profile: { topics: string[]; topTopics?: string[] }) => {
+  const top = (profile.topTopics ?? []).filter((topic) => profile.topics.includes(topic)).slice(0, 3);
+  return [...top.map((topic) => ({ topic, top: true })), ...profile.topics.filter((topic) => !top.includes(topic)).map((topic) => ({ topic, top: false }))];
+};
+
 const EMPTY_PROFILE: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
-  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0, currency: "RUB",
+  education: [], topics: [], topTopics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0, currency: "RUB",
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false, region: "" },
   timezone: "",
   photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],
@@ -192,11 +198,11 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
 
     {location && <section className="chunk p-4"><SectionTitle icon="pin" title="Формат и место" /><p className="text-[13px] font-bold">{location}</p>{(profile?.location.region?.trim() || profile?.timezone) && <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{[profile?.location.region?.trim(), profile?.timezone ? zoneLabel(profile.timezone) : ""].filter(Boolean).join(" · ")}</p>}{profile?.format !== "online" && profile?.location.address && !profile.location.publicExactAddress && <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">Точный адрес клиент получит после подтверждения очной встречи.</p>}</section>}
     {(profile?.languages?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Языки консультации</p><div className="flex flex-wrap gap-1.5">{profile!.languages.map((language) => <Tag key={language}>{language}</Tag>)}</div></section>}
-    {(profile?.topics?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем можно обратиться</p><div className="flex flex-wrap gap-1.5">{profile!.topics.map((topic) => <Tag key={topic}>{topic}</Tag>)}</div></section>}
+    {(profile?.topics?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем можно обратиться</p><div className="flex flex-wrap gap-1.5">{orderedTopics(profile!).map(({ topic, top }) => <Tag key={topic}>{top ? <span className="inline-flex items-center gap-1"><Icon name="star" width={10} weight="fill" color="var(--tiffany-edge)" />{topic}</span> : topic}</Tag>)}</div></section>}
     {(profile?.avoids?.length ?? 0) > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">С чем не работает</p><div className="flex flex-wrap gap-1.5">{profile!.avoids.map((topic) => <span key={topic} className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-[12px] font-bold text-[var(--muted)] stroke">{topic}</span>)}</div></section>}
     {methods.length > 0 && <section><p className="mb-2 text-[11px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Методы и подходы</p><div className="flex flex-wrap gap-1.5">{methods.map((method) => <Tag key={method}>{method === profile?.primaryMethod ? `★ ${method}` : method}</Tag>)}</div></section>}
-    {profile?.about ? <section className="chunk p-4"><SectionTitle icon="spark" title="О специалисте" /><p className="text-[14px] leading-relaxed">{profile.about}</p></section> : <PreviewEmpty text="Добавьте рассказ о себе — он появится здесь." />}
-    {profile?.firstSession && <section className="chunk p-4"><SectionTitle icon="compass" title="Как проходит первая встреча" /><p className="text-[14px] leading-relaxed">{profile.firstSession}</p></section>}
+    {profile?.about ? <section className="chunk p-4"><SectionTitle icon="spark" title="О специалисте" /><Prose text={profile.about} className="text-[14px] leading-relaxed" /></section> : <PreviewEmpty text="Добавьте рассказ о себе — он появится здесь." />}
+    {profile?.firstSession && <section className="chunk p-4"><SectionTitle icon="compass" title="Как проходит первая встреча" /><Prose text={profile.firstSession} className="text-[14px] leading-relaxed" /></section>}
     {(profile?.education?.length ?? 0) > 0 && <section className="chunk p-4"><SectionTitle icon="book" title="Образование" /><ul className="space-y-2">{profile!.education.map((item, index) => <li key={`${item}-${index}`} className="flex gap-2 text-[13px]"><Icon name="check" width={16} className="mt-0.5 shrink-0" />{item}</li>)}</ul></section>}
     {publicRules(profile?.rules).length > 0 && <section className="chunk p-4"><SectionTitle icon="gear" title="Правила работы" /><div className="space-y-2.5">{publicRules(profile?.rules).map((rule) => <div key={rule.id} className="flex items-start gap-2.5"><span className="ico h-8 w-8 shrink-0" style={{ background: `var(--${rule.tone}-edge)` }}><Icon name={rule.icon} width={15} weight="bold" color="#fff" /></span><div><p className="text-[12.5px] font-black">{rule.title}</p><p className="mt-0.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{rule.text}</p></div></div>)}</div></section>}
     {profile?.tg ? <a href={tgLink(profile.tg)} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--ink)] py-3 text-[14px] font-black text-white transition-transform active:scale-[.98]"><Icon name="spark" width={16} weight="fill" /> Связаться в Telegram</a> : <div className="rounded-full bg-[var(--surface-2)] py-3 text-center text-[12px] font-semibold text-[var(--muted)] stroke">Добавьте Telegram — здесь появится кнопка связи</div>}
@@ -529,10 +535,40 @@ function TopicsStep({ draft, update }: { draft: PsyProfile; update: (patch: Part
   const avoids = draft.avoids ?? [];
   const addTopic = (value: string) => { if (!draft.topics.includes(value)) update({ topics: [...draft.topics, value] }); };
   const addAvoid = (value: string) => { if (!avoids.includes(value)) update({ avoids: [...avoids, value] }); };
+  const topTopics = (draft.topTopics ?? []).filter((topic) => draft.topics.includes(topic));
+  // Снятый запрос уводит с собой и звёздочку — иначе главным осталось бы то,
+  // чего в анкете уже нет.
+  const toggleTopic = (topic: string) => {
+    const topics = toggle(draft.topics, topic);
+    update({ topics, topTopics: topTopics.filter((item) => topics.includes(item)) });
+  };
+  const toggleTop = (topic: string) => {
+    if (topTopics.includes(topic)) return update({ topTopics: topTopics.filter((item) => item !== topic) });
+    if (topTopics.length >= 3) return;
+    update({ topTopics: [...topTopics, topic] });
+  };
   return <StepCard title="С чем к вам можно обратиться" hint="Выберите запросы или впишите свои. В карточке покажем два наиболее подходящих под выбор клиента.">
-    <div className="flex flex-wrap gap-2">{topicOptions.map((topic) => <Choice key={topic} active={draft.topics.includes(topic)} onClick={() => update({ topics: toggle(draft.topics, topic) })}>{topic}</Choice>)}</div>
+    <div className="flex flex-wrap gap-2">{topicOptions.map((topic) => <Choice key={topic} active={draft.topics.includes(topic)} onClick={() => toggleTopic(topic)}>{topic}</Choice>)}</div>
     <ChipInput placeholder="Свой запрос" onAdd={addTopic} />
     <p className="text-[11px] font-semibold text-[var(--muted)]">Выбрано: {draft.topics.length}. Оптимально 3–7 запросов.</p>
+    {draft.topics.length > 0 && <Field label="Главные запросы — до трёх">
+      <div className="flex flex-wrap gap-2">{draft.topics.map((topic) => {
+        const on = topTopics.includes(topic);
+        return (
+          <button
+            key={topic}
+            type="button"
+            onClick={() => toggleTop(topic)}
+            disabled={!on && topTopics.length >= 3}
+            className={`chip inline-flex items-center gap-1 disabled:opacity-40 ${on ? "font-black" : "font-semibold"}`}
+            style={{ background: "#fff", borderColor: on ? "var(--tiffany-edge)" : "var(--stroke)" }}
+          >
+            <Icon name="star" width={11} weight={on ? "fill" : "regular"} color={on ? "var(--tiffany-edge)" : "var(--muted-2)"} />{topic}
+          </button>
+        );
+      })}</div>
+      <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Отмеченные стоят в карточке первыми — по ним клиент считывает вашу специализацию.</p>
+    </Field>}
     <Field label="С чем не работаете (по желанию)">
       <div className="flex flex-wrap gap-2">{avoids.map((a) => <Choice key={a} active tone="coral" onClick={() => update({ avoids: avoids.filter((x) => x !== a) })}>{a} ×</Choice>)}</div>
       <div className="mt-2"><ChipInput placeholder="Например: зависимости" onAdd={addAvoid} /></div>
@@ -633,8 +669,8 @@ function StoryStep({ draft, update }: { draft: PsyProfile; update: (patch: Parti
   return <StepCard title="Помогите почувствовать, каково с вами" hint="Без обещаний результата: спокойно расскажите о стиле работы и первой встрече.">
     <Field label="Стиль работы"><div className="flex flex-wrap gap-2">{styleOptions.map((s) => <Choice key={s} active={draft.style === s} onClick={() => update({ style: draft.style === s ? "" : s })}>{s}</Choice>)}</div><div className="mt-2"><ChipInput placeholder="Свой вариант стиля" onAdd={(v) => update({ style: v })} /></div><p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Покажем в шапке профиля: «стиль: …».</p></Field>
     <Field label="Короткая цитата для карточки"><Input value={draft.quote} onChange={(event) => update({ quote: event.target.value })} placeholder="Напр.: Тревога — не приговор. Разберём её по шагам." /><Counter value={draft.quote} recommended="до 80 знаков" /></Field>
-    <Field label="О себе и подходе"><Textarea value={draft.about} onChange={(event) => update({ about: event.target.value })} placeholder="Как вы строите работу, что для вас важно в контакте…" rows={5} /><Counter value={draft.about} recommended="400–900 знаков" /></Field>
-    <Field label="Как проходит первая встреча"><Textarea value={draft.firstSession} onChange={(event) => update({ firstSession: event.target.value })} placeholder="Что обсудите, как определите запрос и следующий шаг…" rows={5} /><Counter value={draft.firstSession} recommended="250–600 знаков" /></Field>
+    <Field label="О себе и подходе"><Textarea autoGrow value={draft.about} onChange={(event) => update({ about: event.target.value })} placeholder={"Как вы строите работу, что для вас важно в контакте…\n\nПустая строка начинает новый абзац — так и покажем в каталоге."} rows={5} /><Counter value={draft.about} recommended="400–900 знаков" /></Field>
+    <Field label="Как проходит первая встреча"><Textarea autoGrow value={draft.firstSession} onChange={(event) => update({ firstSession: event.target.value })} placeholder="Что обсудите, как определите запрос и следующий шаг…" rows={5} /><Counter value={draft.firstSession} recommended="250–600 знаков" /></Field>
   </StepCard>;
 }
 

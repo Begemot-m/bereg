@@ -42,6 +42,7 @@ function mapCard(row: PsyProfileRow, ctx: {
     timezone: data.timezone ?? "",
     format: row.format,
     topics: data.topics ?? [],
+    topTopics: data.topTopics ?? [],
     avoids: data.avoids ?? [],
     about: data.about ?? "",
     firstSession: data.firstSession ?? "",

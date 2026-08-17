@@ -20,7 +20,7 @@ import { CatalogFiltersSheet, CatalogSurvey } from "@/components/catalog-control
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
-import { Button, Disclosure, Input } from "@/components/ui";
+import { Button, Disclosure, Input, Prose } from "@/components/ui";
 import { asset } from "@/lib/asset";
 import { listMyBookings } from "@/lib/clients";
 import {
@@ -336,6 +336,10 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
   const reasons = reasonsFor(psy, prefs);
   const details = detailLocation(psy);
   const firstSession = psy.firstSession ?? "На первой встрече знакомимся, обсуждаем ваш запрос и то, какой поддержки вы ждёте. В конце сверяемся — комфортно ли вам продолжать. Ничего решать сразу не нужно.";
+  // Главные запросы специалист отмечает звёздочкой в анкете: их показываем
+  // первыми и заметнее, остальные идут следом обычными чипами.
+  const topTopics = (psy.topTopics ?? []).filter((topic) => psy.topics.includes(topic)).slice(0, 3);
+  const restTopics = psy.topics.filter((topic) => !topTopics.includes(topic));
   const photos = psy.photos?.length ? psy.photos : psy.portrait ? [psy.portrait] : [];
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);
   // Полоска Telegram — в цвет шапки специалиста, на выходе возвращаем тон раздела.
@@ -402,16 +406,19 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       {/* Почему предложен именно этому пользователю */}
       {reasons.length > 0 && <Section title="Почему подходит именно вам"><ul className="space-y-2">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></Section>}
 
-      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">{psy.topics.map((topic) => <span key={topic} className="chip" style={{ background: tone.soft }}>{topic}</span>)}</div></Section>
+      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">
+        {topTopics.map((topic) => <span key={topic} className="chip inline-flex items-center gap-1 font-black" style={{ background: tone.soft, borderColor: "var(--edge)" }}><Icon name="star" width={11} weight="fill" color="var(--edge)" />{topic}</span>)}
+        {restTopics.map((topic) => <span key={topic} className="chip" style={{ background: tone.soft }}>{topic}</span>)}
+      </div></Section>
 
       {/* Как проходит первая встреча */}
-      <Section title="Как проходит первая встреча"><p className="t-body">{firstSession}</p></Section>
+      <Section title="Как проходит первая встреча"><Prose text={firstSession} className="t-body" /></Section>
 
       {/* Голосовое приветствие (демо-слот) */}
       <VoiceGreeting />
 
       {/* Подход и пример работы — без обещаний результата */}
-      {psy.about && <Section title="Как я работаю"><p className="t-body">{psy.about}</p></Section>}
+      {psy.about && <Section title="Как я работаю"><Prose text={psy.about} className="t-body" /></Section>}
       <MethodList psy={psy} />
 
       {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} onOpen={(index) => { tap(); setPhotoIndex(index); }} />}

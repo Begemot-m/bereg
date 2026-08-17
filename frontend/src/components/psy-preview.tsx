@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Icon } from "@/components/icons";
+import { Prose } from "@/components/ui";
 import { getCatalogPsy, profileToCatalogPsy, psyCurrency, type Psy } from "@/lib/catalog";
 import { DEMO } from "@/lib/demo";
 import { tap } from "@/lib/haptics";
@@ -181,7 +182,7 @@ function PreviewText({ title, text }: { title: string; text: string }) {
   return (
     <section>
       <p className="t-micro mb-1">{title}</p>
-      <p className="text-[12.5px] font-semibold leading-relaxed">{text}</p>
+      <Prose text={text} className="text-[12.5px] font-semibold leading-relaxed" />
     </section>
   );
 }

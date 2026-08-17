@@ -44,6 +44,8 @@ export type PsyProfile = {
   firstSession: string;
   education: string[];
   topics: string[];
+  /** До трёх главных запросов: в карточке идут первыми и со звёздочкой. */
+  topTopics: string[];
   gender: "woman" | "man" | "unspecified";
   languages: string[];
   /** Пустая строка — специалист ещё не выбрал формат приёма. */
@@ -181,6 +183,10 @@ export function getPsyProfile(): PsyProfile | null {
     if (p.primaryMethod && !p.methods.includes(p.primaryMethod)) p.methods = [p.primaryMethod, ...p.methods];
     if (!Array.isArray(p.languages)) p.languages = [];
     if (!Array.isArray(p.topics)) p.topics = [];
+    // Отмеченным остаётся только то, что выбрано в запросах: снял запрос —
+    // звёздочка уходит вместе с ним, а не висит на пропавшей теме.
+    if (!Array.isArray(p.topTopics)) p.topTopics = [];
+    p.topTopics = p.topTopics.filter((topic) => p.topics.includes(topic)).slice(0, 3);
     if (!(["online", "offline", "both", ""] as const).includes(p.format)) p.format = "";
     if (!(["woman", "man", "unspecified"] as const).includes(p.gender)) p.gender = "unspecified";
     p.location = { ...EMPTY.location, ...(source.location ?? {}) };
@@ -199,7 +205,7 @@ export function getPsyProfile(): PsyProfile | null {
 // чужие умолчания — 3500 ₽ за 50 минут онлайн.
 const EMPTY: PsyProfile = {
   name: "", approach: "", primaryMethod: "", methods: [], experienceYears: "", about: "", firstSession: "",
-  education: [], topics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0, currency: "RUB",
+  education: [], topics: [], topTopics: [], gender: "unspecified", languages: [], format: "", sessionPrice: 0, currency: "RUB",
   location: { city: "", district: "", metro: "", address: "", publicExactAddress: false, region: "" },
   timezone: "",
   photo: null, photos: [], sessionMinutes: 0, tg: "", specialistTypes: [], links: [], style: "", quote: "", avoids: [],

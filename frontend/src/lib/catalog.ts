@@ -24,6 +24,8 @@ export type Psy = {
   methods: string[];
   specialistTypes?: string[]; // психолог / психотерапевт / коуч — можно несколько
   topics: string[];
+  /** Отмеченные звёздочкой запросы — до трёх, показываются первыми. */
+  topTopics?: string[];
   price: number;
   /** Валюта цены: рубли по умолчанию, доллар или евро — у тех, кто вне России. */
   currency?: Currency;
@@ -233,6 +235,7 @@ export function profileToCatalogPsy(profile: PsyProfile, work?: ScheduleHours | 
     methods: [...new Set([profile.primaryMethod, ...profile.methods].filter(Boolean))],
     specialistTypes: (profile.specialistTypes?.length ? profile.specialistTypes : [profile.specialistType].filter(Boolean) as string[]),
     topics: profile.topics.filter(Boolean),
+    topTopics: (profile.topTopics ?? []).filter((topic) => profile.topics.includes(topic)).slice(0, 3),
     price: profile.sessionPrice,
     currency: toCurrency(profile.currency),
     minutes: profile.sessionMinutes,
@@ -311,6 +314,7 @@ export function apiPsyToCatalogPsy(row: CatalogApiPsy): Psy {
     methods: list(row.methods),
     specialistTypes: list(row.specialistTypes),
     topics: list(row.topics),
+    topTopics: list(row.topTopics).slice(0, 3),
     price: Number(row.price) || 0,
     currency: toCurrency(row.currency),
     minutes: Number(row.minutes) || 50,

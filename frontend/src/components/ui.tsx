@@ -50,14 +50,45 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
-export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({ autoGrow, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { autoGrow?: boolean }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  // Поле тянется под текст. В анкете просят 400–900 знаков, а окошко на пять
+  // строк показывало из них треть: человек правил рассказ вслепую и не видел,
+  // где у него абзацы.
+  useEffect(() => {
+    const el = ref.current;
+    if (!autoGrow || !el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [autoGrow, props.value]);
   return (
     <textarea
       {...props}
+      ref={ref}
       onFocus={(e) => { centerOnFocus(e.currentTarget); props.onFocus?.(e); }}
       className={`w-full resize-none bg-white px-3.5 py-2.5 text-sm font-medium text-[var(--ink)] outline-none placeholder:font-normal placeholder:text-[var(--muted-2)] ${props.className ?? ""}`}
-      style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)", scrollMarginBlock: "96px" }}
+      style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)", scrollMarginBlock: "96px", ...(autoGrow ? { overflow: "hidden" } : null) }}
     />
+  );
+}
+
+/**
+ * Длинный текст анкеты как его набрали. Пустая строка делит абзацы, одиночный
+ * перенос остаётся переносом. Раньше всё это печаталось обычным `<p>`: браузер
+ * схлопывал переносы в пробелы, и рассказ о себе слипался в сплошное полотно —
+ * в редакторе, в каталоге и в предпросмотре модерации одинаково.
+ */
+export function Prose({ text, className = "" }: { text: string; className?: string }) {
+  const blocks = (text ?? "")
+    .replace(/\r\n?/g, "\n")
+    .split(/\n[ \t]*\n+/)
+    .map((block) => block.split("\n").map((line) => line.trim()).join("\n").trim())
+    .filter(Boolean);
+  if (!blocks.length) return null;
+  return (
+    <div className={className}>
+      {blocks.map((block, i) => <p key={i} className={`whitespace-pre-line${i ? " mt-2" : ""}`}>{block}</p>)}
+    </div>
   );
 }
 
