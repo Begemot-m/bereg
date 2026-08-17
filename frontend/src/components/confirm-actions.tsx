@@ -20,23 +20,23 @@ export function ConfirmActions({
 }) {
   const busy = Boolean(confirming || declining);
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-1.5">
       <button
         onClick={() => { tap(); onConfirm(); }}
         disabled={busy}
-        className="btn flex-1 px-3 py-1.5 text-[12px]"
+        className="btn gap-1 px-2.5 py-1 text-[11.5px] leading-none"
         style={{ background: "var(--green-edge)", borderColor: "var(--green-edge)" }}
       >
-        <Icon name="check" width={13} weight="bold" color="#fff" />
+        <Icon name="check" width={12} weight="bold" color="#fff" />
         {confirming ? "Минуту…" : "Подтвердить"}
       </button>
       <button
         onClick={() => { tap(); onDecline(); }}
         disabled={busy}
-        className="btn flex-1 px-3 py-1.5 text-[12px]"
+        className="btn gap-1 px-2.5 py-1 text-[11.5px] leading-none"
         style={{ background: "var(--coral-edge)", borderColor: "var(--coral-edge)" }}
       >
-        <Icon name="close" width={13} weight="bold" color="#fff" />
+        <Icon name="close" width={12} weight="bold" color="#fff" />
         {declining ? "Минуту…" : "Отклонить"}
       </button>
     </div>

@@ -18,15 +18,15 @@ import { RemindersModule } from "@/components/reminders";
 import { SubscriptionBanner } from "@/components/subscription-block";
 import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
-import { apiFetch, logout } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { asset } from "@/lib/asset";
 import { AUTHOR_TG, AUTHOR_TG_URL, CENTER_SITE, CENTER_URL, PROD_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
-import { DEMO, resetLocalData } from "@/lib/demo";
+import { DEMO, isFreshDemo, resetLocalData, startFreshDemo, stopFreshDemo } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
-import { addToHomeScreen, homeScreenMode, homeScreenStatus, isApplePhone, isTelegramMiniApp, onHomeScreenAdded, openTelegramLink, type HomeScreenMode } from "@/lib/telegram";
+import { addToHomeScreen, homeScreenMode, homeScreenStatus, onHomeScreenAdded, openTelegramLink, type HomeScreenMode } from "@/lib/telegram";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
@@ -142,9 +142,6 @@ export default function CabinetPage() {
         {/* Роль психолога — только для тех, кто выбрал клиента в онбординге */}
         <PsyRoleRequest />
 
-        {/* Выход — только для браузера: в Telegram вход происходит сам */}
-        <WebExit />
-
         {/* О приложении */}
         <div>
           <SectionTitle>О приложении</SectionTitle>
@@ -185,13 +182,20 @@ function shortcutUrl(): string {
 // Теперь на таких клиентах вместо кнопки — шаги: ярлык ставится из браузера.
 // На компьютере блока нет. В демо показываем ручной путь: демо и так открывают
 // из браузера, шаги в нём настоящие.
+const HOME_HIDDEN_KEY = "bereg_home_hidden";
+
 function HomeScreenCard() {
   const [mode, setMode] = useState<HomeScreenMode | null>(null);
-  const [apple, setApple] = useState(true);
-  const [inTelegram, setInTelegram] = useState(false);
   const [added, setAdded] = useState(false);
   const [asked, setAsked] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Блок закрывается крестиком навсегда: иконку ставят один раз, и висеть
+  // разделом в кабинете ему потом незачем.
+  const [hidden, setHidden] = useState(true);
+
+  useEffect(() => {
+    setHidden(localStorage.getItem(HOME_HIDDEN_KEY) === "1");
+  }, []);
 
   useEffect(() => {
     if (DEMO) { setMode("manual"); return; }
@@ -202,8 +206,6 @@ function HomeScreenCard() {
       if (!alive) return;
       const next = homeScreenMode();
       setMode(next);
-      setApple(isApplePhone());
-      setInTelegram(isTelegramMiniApp());
       if (next !== "native") return;
       off = onHomeScreenAdded(() => { if (alive) setAdded(true); });
       void homeScreenStatus().then((s) => { if (alive && s === "added") setAdded(true); });
@@ -211,12 +213,18 @@ function HomeScreenCard() {
     return () => { alive = false; clearTimeout(timer); off(); };
   }, []);
 
-  if (!mode || mode === "none") return null;
+  if (hidden || !mode || mode === "none") return null;
 
   const add = () => {
     setAsked(true);
     if (DEMO) { success(); setAdded(true); return; }
     addToHomeScreen();
+  };
+
+  const close = () => {
+    tap();
+    localStorage.setItem(HOME_HIDDEN_KEY, "1");
+    setHidden(true);
   };
 
   const copy = async () => {
@@ -230,31 +238,32 @@ function HomeScreenCard() {
     }
   };
 
-  const steps = inTelegram
-    ? [
-        "Скопируйте ссылку на приложение",
-        apple ? "Откройте её в Safari" : "Откройте её в браузере телефона",
-        apple ? "Нажмите «Поделиться» внизу экрана и выберите «На экран „Домой“»" : "В меню браузера выберите «Добавить на главный экран»",
-      ]
-    : apple
-      ? [
-          "Нажмите «Поделиться» — квадрат со стрелкой внизу экрана",
-          "Выберите «На экран „Домой“» и подтвердите",
-        ]
-      : [
-          "Откройте меню браузера — три точки в углу",
-          "Выберите «Установить приложение» или «Добавить на главный экран»",
-        ];
+  // Шаги владельца, дословно: путь через встроенный браузер Telegram — тот
+  // самый, который на телефоне действительно доводит до иконки.
+  const steps = [
+    'Нажмите три точки в правом верхнем углу → Добавить на экран «Домой»',
+    'В открывшемся окне нажмите три точки в нижней панели → Поделиться → Показать больше → Добавить на экран «Домой»',
+  ];
 
   return (
-    <div>
-      <SectionTitle>Приложение на телефоне</SectionTitle>
-      <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--amber-soft)" }}>
+    <div className="relative overflow-hidden rounded-[20px]" style={{ background: "var(--amber-soft)" }}>
+      <button
+        onClick={close}
+        aria-label="Больше не показывать"
+        className="absolute right-2.5 top-2.5 z-[1] flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-[14px] font-black transition-transform active:scale-90"
+      >
+        ×
+      </button>
+      <div>
         <div className="flex items-start gap-3 p-4">
           <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="device" width={21} weight="bold" color="var(--amber-edge)" /></span>
-          <div className="min-w-0 flex-1">
-            <p className="t-head">Иконка на рабочем столе</p>
-            <p className="t-sub mt-1 font-normal">Хроника будет открываться прямо с экрана телефона, как обычное приложение, — без поиска чата в Telegram.</p>
+          <div className="min-w-0 flex-1 pr-7">
+            <p className="t-head">Добавьте иконку на рабочий стол</p>
+            <p className="t-sub mt-1 font-normal">Хроника всегда будет под рукой и будет открываться с экрана телефона.</p>
+            <p className="mt-1.5 flex items-start gap-1.5 text-[11.5px] font-bold leading-snug" style={{ color: "var(--amber-edge)" }}>
+              <Icon name="warn" width={14} weight="bold" color="var(--amber-edge)" className="mt-[1px] shrink-0" />
+              Для жителей РФ необходим включенный VPN
+            </p>
 
             {added ? (
               <span className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>
@@ -275,62 +284,14 @@ function HomeScreenCard() {
                     </li>
                   ))}
                 </ol>
-                {inTelegram && (
-                  <>
-                    <Button size="sm" className="mt-3" onClick={copy}>{copied ? "Ссылка скопирована" : "Скопировать ссылку"}</Button>
-                    <p className="t-cap mt-2 leading-snug opacity-70">
-                      Или наберите вручную: {shortcutUrl().replace(/^https?:\/\//, "")}
-                    </p>
-                  </>
-                )}
-                {apple && inTelegram && (
-                  <p className="t-cap mt-2 leading-snug opacity-70">Внутри Telegram iPhone ставить иконки не разрешает — только из браузера. Ярлык откроет ту же Хронику.</p>
-                )}
+                <button onClick={copy} className="t-cap mt-2 block leading-snug underline underline-offset-2 opacity-70">
+                  {copied ? "Ссылка скопирована" : `Не нашли пункт? Скопируйте ссылку: ${shortcutUrl().replace(/^https?:\/\//, "")}`}
+                </button>
               </>
             )}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Выход из аккаунта. В Telegram он бессмыслен: приложение тут же войдёт снова
-// по initData, поэтому кнопку показываем только браузеру. Среду спрашиваем
-// после гидрации — telegram-web-app.js подключается отложенно.
-function WebExit() {
-  const [web, setWeb] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setWeb(DEMO || !isTelegramMiniApp()), 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!web) return null;
-
-  const leave = async () => {
-    if (busy) return;
-    setBusy(true);
-    tap();
-    await logout();
-    // Полная перезагрузка на корень: сессии больше нет, приложение поднимется
-    // гостем и покажет лендинг.
-    window.location.replace(asset("/"));
-  };
-
-  return (
-    <div>
-      <SectionTitle>Вход в браузере</SectionTitle>
-      <div className="space-y-1 overflow-hidden rounded-[20px] px-2.5 py-2" style={{ background: "var(--surface)" }}>
-        <ActionRow
-          icon="exit"
-          title={busy ? "Выходим…" : "Выйти из аккаунта"}
-          danger
-          onClick={() => void leave()}
-        />
-      </div>
-      <p className="t-cap mt-2 px-1 leading-snug opacity-70">Вернётесь на главную. Чтобы войти снова, понадобится код на привязанную почту.</p>
     </div>
   );
 }
@@ -443,6 +404,45 @@ function AdminEntry() {
         </span>
         <Arrow />
       </Link>
+      <FreshDemoButton />
+    </div>
+  );
+}
+
+// Показать приложение глазами новичка. Живёт только в демо: стирает локальные
+// данные прототипа и поднимает пустой кабинет — знакомство, блок «С чего
+// начать», разделы без клиентов и записей. В бою кнопки нет вовсе (DEMO там
+// false), и трогать боевую учётную запись ей нечем: сервера демо не знает.
+function FreshDemoButton() {
+  const [asking, setAsking] = useState(false);
+  const [fresh, setFresh] = useState(false);
+
+  useEffect(() => { setFresh(isFreshDemo()); }, []);
+
+  if (!DEMO) return null;
+
+  const go = () => {
+    if (fresh) stopFreshDemo();
+    else startFreshDemo();
+    window.location.replace(asset("/"));
+  };
+
+  return (
+    <div className="mt-2 rounded-[20px] px-3.5 py-3" style={{ background: "var(--purple-soft)" }}>
+      <p className="t-head">{fresh ? "Сейчас интерфейс новичка" : "Посмотреть как новичок"}</p>
+      <p className="t-cap mt-1 leading-snug">
+        {fresh
+          ? "Демо показывает первый день: ни клиентов, ни записей, ни анкеты. Можно вернуть готовую практику."
+          : "Демо очистится: ни клиентов, ни записей, ни анкеты — интерфейс первого дня. Боевой аккаунт это не трогает, там данные на сервере."}
+      </p>
+      {asking ? (
+        <div className="mt-2.5 flex gap-2">
+          <button onClick={() => { tap(); setAsking(false); }} className="btn btn-white flex-1 py-1.5 text-[12px]">Отмена</button>
+          <Button className="flex-1 py-1.5 text-[12px]" onClick={go}>{fresh ? "Вернуть" : "Очистить демо"}</Button>
+        </div>
+      ) : (
+        <Button size="sm" className="mt-2.5" onClick={() => { tap(); setAsking(true); }}>{fresh ? "Вернуть демо-данные" : "Сделать интерфейс новичка"}</Button>
+      )}
     </div>
   );
 }

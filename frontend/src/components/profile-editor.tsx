@@ -173,7 +173,7 @@ function ProfileSheet({ open, title, onClose, children }: { open: boolean; title
   return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[70] flex items-end justify-center @md:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
     <button className="absolute inset-0 bg-[rgba(32,28,24,.34)]" onClick={onClose} aria-label="Закрыть" />
     <motion.section role="dialog" aria-modal="true" aria-label={title} initial={{ y: 32, opacity: .7 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ duration: .3, ease: [.16, 1, .3, 1] }} className="relative max-h-[min(92dvh,calc(100dvh-var(--top-pad)))] w-full max-w-xl overflow-y-auto rounded-t-[27px] bg-[var(--surface)] px-4 pb-[calc(var(--safe-bottom)+20px)] pt-4 stroke-lg @md:rounded-[27px] @md:p-6">
-      <div className="sticky top-0 z-20 mb-4 flex items-center justify-between gap-4 bg-[var(--surface)] pb-2"><h2 className="font-tight text-xl font-extrabold">{title}</h2><button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full stroke" aria-label="Закрыть">×</button></div>
+      <div className="sticky top-0 z-20 mb-4 flex items-center justify-between gap-4 bg-[var(--surface)] pb-2"><h2 className="font-tight text-xl font-extrabold">{title}</h2><button onClick={onClose} className="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12px] font-black stroke" aria-label="Закрыть"><span className="text-[14px] leading-none">×</span>Закрыть</button></div>
       {children}
     </motion.section>
   </motion.div>}</AnimatePresence>;

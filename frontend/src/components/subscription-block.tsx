@@ -39,18 +39,16 @@ const NewTag = () => <span className="rounded-full bg-[var(--coral)] px-1.5 py-0
 
 // Что входит в бесплатную версию, а что — в PRO.
 const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[] = [
-  { label: "Клиенты", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
-  { label: "Подтверждение новых записей", free: `в пределах ${FREE_CLIENT_LIMIT}`, pro: "любых" },
-  { label: "Записи, график, карточки", free: true, pro: true },
-  { label: "Настроение, домашки, шаблоны", free: true, pro: true },
-  { label: "Аналитика и сводка недели", free: true, pro: true },
-  { label: "Анкета в каталоге специалистов", free: true, pro: true },
-  { label: "Комиссия за запись", free: "нет", pro: "нет" },
+  { label: "Добавление клиентов", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
+  { label: "Подтверждение новых записей", free: `до ${FREE_CLIENT_LIMIT}`, pro: true },
+  { label: "Прямая запись на сессию", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
+  { label: "Работа с карточкой клиента", free: `до ${FREE_CLIENT_LIMIT}`, pro: true },
+  { label: "Продвинутые модули", free: false, pro: true },
 ];
 
 function CompareCell({ value }: { value: boolean | string }) {
-  if (value === true) return <Icon name="check" width={14} weight="bold" color="var(--green-edge)" />;
-  if (value === false) return <span className="text-[13px] font-black text-[var(--muted-2)]">—</span>;
+  if (value === true) return <Icon name="check" width={15} weight="bold" color="var(--green-edge)" />;
+  if (value === false) return <Icon name="close" width={13} weight="bold" color="var(--coral-edge)" />;
   return <span className="text-[10px] font-black leading-none">{value}</span>;
 }
 
@@ -82,33 +80,28 @@ function FreeVsPro({ compact = false }: { compact?: boolean }) {
 const HOW_IT_WORKS: { icon: IconName; title: string; text: string }[] = [
   {
     icon: "users",
-    title: "Сразу и бесплатно",
-    text: `${FREE_CLIENT_LIMIT} клиента со всем функционалом: записи, карточки, задания, настроение, статистика. Комиссии с сессий нет.`,
+    title: "Пользуйтесь сразу бесплатно",
+    text: `Размещение в каталоге после верификации. Заведите ${FREE_CLIENT_LIMIT} клиентов со всем функционалом без комиссий.`,
   },
   {
     icon: "seal",
-    title: `Анкету одобрили — ${TRIAL_DAYS} дней PRO`,
-    text: `Пробные дни получает каждый, кто прошёл верификацию, — отсчёт идёт со дня одобрения. В это время клиентов можно вести сколько угодно.`,
+    title: `${TRIAL_DAYS} дней PRO в подарок после верификации`,
+    text: "Пробные дни получает каждый с момента подтверждения профиля. Ограничений на добавление клиентов и использование платформы нет.",
   },
   {
     icon: "compass",
-    title: "Каталог — бесплатно и насовсем",
-    text: "Карточка встаёт в выдачу после верификации и не снимается: ни когда кончились пробные дни, ни когда кончилась подписка. Место в списке не продаётся — выше те, кто чаще заходит.",
+    title: "Место в каталоге — бесплатно навсегда",
+    text: "Место и рейтинг не повышается за деньги. Повышайте оценки с помощью клиентов, с кем провели хотя бы одну сессию на платформе. Неактивные профили, кто не пользуется платформой, будут падать в выдаче.",
   },
   {
     icon: "clock",
-    title: "Пробные дни вышли",
-    text: `Ничего не пропадает: остаются те же ${FREE_CLIENT_LIMIT} клиента, анкета и все инструменты. Записываться к вам по-прежнему можно.`,
+    title: "Что будет после пробного периода?",
+    text: `Анкета не пропадает, но полноценно работать можно с ${FREE_CLIENT_LIMIT} клиентами на выбор.`,
   },
   {
     icon: "check",
-    title: `Записался ${FREE_CLIENT_LIMIT + 1}-й — нужен PRO`,
+    title: "Больше клиентов — оформите подписку",
     text: "Единственное место, где платформа берёт деньги: подтверждение встречи с новым человеком, когда бесплатные места заняты. Не важно, пришёл он из каталога, из «Терапии» или по вашей ссылке.",
-  },
-  {
-    icon: "heart",
-    title: "Подписка закончилась",
-    text: "Клиенты, история и анкета остаются вашими. Закрывается только подтверждение новых записей — до трёх мест всё работает как раньше.",
   },
 ];
 
@@ -117,7 +110,7 @@ function HowItWorks() {
     <div className="overflow-hidden rounded-[16px] bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
       <div className="flex items-center gap-2 px-3.5 py-2.5" style={{ background: "var(--surface-2)", borderBottom: "var(--bw) solid var(--edge-neutral)" }}>
         <Icon name="question" width={13} weight="bold" color="var(--muted)" />
-        <span className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Как это устроено</span>
+        <span className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Как это устроено?</span>
       </div>
       <ol className="p-3.5">
         {HOW_IT_WORKS.map((step, i) => (
@@ -135,6 +128,19 @@ function HowItWorks() {
           </li>
         ))}
       </ol>
+      {/* Просьба поддержать стоит отдельно и на мягкой заливке: это не правило
+          тарифа, а разговор о том, зачем платить, когда можно не платить. */}
+      <div className="border-t p-3.5" style={{ borderColor: "var(--edge-neutral)", background: "var(--tiffany-soft)" }}>
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-[27px] w-[27px] shrink-0 items-center justify-center rounded-[9px] bg-white" style={{ border: "var(--bw) solid var(--tiffany-edge)" }}>
+            <Icon name="heart" width={13} weight="fill" color="var(--tiffany-edge)" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-black leading-tight">Поддержите развитие платформы</p>
+            <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">Оформляя подписку, вы поможете нам улучшать платформу и делать её популярной. Мы искренне хотим создать лидирующую площадку, где каждый сможет успешно и качественно оказывать психологическую помощь. Спасибо вам!</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -197,9 +203,70 @@ function bannerPitch(sub: Subscription | undefined): string {
     return `Пробный PRO после верификации: осталось ${d} ${plural(d, "день", "дня", "дней")} без лимита клиентов.`;
   }
   if (sub.status === "free") {
-    return `${TRIAL_DAYS} дней PRO включатся сами, как только анкету одобрят.`;
+    return `Пройдите верификацию профиля, чтобы получить ${TRIAL_DAYS} дней в подарок.`;
   }
   return `Пробные ${TRIAL_DAYS} дней вышли. Сейчас бесплатно — ${FREE_CLIENT_LIMIT} клиента и анкета в каталоге.`;
+}
+
+/**
+ * Данные о подписке одной карточкой: в каком она состоянии, сколько дней
+ * осталось и что это значит на практике. До этого состояние было размазано по
+ * подписи баннера — «активна» и «пробный» читались одинаково.
+ */
+function subState(sub: Subscription | undefined): { label: string; tone: string; days: number | null; caption: string; note: string } {
+  if (!sub || sub.status === "free") {
+    return {
+      label: "Бесплатный тариф",
+      tone: "tiffany",
+      days: null,
+      caption: `${FREE_CLIENT_LIMIT} клиента`,
+      note: `${TRIAL_DAYS} дней PRO включатся сами в день, когда анкету одобрят.`,
+    };
+  }
+  if (sub.status === "pending") {
+    return { label: "Ждём оплату", tone: "amber", days: null, caption: "минуту", note: "Подтверждение платежа обычно занимает пару секунд." };
+  }
+  if (sub.status === "trial") {
+    const d = trialDaysLeft(sub);
+    return { label: "Пробный PRO", tone: "purple", days: d, caption: plural(d, "день", "дня", "дней"), note: "Клиентов без лимита, любые записи подтверждаются. Карта не нужна." };
+  }
+  if (sub.status === "active") {
+    const left = paidDaysLeft(sub);
+    return {
+      label: "PRO активна",
+      tone: "green",
+      days: left > 0 ? left : null,
+      caption: left > 0 ? plural(left, "день", "дня", "дней") : "продлевается",
+      note: sub.currentPeriodEnd ? `Оплачено до ${dF.format(new Date(sub.currentPeriodEnd))}.` : "Период продлевается автоматически.",
+    };
+  }
+  return {
+    label: "Пробные дни вышли",
+    tone: "amber",
+    days: null,
+    caption: `${FREE_CLIENT_LIMIT} клиента`,
+    note: `Анкета осталась в каталоге, ${FREE_CLIENT_LIMIT} клиента работают как раньше.`,
+  };
+}
+
+function SubStatusCard({ sub }: { sub: Subscription | undefined }) {
+  const state = subState(sub);
+  return (
+    <div className="flex items-center gap-3 rounded-[14px] bg-white p-3">
+      <span className="flex min-w-[54px] shrink-0 flex-col items-center rounded-[12px] px-2.5 py-1.5" style={{ background: `var(--${state.tone}-soft)` }}>
+        {state.days !== null ? (
+          <span className="tnum font-tight text-[22px] font-black leading-none" style={{ color: `var(--${state.tone}-edge)` }}>{state.days}</span>
+        ) : (
+          <Icon name="seal" width={19} weight="fill" color={`var(--${state.tone}-edge)`} />
+        )}
+        <span className="mt-0.5 text-[9px] font-black uppercase tracking-[.05em]" style={{ color: `var(--${state.tone}-edge)` }}>{state.caption}</span>
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[12.5px] font-black leading-tight">{state.label}</p>
+        <p className="t-cap mt-0.5 leading-snug">{state.note}</p>
+      </div>
+    </div>
+  );
 }
 
 // Оплаченный PRO. Тому, кто уже платит, витрина тарифа не нужна: он приходит
@@ -276,7 +343,7 @@ export function SubscriptionBanner() {
 
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--purple-soft)" }}>
-      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-3 p-4 text-left" aria-expanded={open}>
+      <div className="flex items-center gap-3 p-4">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--purple)" }}>
           <Icon name="spark" width={22} weight="fill" color="var(--purple-edge)" />
         </span>
@@ -290,12 +357,19 @@ export function SubscriptionBanner() {
           </span>
           <span className="t-sub mt-0.5 block">{pitch}</span>
         </span>
-        <span className="arrow" style={{ transform: open ? "rotate(90deg)" : "none" }}><ArrowGlyph /></span>
+      </div>
+
+      {/* Раскрытие подписано словами: «стрелочка» справа не говорила, что за
+          ней прячется сравнение тарифов. */}
+      <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2 px-4 pb-3 text-left" aria-expanded={open}>
+        <span className="text-[12.5px] font-black" style={{ color: "var(--purple-edge)" }}>Что входит в подписку?</span>
+        <span className="arrow" style={{ transform: open ? "rotate(-90deg)" : "rotate(90deg)" }}><ArrowGlyph /></span>
       </button>
 
       <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>
         <div className="min-h-0 overflow-hidden">
           <div className="px-4 pb-4">
+            <div className="mb-3"><SubStatusCard sub={sub} /></div>
             <div className="rounded-[14px] bg-white p-3">
               <div className="mb-1.5 grid grid-cols-[1fr_auto_auto] items-center gap-x-3">
                 <span className="t-micro">Что входит</span>

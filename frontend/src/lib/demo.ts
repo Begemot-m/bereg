@@ -151,7 +151,69 @@ const DEMO_REFLECTIONS: { preparation: string; takeaway: string; feeling: number
   { preparation: "Разговор с родителями о переезде.", takeaway: "Стало понятнее, что я хочу им сказать.", feeling: 8 },
 ];
 
+// Демо «как у нового пользователя». Кнопка в кабинете (видит только владелец и
+// только в демо) стирает локальные данные и ставит этот флаг — приложение
+// поднимается пустым: без клиентов, записей, графика и анкеты. Прода это не
+// касается вовсе: весь код живёт в демо-моке, боевые данные лежат на сервере.
+const FRESH_KEY = "psy_demo_fresh";
+
+export function isFreshDemo(): boolean {
+  return typeof window !== "undefined" && localStorage.getItem(FRESH_KEY) === "1";
+}
+
+// Ник владельца переживает очистку: иначе, посмотрев демо глазами новичка, он
+// перестал бы быть владельцем и не нашёл бы кнопку, чтобы вернуть всё обратно.
+const OWNER_KEY = "bereg_demo_username";
+
+function wipeKeepingOwner() {
+  const owner = localStorage.getItem(OWNER_KEY);
+  resetLocalData();
+  if (owner) localStorage.setItem(OWNER_KEY, owner);
+}
+
+export function startFreshDemo() {
+  if (typeof window === "undefined") return;
+  wipeKeepingOwner();
+  localStorage.setItem(FRESH_KEY, "1");
+}
+
+/** Вернуть обычное демо с готовой практикой. */
+export function stopFreshDemo() {
+  if (typeof window === "undefined") return;
+  wipeKeepingOwner();
+}
+
+// Специалист, который только что завёл аккаунт: разделы пустые, знакомство и
+// блок «С чего начать» показываются заново, анкета не заполнена.
+function freshSeed(): DB {
+  return {
+    seq: 100,
+    clients: [],
+    appts: [],
+    homework: [],
+    moods: {},
+    goodNotes: {},
+    board: {},
+    wheel: {},
+    therapyTutorialSeen: false,
+    reflections: {},
+    myBookings: [],
+    reviews: {},
+    work: { hours: {}, sessionMinutes: 50, dayFrom: 9, dayTo: 21 },
+    overrides: {},
+    support: [],
+    notifications: [
+      { id: 90, forRole: "psychologist", kind: "system", text: "Добро пожаловать в «Хронику». Здесь появляются отмены и переносы сессий.", createdAt: iso(-1, 9, 0), read: false },
+      { id: 91, forRole: "client", kind: "system", text: "Добро пожаловать. Здесь будут напоминания и изменения по вашим сессиям.", createdAt: iso(-1, 9, 0), read: false },
+    ],
+    accountEmail: null,
+    reminderSettings: { reminder2h: false },
+    sub: { status: "free", trialEndsAt: null, currentPeriodEnd: null, pro: false, pendingPlan: null, pendingSince: null },
+  };
+}
+
 function seed(): DB {
+  if (isFreshDemo()) return freshSeed();
   const now = new Date().toISOString();
   // Демо стартует почти чистым: карточка-пример со всем наполнением и два
   // пустых клиента — записи, настроение и задания у них наполняются руками.
@@ -367,7 +429,10 @@ const addDays = (from: number, days: number) => new Date(from + days * 86_400_00
 function approvedAt(): number | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("psy_verification");
-  if (!raw) return Date.now();
+  // У новичка анкеты нет вовсе — значит и одобрения не было, пробные дни не
+  // идут. В обычном демо запись о верификации отсутствует у готовой практики,
+  // её считаем одобренной только что.
+  if (!raw) return isFreshDemo() ? null : Date.now();
   const v = JSON.parse(raw) as { status?: string; submittedAt?: string | null };
   if (!v.submittedAt) return null;
   const submitted = new Date(v.submittedAt).getTime();

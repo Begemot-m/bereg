@@ -193,7 +193,9 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
       {items.map((a) => (
         <div key={a.id} className="rounded-[13px] bg-white px-3 py-2.5">
           <div className="flex items-center gap-2.5">
-            <ClientAvatar name={a.client.name} photo={a.client.photo} className="h-9 w-9 rounded-[11px] text-[13px] font-black" style={{ background: "var(--paper)" }} />
+            {/* Лицо клиента крупнее кнопок ответа: сначала «кто записался»,
+                потом уже «да» или «нет». */}
+            <ClientAvatar name={a.client.name} photo={a.client.photo} className="h-[58px] w-[58px] rounded-[17px] text-[20px] font-black" style={{ background: "var(--paper)" }} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-black leading-tight">{a.client.name}</span>
               {/* Время встречи — главное в этой карточке: по нему решают, отвечать

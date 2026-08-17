@@ -106,11 +106,14 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[380px] space-y-3 rounded-[var(--r-block)] bg-[var(--paper)] p-4 stroke"
+        className="w-full max-w-[420px] space-y-3 rounded-[var(--r-block)] bg-[var(--paper)] p-4 stroke"
       >
         <div className="flex items-center gap-2">
           <Icon name="image" width={16} weight="bold" color="var(--muted)" />
-          <p className="t-head">Выберите кадр</p>
+          <div className="min-w-0 flex-1">
+            <p className="t-head">Выберите кадр</p>
+            <p className="t-cap">Двигайте фото и приближайте — так оно встанет в каталог</p>
+          </div>
         </div>
 
         <div
@@ -119,7 +122,7 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
-          className="relative mx-auto w-full max-w-[280px] touch-none overflow-hidden rounded-[18px] bg-white stroke"
+          className="relative mx-auto w-full max-w-[320px] touch-none overflow-hidden rounded-[18px] bg-white stroke"
           style={{ aspectRatio: `${PORTRAIT_RATIO}`, cursor: drag.current ? "grabbing" : "grab" }}
         >
           {src && natural ? (
@@ -158,8 +161,6 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
             style={{ background: "var(--tiffany-soft)", accentColor: "var(--tiffany-edge)" }}
           />
         </div>
-        <p className="t-cap text-center">Потяните фото, чтобы сдвинуть кадр</p>
-
         {failed && <p className="rounded-[12px] px-3 py-2 text-[11px] font-bold" style={{ background: "var(--salmon-soft)" }}>Не получилось обработать это фото — попробуйте другое.</p>}
 
         <div className="grid grid-cols-2 gap-2">
