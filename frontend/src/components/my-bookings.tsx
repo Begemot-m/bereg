@@ -59,6 +59,13 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
               <span className="truncate">{cap(dayF.format(date))}</span>
             </span>
             <span className="t-cap block">{b.format === "online" ? "онлайн" : "очно"} · {b.psyName}</span>
+            {/* Записались сами — встреча в силе только после ответа специалиста */}
+            {!past && b.confirmed === false && (
+              <span className="mt-1 inline-flex items-center gap-1 rounded-[8px] px-1.5 py-0.5" style={{ background: "var(--amber-soft)" }}>
+                <Icon name="clock" width={10} weight="bold" color="var(--amber-edge)" />
+                <span className="text-[10.5px] font-black" style={{ color: "var(--amber-edge)" }}>ждёт подтверждения</span>
+              </span>
+            )}
           </span>
         </button>
         <Icon name={st.icon} width={13} weight="fill" color={st.ic} />

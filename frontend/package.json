@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/typecheck.mjs",
     "check": "bun run typecheck && bun test && node scripts/check-migrations.mjs",
     "ship": "node scripts/ship.mjs",
     "deploy:demo": "node scripts/deploy-demo.mjs",

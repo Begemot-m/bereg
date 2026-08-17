@@ -453,6 +453,9 @@ model Appointment {
   format             String             @default("online") // online | offline
   status             String             @default("scheduled") // scheduled | done | cancelled
   note               String             @default("") @db.Text
+  /// Когда специалист подтвердил встречу. Пусто — клиент записался сам и ждёт
+  /// ответа; записи, назначенные специалистом, подтверждены сразу.
+  confirmedAt        DateTime?
   reminderSent       Boolean            @default(false)
   createdAt          DateTime           @default(now())
   telegramDeliveries TelegramDelivery[]

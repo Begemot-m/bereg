@@ -9,8 +9,15 @@ export type Appointment = {
   status: "scheduled" | "done" | "cancelled";
   note: string;
   format: ApptFormat;
+  /// Пусто — клиент записался сам и ждёт ответа специалиста.
+  confirmedAt?: string | null;
   client: { id: number; name: string; photo?: string | null };
 };
+
+export const awaitsConfirm = (a: Appointment) => a.status === "scheduled" && !a.confirmedAt;
+
+export const confirmAppointment = (id: number) =>
+  apiFetch<Appointment>(`/appointments/${id}`, { method: "PATCH", body: JSON.stringify({ confirm: true }) });
 
 export const listAppointments = (clientId?: number) =>
   apiFetch<Appointment[]>(`/appointments${clientId ? `?clientId=${clientId}` : ""}`);

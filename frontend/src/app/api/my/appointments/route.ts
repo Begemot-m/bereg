@@ -30,6 +30,7 @@ type ApptRow = {
   startsAt: Date;
   durationMin: number;
   format: string;
+  confirmedAt: Date | null;
   psychologist: { psyProfile: { name: string } | null; firstName: string | null; workHours: { cancelLockDays: number } | null };
 };
 
@@ -42,6 +43,7 @@ const toDTO = (a: ApptRow) => ({
   startsAt: a.startsAt.toISOString(),
   durationMin: a.durationMin,
   format: a.format,
+  confirmed: a.confirmedAt !== null,
   cancelLockDays: a.psychologist.workHours?.cancelLockDays ?? 0,
 });
 
@@ -149,7 +151,7 @@ export async function POST(req: NextRequest) {
           data: {
             userId: psychologistId,
             kind: "booking",
-            text: `Новая запись · ${card.name} · ${startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE, day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`,
+            text: `К вам записались · ${card.name} · ${startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE, day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}. Подтвердите встречу в приложении.`,
           },
         });
         await queueTelegramEvent(tx, { appointmentId: created.id, recipientId: psychologistId, audience: "psychologist", kind: "booking" });

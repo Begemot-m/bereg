@@ -55,6 +55,8 @@ type Appointment = {
   status: "scheduled" | "done" | "cancelled";
   note: string;
   format: ApptFormat;
+  /// Пусто — клиент записался сам и ждёт ответа специалиста.
+  confirmedAt?: string | null;
   client: { id: number; name: string; photo?: string | null };
 };
 
@@ -95,7 +97,7 @@ type DB = {
   wheel: Record<number, WheelResult | null>;
   therapyTutorialSeen: boolean;
   reflections: Record<number, SessionReflection[]>;
-  myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat }[];
+  myBookings: { id: number; psyName: string; startsAt: string; durationMin: number; format: ApptFormat; confirmed?: boolean }[];
   /** Оценки специалистов каталога: id психолога → моя оценка. */
   reviews: Record<number, number>;
   work: WorkHours;
@@ -114,8 +116,8 @@ type DB = {
   };
 };
 
-// v14 — демо-карточка обзавелась фото и заметками о встречах.
-const KEY = "psy_demo_db_v14";
+// v15 — подтверждение записи: у встреч появился confirmedAt.
+const KEY = "psy_demo_db_v15";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const day = addZoneDays(zoneYmd(new Date()), daysFromNow);
@@ -182,6 +184,7 @@ function seed(): DB {
     status: "done" as const,
     note: "",
     format: "online" as const,
+    confirmedAt: iso(-back, 10),
     client: { id: DEMO_CLIENT_ID, name: "Анна (демо)", photo: "/demo-client.webp" },
   }));
   const homework: Homework[] = [
@@ -202,6 +205,19 @@ function seed(): DB {
   const wheel: Record<number, WheelResult | null> = {
     [DEMO_CLIENT_ID]: { answers: DEMO_WHEEL, completedAt: iso(-6, 12) },
   };
+  // Самозапись, которая ждёт ответа: в демо на ней видно весь путь — янтарное
+  // окно в «Сессиях» и очередь подтверждений на главной.
+  const pendingAppt: Appointment = {
+    id: 44,
+    clientId: DEMO_CLIENT_ID,
+    startsAt: iso(2, 12),
+    durationMin: 50,
+    status: "scheduled",
+    note: "",
+    format: "online",
+    confirmedAt: null,
+    client: { id: DEMO_CLIENT_ID, name: "Анна (демо)", photo: "/demo-client.webp" },
+  };
   const reflections: Record<number, SessionReflection[]> = {
     [DEMO_CLIENT_ID]: appts.map((appt, index) => ({
       appointmentId: appt.id,
@@ -217,7 +233,7 @@ function seed(): DB {
   return {
     seq: 100,
     clients,
-    appts,
+    appts: [...appts, pendingAppt],
     homework,
     moods,
     goodNotes,
@@ -1000,6 +1016,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       status: "scheduled",
       note: "",
       format: (body.format as ApptFormat) ?? "online",
+      confirmedAt: new Date().toISOString(),
       client: { id: cl.id, name: cl.name, photo: cl.photo ?? null },
     };
     db.appts.push(a);
@@ -1014,6 +1031,10 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     if (method === "PATCH") {
       if (body.status === "cancelled") notify(db, "client", "cancel", `Психолог отменил сессию · ${fmtWhen(a.startsAt)}`);
       else if (body.startsAt !== undefined) notify(db, "client", "reschedule", `Психолог перенёс сессию на ${fmtWhen(new Date(String(body.startsAt)).toISOString())}`);
+      if (body.confirm && !a.confirmedAt) {
+        a.confirmedAt = new Date().toISOString();
+        notify(db, "client", "booking", `Встреча подтверждена · ${fmtWhen(a.startsAt)}`);
+      }
       if (body.status !== undefined) a.status = body.status as Appointment["status"];
       if (body.startsAt !== undefined) a.startsAt = new Date(String(body.startsAt)).toISOString();
       if (body.durationMin !== undefined) a.durationMin = Number(body.durationMin);
@@ -1121,8 +1142,10 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     if (leadBlocked(startsAt, lead)) {
       throw new Error(`API 422: {"error":"Записаться можно не позже чем за ${lead} дн. до встречи"}`);
     }
-    const b = { id: ++db.seq, psyName: String(body.psyName ?? "Специалист"), startsAt: startsAt.toISOString(), durationMin: Number(body.durationMin ?? db.work.sessionMinutes), format: fmt };
+    // Самозапись ждёт ответа специалиста — как на сервере.
+    const b = { id: ++db.seq, psyName: String(body.psyName ?? "Специалист"), startsAt: startsAt.toISOString(), durationMin: Number(body.durationMin ?? db.work.sessionMinutes), format: fmt, confirmed: false };
     db.myBookings.push(b);
+    notify(db, "psychologist", "booking", `К вам записались · ${fmtWhen(b.startsAt)}. Подтвердите встречу в приложении`);
     save(db);
     return delay(b as T);
   }
@@ -1138,8 +1161,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       throw new Error(`API 422: {"error":"Терапевт установил запрет на отмену сессии за ${lock} дн. до встречи. Свяжитесь с ним напрямую"}`);
     }
     if (method === "PATCH") {
-      if (body.startsAt) b.startsAt = new Date(String(body.startsAt)).toISOString();
-      notify(db, "psychologist", "reschedule", `Клиент перенёс сессию на ${fmtWhen(b.startsAt)}`);
+      if (body.startsAt) { b.startsAt = new Date(String(body.startsAt)).toISOString(); b.confirmed = false; }
+      notify(db, "psychologist", "reschedule", `Клиент перенёс сессию на ${fmtWhen(b.startsAt)}. Подтвердите новое время в приложении`);
       save(db);
       return delay(b as T);
     }

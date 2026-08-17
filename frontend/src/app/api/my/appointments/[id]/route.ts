@@ -43,11 +43,12 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (busy) return NextResponse.json({ error: "Слот уже занят" }, { status: 409 });
 
     const updated = await prisma.$transaction(async (tx) => {
-      const row = await tx.appointment.update({ where: { id: appt.id }, data: { startsAt, reminderSent: false } });
+      // Новое время — новое согласие: перенос снимает подтверждение.
+      const row = await tx.appointment.update({ where: { id: appt.id }, data: { startsAt, reminderSent: false, confirmedAt: null } });
       await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: appt.psychologistId, audience: "psychologist", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
       await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: user.id, audience: "client", kind: "reschedule", payload: { previousStartsAt: appt.startsAt.toISOString() } });
       await replaceReminders(tx, { appointmentId: appt.id, clientUserId: user.id, psychologistUserId: appt.psychologistId, startsAt, reminder2h: user.sessionReminder2h });
-      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "reschedule", text: `Клиент перенёс встречу на ${startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE })}` } });
+      await tx.notification.create({ data: { userId: appt.psychologistId, kind: "reschedule", text: `Клиент перенёс встречу на ${startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE })}. Подтвердите новое время в приложении.` } });
       return row;
     });
     return NextResponse.json({

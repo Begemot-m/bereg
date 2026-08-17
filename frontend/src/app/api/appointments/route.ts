@@ -87,6 +87,8 @@ export async function POST(req: NextRequest) {
           durationMin: body.durationMin ?? 60,
           format: body.format === "offline" ? "offline" : "online",
           note: body.note ?? "",
+          // Специалист назначил встречу сам — подтверждать нечего.
+          confirmedAt: new Date(),
         },
         include: { client: { select: APPT_CLIENT_SELECT } },
       });

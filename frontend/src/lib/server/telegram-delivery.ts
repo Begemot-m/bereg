@@ -8,7 +8,7 @@ export async function queueTelegramEvent(db: DeliveryDb, input: {
   appointmentId: number;
   recipientId: number;
   audience: "psychologist" | "client";
-  kind: "booking" | "reschedule" | "cancel";
+  kind: "booking" | "reschedule" | "cancel" | "confirm";
   payload?: Record<string, string | number | boolean | null>;
 }) {
   await db.telegramDelivery.create({

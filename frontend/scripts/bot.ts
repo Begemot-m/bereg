@@ -118,9 +118,12 @@ function messageFor(delivery: Delivery): { text: string; keyboard: InlineKeyboar
   if (delivery.audience === "psychologist") {
     const keyboard = new InlineKeyboard();
     if (delivery.kind === "booking") {
-      keyboard.webApp("Открыть в сессиях", appLink(`/sessions?appointment=${appt.id}`));
+      keyboard.webApp("Подтвердить встречу", appLink(`/sessions?appointment=${appt.id}&confirm=1`));
       keyboard.row().webApp("Карточка клиента", appLink(`/clients?id=${appt.client.id}`));
-      return { text: `Новая запись\n${client} · ${when}\n${details}`, keyboard };
+      return {
+        text: `К вам записались\n${client} · ${when}\n${details}\n\nЧтобы подтвердить встречу, перейдите в приложение.`,
+        keyboard,
+      };
     }
     if (delivery.kind === "reschedule") {
       keyboard.webApp("Открыть новое время", appLink(`/sessions?appointment=${appt.id}`));
@@ -141,7 +144,13 @@ function messageFor(delivery: Delivery): { text: string; keyboard: InlineKeyboar
     return { text: `Встреча отменена\n${when}\nСпециалист: ${psychologist}`, keyboard };
   }
   keyboard.webApp("Открыть запись", appLink(`/therapy?appointment=${appt.id}&booking=1`));
+  if (delivery.kind === "confirm") {
+    return { text: `Встреча подтверждена\n${when}\nСпециалист: ${psychologist}\n${details}\nНапомним за 24 часа.`, keyboard };
+  }
   if (delivery.kind === "booking") {
+    if (!appt.confirmedAt) {
+      return { text: `Вы записались\n${when}\nСпециалист: ${psychologist}\n${details}\nЖдём подтверждения — сообщим, как только специалист ответит.`, keyboard };
+    }
     return { text: `Запись подтверждена\n${when}\nСпециалист: ${psychologist}\n${details}\nНапомним за 24 часа.`, keyboard };
   }
   if (delivery.kind === "reschedule") {

@@ -15,7 +15,7 @@ import { WorkStats } from "@/components/work-stats";
 import { motion } from "motion/react";
 
 import { Stagger, StaggerItem } from "@/components/motion";
-import { listAppointments, type Appointment } from "@/lib/appointments";
+import { awaitsConfirm, confirmAppointment, listAppointments, type Appointment } from "@/lib/appointments";
 import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
@@ -59,6 +59,9 @@ function PsyHome() {
     [appts, todayKey],
   );
   const next = upcoming[0];
+  // Клиенты записались сами и ждут ответа. Пока встреча не подтверждена, для
+  // человека она под вопросом, поэтому очередь стоит выше всего остального.
+  const waiting = useMemo(() => upcoming.filter(awaitsConfirm), [upcoming]);
   // Статистика — только о том, что уже произошло. Предстоящие записи в зачёт
   // не идут: неделя с тремя записями впереди рисовала «три сессии» ещё до
   // первой встречи, а состоявшиеся при этом оседали в той же куче.
@@ -75,6 +78,8 @@ function PsyHome() {
       icon="home"
       focus={<SessionFocus appointment={next} />}
     >
+      <ConfirmQueue items={waiting} />
+
       <PsyStart hasSession={appts.length > 0} />
 
       <TourBanner role="psychologist" />
@@ -153,6 +158,38 @@ function PersonHome({ guest }: { guest: boolean }) {
 
       {!guest && <InviteBanner variant="client" />}
     </HomeFrame>
+  );
+}
+
+// Очередь подтверждений на главной специалиста: клиент записался сам, встреча
+// висит в расписании, но обеим сторонам нужен ответ «да».
+function ConfirmQueue({ items }: { items: Appointment[] }) {
+  const qc = useQueryClient();
+  const confirm = useMutation({
+    mutationFn: (id: number) => confirmAppointment(id),
+    onSuccess: () => { tap(); qc.invalidateQueries({ queryKey: ["appointments"] }); },
+  });
+  if (items.length === 0) return null;
+
+  return (
+    <section className="card-soft space-y-2.5 p-4" style={{ background: "var(--amber-soft)", borderColor: "var(--amber-edge)" }}>
+      <div className="flex items-center gap-2">
+        <Icon name="clock" width={15} weight="bold" color="var(--amber-edge)" />
+        <p className="t-head">К вам записались — подтвердите встречу</p>
+      </div>
+      {items.map((a) => (
+        <div key={a.id} className="flex items-center gap-2.5 rounded-[13px] bg-white px-3 py-2.5">
+          <ClientAvatar name={a.client.name} photo={a.client.photo} className="h-9 w-9 rounded-[11px] text-[13px] font-black" style={{ background: "var(--paper)" }} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13.5px] font-black leading-tight">{a.client.name}</span>
+            <span className="t-cap block">{cap(dateTimeF.format(new Date(a.startsAt)))}</span>
+          </span>
+          <button onClick={() => confirm.mutate(a.id)} disabled={confirm.isPending} className="btn btn-accent shrink-0">
+            {confirm.isPending && confirm.variables === a.id ? "Минуту…" : "Подтвердить"}
+          </button>
+        </div>
+      ))}
+    </section>
   );
 }
 

@@ -11,7 +11,7 @@ import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
-import { createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
+import { awaitsConfirm, confirmAppointment, createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { createClient, isPhone, listClients } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
@@ -149,6 +149,9 @@ function look(s: Slot): Look {
   // Состоявшаяся встреча — зелёная, с галочкой в углу: она не «потухшая
   // запись», а сделанная работа, и в дне должна читаться именно так.
   if (s.appt && s.past) return { bg: "var(--green-soft)", ring: "var(--green-edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
+  // Клиент записался сам — окно занято, но встреча ещё не подтверждена: янтарь,
+  // чтобы в дне сразу читалось, где от специалиста ждут ответа.
+  if (s.appt && awaitsConfirm(s.appt)) return { bg: "var(--amber-soft)", ring: "var(--amber-edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
   if (s.appt) return { bg: "var(--head-soft)", ring: "var(--edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
   // Свободное окно белое и в тонкой рамке: заливка отличает занятое от пустого,
   // цвет времени суток живёт в редакторе графика и мешал бы здесь.
@@ -380,7 +383,9 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
             <span className="absolute right-1.5 top-1.5">
               {slot.appt && slot.past
                 ? <Icon name="check" width={10} weight="bold" color="var(--green-edge)" />
-                : <Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" />}
+                : slot.appt && awaitsConfirm(slot.appt)
+                  ? <Icon name="clock" width={10} weight="bold" color="var(--amber-edge)" />
+                  : <Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" />}
             </span>
           </>
         )}
@@ -419,6 +424,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const book = useMutation({ mutationFn: ({ clientId, format }: { clientId: number; format: ApptFormat }) => createAppointment({ clientId, startsAt: slot.iso, format }), onSuccess: () => { success(); onClose(); inv(); } });
   const setFmt = useMutation({ mutationFn: async (format: ApptFormat) => { if (slot.appt) await updateAppointment(slot.appt.id, { format }); else await setOverride(slot.iso, { fmt: format }); }, onSuccess: () => { select(); inv(); } });
   const cancel = useMutation({ mutationFn: () => updateAppointment(slot.appt!.id, { status: "cancelled" }), onSuccess: () => { onClose(); inv(); } });
+  const confirm = useMutation({ mutationFn: () => confirmAppointment(slot.appt!.id), onSuccess: () => { success(); inv(); } });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(slot.appt!.id, { startsAt: iso }), onSuccess: () => { success(); onClose(); inv(); } });
   const closeWin = useMutation({ mutationFn: () => setOverride(slot.iso, { removed: true }), onSuccess: () => { onClose(); inv(); } });
 
@@ -444,6 +450,22 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           <div className="flex items-center gap-1.5 rounded-[11px] px-2.5 py-1.5" style={{ background: "var(--green-soft)" }}>
             <Icon name="check" width={12} weight="bold" color="var(--green-edge)" />
             <span className="text-[11.5px] font-black" style={{ color: "var(--green-edge)" }}>Сессия состоялась</span>
+          </div>
+        )}
+        {!slot.past && awaitsConfirm(slot.appt) && (
+          <div className="space-y-2 rounded-[11px] px-2.5 py-2" style={{ background: "var(--amber-soft)" }}>
+            <div className="flex items-center gap-1.5">
+              <Icon name="clock" width={12} weight="bold" color="var(--amber-edge)" />
+              <span className="text-[11.5px] font-black" style={{ color: "var(--amber-edge)" }}>Клиент записался сам — ждёт подтверждения</span>
+            </div>
+            <button
+              onClick={() => confirm.mutate()}
+              disabled={confirm.isPending}
+              className={`${FLAT_BTN} gap-1.5`}
+              style={{ ...THIN_BTN, background: "var(--green-edge)", borderColor: "var(--green-edge)", color: "#fff" }}
+            >
+              <Icon name="check" width={12} weight="bold" color="#fff" /> {confirm.isPending ? "Подтверждаем…" : "Подтвердить встречу"}
+            </button>
           </div>
         )}
         {/* Перенести и «Написать» — строкой, «Освободить» под «Перенести»

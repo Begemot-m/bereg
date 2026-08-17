@@ -4,6 +4,7 @@ import { APPT_CLIENT_SELECT, apptWithPhoto } from "@/lib/server/clients";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { cancelPendingReminders, queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
+import { APP_ZONE } from "@/lib/server/zone";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       durationMin?: number;
       note?: string;
       format?: string;
+      confirm?: boolean;
     };
 
     if (body.status && !STATUSES.includes(body.status)) {
@@ -48,9 +50,21 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
           format: body.format === "online" || body.format === "offline" ? body.format : undefined,
           note: body.note ?? undefined,
           ...(startsAt ? { reminderSent: false } : {}),
+          // Подтверждаем один раз: повторный PATCH не двигает дату ответа.
+          ...(body.confirm && !appt.confirmedAt ? { confirmedAt: new Date() } : {}),
         },
         include: { client: { select: { ...APPT_CLIENT_SELECT, userId: true } } },
       });
+      if (body.confirm && !appt.confirmedAt && row.client.userId) {
+        await tx.notification.create({
+          data: {
+            userId: row.client.userId,
+            kind: "booking",
+            text: `Встреча подтверждена · ${row.startsAt.toLocaleString("ru-RU", { timeZone: APP_ZONE, day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`,
+          },
+        });
+        await queueTelegramEvent(tx, { appointmentId: appt.id, recipientId: row.client.userId, audience: "client", kind: "confirm" });
+      }
       if (body.status === "cancelled") {
         await cancelPendingReminders(tx, appt.id);
         if (row.client.userId) {
