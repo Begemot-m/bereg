@@ -12,7 +12,7 @@ import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
-import { PsyStart } from "@/components/psy-start";
+import { PsyGuide } from "@/components/psy-guide";
 import { WorkStats } from "@/components/work-stats";
 import { motion } from "motion/react";
 
@@ -83,11 +83,11 @@ function PsyHome() {
     >
       <ConfirmQueue items={waiting} />
 
-      <PsyStart hasSession={appts.length > 0} />
+      <PsyGuide />
 
       <TourBanner role="psychologist" />
 
-      {/* Статистика в нулях новичку ничего не говорит — до первой записи её место занимают первые шаги. */}
+      {/* Статистика в нулях новичку ничего не говорит — до первой записи её место занимает знакомство с платформой. */}
       {appts.length > 0 && (
         <WorkStats items={held.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id) }))} title="Статистика работы" />
       )}

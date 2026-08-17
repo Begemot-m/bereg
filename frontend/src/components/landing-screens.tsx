@@ -341,12 +341,72 @@ function Tools({ accent, compact }: ScreenProps) {
   );
 }
 
+/* ─────────────────────────── Анкета ─────────────────────────── */
+
+const PROFILE_TOPICS: { text: string; top?: boolean }[] = [
+  { text: "Тревога", top: true },
+  { text: "Самооценка", top: true },
+  { text: "Отношения", top: true },
+  { text: "Выгорание" },
+  { text: "Сон" },
+];
+
+function Profile({ accent, compact }: ScreenProps) {
+  return (
+    <Frame compact={compact} active="profile" accent={accent} title="Анкета специалиста" sub="Кабинет · заполнено 4 шага из 5" action="На проверку">
+      <div className={`${CARD} flex items-center gap-3 px-3 py-2.5`} style={{ background: "var(--surface)", border: BORDER }}>
+        <span className="flex h-11 w-9 shrink-0 items-center justify-center rounded-[10px]" style={{ background: "var(--purple-soft)" }}>
+          <Icon name="user" width={17} weight="regular" color="var(--ink)" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13.5px] font-black">Марина Соколова</span>
+          <span className="block truncate text-[11.5px] font-medium" style={{ color: "var(--muted)" }}>КПТ, схема-терапия · 8 лет практики</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: "var(--amber-soft)" }}>
+          <Icon name="clock" width={12} weight="bold" color="var(--ink)" /> на проверке
+        </span>
+      </div>
+
+      <div className={`${CARD} flex min-h-0 flex-1 flex-col gap-2 px-3 py-3`} style={{ background: "var(--surface)", border: BORDER }}>
+        <span className="text-[10.5px] font-black uppercase tracking-[.08em]" style={{ color: "var(--muted)" }}>О себе</span>
+        <span className="text-[12px] font-medium leading-snug md:text-[13px]">
+          Работаю с тревогой, самооценкой и отношениями. На первой встрече разбираем запрос и договариваемся о темпе.
+        </span>
+        <span className="flex flex-wrap gap-1 pt-0.5">
+          {PROFILE_TOPICS.map((t) => (
+            <span
+              key={t.text}
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold md:text-[11.5px]"
+              style={t.top ? { background: accent } : { background: "var(--bg)", border: BORDER, color: "var(--muted)" }}
+            >
+              {t.top && <Icon name="star" width={10} weight="fill" color="var(--ink)" />}
+              {t.text}
+            </span>
+          ))}
+        </span>
+      </div>
+
+      <div className="flex gap-2">
+        <span className={`${CARD} flex flex-1 items-center gap-2 px-3 py-2.5`} style={{ background: "var(--surface)", border: BORDER }}>
+          <Icon name="check" width={14} weight="bold" color="var(--green-edge)" />
+          <span className="truncate text-[11.5px] font-bold">Диплом загружен</span>
+        </span>
+        <span className={`${CARD} flex flex-1 items-center gap-2 px-3 py-2.5`} style={{ background: "var(--surface)", border: BORDER }}>
+          <Icon name="clock" width={14} weight="bold" color="var(--muted)" />
+          <span className="truncate text-[11.5px] font-bold">3 000 ₽ · 50 минут</span>
+        </span>
+      </div>
+    </Frame>
+  );
+}
+
 const SCREENS: Record<string, (p: ScreenProps) => React.ReactElement> = {
   sessions: Sessions,
   clients: Clients,
   therapy: Therapy,
   catalog: Catalog,
   tools: Tools,
+  profile: Profile,
 };
 
 export function LandingScreen({ tab, accent, compact }: ScreenProps & { tab: string }) {
