@@ -141,6 +141,67 @@ function bannerPitch(sub: Subscription | undefined): string {
     : "Клиенты без лимита и место в каталоге специалистов.";
 }
 
+// Оплаченный PRO. Тому, кто уже платит, витрина тарифа не нужна: он приходит
+// сюда за одним — сколько осталось и что у него включено.
+const ACTIVE_PERKS: { icon: IconName; label: string }[] = [
+  { icon: "users", label: "Клиенты без лимита" },
+  { icon: "compass", label: "Карточка в каталоге" },
+  { icon: "chart", label: "Статистика и сводки" },
+  { icon: "spark", label: "Новые инструменты" },
+];
+
+function ProActiveCard({ sub }: { sub: Subscription }) {
+  const left = paidDaysLeft(sub);
+  const until = sub.currentPeriodEnd ? dF.format(new Date(sub.currentPeriodEnd)) : null;
+
+  return (
+    <section className="overflow-hidden rounded-[20px]" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
+      <div className="flex items-center gap-3 px-4 pt-4">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--purple)" }}>
+          <Icon name="seal" width={22} weight="fill" color="var(--purple-edge)" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="t-head">Хроника PRO</span>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[.04em]" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>активна</span>
+          </div>
+          <p className="t-sub mt-0.5 block">Подписка работает — ограничений нет.</p>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-center gap-3 rounded-[14px] bg-white p-3">
+          {left > 0 ? (
+            <span className="flex shrink-0 flex-col items-center rounded-[11px] px-3 py-1.5" style={{ background: "var(--purple-soft)" }}>
+              <span className="tnum font-tight text-[22px] font-black leading-none">{left}</span>
+              <span className="text-[9px] font-black uppercase tracking-[.06em] text-[var(--muted)]">{plural(left, "день", "дня", "дней")}</span>
+            </span>
+          ) : (
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[11px]" style={{ background: "var(--purple-soft)" }}>
+              <Icon name="check" width={18} weight="bold" color="var(--purple-edge)" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="text-[12.5px] font-black leading-tight">{until ? `Оплачено до ${until}` : "Доступ открыт"}</p>
+            <p className="t-cap mt-0.5">{left > 0 ? "Столько осталось от оплаченного периода" : "Период продлевается"}</p>
+          </div>
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {ACTIVE_PERKS.map((perk) => (
+            <div key={perk.label} className="flex items-center gap-2 rounded-[12px] bg-white px-2.5 py-2">
+              <Icon name={perk.icon} width={14} weight="bold" color="var(--purple-edge)" className="shrink-0" />
+              <span className="text-[11px] font-black leading-tight">{perk.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-2.5 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата прошла через ЮKassa · спасибо, что поддерживаете Хронику</p>
+      </div>
+    </section>
+  );
+}
+
 export function SubscriptionBanner() {
   const [open, setOpen] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
@@ -149,6 +210,8 @@ export function SubscriptionBanner() {
   const price = monthlyPrice(sub);
   const crossed = crossedPrice(sub);
   const pitch = bannerPitch(sub);
+
+  if (sub?.status === "active") return <ProActiveCard sub={sub} />;
 
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--purple-soft)" }}>
@@ -186,7 +249,7 @@ export function SubscriptionBanner() {
                 </div>
               ))}
             </div>
-            {sub?.status !== "active" && <div className="mt-3"><ProCta label="Подключить" note={false} /></div>}
+            <div className="mt-3"><ProCta label="Подключить" note={false} /></div>
           </div>
         </div>
       </div>

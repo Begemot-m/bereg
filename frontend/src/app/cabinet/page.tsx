@@ -20,13 +20,13 @@ import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch, logout } from "@/lib/api";
 import { asset } from "@/lib/asset";
-import { CENTER_SITE, CENTER_URL } from "@/lib/brand";
+import { AUTHOR_TG, AUTHOR_TG_URL, CENTER_SITE, CENTER_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
-import { isTelegramMiniApp } from "@/lib/telegram";
+import { addToHomeScreen, homeScreenStatus, isTelegramMiniApp, onHomeScreenAdded, openTelegramLink, type HomeScreenStatus } from "@/lib/telegram";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
@@ -97,6 +97,9 @@ export default function CabinetPage() {
         {/* Видно только владельцу платформы */}
         <AdminEntry />
 
+        {/* Иконка приложения на телефоне */}
+        <HomeScreenCard />
+
         {/* Приватность и данные */}
         <div>
           <SectionTitle>Приватность и данные</SectionTitle>
@@ -151,7 +154,7 @@ export default function CabinetPage() {
               <p className="text-[13px] font-bold leading-snug">Платформа создана центром «Амур и Психея»</p>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] font-black" style={{ color: "var(--purple-edge)" }}>
                 <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={tap} className="underline-offset-2 hover:underline">{CENTER_SITE}</a>
-                <span>@mmgorba</span>
+                <button type="button" onClick={() => { tap(); openTelegramLink(AUTHOR_TG_URL); }} className="font-black underline-offset-2 hover:underline">{AUTHOR_TG}</button>
               </p>
               <p className="tnum mt-1 text-[10.5px] font-black text-[var(--muted-2)]">Версия {versionLabel()}</p>
             </div>
@@ -160,6 +163,61 @@ export default function CabinetPage() {
 
       </div>
       </Reveal>
+    </div>
+  );
+}
+
+// Иконка мини-приложения на рабочем столе телефона. Умеет это только клиент
+// Telegram от Bot API 8.0 и только на телефоне: на десктопе метода нет, и
+// кнопка обещала бы то, чего не произойдёт, — поэтому блок там не появляется.
+// В демо показываем всегда, иначе вёрстку не посмотреть.
+function HomeScreenCard() {
+  const [status, setStatus] = useState<HomeScreenStatus | null>(null);
+  const [asked, setAsked] = useState(false);
+
+  useEffect(() => {
+    if (DEMO) { setStatus("missed"); return; }
+    let alive = true;
+    let off = () => {};
+    // telegram-web-app.js подключается отложенно — спрашиваем не в первый кадр.
+    const timer = setTimeout(() => {
+      off = onHomeScreenAdded(() => { if (alive) setStatus("added"); });
+      void homeScreenStatus().then((s) => { if (alive) setStatus(s); });
+    }, 300);
+    return () => { alive = false; clearTimeout(timer); off(); };
+  }, []);
+
+  if (!status || status === "unsupported") return null;
+  const added = status === "added";
+
+  const add = () => {
+    setAsked(true);
+    if (DEMO) { success(); setStatus("added"); return; }
+    addToHomeScreen();
+  };
+
+  return (
+    <div>
+      <SectionTitle>Приложение на телефоне</SectionTitle>
+      <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--amber-soft)" }}>
+        <div className="flex items-start gap-3 p-4">
+          <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="device" width={21} weight="bold" color="var(--amber-edge)" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="t-head">Иконка на рабочем столе</p>
+            <p className="t-sub mt-1 font-normal">Хроника будет открываться прямо с экрана телефона, как обычное приложение, — без поиска чата в Telegram.</p>
+            {added ? (
+              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>
+                <Icon name="check" width={13} weight="bold" color="var(--green-edge)" /> Иконка уже на месте
+              </span>
+            ) : (
+              <>
+                <Button size="sm" className="mt-3" onClick={add}>Добавить на рабочий стол</Button>
+                {asked && <p className="t-cap mt-2 leading-snug opacity-70">Подтвердите добавление в окне Telegram — иконка появится на экране телефона.</p>}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

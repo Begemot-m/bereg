@@ -7,6 +7,11 @@ export const CENTER_SITE = "murpsy.ru";
 export const CENTER_URL = "https://murpsy.ru";
 export const TAGLINE = "Психологическая поддержка на каждый день";
 
+// Автор платформы: в кабинете это единственный живой контакт, поэтому ник —
+// кликабельный, а не подпись.
+export const AUTHOR_TG = "@mmgorba";
+export const AUTHOR_TG_URL = "https://t.me/mmgorba";
+
 // Боевой адрес. Ссылки-приглашения уходят живым людям, поэтому строятся от
 // него, а не от текущего origin: из демо на Pages иначе уедет демо-ссылка.
 export const PROD_URL = "https://chronika.space/";

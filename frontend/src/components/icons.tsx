@@ -8,6 +8,7 @@ import {
   SealCheck,
   Clock,
   Compass,
+  DeviceMobile,
   GearSix,
   Heart,
   House,
@@ -106,7 +107,8 @@ export type IconName =
   | "clover"
   | "warn"
   | "waves"
-  | "steps";
+  | "steps"
+  | "device";
 
 const MAP: Record<IconName, PhIcon> = {
   home: House,
@@ -165,6 +167,7 @@ const MAP: Record<IconName, PhIcon> = {
   warn: WarningCircle,
   waves: Waves,
   steps: Footprints,
+  device: DeviceMobile,
 };
 
 export function Icon({
