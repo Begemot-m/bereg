@@ -22,7 +22,7 @@ import { BookingRow } from "@/components/my-bookings";
 import { SessionCheckin } from "@/components/session-checkin";
 import { ClientSessionJourney } from "@/components/session-reflections";
 import { SlotPicker } from "@/components/slot-picker";
-import { Disclosure, SkeletonRow } from "@/components/ui";
+import { Disclosure, SkeletonCards } from "@/components/ui";
 import { bookSlot, cancelMyBooking } from "@/lib/mybookings";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { zoneFormat } from "@/lib/zone";
@@ -90,7 +90,7 @@ export default function TherapyPage() {
   useEffect(() => { if (!therapyGuideSeen()) setGuideOpen(true); }, []);
 
   if (bookingsQuery.isError || therapyQuery.isError) return <div className="card-soft p-5 text-center"><p className="t-head">Не удалось загрузить терапию</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void Promise.all([bookingsQuery.refetch(), therapyQuery.refetch()])} className="btn mt-4">Повторить</button></div>;
-  if (bookingsQuery.isLoading || therapyQuery.isLoading || !therapy) return <div className="space-y-3 py-8"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>;
+  if (bookingsQuery.isLoading || therapyQuery.isLoading || !therapy) return <div className="py-6"><SkeletonCards count={3} /></div>;
   // Интерфейс терапии показывается всегда — статистика копится независимо от терапевта.
   return <>
     <TherapyDashboard therapists={therapists} next={next} bookings={ordered} therapy={therapy} reflectionSaving={save.isPending} onReflection={(reflection) => save.mutate({ reflection })} onNotesModule={(notesModule) => save.mutate({ notesModule })} onMood={(mood, emotions) => save.mutate({ mood, emotions })} onBoard={(board) => save.mutate({ board })} onGuideSeen={() => save.mutate({ tutorialSeen: true })} onWheel={(answers) => save.mutate({ wheel: answers })} />

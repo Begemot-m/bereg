@@ -13,7 +13,7 @@ import { ClientAvatar } from "@/components/client-avatar";
 import { InviteShare } from "@/components/invite-share";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
-import { Disclosure, Input, SkeletonRow } from "@/components/ui";
+import { Disclosure, Input, SkeletonCards } from "@/components/ui";
 import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getPsyInviteToken, inviteDeepLink } from "@/lib/invite";
@@ -207,7 +207,7 @@ function ClientsList() {
       {isError ? (
         <div className="card-soft p-5 text-center"><p className="t-head">Не удалось загрузить клиентов</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void refetch()} className="btn mt-4">Повторить</button></div>
       ) : isLoading ? (
-        <div className="space-y-3"><SkeletonRow /><SkeletonRow /><SkeletonRow /></div>
+        <SkeletonCards count={3} />
       ) : clients.length === 0 ? (
         // Пустой раздел раньше отвечал «Нет клиентов в этом фильтре» — новичок
         // упирался в это и уходил. Теперь тут прямое предложение первого шага.

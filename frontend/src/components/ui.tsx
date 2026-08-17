@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type MouseEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { useEffect, useRef, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type MouseEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
 import { tap } from "@/lib/haptics";
@@ -101,19 +101,64 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
   );
 }
 
-export function Spinner({ label }: { label?: string }) {
+// Кольцо в тиффани: вращение и «дыхание» ядра живут в CSS (globals.css),
+// поэтому анимация не спотыкается о ре-рендеры React.
+export function SpinRing({ size = 28 }: { size?: number }) {
+  const ring = Math.max(3, Math.round(size / 8));
   return (
-    <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--muted)]">
-      <span className="flex gap-1">
-        {[0, 1, 2].map((i) => <span key={i} className="h-2 w-2 rounded-full" style={{ background: "var(--ink)", animation: "pulse-soft 1s ease-in-out infinite", animationDelay: `${i * 0.15}s` }} />)}
-      </span>
+    <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }} aria-hidden>
+      <span className="spin-ring absolute inset-0" style={{ "--ring-w": `${ring}px` } as CSSProperties} />
+      <span className="spin-core block rounded-full" style={{ width: Math.round(size / 4.5), height: Math.round(size / 4.5), background: "var(--tiffany-edge)" }} />
+    </span>
+  );
+}
+
+export function Spinner({ label, size = 24 }: { label?: string; size?: number }) {
+  return (
+    <div className="flex items-center gap-2.5 text-[13px] font-semibold text-[var(--muted)]" role="status">
+      <SpinRing size={size} />
       {label ?? "Загрузка"}
+    </div>
+  );
+}
+
+// Пустой экран в ожидании ответа: кольцо по центру и одна строка о том, чего ждём.
+export function PageLoader({ label = "Загружаем" }: { label?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-14" role="status">
+      <SpinRing size={46} />
+      <p className="text-[13px] font-bold text-[var(--muted)]">{label}</p>
     </div>
   );
 }
 
 export function SkeletonRow() {
   return <div className="skeleton h-16" />;
+}
+
+// Карточка, которой ещё нет: та же геометрия, что у будущей — аватар слева,
+// строки справа. Экран не прыгает, когда данные приезжают.
+export function SkeletonCard({ lines = 2, delay = 0 }: { lines?: number; delay?: number }) {
+  return (
+    <div className="card-nested flex items-center gap-3 p-3" style={{ "--sk-delay": `${delay}s` } as CSSProperties}>
+      <span className="skeleton h-11 w-11 shrink-0" style={{ borderRadius: 13 }} />
+      <span className="flex min-w-0 flex-1 flex-col gap-2">
+        {Array.from({ length: lines }).map((_, i) => (
+          <span key={i} className="skeleton block h-3" style={{ width: i === 0 ? "58%" : "34%", borderRadius: 8 }} />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+// Пачка скелетон-карточек с лесенкой задержек: блики бегут не в унисон, и
+// ожидание читается как поток, а не как мигающая таблица.
+export function SkeletonCards({ count = 3 }: { count?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, i) => <SkeletonCard key={i} delay={i * 0.14} />)}
+    </div>
+  );
 }
 
 // Разворачиваемый блок. При открытии сам подкручивает экран так,

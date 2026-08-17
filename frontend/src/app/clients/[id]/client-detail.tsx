@@ -16,7 +16,7 @@ import { TherapistBoardView } from "@/components/therapy-work";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
 import { NewSlotCell, SlotCell, useDayWindows } from "@/components/week-windows";
-import { Disclosure, Input, Spinner, Textarea } from "@/components/ui";
+import { Disclosure, Input, PageLoader, Textarea } from "@/components/ui";
 import { InviteShare } from "@/components/invite-share";
 import {
   deleteClient,
@@ -140,7 +140,7 @@ export function ClientDetail() {
       <button onClick={() => void refetch()} className="btn btn-accent mt-4">Повторить</button>
     </div>
   );
-  if (isLoading || !client) return <div className="pt-10"><Spinner /></div>;
+  if (isLoading || !client) return <PageLoader label="Открываем карточку" />;
 
   const dstatus = derivedStatus(client);
   const st = STATUS_TONE[dstatus];

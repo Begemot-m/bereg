@@ -26,7 +26,7 @@ const WorkHoursEditor = dynamic(() => import("@/components/work-hours").then((m)
   loading: () => <div className="skeleton h-64" />,
 });
 import { useCancelLockDays } from "@/lib/cancel-policy";
-import { Button, Card, Disclosure, SkeletonRow } from "@/components/ui";
+import { Button, Card, Disclosure, SkeletonCards } from "@/components/ui";
 import { createAppointment, listAppointments, type ApptFormat } from "@/lib/appointments";
 import { select, success, tap } from "@/lib/haptics";
 import { createClient, listClients } from "@/lib/clients";
@@ -281,7 +281,7 @@ function PsySessions() {
 
         {!calOpen && view === "soon" && (
           isLoading ? (
-            <div className="space-y-3"><SkeletonRow /><SkeletonRow /></div>
+            <SkeletonCards count={2} />
           ) : selDay ? (
             // День выбран сверху — весь день окнами: свободные и занятые, как в календаре.
             <DayAgenda key={selDay} date={zoneDay(selDay)} today={selDay === todayY} />

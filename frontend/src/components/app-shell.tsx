@@ -9,6 +9,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { AuthGate } from "@/components/auth-gate";
 import { Icon, type IconName } from "@/components/icons";
+import { LoadingBar } from "@/components/loading-bar";
 import { Onboarding } from "@/components/onboarding";
 import { startParam, target } from "@/components/start-route";
 // Экскурсия по разделам запускается вручную и редко, а лежала в бандле
@@ -417,6 +418,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Колонка приложения: скроллится только контент; меню закреплено. */}
       <div className="relative flex h-full flex-col @md:ml-[248px]">
+        <LoadingBar />
         {/* Мобайл: верхней панели нет — она мешала в Telegram (тянулась при скролле). */}
 
         {/* Контент — единственная прокручиваемая область (отступы под чёлку и меню) */}

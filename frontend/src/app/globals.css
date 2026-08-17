@@ -634,14 +634,73 @@ h1, h2, h3, .font-tight {
 .hint-slide { animation: hint-slide 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .hint-slide { animation: none; opacity: .5; } }
 
+/* Ожидание данных говорит одним голосом: тиффани-кольцо там, где формы ещё нет,
+   и скелетон формой будущей карточки там, где она известна. Серый пульсирующий
+   прямоугольник читался как сломанный блок, а не как «сейчас приедет». */
 .skeleton {
-  background: linear-gradient(90deg, rgba(32,28,24,.06) 25%, rgba(32,28,24,.12) 37%, rgba(32,28,24,.06) 63%);
-  background-size: 400% 100%;
-  animation: shimmer 1.4s ease infinite;
-  border: var(--bw-lg) solid var(--stroke);
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--tiffany-soft) 65%, #fff);
+  border: var(--bw-lg) solid color-mix(in srgb, var(--tiffany-edge) 20%, transparent);
   border-radius: var(--r-block);
 }
-@keyframes shimmer { to { background-position: -200% 0; } }
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .9), transparent);
+  /* Задержку задаёт карточка через --sk-delay: в списке блики идут лесенкой. */
+  animation: skeleton-sweep 1.5s cubic-bezier(.4, 0, .2, 1) var(--sk-delay, 0s) infinite;
+}
+
+@keyframes skeleton-sweep { to { transform: translateX(100%); } }
+
+/* Кольцо: конический градиент под кольцевой маской — крутится сам GPU, JS не
+   участвует. Толщина задаётся через --ring-w, поэтому один класс годится и на
+   16 px в строке, и на 46 px посреди пустого экрана. */
+.spin-ring {
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--tiffany) 45%, transparent) 130deg,
+    var(--tiffany-edge) 320deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-w, 4px)), #000 calc(100% - var(--ring-w, 4px)));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-w, 4px)), #000 calc(100% - var(--ring-w, 4px)));
+  animation: spin-ring .95s linear infinite;
+  will-change: transform;
+}
+@keyframes spin-ring { to { transform: rotate(1turn); } }
+
+/* Ядро внутри кольца дышит вдвое медленнее вращения: два ритма вместо одного —
+   и ожидание перестаёт выглядеть механическим. */
+.spin-core { animation: spin-core 1.9s ease-in-out infinite; will-change: transform; }
+@keyframes spin-core {
+  0%, 100% { transform: scale(.62); opacity: .5; }
+  50%      { transform: scale(1); opacity: 1; }
+}
+
+/* Полоса активного запроса под чёлкой: блик пробегает слева направо. */
+.load-bar {
+  background: linear-gradient(90deg, transparent, var(--tiffany), var(--tiffany-edge), var(--tiffany), transparent);
+  background-size: 45% 100%;
+  background-repeat: no-repeat;
+  animation: load-bar 1.15s cubic-bezier(.65, 0, .35, 1) infinite;
+}
+@keyframes load-bar {
+  from { background-position: -45% 0; }
+  to   { background-position: 145% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+  .spin-ring { animation-duration: 2.6s; }
+  .spin-core { animation: none; }
+  .load-bar { animation-duration: 2.4s; }
+}
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
