@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { confirmGate, LEAD_TRIAL_DAYS, NEEDS_PRO, startLeadTrial } from "@/lib/server/access";
 import { APPT_CLIENT_SELECT, apptWithPhoto } from "@/lib/server/clients";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -40,6 +41,29 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       return NextResponse.json({ error: "invalid startsAt" }, { status: 422 });
     }
 
+    // Подтверждение записи — единственное место, где платформа берёт деньги за
+    // приведённого человека. Пока есть свободные места из трёх бесплатных,
+    // подтверждаем молча; когда они кончились, первый раз в жизни включаем
+    // пробный PRO на 30 дней прямо здесь — заставлять клиента ждать, пока
+    // специалист разберётся с оплатой, нельзя. Дальше нужна подписка.
+    let leadTrial: Date | null = null;
+    if (body.confirm && !appt.confirmedAt) {
+      const gate = await confirmGate(user.id);
+      if (!gate.ok) {
+        const started = gate.reason === "lead_trial" && (await startLeadTrial(user.id));
+        if (!started) return NextResponse.json(NEEDS_PRO, { status: 402 });
+
+        leadTrial = new Date(Date.now() + LEAD_TRIAL_DAYS * 86_400_000);
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            kind: "system",
+            text: `Включили пробный PRO на ${LEAD_TRIAL_DAYS} дней — до ${leadTrial.toLocaleDateString("ru-RU", { timeZone: APP_ZONE, day: "numeric", month: "long" })}. Клиенты без ограничений, записи подтверждаются сразу. Дальше — подписка.`,
+          },
+        });
+      }
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       const row = await tx.appointment.update({
         where: { id: appt.id },
@@ -55,6 +79,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         },
         include: { client: { select: { ...APPT_CLIENT_SELECT, userId: true } } },
       });
+      // Подтверждённый человек занимает место в практике: карточка перестаёт
+      // быть заявкой и начинает считаться в бесплатном лимите.
+      if (body.confirm && !appt.confirmedAt) {
+        await tx.client.updateMany({ where: { id: appt.clientId, pending: true }, data: { pending: false } });
+      }
       if (body.confirm && !appt.confirmedAt && row.client.userId) {
         await tx.notification.create({
           data: {

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { acceptingNewClients, canWorkWithPsy, notifyLimitReached, NOT_ACCEPTING } from "@/lib/server/access";
+import { acceptingNewClients, canWorkWithPsy, notifyLimitReached } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { leadBlocked } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -90,14 +90,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
     }
 
-    // Свободных мест у специалиста нет — самозапись закрыта всем, включая уже
-    // прикреплённых: платформа не должна добавлять работу, за которую он не
-    // может отвечать. Назначенные встречи это не трогает, и записать клиента
-    // руками психолог по-прежнему может.
-    if (!(await acceptingNewClients(psychologistId)).accepting) {
-      await notifyLimitReached(psychologistId);
-      return NextResponse.json(NOT_ACCEPTING, { status: 402 });
-    }
+    // Записаться можно к любому одобренному специалисту, даже если бесплатные
+    // места у него кончились: тариф психолога клиента не касается, а закрытая
+    // запись не даёт специалисту увидеть, что каталог вообще приводит людей.
+    // Деньги стоят дальше — на подтверждении встречи (`confirmGate`). Пока
+    // человек не подтверждён, его карточка помечена `pending` и места не
+    // занимает.
+    const seats = await acceptingNewClients(psychologistId);
+    if (!seats.accepting) await notifyLimitReached(psychologistId);
 
     // Предварительная запись: правило психолога, поэтому проверяем здесь, а не
     // на экране клиента — окно ему мог прислать кто угодно.
@@ -131,6 +131,9 @@ export async function POST(req: NextRequest) {
           name: user.firstName ?? "Клиент",
           link: "joined",
           status: "new",
+          // Новый человек из каталога занимает место только после того, как
+          // специалист подтвердит встречу.
+          pending: !seats.accepting,
         },
       }));
 

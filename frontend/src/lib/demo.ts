@@ -427,13 +427,20 @@ const demoAccepting = (db: DB): boolean => db.sub.pro || db.clients.filter((c) =
 
 const NOT_ACCEPTING = '{"error":"not_accepting","message":"Специалист временно не принимает заявки через платформу"}';
 
+const NEEDS_PRO = `{"error":"needs_pro","message":"Бесплатно можно вести ${FREE_CLIENT_LIMIT} клиентов. Чтобы подтвердить встречу с новым человеком, нужна подписка PRO."}`;
+
+/** Пробный PRO по первой заявке из каталога — как `LEAD_TRIAL_DAYS` на сервере. */
+const LEAD_TRIAL_DAYS = 30;
+
+const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+
 const LIMIT_HEAD = "Заняты все бесплатные карточки";
 
 /** Сорвавшаяся из-за лимита заявка — повод сказать об этом психологу. Раз в сутки. */
 function notifyLimit(db: DB) {
   const day = Date.now() - 86_400_000;
   if (db.notifications.some((n) => n.text.startsWith(LIMIT_HEAD) && new Date(n.createdAt).getTime() > day)) return;
-  notify(db, "psychologist", "system", `${LIMIT_HEAD} (${FREE_CLIENT_LIMIT}) — новые клиенты сейчас не могут к вам записаться, а анкета скрыта из каталога. Подписка снимает лимит и возвращает вас в выдачу.`);
+  notify(db, "psychologist", "system", `${LIMIT_HEAD} (${FREE_CLIENT_LIMIT}) — записаться к вам по-прежнему можно, но подтвердить встречу с новым человеком получится только на PRO. Анкета из каталога никуда не пропадает.`);
 }
 
 /** Ответ /subscription в демо: подписка + окно бесплатного каталога. */
@@ -444,10 +451,11 @@ function subPayload(db: DB) {
   return {
     status,
     trialEndsAt,
-    trialStarted: firstSessionAt(db) !== null,
+    trialStarted: approved !== null,
     currentPeriodEnd,
     pro,
-    catalog: pro || Boolean(catalogUntil && catalogUntil.getTime() > Date.now()),
+    // Размещение бесплатное: одобренная анкета стоит в каталоге всегда.
+    catalog: approved !== null,
     catalogUntil: catalogUntil?.toISOString() ?? null,
     pendingPlan,
     // Скидка за отказ в каталоге: в бою её считает сервер по статусу анкеты,
@@ -1032,6 +1040,17 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       if (body.status === "cancelled") notify(db, "client", "cancel", `Психолог отменил сессию · ${fmtWhen(a.startsAt)}`);
       else if (body.startsAt !== undefined) notify(db, "client", "reschedule", `Психолог перенёс сессию на ${fmtWhen(new Date(String(body.startsAt)).toISOString())}`);
       if (body.confirm && !a.confirmedAt) {
+        // Единственное место, где платформа берёт деньги за приведённого
+        // человека. Пока есть свободные места — подтверждаем молча; когда они
+        // кончились, один раз включаем пробный PRO на 30 дней, дальше нужна
+        // подписка (как в `confirmGate` на сервере).
+        if (!demoAccepting(db)) {
+          if (db.sub.trialEndsAt) throw new Error(`API 402: ${NEEDS_PRO}`);
+          const until = addDays(Date.now(), LEAD_TRIAL_DAYS);
+          db.sub.pro = true;
+          db.sub.trialEndsAt = until.toISOString();
+          notify(db, "psychologist", "system", `Включили пробный PRO на ${LEAD_TRIAL_DAYS} дней — до ${fmtDay(until.toISOString())}. Клиенты без ограничений, записи подтверждаются сразу. Дальше — подписка.`);
+        }
         a.confirmedAt = new Date().toISOString();
         notify(db, "client", "booking", `Встреча подтверждена · ${fmtWhen(a.startsAt)}`);
       }
@@ -1134,8 +1153,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       .map((b) => ({ ...b, cancelLockDays: lock })) as T);
   }
   if (clean === "/my/appointments" && method === "POST") {
-    // Приём закрыт — самозапись не проходит ни у новых, ни у текущих клиентов.
-    if (!demoAccepting(db)) { notifyLimit(db); save(db); throw new Error(`API 402: ${NOT_ACCEPTING}`); }
+    // Записаться можно к любому одобренному специалисту: тариф психолога
+    // клиента не касается. Деньги стоят на подтверждении встречи, а не здесь.
+    if (!demoAccepting(db)) notifyLimit(db);
     const startsAt = new Date(String(body.startsAt));
     const fmt = (body.format as ApptFormat) ?? "online";
     const lead = leadDaysFor(db.work, fmt);

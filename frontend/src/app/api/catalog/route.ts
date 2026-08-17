@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { acceptingByIds, catalogPlacement } from "@/lib/server/access";
+import { activityRank, catalogPlacement } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { buildPsyCards } from "@/lib/server/psy-card";
 import { LIMITS, limited } from "@/lib/server/rate-limit";
@@ -39,45 +39,29 @@ export async function GET(req: NextRequest) {
     take: one > 0 ? 1 : 200,
   });
 
-  // Одобренной анкеты мало: место в каталоге держат либо оплаченный PRO, либо
-  // бесплатные 14 дней после одобрения. Кончилось и то и другое — карточка
-  // уходит из выдачи, хотя сама анкета остаётся подтверждённой.
-  // По прямой ссылке (?id=) карточка открывается и без размещения: человек
-  // пришёл к конкретному специалисту, а не искал его в каталоге.
-  const subs = await prisma.subscription.findMany({
-    where: { psychologistId: { in: found.map((row) => row.userId) } },
-    select: { psychologistId: true, status: true, currentPeriodEnd: true },
-  });
-  const subOf = new Map(subs.map((row) => [row.psychologistId, row]));
+  // Размещение бесплатное: анкета стоит в каталоге у всех, кого одобрили.
+  // Подписка не добавляет ни места в выдаче, ни строчки выше — иначе
+  // специалист, которого не видно, никогда не узнает, приводит ли платформа
+  // людей, и платить ему не за что.
+  const rows = one > 0 ? found : found.filter((row) => catalogPlacement({ status: row.status, reviewedAt: row.reviewedAt }).placed);
+  const ids = rows.map((row) => row.userId);
 
-  // Свободные места кончились — карточки в выдаче нет: незачем показывать
-  // человеку специалиста, у которого он упрётся в отказ на кнопке «записаться».
-  // Место освободилось или подключён PRO — карточка возвращается сама.
-  const ids = found.map((row) => row.userId);
-  const proIds = new Set(
-    subs
-      .filter((row) => row.status === "active" && (!row.currentPeriodEnd || row.currentPeriodEnd.getTime() > Date.now()))
-      .map((row) => row.psychologistId),
-  );
-  const accepting = await acceptingByIds(ids, proIds);
-
-  const rows = one > 0
-    ? found
-    : found.filter((row) => {
-        const sub = subOf.get(row.userId);
-        const placed = catalogPlacement({
-          status: row.status,
-          reviewedAt: row.reviewedAt,
-          subStatus: sub?.status,
-          currentPeriodEnd: sub?.currentPeriodEnd,
-        }).placed;
-        return placed && accepting.has(row.userId);
-      });
+  // Порядок решает живость, а не деньги: выше тот, кто чаще заходит и, значит,
+  // ответит на запись. При равной активности остаётся прежний порядок по цене.
+  if (one <= 0) {
+    const rank = await activityRank(ids);
+    const scoreOf = (id: number) => rank.get(id) ?? { hits: 0, last: 0 };
+    rows.sort((a, b) => {
+      const x = scoreOf(a.userId);
+      const y = scoreOf(b.userId);
+      return y.hits - x.hits || y.last - x.last || a.sessionPrice - b.sessionPrice;
+    });
+  }
 
   // Карточку собирает общий сборщик (`lib/server/psy-card`): раздел «Терапия»
   // отдаёт ровно те же поля, иначе закреплённый специалист выглядит не так,
-  // как та же карточка в каталоге. Флаг приёма едет вместе с карточкой —
-  // по прямой ссылке она открывается, но затенённой.
+  // как та же карточка в каталоге. Записаться можно к каждому, кто в выдаче:
+  // упереться человек может только в занятое окно, а не в чужой тариф.
   const cards = await buildPsyCards(rows);
-  return NextResponse.json(cards.map((card) => ({ ...card, accepting: accepting.has(card.id) })));
+  return NextResponse.json(cards.map((card) => ({ ...card, accepting: true })));
 }

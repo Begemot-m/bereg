@@ -10,15 +10,21 @@ import { prisma } from "@/lib/server/prisma";
 export const FREE_CLIENT_LIMIT = 3;
 
 /**
- * Сколько длится пробный PRO. Отсчёт идёт не от регистрации, а от первой
- * проведённой сессии: между регистрацией и первым клиентом стоит модерация
- * анкеты, и триал от `createdAt` сгорал раньше, чем человек успевал увидеть,
- * за что тут платят.
+ * Пробный PRO на перенос практики. Отсчёт идёт от одобрения анкеты: до
+ * верификации человеку нечего переносить, а от `createdAt` триал сгорал прямо
+ * в очереди модерации. Дата берётся из `reviewedAt`, поэтому у тех, кто прошёл
+ * верификацию раньше, счётчик продолжает идти с их собственного дня, а не
+ * запускается заново.
  */
-const TRIAL_DAYS = 14;
+export const TRIAL_DAYS = 14;
 
-/** Сколько анкета стоит в каталоге бесплатно после одобрения. */
-export const CATALOG_FREE_DAYS = 14;
+/**
+ * Пробный PRO по первой заявке из каталога. Даётся один раз и в тот момент,
+ * когда специалист впервые упирается в подтверждение записи: до этого он не
+ * знает, приводит ли платформа людей, и платит вслепую. Тридцати дней хватает
+ * провести человека и увидеть, за что берутся деньги.
+ */
+export const LEAD_TRIAL_DAYS = 30;
 
 /** Что известно о размещении одной анкеты: её статус и подписка владельца. */
 export type PlacementInput = {
@@ -31,15 +37,18 @@ export type PlacementInput = {
 export type Placement = {
   /** Видна ли карточка в каталоге прямо сейчас. */
   placed: boolean;
-  /** Докуда бесплатное размещение после одобрения. */
+  /** Докуда идёт пробный PRO после одобрения. */
   freeUntil: Date | null;
-  reason: "paid" | "free" | "expired" | "not_approved";
+  reason: "paid" | "free" | "not_approved";
 };
 
 /**
- * Одно правило размещения на всю платформу: карточка стоит в каталоге, если
- * анкета одобрена и либо оплачен PRO, либо ещё идут бесплатные 14 дней с
- * момента одобрения. По нему живут и `/api/catalog`, и ответ `/subscription`.
+ * Одно правило размещения на всю платформу: карточка стоит в каталоге у всех,
+ * чью анкету одобрили. Подписка на это не влияет — специалист, которого не
+ * видно, не приведёт клиента и никогда не узнает, работает ли канал вообще.
+ * Платформа берёт деньги не за место в списке, а за подтверждение записи и за
+ * клиентов сверх бесплатных трёх. Порядок в выдаче тоже не покупается: выше
+ * стоят те, кто чаще заходит (`activityRank`).
  */
 export function catalogPlacement(input: PlacementInput, now = Date.now()): Placement {
   if (input.status !== "approved") return { placed: false, freeUntil: null, reason: "not_approved" };
@@ -47,25 +56,24 @@ export function catalogPlacement(input: PlacementInput, now = Date.now()): Place
   let freeUntil: Date | null = null;
   if (input.reviewedAt) {
     freeUntil = new Date(input.reviewedAt);
-    freeUntil.setDate(freeUntil.getDate() + CATALOG_FREE_DAYS);
+    freeUntil.setDate(freeUntil.getDate() + TRIAL_DAYS);
   }
-  const freeActive = Boolean(freeUntil && freeUntil.getTime() > now);
   const paid = input.subStatus === "active" && (!input.currentPeriodEnd || input.currentPeriodEnd.getTime() > now);
 
-  if (paid) return { placed: true, freeUntil, reason: "paid" };
-  if (freeActive) return { placed: true, freeUntil, reason: "free" };
-  return { placed: false, freeUntil, reason: "expired" };
+  return { placed: true, freeUntil, reason: paid ? "paid" : "free" };
 }
 
 export type Access = {
   pro: boolean;
-  reason: "trial" | "paid" | "granted" | "none";
+  reason: "trial" | "lead_trial" | "paid" | "granted" | "none";
   /** Когда кончится пробный PRO. `null` — триал не идёт или ещё не начался. */
   trialEndsAt: Date | null;
-  /** Была ли первая проведённая сессия, то есть запущен ли отсчёт триала. */
+  /** Прошла ли верификация, то есть запущен ли отсчёт пробных дней. */
   trialStarted: boolean;
+  /** Потрачен ли разовый пробный PRO по первой заявке из каталога. */
+  leadTrialUsed: boolean;
   currentPeriodEnd: Date | null;
-  /** До какого момента карточка стоит в каталоге бесплатно. */
+  /** До какого момента идёт пробный PRO после одобрения анкеты. */
   catalogUntil: Date | null;
   /** Показывать ли анкету в каталоге прямо сейчас. */
   catalog: boolean;
@@ -76,35 +84,30 @@ const NO_ACCESS: Access = {
   reason: "none",
   trialEndsAt: null,
   trialStarted: false,
+  leadTrialUsed: false,
   currentPeriodEnd: null,
   catalogUntil: null,
   catalog: false,
 };
 
-/**
- * Момент первой проведённой сессии. Отменённые не считаются: иначе триал
- * запускался бы записью, которой не было.
- */
-async function firstSessionAt(userId: number): Promise<Date | null> {
-  const first = await prisma.appointment.findFirst({
-    // Встречи с карточкой-примером триал не запускают: она заведена
-    // платформой, и её «история» — рисунок, а не работа.
-    where: { psychologistId: userId, status: { not: "cancelled" }, startsAt: { lte: new Date() }, client: { demo: false } },
-    orderBy: { startsAt: "asc" },
-    select: { startsAt: true },
-  });
-  return first?.startsAt ?? null;
+/** Конец пробного периода: дата старта плюс столько-то дней, или `null`. */
+function endOfTrial(startedAt: Date | null | undefined, days: number): Date | null {
+  if (!startedAt) return null;
+  const end = new Date(startedAt);
+  end.setDate(end.getDate() + days);
+  return end;
 }
 
 /**
- * Есть ли у психолога доступ PRO. Три пути: идёт триал, оплачена подписка,
- * либо доступ выдан вручную из админки (тот же `status: active`, но с
- * пометкой `grantedBy`). Размещение в каталоге входит в PRO, а до него —
- * первые 14 дней после одобрения анкеты.
+ * Есть ли у психолога доступ PRO. Пути: идут пробные 14 дней после
+ * верификации, идут пробные 30 дней по первой заявке из каталога, оплачена
+ * подписка, либо доступ выдан вручную из админки (тот же `status: active`, но
+ * с пометкой `grantedBy`). Размещение в каталоге в PRO не входит — оно
+ * бесплатное у всех одобренных.
  */
 export async function access(userId: number): Promise<Access> {
   const [user, sub, psy] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true, catalogTrialAt: true } }),
     prisma.subscription.findUnique({ where: { psychologistId: userId } }),
     prisma.psyProfile.findUnique({ where: { userId }, select: { status: true, reviewedAt: true } }),
   ]);
@@ -112,13 +115,12 @@ export async function access(userId: number): Promise<Access> {
 
   const now = Date.now();
 
-  // Бесплатные 14 дней в каталоге идут от одобрения анкеты и не зависят от
-  // подписки: пока они не вышли, карточка стоит даже на бесплатном тарифе.
   const placement = catalogPlacement(
     { status: psy?.status, reviewedAt: psy?.reviewedAt, subStatus: sub?.status, currentPeriodEnd: sub?.currentPeriodEnd },
     now,
   );
   const catalogUntil = placement.freeUntil;
+  const leadTrialUsed = Boolean(user.catalogTrialAt);
 
   const paidActive = sub?.status === "active" && (!sub.currentPeriodEnd || sub.currentPeriodEnd.getTime() > now);
   if (paidActive) {
@@ -127,32 +129,35 @@ export async function access(userId: number): Promise<Access> {
       reason: sub?.grantedBy ? "granted" : "paid",
       trialEndsAt: null,
       trialStarted: true,
+      leadTrialUsed,
       currentPeriodEnd: sub?.currentPeriodEnd ?? null,
       catalogUntil,
       catalog: true,
     };
   }
 
-  // Триал только пока подписки не было вовсе: иначе истёкшая подписка
-  // возвращала бы человека в бесплатный пробный период по кругу.
-  const startedAt = sub ? null : await firstSessionAt(userId);
-  let trialEndsAt: Date | null = null;
-  if (startedAt) {
-    trialEndsAt = new Date(startedAt);
-    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
-  }
-  const trialActive = Boolean(trialEndsAt && trialEndsAt.getTime() > now);
+  // Оба триала привязаны к своей дате в базе, а не к «была ли подписка»:
+  // истёкшая оплата не возвращает человека в пробный период по кругу — те дни
+  // к тому моменту давно прошли сами.
+  const afterVerify = psy?.status === "approved" ? endOfTrial(psy.reviewedAt, TRIAL_DAYS) : null;
+  const afterLead = endOfTrial(user.catalogTrialAt, LEAD_TRIAL_DAYS);
+  const verifyActive = Boolean(afterVerify && afterVerify.getTime() > now);
+  const leadActive = Boolean(afterLead && afterLead.getTime() > now);
+
+  // Показываем тот, что кончится позже: человеку важен остаток доступа, а не
+  // из какого повода он взялся.
+  const ends = [afterVerify, afterLead].filter((d): d is Date => Boolean(d) && d!.getTime() > now);
+  const trialEndsAt = ends.length ? new Date(Math.max(...ends.map((d) => d.getTime()))) : null;
 
   return {
-    pro: trialActive,
-    reason: trialActive ? "trial" : "none",
-    trialEndsAt: trialActive ? trialEndsAt : null,
-    trialStarted: Boolean(startedAt),
+    pro: verifyActive || leadActive,
+    reason: leadActive && !verifyActive ? "lead_trial" : verifyActive ? "trial" : "none",
+    trialEndsAt,
+    trialStarted: Boolean(afterVerify),
+    leadTrialUsed,
     currentPeriodEnd: sub?.currentPeriodEnd ?? null,
     catalogUntil,
-    // Пробный PRO — это тоже PRO: пока он идёт, карточка стоит в каталоге,
-    // даже если бесплатные 14 дней после одобрения уже прошли.
-    catalog: placement.placed || (trialActive && psy?.status === "approved"),
+    catalog: placement.placed,
   };
 }
 
@@ -164,10 +169,78 @@ export async function canAddClient(userId: number): Promise<{ ok: boolean; used:
   const { pro } = await access(userId);
   if (pro) return { ok: true, used: 0, limit: null };
 
-  // Карточка-пример места не занимает: она заведена платформой, а не работой.
-  const used = await prisma.client.count({ where: { psychologistId: userId, demo: false } });
+  const used = await countSeats(userId);
   return { ok: used < FREE_CLIENT_LIMIT, used, limit: FREE_CLIENT_LIMIT };
 }
+
+/**
+ * Сколько бесплатных мест занято. Карточка-пример не в счёт — она заведена
+ * платформой, а не работой. Заявка из каталога, которую ещё не подтвердили,
+ * тоже не в счёт (`pending`): человек постучался, но в практику не попал, и
+ * место за ним держать не за что.
+ */
+export function countSeats(userId: number): Promise<number> {
+  return prisma.client.count({ where: { psychologistId: userId, demo: false, pending: false } });
+}
+
+export type ConfirmGate = {
+  ok: boolean;
+  /** Чем подтверждение оплачено: подписка, свободное место или разовый триал. */
+  reason: "pro" | "seat" | "lead_trial" | "needs_pro";
+  used: number;
+  limit: number;
+  /** Доступен ли разовый пробный PRO на 30 дней прямо сейчас. */
+  trialAvailable: boolean;
+};
+
+/**
+ * Можно ли подтвердить запись, пришедшую снаружи. Это единственное место, где
+ * платформа берёт деньги за приведённого человека, поэтому правило одно на все
+ * входы.
+ *
+ * Порядок такой: у PRO вопросов нет; на бесплатном тарифе есть три места, и
+ * пока они не заняты, подтверждение ничего не стоит; когда мест не осталось —
+ * один раз в жизни даётся пробный PRO на 30 дней, дальше нужна подписка.
+ * Триал выдаётся именно здесь, а не при первой заявке вообще: пока у человека
+ * есть свободные места, тратить на него пробный месяц незачем.
+ */
+export async function confirmGate(userId: number): Promise<ConfirmGate> {
+  const acc = await access(userId);
+  const used = await countSeats(userId);
+  if (acc.pro) return { ok: true, reason: "pro", used, limit: FREE_CLIENT_LIMIT, trialAvailable: false };
+  if (used < FREE_CLIENT_LIMIT) {
+    return { ok: true, reason: "seat", used, limit: FREE_CLIENT_LIMIT, trialAvailable: !acc.leadTrialUsed };
+  }
+  return {
+    ok: false,
+    reason: acc.leadTrialUsed ? "needs_pro" : "lead_trial",
+    used,
+    limit: FREE_CLIENT_LIMIT,
+    trialAvailable: !acc.leadTrialUsed,
+  };
+}
+
+/**
+ * Включить разовый пробный PRO на 30 дней. Пишем дату только если её не было:
+ * второй раз пробный период не начинается, даже если два подтверждения пришли
+ * одновременно.
+ */
+export async function startLeadTrial(userId: number): Promise<boolean> {
+  const done = await prisma.user.updateMany({
+    where: { id: userId, catalogTrialAt: null },
+    data: { catalogTrialAt: new Date() },
+  });
+  return done.count > 0;
+}
+
+/**
+ * Отказ на подтверждении записи. Видит его только специалист, поэтому здесь
+ * причина названа прямо — в отличие от `NOT_ACCEPTING`, который читает клиент.
+ */
+export const NEEDS_PRO = {
+  error: "needs_pro",
+  message: `Бесплатно можно вести ${FREE_CLIENT_LIMIT} клиентов. Чтобы подтвердить встречу с новым человеком, нужна подписка PRO.`,
+} as const;
 
 /** Что видит клиент, когда специалист закрыт: причину не называем — это его дело. */
 export const NOT_ACCEPTING = {
@@ -194,8 +267,7 @@ export type Accepting = {
  */
 export async function acceptingNewClients(userId: number): Promise<Accepting> {
   const { pro } = await access(userId);
-  // Карточка-пример места не занимает: она заведена платформой, а не работой.
-  const used = await prisma.client.count({ where: { psychologistId: userId, demo: false } });
+  const used = await countSeats(userId);
   return { accepting: hasFreeSeat(pro, used), used, limit: pro ? null : FREE_CLIENT_LIMIT, pro };
 }
 
@@ -221,7 +293,7 @@ export async function notifyLimitReached(psychologistId: number) {
     data: {
       userId: psychologistId,
       kind: "system",
-      text: `${head} (${FREE_CLIENT_LIMIT}) — новые клиенты сейчас не могут к вам записаться, а анкета скрыта из каталога. Подписка снимает лимит и возвращает вас в выдачу.`,
+      text: `${head} (${FREE_CLIENT_LIMIT}) — записаться к вам по-прежнему можно, но подтвердить встречу с новым человеком получится только на PRO. Анкета из каталога никуда не пропадает.`,
     },
   });
 }
@@ -231,11 +303,39 @@ export async function acceptingByIds(ids: number[], proIds: Set<number>): Promis
   if (ids.length === 0) return new Set();
   const counts = await prisma.client.groupBy({
     by: ["psychologistId"],
-    where: { psychologistId: { in: ids } },
+    where: { psychologistId: { in: ids }, demo: false, pending: false },
     _count: { _all: true },
   });
   const usedOf = new Map(counts.map((row) => [row.psychologistId as number, row._count._all]));
   return new Set(ids.filter((id) => hasFreeSeat(proIds.has(id), usedOf.get(id) ?? 0)));
+}
+
+/** За какой срок считаем активность специалиста для порядка в каталоге. */
+export const ACTIVITY_WINDOW_DAYS = 30;
+
+/**
+ * Порядок в каталоге. Деньги на него не влияют: выше стоит тот, кто чаще
+ * заходит, потому что человеку, который выбирает специалиста, важно попасть к
+ * живому — отвечающему на записи, а не к анкете, брошенной полгода назад.
+ * Балл — число заходов за месяц; при равенстве выигрывает тот, кто заходил
+ * недавнее.
+ */
+export async function activityRank(ids: number[]): Promise<Map<number, { hits: number; last: number }>> {
+  const rank = new Map<number, { hits: number; last: number }>();
+  if (ids.length === 0) return rank;
+
+  const since = new Date(Date.now() - ACTIVITY_WINDOW_DAYS * 86_400_000);
+  const rows = await prisma.visit.groupBy({
+    by: ["userId"],
+    where: { userId: { in: ids }, createdAt: { gte: since } },
+    _count: { _all: true },
+    _max: { createdAt: true },
+  });
+  for (const row of rows) {
+    if (row.userId == null) continue;
+    rank.set(row.userId, { hits: row._count._all, last: row._max.createdAt?.getTime() ?? 0 });
+  }
+  return rank;
 }
 
 /**
