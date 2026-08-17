@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { ConfirmActions } from "@/components/confirm-actions";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
@@ -16,7 +17,7 @@ import { WorkStats } from "@/components/work-stats";
 import { motion } from "motion/react";
 
 import { Stagger, StaggerItem } from "@/components/motion";
-import { awaitsConfirm, confirmAppointment, listAppointments, type Appointment } from "@/lib/appointments";
+import { awaitsConfirm, confirmAppointment, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
 import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
@@ -177,24 +178,40 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
     // сразу, а не прячется в кабинете.
     onError: (e) => { if (isNeedsPro(e)) setNeedsPro(true); },
   });
+  const decline = useMutation({
+    mutationFn: (id: number) => updateAppointment(id, { status: "cancelled" }),
+    onSuccess: () => { tap(); qc.invalidateQueries({ queryKey: ["appointments"] }); },
+  });
   if (items.length === 0) return null;
 
   return (
-    <section className="card-soft space-y-2.5 p-4" style={{ background: "var(--amber-soft)", borderColor: "var(--amber-edge)" }}>
+    <section className="card-soft space-y-2.5 p-4" style={{ background: "var(--green-soft)", borderColor: "var(--green-edge)" }}>
       <div className="flex items-center gap-2">
-        <Icon name="clock" width={15} weight="bold" color="var(--amber-edge)" />
-        <p className="t-head">К вам записались — подтвердите встречу</p>
+        <Icon name="calendar" width={15} weight="bold" color="var(--green-edge)" />
+        <p className="t-head">К вам записался клиент</p>
       </div>
       {items.map((a) => (
-        <div key={a.id} className="flex items-center gap-2.5 rounded-[13px] bg-white px-3 py-2.5">
-          <ClientAvatar name={a.client.name} photo={a.client.photo} className="h-9 w-9 rounded-[11px] text-[13px] font-black" style={{ background: "var(--paper)" }} />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13.5px] font-black leading-tight">{a.client.name}</span>
-            <span className="t-cap block">{cap(dateTimeF.format(new Date(a.startsAt)))}</span>
-          </span>
-          <button onClick={() => confirm.mutate(a.id)} disabled={confirm.isPending} className="btn btn-accent shrink-0">
-            {confirm.isPending && confirm.variables === a.id ? "Минуту…" : "Подтвердить"}
-          </button>
+        <div key={a.id} className="rounded-[13px] bg-white px-3 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <ClientAvatar name={a.client.name} photo={a.client.photo} className="h-9 w-9 rounded-[11px] text-[13px] font-black" style={{ background: "var(--paper)" }} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-black leading-tight">{a.client.name}</span>
+              {/* Время встречи — главное в этой карточке: по нему решают, отвечать
+                  «да» или «нет». Мелкой подписью оно терялось. */}
+              <span className="mt-1 flex items-center gap-1.5">
+                <Icon name="clock" width={13} weight="bold" color="var(--green-edge)" />
+                <span className="text-[13.5px] font-black leading-tight" style={{ color: "var(--green-edge)" }}>{cap(dateTimeF.format(new Date(a.startsAt)))}</span>
+              </span>
+            </span>
+          </div>
+          <div className="mt-2.5">
+            <ConfirmActions
+              onConfirm={() => confirm.mutate(a.id)}
+              onDecline={() => decline.mutate(a.id)}
+              confirming={confirm.isPending && confirm.variables === a.id}
+              declining={decline.isPending && decline.variables === a.id}
+            />
+          </div>
         </div>
       ))}
       {/* К человеку записались, а подписки нет — самый честный момент

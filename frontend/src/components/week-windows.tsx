@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ClientAvatar } from "@/components/client-avatar";
+import { ConfirmActions } from "@/components/confirm-actions";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
@@ -461,19 +462,17 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           </div>
         )}
         {!slot.past && awaitsConfirm(slot.appt) && (
-          <div className="space-y-2 rounded-[11px] px-2.5 py-2" style={{ background: "var(--amber-soft)" }}>
-            <div className="flex items-center gap-1.5">
-              <Icon name="clock" width={12} weight="bold" color="var(--amber-edge)" />
-              <span className="text-[11.5px] font-black" style={{ color: "var(--amber-edge)" }}>Клиент записался сам — ждёт подтверждения</span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 rounded-[11px] px-2.5 py-2" style={{ background: "var(--amber-edge)" }}>
+              <Icon name="clock" width={13} weight="bold" color="#fff" />
+              <span className="text-[11.5px] font-black text-white">Клиент записался сам — ждёт подтверждения</span>
             </div>
-            <button
-              onClick={() => confirm.mutate()}
-              disabled={confirm.isPending}
-              className={`${FLAT_BTN} gap-1.5`}
-              style={{ ...THIN_BTN, background: "var(--green-edge)", borderColor: "var(--green-edge)", color: "#fff" }}
-            >
-              <Icon name="check" width={12} weight="bold" color="#fff" /> {confirm.isPending ? "Подтверждаем…" : "Подтвердить встречу"}
-            </button>
+            <ConfirmActions
+              onConfirm={() => confirm.mutate()}
+              onDecline={() => cancel.mutate()}
+              confirming={confirm.isPending}
+              declining={cancel.isPending}
+            />
           </div>
         )}
         <ConfirmProPaywall open={needsPro} onClose={() => setNeedsPro(false)} />
