@@ -21,6 +21,7 @@ import { InviteShare } from "@/components/invite-share";
 import {
   deleteClient,
   derivedStatus,
+  detachClient,
   formatContact,
   getClient,
   inviteClient,
@@ -472,6 +473,8 @@ function RemoveClient({ client }: { client: Client }) {
 function ClientConnect({ client, onChanged }: { client: Client; onChanged: () => void }) {
   const link = inviteLink(client);
   const invite = useMutation({ mutationFn: () => inviteClient(client.id), onSuccess: () => { success(); onChanged(); } });
+  const [detaching, setDetaching] = useState(false);
+  const detach = useMutation({ mutationFn: () => detachClient(client.id), onSuccess: () => { success(); setDetaching(false); onChanged(); } });
 
   return (
     <div className="card-plain mt-2.5 p-3.5">
@@ -479,14 +482,33 @@ function ClientConnect({ client, onChanged }: { client: Client; onChanged: () =>
           «Редактировать» — два места для одного и того же только путали. */}
       <div>
         {client.link === "joined" ? (
-          <div className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
-            <Icon name="check" width={18} weight="bold" color="var(--green-edge)" />
-            <div><p className="text-[12.5px] font-black leading-tight">Профиль клиента подключён</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">Настроение, задания и записи синхронизируются автоматически.</p></div>
-          </div>
+          <>
+            <div className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5" style={{ background: "var(--green-soft)", border: "var(--bw) solid var(--green-edge)" }}>
+              <Icon name="check" width={18} weight="bold" color="var(--green-edge)" />
+              <div><p className="text-[12.5px] font-black leading-tight">Профиль клиента подключён</p><p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">Настроение, задания и записи синхронизируются автоматически.</p></div>
+            </div>
+            {/* Ссылку пересылают, и по ней может зайти не тот человек. Раньше
+                отцепить чужой аккаунт можно было только удалив карточку. */}
+            {detaching ? (
+              <div className="mt-2.5 rounded-[12px] p-3" style={{ background: "var(--alt-soft)", border: "var(--bw) solid var(--alt-edge)" }}>
+                <p className="text-[12.5px] font-black leading-snug">Отвязать аккаунт от карточки?</p>
+                <p className="t-cap mt-1 leading-snug">Записи, задания и заметки останутся у вас. Человек перестанет видеть вас в «Терапии», а карточку можно будет подключить заново — новой ссылкой.</p>
+                <div className="mt-2.5 flex gap-2">
+                  <button onClick={() => { tap(); detach.mutate(); }} disabled={detach.isPending} className="btn flex-1 py-2 text-[12px] disabled:opacity-60">{detach.isPending ? "Отвязываем…" : "Отвязать"}</button>
+                  <button onClick={() => { tap(); setDetaching(false); }} className="btn btn-white flex-1 py-2 text-[12px]">Отмена</button>
+                </div>
+                {detach.isError && <p className="mt-2 text-[12px] font-bold" style={{ color: "var(--salmon-edge)" }}>Не получилось. Попробуйте ещё раз.</p>}
+              </div>
+            ) : (
+              <button onClick={() => { tap(); setDetaching(true); }} className="mt-2 py-1.5 text-[12px] font-black" style={{ color: "var(--muted)" }}>Подключился не тот человек — отвязать</button>
+            )}
+          </>
         ) : (
           <InviteShare
             link={link}
-            onSent={() => { if (client.link !== "invited") invite.mutate(); }}
+            // Отправка всегда обновляет отметку приглашения: по ней считается
+            // срок жизни ссылки, и просроченную нужно уметь выслать заново.
+            onSent={() => invite.mutate()}
             status={client.link === "invited" ? (
               <div className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5" style={{ background: "var(--amber-soft)", border: "var(--bw) solid var(--amber-edge)" }}>
                 <span className="relative flex h-2.5 w-2.5 shrink-0"><span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "var(--amber-edge)" }} /><span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "var(--amber-edge)" }} /></span>

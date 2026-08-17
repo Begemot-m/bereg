@@ -5,6 +5,7 @@ import { z } from "zod";
 import { acceptingNewClients, NOT_APPROVED, notifyLimitReached, psyApproved } from "@/lib/server/access";
 import { readInviteCode } from "@/lib/server/invite-code";
 import { prisma } from "@/lib/server/prisma";
+import { LIMITS, limited } from "@/lib/server/rate-limit";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
@@ -17,6 +18,11 @@ export const runtime = "nodejs";
  */
 export async function POST(req: NextRequest) {
   try {
+    // Ссылка общая и лежит в открытую — каждый переход по ней заводит карточку
+    // и шлёт специалисту уведомление. Лимит держит эту дверь от долбёжки.
+    const stop = limited(req, "invite-accept", LIMITS.auth);
+    if (stop) return stop;
+
     const user = await requireUser(req);
     const body = await parseBody(req, z.object({ token: z.string().min(1).max(2000) }));
 

@@ -299,7 +299,11 @@ export async function psyApproved(userId: number): Promise<boolean> {
   // Статус лежит рядом с ролью, чтобы проверка прав не поднимала анкету. Пока
   // идёт переход, у старых записей поле пустое — тогда смотрим в анкету, она
   // и была источником правды.
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { psyStatus: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { psyStatus: true, deletedAt: true, blockedAt: true } });
+  // Удалённый или заблокированный аккаунт одобренным не считается: его ссылка
+  // приглашения продолжала работать и заводила клиенту связь с тем, кого на
+  // платформе больше нет.
+  if (user?.deletedAt || user?.blockedAt) return false;
   if (user?.psyStatus && user.psyStatus !== "none") return user.psyStatus === "approved";
 
   const psy = await prisma.psyProfile.findUnique({ where: { userId }, select: { status: true } });

@@ -26,6 +26,20 @@ export async function inviteCode(kind: InviteKind, id: number): Promise<string> 
   return `${id}-${await sign(kind, id)}`;
 }
 
+/**
+ * Именная ссылка живёт месяц с последней отправки. Код подписан номером
+ * карточки и потому вечен сам по себе — а ссылка уезжает в переписку, откуда её
+ * пересылают дальше. Ограничение по времени превращает утёкшую ссылку в
+ * бесполезную: карточку с историей и заметками нельзя занять годы спустя.
+ * Психолог жмёт «Пригласить» ещё раз — та же ссылка снова действует.
+ */
+export const INVITE_TTL_DAYS = 30;
+
+export function inviteFresh(card: { invitedAt: Date | null; createdAt: Date }, now: Date = new Date()): boolean {
+  const from = card.invitedAt ?? card.createdAt;
+  return now.getTime() - from.getTime() <= INVITE_TTL_DAYS * 86_400_000;
+}
+
 /** Номер из кода или null, если подпись не сходится. */
 export async function readInviteCode(kind: InviteKind, code: string): Promise<number | null> {
   const [head, tail] = code.split("-");

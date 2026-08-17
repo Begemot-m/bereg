@@ -42,8 +42,20 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     // status и joinedName интерфейс шлёт с первого дня, а роут их выбрасывал:
     // «Пауза» вручную не ставилась, а предложение заменить имя возвращалось
     // после каждого обновления страницы.
-    const body = (await req.json()) as { name?: string; contact?: string; note?: string; status?: string; joinedName?: string | null };
+    const body = (await req.json()) as { name?: string; contact?: string; note?: string; status?: string; joinedName?: string | null; detach?: boolean };
     const status = ["new", "therapy", "paused"].includes(body.status ?? "") ? body.status : undefined;
+
+    // Ссылку пересылают, и карточку может занять не тот человек. Раньше это
+    // было навсегда: аккаунт отцеплялся только вместе с удалением карточки, то
+    // есть вместе с записями, заданиями и заметками. Теперь связь снимается
+    // отдельно — история остаётся, приглашение можно отправить заново.
+    if (body.detach && client.userId) {
+      await prisma.therapistLink.updateMany({
+        where: { clientUserId: client.userId, psychologistId: user.id },
+        data: { detached: true, active: false },
+      });
+    }
+
     const updated = await prisma.client.update({
       where: { id: client.id },
       include: PHOTO_INCLUDE,
@@ -53,6 +65,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         note: body.note ?? undefined,
         status,
         joinedName: body.joinedName === undefined ? undefined : body.joinedName || null,
+        ...(body.detach ? { userId: null, joinedName: null, link: "none", invitedAt: null } : {}),
       },
     });
     return NextResponse.json(await withStatsOne(withPhoto(updated)));

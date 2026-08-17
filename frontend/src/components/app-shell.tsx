@@ -91,7 +91,21 @@ const isActive = (pathname: string, href: string) => (href === "/" ? pathname ==
  * Специалист открыл собственную ссылку приглашения. Ничего не привязалось —
  * говорим об этом прямо, иначе выглядит как молчаливый сбой.
  */
-function SelfInviteNote({ onClose }: { onClose: () => void }) {
+// Ссылка не сработала: своя же (специалист проверяет, как она открывается) или
+// просроченная — приглашение действует месяц с отправки.
+const INVITE_NOTES = {
+  self: {
+    title: "Это ваша ссылка приглашения",
+    text: "Вы открыли её со своего аккаунта, поэтому ничего не изменилось: карточка клиента не создана, вы остались специалистом. Ссылка сработает у того, кому вы её отправили, — он откроет её под своим Telegram и появится у вас в «Клиентах».",
+  },
+  expired: {
+    title: "Приглашение больше не действует",
+    text: "Ссылка выдаётся на месяц. Попросите специалиста прислать её ещё раз — тогда карточка подключится к вашему аккаунту. Приложением можно пользоваться и без этого: специалиста легко найти в каталоге.",
+  },
+} as const;
+
+function InviteNote({ kind, onClose }: { kind: keyof typeof INVITE_NOTES; onClose: () => void }) {
+  const note = INVITE_NOTES[kind];
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -107,12 +121,9 @@ function SelfInviteNote({ onClose }: { onClose: () => void }) {
         className="w-full max-w-md rounded-[var(--r-block)] p-5"
         style={{ background: "var(--surface)" }}
       >
-        <span className="ico h-11 w-11"><Icon name="share" width={22} weight="fill" color="var(--ink)" /></span>
-        <h3 className="font-tight mt-3 text-[19px] font-black leading-tight">Это ваша ссылка приглашения</h3>
-        <p className="t-sub mt-1.5">
-          Вы открыли её со своего аккаунта, поэтому ничего не изменилось: карточка клиента не создана, вы остались специалистом.
-          Ссылка сработает у того, кому вы её отправили, — он откроет её под своим Telegram и появится у вас в «Клиентах».
-        </p>
+        <span className="ico h-11 w-11"><Icon name={kind === "self" ? "share" : "clock"} width={22} weight="fill" color="var(--ink)" /></span>
+        <h3 className="font-tight mt-3 text-[19px] font-black leading-tight">{note.title}</h3>
+        <p className="t-sub mt-1.5">{note.text}</p>
         <button onClick={onClose} className="btn mt-4 w-full py-3.5 text-[15px]">Понятно</button>
       </motion.div>
     </motion.div>
@@ -156,8 +167,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Пришли по ссылке специалиста: показать, кто позвал, и только потом знакомство.
   const [invite, setInvite] = useState<{ kind: InviteKind; token: string } | null>(null);
   const [greeted, setGreeted] = useState(false);
-  // Специалист перешёл по своей же ссылке: ничего не привязываем, объясняем.
-  const [selfInvite, setSelfInvite] = useState(false);
+  // Ссылка не сработала: своя же или просроченная — объясняем, что произошло.
+  const [inviteNote, setInviteNote] = useState<keyof typeof INVITE_NOTES | null>(null);
   // Открыли в Telegram на компьютере — зовём на телефон, пока десктоп в работе.
   const [desktopStay, setDesktopStay] = useState(false);
   const items = NAV[role];
@@ -179,10 +190,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     // роль — до ответа оболочка могла увести его в клиентскую — и объясняем,
     // что по ссылке подключается клиент, а не он сам.
     const onSelf = (e: unknown) => {
-      if (serverMessage(e) !== "self") return;
+      const err = serverMessage(e);
+      // Просроченная ссылка: человек ничего не сделал не так, но и молчать
+      // нельзя — иначе он ждёт, что специалист «увидит» его в приложении.
+      if (err === "expired") {
+        setInvite(null);
+        setInviteNote("expired");
+        return;
+      }
+      if (err !== "self") return;
       setRole("psychologist");
       setInvite(null);
-      setSelfInvite(true);
+      setInviteNote("self");
     };
 
     const token = sessionStorage.getItem("bereg_pending_invite");
@@ -387,7 +406,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div data-accent={accent} className="@container fixed inset-0 overflow-hidden" style={{ background: "var(--page)" }}>
       {/* Обучение с прожекторной подсветкой — поверх всего, по запуску из баннера */}
       {tourActive && <RoomTour role={role} onDone={() => setTourActive(false)} />}
-      {selfInvite && <SelfInviteNote onClose={() => setSelfInvite(false)} />}
+      {inviteNote && <InviteNote kind={inviteNote} onClose={() => setInviteNote(null)} />}
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>

@@ -10,6 +10,7 @@ const THERAPISTS_KEY = "bereg_my_therapists_v1";
 // вели себя одинаково.
 const SELF_INVITE = `API 400: {"error":"self","message":"Это ваша собственная ссылка"}`;
 const SELF_INVITE_PATHS = new Set(["/invite/accept", "/clients/join"]);
+const INVITE_EXPIRED = `{"error":"expired","message":"Приглашение больше не действует. Попросите специалиста прислать ссылку ещё раз"}`;
 const demoIsPsy = () => typeof window !== "undefined" && localStorage.getItem("psy_demo_role") === "psychologist";
 
 // Зона платформы — единственный внешний импорт: модуль ни от чего не зависит,
@@ -816,6 +817,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   if (clean === "/clients/join" && method === "POST") {
     const c = db.clients.find((x) => x.id === Number(body.token));
     if (!c) throw new Error("API 404");
+    // Ссылка живёт месяц с последней отправки — как на сервере.
+    const from = new Date(c.invitedAt ?? c.createdAt).getTime();
+    if (Date.now() - from > 30 * 86_400_000) throw new Error(`API 410: ${INVITE_EXPIRED}`);
     c.link = "joined";
     c.updatedAt = new Date().toISOString();
     save(db);
@@ -833,6 +837,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       if (body.note !== undefined) c.note = String(body.note);
       if (body.status !== undefined) c.status = body.status as Status;
       if (body.joinedName !== undefined) c.joinedName = (body.joinedName as string) || null;
+      // Отвязка аккаунта от карточки: история встреч и заметок остаётся.
+      if (body.detach) { c.link = "none"; c.invitedAt = null; c.joinedName = null; }
       c.updatedAt = new Date().toISOString();
       save(db);
       return delay(withStats(db, c) as T);

@@ -5,7 +5,7 @@ type Row = { status: string } | null;
 let row: Row = null;
 // Статус переехал к пользователю; анкета осталась запасным источником на время
 // перехода, поэтому в тесте есть обе таблицы.
-let userRow: { psyStatus?: string; createdAt?: Date } | null = null;
+let userRow: { psyStatus?: string; createdAt?: Date; deletedAt?: Date | null; blockedAt?: Date | null } | null = null;
 let psyRow: { status: string; reviewedAt: Date | null } | null = null;
 let subRow: { status: string; plan?: string; currentPeriodEnd: Date | null; grantedBy?: number | null } | null = null;
 let firstAppt: { startsAt: Date } | null = null;
@@ -47,6 +47,16 @@ describe("гейт на приём клиентов", () => {
     userRow = null;
     row = { status: "approved" };
     expect(await psyApproved(1)).toBe(true);
+  });
+
+  test("удалённый и заблокированный не считаются одобренными", async () => {
+    // Ссылка-приглашение подписана вечно: без этой проверки она заводила
+    // клиенту связь с тем, кого на платформе уже нет.
+    row = { status: "approved" };
+    userRow = { psyStatus: "approved", deletedAt: new Date() };
+    expect(await psyApproved(1)).toBe(false);
+    userRow = { psyStatus: "approved", blockedAt: new Date() };
+    expect(await psyApproved(1)).toBe(false);
   });
 
   test("статус у пользователя главнее анкеты", async () => {

@@ -115,6 +115,10 @@ export const updateClient = (
   patch: Partial<Pick<Client, "name" | "contact" | "note" | "status" | "joinedName">>,
 ) => apiFetch<Client>(`/clients/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 
+/** Снять подключённый аккаунт с карточки: история остаётся у психолога. */
+export const detachClient = (id: number) =>
+  apiFetch<Client>(`/clients/${id}`, { method: "PATCH", body: JSON.stringify({ detach: true }) });
+
 export const deleteClient = (id: number) => apiFetch<void>(`/clients/${id}`, { method: "DELETE" });
 
 export const listHomework = (clientId: number) => apiFetch<Homework[]>(`/clients/${clientId}/homework`);

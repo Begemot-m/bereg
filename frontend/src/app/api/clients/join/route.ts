@@ -2,9 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { readInviteCode } from "@/lib/server/invite-code";
+import { inviteFresh, readInviteCode } from "@/lib/server/invite-code";
 import { verifyInviteToken } from "@/lib/server/jwt";
 import { prisma } from "@/lib/server/prisma";
+import { LIMITS, limited } from "@/lib/server/rate-limit";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
@@ -15,6 +16,11 @@ export const runtime = "nodejs";
 // висело вечно, а психолог не видел ни настроения клиента, ни его колеса.
 export async function POST(req: NextRequest) {
   try {
+    // Здесь предъявляют код из ссылки — значит, здесь его и будут подбирать.
+    // Подпись перебором не берётся, но и молотить роут незачем.
+    const stop = limited(req, "clients-join", LIMITS.auth);
+    if (stop) return stop;
+
     const user = await requireUser(req);
     const body = await parseBody(req, z.object({ token: z.string().min(1).max(2000) }));
 
@@ -37,6 +43,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Карточка уже подключена к другому аккаунту" }, { status: 409 });
     }
     if (card.userId === user.id) return NextResponse.json(card);
+    // Ссылка из старой переписки. Карточку с историей встреч и заметками нельзя
+    // отдавать тому, кому её переслали спустя месяцы: пусть специалист отправит
+    // приглашение заново — тогда та же ссылка снова заработает.
+    if (!inviteFresh(card)) {
+      return NextResponse.json(
+        { error: "expired", message: "Приглашение больше не действует. Попросите специалиста прислать ссылку ещё раз" },
+        { status: 410 },
+      );
+    }
 
     // Имя из профиля может отличаться от того, как карточку подписал психолог.
     // Не переписываем молча: предлагаем заменить в карточке.
@@ -61,11 +76,15 @@ export async function POST(req: NextRequest) {
         update: { detached: false },
       });
 
+      // В уведомлении видно, чей аккаунт подключился: ссылку пересылают, и
+      // специалист должен заметить, если карточку занял не тот человек, —
+      // отвязать её он может в самой карточке.
+      const who = user.username ? `@${user.username}` : mine;
       await prisma.notification.create({
         data: {
           userId: card.psychologistId,
           kind: "system",
-          text: `«${card.name}»: профиль подключён — карточка синхронизирована`,
+          text: `«${card.name}»: профиль подключён${who ? ` — ${who}` : ""}`,
         },
       });
     }
