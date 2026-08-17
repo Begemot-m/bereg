@@ -2,66 +2,68 @@ import type { IconName } from "@/components/icons";
 import { apiFetch } from "@/lib/api";
 import type { Mood } from "@/lib/clients";
 
-// Колесо баланса — расширенная методика на основе Wheel of Life (P. Meyer),
-// Personal Wellbeing Index, WHO-5 и Valued Living Questionnaire.
-// 10 сфер × 3 утверждения = 30 вопросов, каждое 0–10. Средняя по сфере строит колесо.
-export type WheelDomain = { key: string; label: string; short: string; icon: IconName; color: string; edge: string; questions: string[] };
+// Колесо баланса. Собрано по методикам, а не на глаз:
+// — сферы и форма круга — Wheel of Life (P. Meyer);
+// — вопрос об удовлетворённости и подсчёт индекса — Personal Wellbeing Index
+//   (International Wellbeing Group, Cummins et al.): шкала 0–10, индекс = средняя
+//   по сферам × 10, нормативный диапазон 70–80 из 100;
+// — вопрос о важности — Valued Living Questionnaire (Wilson et al.);
+// — что брать в работу первым: важность × нехватка (importance-performance
+//   analysis, Martilla & James) — низкая сфера, которая человеку не важна,
+//   вытягивания не требует.
+// 10 сфер × 2 вопроса = 20, каждый 0–10.
+export type WheelQuestion = { text: string; kind: "satisfaction" | "importance"; low: string; high: string };
+export type WheelDomain = { key: string; label: string; short: string; icon: IconName; color: string; edge: string; questions: WheelQuestion[] };
+
+const sat = (text: string): WheelQuestion => ({ text, kind: "satisfaction", low: "совсем не доволен(льна)", high: "полностью доволен(льна)" });
+const imp = (text: string): WheelQuestion => ({ text, kind: "importance", low: "сейчас не важно", high: "очень важно" });
 
 export const WHEEL: WheelDomain[] = [
   { key: "health", label: "Здоровье и тело", short: "Здоровье", icon: "pulse", color: "var(--green)", edge: "var(--green-edge)", questions: [
-    "Мне хватает сил и энергии на день",
-    "Я доволен(льна) своим сном и режимом",
-    "Я забочусь о теле: движение, питание, отдых",
+    sat("Насколько вы довольны своим здоровьем, сном и запасом сил?"),
+    imp("Насколько вам сейчас важно заняться телом и здоровьем?"),
   ] },
   { key: "emotions", label: "Эмоции и психика", short: "Эмоции", icon: "mood", color: "var(--purple)", edge: "var(--purple-edge)", questions: [
-    "Моё настроение в целом устойчиво",
-    "Я справляюсь со стрессом и тревогой",
-    "Я умею замечать и выражать свои чувства",
+    sat("Насколько вы довольны своим состоянием в последние две недели?"),
+    imp("Насколько вам сейчас важно, чтобы состояние стало ровнее?"),
   ] },
-  { key: "relationships", label: "Близкие отношения", short: "Отношения", icon: "heart", color: "var(--coral)", edge: "var(--coral-edge)", questions: [
-    "В близких отношениях есть тепло и поддержка",
-    "Меня понимают и принимают таким(ой), как есть",
-    "Мне хватает близости и доверия",
+  { key: "relationships", label: "Любовь и близость", short: "Любовь", icon: "heart", color: "var(--coral)", edge: "var(--coral-edge)", questions: [
+    sat("Насколько вы довольны своими близкими, любовными отношениями?"),
+    imp("Насколько вам сейчас важна близость с любимым человеком?"),
   ] },
   { key: "family", label: "Семья и дом", short: "Семья", icon: "home", color: "var(--amber)", edge: "var(--amber-edge)", questions: [
-    "Дома я чувствую себя спокойно и в безопасности",
-    "Отношения с семьёй меня скорее радуют",
-    "Быт и домашние дела под контролем",
+    sat("Насколько вы довольны отношениями в семье и жизнью дома?"),
+    imp("Насколько вам сейчас важны семья и дом?"),
   ] },
   { key: "social", label: "Друзья и общество", short: "Друзья", icon: "users", color: "var(--sky)", edge: "#5f95ab", questions: [
-    "Есть люди, на которых можно опереться",
-    "Я чувствую себя частью сообщества",
-    "Мне хватает живого общения",
+    sat("Насколько вы довольны дружбой и своим кругом общения?"),
+    imp("Насколько вам сейчас важны друзья и живое общение?"),
   ] },
   { key: "work", label: "Работа и дело", short: "Работа", icon: "spark", color: "var(--salmon)", edge: "var(--salmon-edge)", questions: [
-    "Моя работа или учёба имеет для меня смысл",
-    "Я справляюсь с нагрузкой без выгорания",
-    "Я вижу развитие и признание усилий",
+    sat("Насколько вы довольны работой или учёбой и тем, чего в них добиваетесь?"),
+    imp("Насколько вам сейчас важно продвинуться в работе или учёбе?"),
   ] },
   { key: "finance", label: "Финансы и стабильность", short: "Финансы", icon: "chart", color: "var(--mood-4)", edge: "#8a9a4e", questions: [
-    "Мне хватает денег на нужное без сильной тревоги",
-    "Я чувствую финансовую устойчивость",
-    "Я спокоен(йна) за своё будущее",
+    sat("Насколько вы довольны своим материальным положением?"),
+    imp("Насколько вам сейчас важна финансовая устойчивость?"),
   ] },
   { key: "growth", label: "Рост и смысл", short: "Рост", icon: "book", color: "var(--pink)", edge: "#cf7a6f", questions: [
-    "Я развиваюсь и учусь новому",
-    "Моя жизнь наполнена смыслом",
-    "Я живу в согласии со своими ценностями",
+    sat("Насколько вы довольны тем, как растёте, и смыслом своей жизни?"),
+    imp("Насколько вам сейчас важны развитие и смысл?"),
   ] },
   { key: "leisure", label: "Отдых и радость", short: "Отдых", icon: "sun", color: "var(--mood-3)", edge: "#caa64a", questions: [
-    "У меня есть время на любимые занятия",
-    "Я умею отдыхать и восстанавливаться",
-    "В моей жизни достаточно радости и игры",
+    sat("Насколько вы довольны отдыхом и тем, сколько в жизни радости?"),
+    imp("Насколько вам сейчас важно время на отдых и любимые занятия?"),
   ] },
   { key: "environment", label: "Среда и порядок", short: "Среда", icon: "compass", color: "var(--mood-5)", edge: "var(--green-edge)", questions: [
-    "Пространство вокруг удобно и приятно",
-    "Мой день организован так, как мне подходит",
-    "Меня окружает то, что даёт ресурс",
+    sat("Насколько вы довольны своей безопасностью и тем, как устроен ваш день?"),
+    imp("Насколько вам сейчас важно навести порядок в среде и режиме?"),
   ] },
 ];
 
-export const WHEEL_QUESTION_COUNT = WHEEL.reduce((n, d) => n + d.questions.length, 0); // 30
-export type WheelAnswers = Record<string, number[]>; // key -> [0..10] × questions
+export const WHEEL_QUESTION_COUNT = WHEEL.reduce((n, d) => n + d.questions.length, 0); // 20
+const SAT = 0, IMP = 1;
+export type WheelAnswers = Record<string, number[]>; // key -> [удовлетворённость, важность], 0..10
 export type WheelResult = { answers: WheelAnswers; completedAt: string };
 /** Практика позитивного замечания: одна строка в день о том, что хорошего он принёс. */
 export type GoodNote = { date: string; text: string };
@@ -84,10 +86,25 @@ export type ReflectionPatch = {
 export type NotesModuleState = { enabled: boolean; shared: boolean; psychologistEnabled: boolean };
 export type TherapyState = { moods: Mood[]; notes: GoodNote[]; board: string; wheel: WheelResult | null; tutorialSeen: boolean; reflections: SessionReflection[]; notesModule: NotesModuleState };
 
+/** Удовлетворённость сферой, 0–10 — это и есть ось колеса.
+ *  Колёса, пройденные по старой схеме (три утверждения согласия), считаются
+ *  как раньше — средней, иначе у клиента с историей поехали бы прошлые замеры. */
 export function domainScore(result: WheelResult | null, key: string): number {
   const arr = result?.answers[key];
   if (!arr || arr.length === 0) return 0;
-  return arr.reduce((s, v) => s + v, 0) / arr.length; // 0..10
+  if (arr.length !== WHEEL[0].questions.length) return arr.reduce((s, v) => s + v, 0) / arr.length;
+  return arr[SAT];
+}
+/** Важность сферы, 0–10. У старых колёс её не спрашивали — там null. */
+export function domainImportance(result: WheelResult | null, key: string): number | null {
+  const arr = result?.answers[key];
+  return arr && arr.length === WHEEL[0].questions.length ? arr[IMP] : null;
+}
+/** Что брать в работу первым: важно человеку и при этом не хватает. 0–10. */
+export function domainFocus(result: WheelResult | null, key: string): number | null {
+  const importance = domainImportance(result, key);
+  if (importance === null) return null;
+  return (importance * (10 - domainScore(result, key))) / 10;
 }
 export function wheelPercent(result: WheelResult | null): number {
   if (!result) return 0;
@@ -98,13 +115,22 @@ export function wheelLowest(result: WheelResult | null, n = 2): WheelDomain[] {
   if (!result) return [];
   return [...WHEEL].sort((a, b) => domainScore(result, a.key) - domainScore(result, b.key)).slice(0, n);
 }
+/** Сферы, с которых стоит начать: важные и проседающие. Если важность не
+ *  спрашивали (старое колесо) — просто самые низкие. */
+export function wheelFocus(result: WheelResult | null, n = 2): WheelDomain[] {
+  if (!result) return [];
+  if (domainFocus(result, WHEEL[0].key) === null) return wheelLowest(result, n);
+  return [...WHEEL].sort((a, b) => (domainFocus(result, b.key) ?? 0) - (domainFocus(result, a.key) ?? 0)).slice(0, n);
+}
 
+// Полосы — по нормам Personal Wellbeing Index: у населения индекс держится в
+// диапазоне 70–80 из 100, ниже 50 внутренние опоры перестают справляться.
 export type WheelBand = { key: string; label: string; hint: string; tone: "salmon" | "amber" | "green" };
 export function wheelBand(pct: number): WheelBand {
-  if (pct < 40) return { key: "low", label: "разбалансировано", hint: "Несколько сфер сильно проседают — хороший повод обсудить приоритеты с терапевтом.", tone: "salmon" };
-  if (pct < 60) return { key: "mid", label: "неровно", hint: "Баланс неравномерный: где-то ресурс, где-то нехватка. Посмотрите, что проседает.", tone: "amber" };
-  if (pct < 80) return { key: "ok", label: "в целом ровно", hint: "Сферы жизни в целом сбалансированы, есть на что опереться.", tone: "green" };
-  return { key: "high", label: "гармонично", hint: "Высокая удовлетворённость по большинству сфер жизни.", tone: "green" };
+  if (pct < 50) return { key: "low", label: "ниже нормы", hint: "По методике PWI это уровень, на котором привычные опоры уже не держат: у большинства людей индекс между 70 и 80. Хороший повод разобрать с терапевтом, что тянет вниз.", tone: "salmon" };
+  if (pct < 70) return { key: "mid", label: "ниже среднего", hint: "До нормативных 70–80 не хватает: часть сфер держит, часть проседает. Смотрите, где важное совпало с нехваткой.", tone: "amber" };
+  if (pct <= 80) return { key: "ok", label: "в норме", hint: "Столько же, сколько у большинства людей: 70–80 — нормативный диапазон индекса благополучия.", tone: "green" };
+  return { key: "high", label: "выше нормы", hint: "Удовлетворённость выше обычного диапазона — есть на что опереться в трудный период.", tone: "green" };
 }
 
 export const getMyTherapy = () => apiFetch<TherapyState>("/my/therapy");

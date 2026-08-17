@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 
-import { WHEEL, domainScore, type WheelResult } from "@/lib/therapy";
+import { WHEEL, domainImportance, domainScore, type WheelResult } from "@/lib/therapy";
 
 // Радар «колесо баланса»: 10 осей по сферам, значение 0–10.
 export function WheelChart({ result, size = 260, showLabels = true }: { result: WheelResult; size?: number; showLabels?: boolean }) {
@@ -44,21 +44,27 @@ export function WheelChart({ result, size = 260, showLabels = true }: { result: 
 }
 
 // Список сфер: дорожка 0–10 в цвет сферы, обводка — тот же цвет темнее.
+// Чёрточка на дорожке — насколько сфера важна человеку: разрыв между ней и
+// заливкой и есть то, что просит внимания.
 export function WheelBars({ result, compact = false }: { result: WheelResult; compact?: boolean }) {
+  const rated = domainImportance(result, WHEEL[0].key) !== null;
   return (
     <div className={compact ? "space-y-1.5" : "space-y-2"}>
       {WHEEL.map((d) => {
         const v = domainScore(result, d.key);
+        const imp = domainImportance(result, d.key);
         return (
           <div key={d.key} className="flex items-center gap-2.5">
             <span className={`shrink-0 ${compact ? "w-[72px] text-[10px]" : "w-[86px] text-[11px]"} truncate font-bold text-[var(--muted)]`}>{d.short}</span>
             <div className={`relative flex-1 overflow-hidden rounded-full ${compact ? "h-3" : "h-3.5"}`} style={{ background: "#fff", border: `var(--bw) solid ${d.edge}` }}>
               <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${(v / 10) * 100}%`, background: d.color, transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)" }} />
+              {imp !== null && <span className="absolute inset-y-0 w-[2px] rounded-full bg-[var(--ink)]" style={{ left: `calc(${(imp / 10) * 100}% - 1px)` }} />}
             </div>
             <span className={`shrink-0 tnum font-black ${compact ? "text-[11px]" : "text-[12px]"}`}>{v.toFixed(1)}</span>
           </div>
         );
       })}
+      {rated && <p className="pt-0.5 text-[10px] font-semibold text-[var(--muted-2)]">Заливка — насколько доволен(льна), чёрточка — насколько сфера важна.</p>}
     </div>
   );
 }

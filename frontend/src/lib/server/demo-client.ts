@@ -48,19 +48,19 @@ const MOOD_TRACK: { back: number; mood: number; emotions: string[] }[] = [
   { back: 1, mood: 5, emotions: ["радость", "облегчение"] },
 ];
 
-// Колесо баланса: по три ответа на сферу, 0–10. Провалы — работа и отдых,
-// опора — семья и друзья: сразу видно, о чём разговор.
+// Колесо баланса: на сферу два ответа 0–10 — насколько довольна и насколько ей
+// это важно. Провалы — работа, отдых и состояние, опора — семья и друзья.
 const WHEEL_ANSWERS: Record<string, number[]> = {
-  health: [6, 5, 6],
-  emotions: [4, 3, 5],
-  relationships: [7, 6, 7],
-  family: [8, 8, 7],
-  social: [7, 6, 6],
-  work: [3, 4, 3],
-  finance: [5, 6, 5],
-  growth: [6, 7, 6],
-  leisure: [3, 3, 4],
-  environment: [6, 6, 7],
+  health: [6, 7],
+  emotions: [4, 9],
+  relationships: [7, 6],
+  family: [8, 5],
+  social: [6, 6],
+  work: [3, 8],
+  finance: [5, 6],
+  growth: [6, 7],
+  leisure: [3, 7],
+  environment: [6, 4],
 };
 
 // Заметки о встречах: по одной на каждую проведённую сессию, в том же порядке,

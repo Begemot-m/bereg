@@ -117,8 +117,8 @@ type DB = {
   };
 };
 
-// v15 — подтверждение записи: у встреч появился confirmedAt.
-const KEY = "psy_demo_db_v15";
+// v16 — колесо баланса на две оценки: [насколько доволен, насколько важно].
+const KEY = "psy_demo_db_v16";
 
 function iso(daysFromNow: number, hour = 12, min = 0): string {
   const day = addZoneDays(zoneYmd(new Date()), daysFromNow);
@@ -137,9 +137,10 @@ const DEMO_MOODS: [number, number, string[]][] = [
   [6, 4, ["радость", "гордость"]], [5, 4, ["интерес"]], [4, 5, ["радость"]],
   [3, 4, ["облегчение"]], [2, 4, ["интерес", "гордость"]], [1, 5, ["радость", "облегчение"]],
 ];
+// [насколько довольна, насколько важно] — по две оценки на сферу, как в колесе.
 const DEMO_WHEEL: Record<string, number[]> = {
-  health: [6, 5, 6], emotions: [4, 3, 5], relationships: [7, 6, 7], family: [8, 8, 7], social: [7, 6, 6],
-  work: [3, 4, 3], finance: [5, 6, 5], growth: [6, 7, 6], leisure: [3, 3, 4], environment: [6, 6, 7],
+  health: [6, 7], emotions: [4, 9], relationships: [7, 6], family: [8, 5], social: [6, 6],
+  work: [3, 8], finance: [5, 6], growth: [6, 7], leisure: [3, 7], environment: [6, 4],
 };
 // Заметки о встречах — по одной на проведённую сессию, тот же набор, что
 // заводит сервер (lib/server/demo-client.ts).

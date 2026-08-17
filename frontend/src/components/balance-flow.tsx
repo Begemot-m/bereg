@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
-import { WHEEL, WHEEL_QUESTION_COUNT, wheelBand, type WheelAnswers, type WheelResult } from "@/lib/therapy";
+import { WHEEL, WHEEL_QUESTION_COUNT, domainScore, wheelBand, wheelFocus, wheelPercent, type WheelAnswers, type WheelQuestion, type WheelResult } from "@/lib/therapy";
 import { WheelChart } from "@/components/wheel-chart";
 import { select, success, tap } from "@/lib/haptics";
 
@@ -19,7 +19,7 @@ const HelpFrame = ({ children }: { children: ReactNode }) => (
 export const WHEEL_HELP: HelpPage[] = [
   {
     title: "Колесо баланса — 10 сфер жизни",
-    text: `Расширенная методика на основе Wheel of Life, Индекса благополучия ВОЗ и опросника ценностей. ${WHEEL_QUESTION_COUNT} коротких утверждений собираются в наглядное колесо.`,
+    text: `Методика собрана по Wheel of Life, Индексу личного благополучия (PWI) и опроснику ценностей. ${WHEEL_QUESTION_COUNT} вопросов — по два на сферу — складываются в наглядное колесо.`,
     illo: (
       <HelpFrame>
         <div className="grid grid-cols-2 gap-1.5">
@@ -34,11 +34,11 @@ export const WHEEL_HELP: HelpPage[] = [
     ),
   },
   {
-    title: "Оцените каждое утверждение",
-    text: "По каждой сфере — три утверждения. Двигайте ползунок от 0 (совсем не про меня) до 10 (полностью про меня). Отвечайте про то, как сейчас, без правильных ответов.",
+    title: "Два вопроса на сферу",
+    text: "Сначала — насколько вы довольны тем, как сейчас. Потом — насколько эта сфера для вас важна. Ползунок от 0 до 10, правильных ответов нет.",
     illo: (
       <HelpFrame>
-        <p className="text-[10px] font-black">Мне хватает сил и энергии на день</p>
+        <p className="text-[10px] font-black">Насколько вы довольны своим здоровьем, сном и запасом сил?</p>
         <div className="relative h-6 rounded-full bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
           <div className="absolute inset-y-0 left-0 rounded-full bg-[var(--purple)]" style={{ width: "70%" }} />
           <span className="absolute left-[70%] top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--ink)] text-[10px] font-black text-white">7</span>
@@ -47,11 +47,11 @@ export const WHEEL_HELP: HelpPage[] = [
     ),
   },
   {
-    title: "Колесо покажет перекос",
-    text: "Сферы, где меньше всего баланса, подсветятся отдельно — с них удобно начать разговор с терапевтом. Пройти колесо заново можно в любой момент, чтобы видеть динамику.",
+    title: "Колесо покажет, с чего начать",
+    text: "Отдельно подсветятся сферы, которые вам важны и при этом проседают — с них удобно начать разговор с терапевтом. Низкая, но неважная сфера вытягивания не требует. Пройти колесо заново можно в любой момент, чтобы видеть динамику.",
     illo: (
       <HelpFrame>
-        {[["Работа", 30], ["Отдых", 40], ["Отношения", 80]].map(([label, w]) => (
+        {[["Работа", 30], ["Отдых", 40], ["Любовь", 80]].map(([label, w]) => (
           <div key={label as string} className="flex items-center gap-2">
             <span className="w-16 text-[9px] font-bold text-[var(--muted)]">{label}</span>
             <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><div className="h-full rounded-full bg-[var(--purple)]" style={{ width: `${w}%` }} /></div>
@@ -68,6 +68,8 @@ function initAnswers(): WheelAnswers {
   return a;
 }
 
+const asResult = (answers: WheelAnswers): WheelResult => ({ answers, completedAt: new Date().toISOString() });
+
 export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false, onUnlock }: { guide: boolean; onClose: () => void; onGuideSeen: () => void; onSave: (answers: WheelAnswers) => void; locked?: boolean; onUnlock?: () => void }) {
   const [testing, setTesting] = useState(!guide);
   const [step, setStep] = useState(0);
@@ -80,7 +82,7 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
 
   const summary = step === WHEEL.length;
   const domain = WHEEL[step];
-  const pct = wheelPctLocal(answers);
+  const pct = wheelPercent(asResult(answers));
   const band = wheelBand(pct);
   const filled = summary ? WHEEL.length : step;
   const next = () => { if (step === WHEEL.length - 1) { success(); setStep(WHEEL.length); } else { select(); setStep((v) => v + 1); } };
@@ -114,10 +116,7 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
               <>
                 <motion.div key={domain.key} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="space-y-4">
                   {domain.questions.map((q, qi) => (
-                    <div key={qi}>
-                      <p className="mb-2 text-[13px] font-bold leading-snug">{q}</p>
-                      <Scale value={answers[domain.key][qi]} onChange={(v) => setVal(qi, v)} />
-                    </div>
+                    <Question key={qi} q={q} value={answers[domain.key][qi]} onChange={(v) => setVal(qi, v)} />
                   ))}
                 </motion.div>
                 <div className="mt-5 flex gap-2">
@@ -136,11 +135,12 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
 
 // Экран результата: круглое колесо (радар), сильные/слабые сферы и (для клиента без Хроника+) оплата.
 function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers: WheelAnswers; pct: number; band: ReturnType<typeof wheelBand>; locked: boolean; onSave: () => void; onUnlock?: () => void }) {
-  const per = WHEEL.map((d) => ({ d, v: d.questions.reduce((s, _, i) => s + answers[d.key][i], 0) / d.questions.length })).sort((a, b) => b.v - a.v);
+  const result: WheelResult = asResult(answers);
   const tone = band.tone === "green" ? "var(--green)" : band.tone === "amber" ? "var(--amber)" : "var(--salmon)";
   const edge = band.tone === "green" ? "var(--green-edge)" : band.tone === "amber" ? "var(--amber-edge)" : "var(--salmon-edge)";
-  const strong = per.slice(0, 2), weak = per.slice(-2).reverse();
-  const result: WheelResult = { answers, completedAt: new Date().toISOString() };
+  const per = WHEEL.map((d) => ({ d, v: domainScore(result, d.key) })).sort((a, b) => b.v - a.v);
+  const strong = per.slice(0, 2);
+  const focus = wheelFocus(result, 2).map((d) => ({ d, v: domainScore(result, d.key) }));
 
   return (
     <div className="space-y-4">
@@ -154,11 +154,12 @@ function ResultView({ answers, pct, band, locked, onSave, onUnlock }: { answers:
         <p className="mt-1.5 text-center text-[11px] font-semibold leading-snug text-[var(--muted)]">{band.hint}</p>
       </div>
 
-      {/* Сильные / слабые сферы */}
+      {/* Опора — где выше всего; фокус — где важно и при этом не хватает */}
       <div className="grid grid-cols-2 gap-2">
         <StatCard title="Опора" items={strong} good />
-        <StatCard title="Внимание" items={weak} />
+        <StatCard title="С чего начать" items={focus} />
       </div>
+      <p className="-mt-2 text-center text-[10px] font-semibold leading-snug text-[var(--muted-2)]">Слева — то, что держит. Справа — сферы, которые вам важны и при этом проседают.</p>
 
       {/* Результат уже сохранён автоматически; кнопка просто закрывает окно */}
       <Button className="w-full" onClick={onSave}>Готово — результат сохранён</Button>
@@ -187,9 +188,18 @@ function StatCard({ title, items, good }: { title: string; items: { d: (typeof W
   );
 }
 
-function wheelPctLocal(a: WheelAnswers): number {
-  const per = WHEEL.map((d) => a[d.key].reduce((s, v) => s + v, 0) / a[d.key].length);
-  return Math.round((per.reduce((s, v) => s + v, 0) / per.length) * 10);
+// Вопрос со шкалой: под ползунком якоря, чтобы 0 и 10 читались одинаково у всех.
+function Question({ q, value, onChange }: { q: WheelQuestion; value: number; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <p className="mb-2 text-[13px] font-bold leading-snug">{q.text}</p>
+      <Scale value={value} onChange={onChange} />
+      <div className="mt-0.5 flex items-center justify-between text-[9px] font-bold text-[var(--muted-2)]">
+        <span>{q.low}</span>
+        <span>{q.high}</span>
+      </div>
+    </div>
+  );
 }
 
 // Ползунок 0–10 с бегунком-значением.

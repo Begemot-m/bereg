@@ -6,7 +6,7 @@ import { ArrowGlyph } from "@/components/blocks";
 import { Icon } from "@/components/icons";
 import { Disclosure } from "@/components/ui";
 import { WheelBars, WheelChart } from "@/components/wheel-chart";
-import { wheelBand, wheelLowest, wheelPercent, type WheelResult } from "@/lib/therapy";
+import { WHEEL, domainImportance, wheelBand, wheelFocus, wheelPercent, type WheelResult } from "@/lib/therapy";
 import { tap } from "@/lib/haptics";
 
 const dateF = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
@@ -22,7 +22,9 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
   const pct = wheelPercent(wheel);
   const band = wheelBand(pct);
   const tone = TONE[band.tone];
-  const lowest = wheelLowest(wheel, 2);
+  // У колёс, собранных до перехода на две оценки, важности нет — там подпись честнее прежняя.
+  const focus = wheelFocus(wheel, 2);
+  const rated = wheel ? domainImportance(wheel, WHEEL[0].key) !== null : false;
 
   return (
     <section className="rounded-[20px] bg-[var(--purple-soft)] p-4" data-tour="wheel">
@@ -50,10 +52,10 @@ export function WellbeingCard({ wheel, onStart, subtitle }: { wheel: WheelResult
             <WheelChart result={wheel} size={248} />
           </div>
           <p className="mt-2.5 text-[11px] font-semibold leading-snug text-[var(--muted)]">{band.hint}</p>
-          {lowest.length > 0 && (
+          {focus.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="text-[10px] font-black uppercase text-[var(--muted-2)]">Проседает:</span>
-              {lowest.map((d) => <span key={d.key} className="chip" style={{ background: d.color }}>{d.short}</span>)}
+              <span className="text-[10px] font-black uppercase text-[var(--muted-2)]">{rated ? "Важно и проседает:" : "Проседает:"}</span>
+              {focus.map((d) => <span key={d.key} className="chip" style={{ background: d.color }}>{d.short}</span>)}
             </div>
           )}
           <button onClick={() => { tap(); setOpen(!open); }} className="card-nested mt-3 flex w-full items-center justify-between px-3.5 py-2.5">
