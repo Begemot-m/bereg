@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch, apiFetchBlob } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
-import { compressImageFile } from "@/lib/image";
+import { compressImageFile, mb, MEDIA_LIMITS } from "@/lib/image";
 
 // Документы верификации. В бою файл уходит на сервер и лежит на диске
 // зашифрованным (api/profile/documents), в браузере от него остаются только
@@ -21,8 +21,17 @@ export type PsyDocument = {
   dataUrl?: string;
 };
 
-export const MAX_DOCUMENT_MB = 5;
+// Совпадает с проверкой сервера (app/api/profile/documents). Картинку до этого
+// предела доводит сжатие, а PDF уходит как есть — его отбиваем сразу.
+export const MAX_DOCUMENT_BYTES = MEDIA_LIMITS.document.maxBytes;
+export const MAX_DOCUMENT_MB = Math.round(MAX_DOCUMENT_BYTES / (1024 * 1024));
 export const MAX_DOCUMENTS = 6;
+
+export class DocumentTooLarge extends Error {
+  constructor(readonly bytes: number) {
+    super(`Файл занимает ${mb(bytes)}, а на сервер уходит не больше ${mb(MAX_DOCUMENT_BYTES)}.`);
+  }
+}
 const DEMO_KEY = "bereg_psy_documents";
 
 export function documentHref(id: number): string {
@@ -100,7 +109,10 @@ export function useUploadDocument() {
       // Скан диплома с телефона — те же мегабайты. Сжимаем щадяще: текст в
       // документе должен остаться читаемым, поэтому сторона и вес больше, чем
       // у фото анкеты. PDF проходит мимо сжатия нетронутым.
-      const file = await compressImageFile(picked, { maxSide: 1800, targetBytes: 700_000 });
+      const file = await compressImageFile(picked, MEDIA_LIMITS.document);
+      // Сжатие не всесильно: гигантский скан или PDF так и остаётся тяжёлым.
+      // Пусть человек узнает об этом здесь, а не из 413 после долгой отправки.
+      if (file.size > MAX_DOCUMENT_BYTES) throw new DocumentTooLarge(file.size);
       if (DEMO) {
         const doc: PsyDocument = {
           id: Date.now(),

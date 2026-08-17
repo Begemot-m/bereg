@@ -10,7 +10,8 @@ import { VerificationPrompt } from "@/components/verification-prompt";
 import { Button, Disclosure, Input, Prose, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
-import { compressImage } from "@/lib/image";
+import { MEDIA_LIMITS, mb } from "@/lib/image";
+import { PhotoCropper } from "@/components/photo-cropper";
 import { CURRENCIES, currencySymbol, formatMoney, MIN_PRICE, toCurrency } from "@/lib/money";
 import { deviceTimezone, TIMEZONES, zoneLabel } from "@/lib/timezones";
 import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, normalizeLinkUrl, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
@@ -418,30 +419,30 @@ function ProfileForm({ livePreview = false }: { livePreview?: boolean }) {
 
 function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void; fileRef: React.RefObject<HTMLInputElement | null> }) {
   const [photoError, setPhotoError] = useState("");
-  const [uploading, setUploading] = useState(false);
-  // Снимок с телефона весит мегабайты: в анкете он не помещался ни в квоту
-  // браузера, ни в разумный запрос — фото «не грузилось». Сжимаем сразу.
-  const onFile = async (file?: File) => {
+  // Файл, выбранный в проводнике, сначала попадает в кроппер: карточка каталога
+  // режет портрет 3:4, и решать, что именно останется в кадре, должен человек.
+  const [cropping, setCropping] = useState<File | null>(null);
+  const onFile = (file?: File) => {
     if (!file) return;
     setPhotoError("");
     if (!file.type.startsWith("image/")) { setPhotoError("Подойдёт картинка: JPG, PNG или HEIC."); return; }
-    setUploading(true);
-    try {
-      const dataUrl = await compressImage(file);
-      const photos = [...draft.photos, dataUrl].slice(0, 3);
-      update({ photos, photo: photos[0] ?? null });
-      tap();
-    } catch {
-      setPhotoError("Не удалось открыть это фото — попробуйте другое.");
-    } finally {
-      setUploading(false);
+    if (file.size > MEDIA_LIMITS.input.maxBytes) {
+      setPhotoError(`Фото тяжелее ${mb(MEDIA_LIMITS.input.maxBytes)} браузер не откроет. Выберите снимок полегче.`);
+      return;
     }
+    setCropping(file);
+  };
+  const addPhoto = (dataUrl: string) => {
+    const photos = [...draft.photos, dataUrl].slice(0, 3);
+    update({ photos, photo: photos[0] ?? null });
+    setCropping(null);
   };
   const setMain = (index: number) => { select(); const photos = [draft.photos[index], ...draft.photos.filter((_, itemIndex) => itemIndex !== index)]; update({ photos, photo: photos[0] ?? null }); };
   const removePhoto = (index: number) => { tap(); const photos = draft.photos.filter((_, itemIndex) => itemIndex !== index); update({ photos, photo: photos[0] ?? null }); };
   return <StepCard title="Сначала — то, что помогает узнать вас" hint="Первое фото станет крупным портретом в каталоге. Можно добавить до трёх.">
-    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void onFile(file); }} />
-    <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[15px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} disabled={uploading} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[15px] bg-white text-[10px] font-bold text-[var(--muted)] disabled:opacity-50" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />{uploading ? "Грузим…" : "Фото"}</button>}</div>
+    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; onFile(file); }} />
+    {cropping && <PhotoCropper file={cropping} onCancel={() => setCropping(null)} onDone={addPhoto} />}
+    <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[15px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} disabled={Boolean(cropping)} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[15px] bg-white text-[10px] font-bold text-[var(--muted)] disabled:opacity-50" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
     {photoError && <p className="rounded-[12px] px-3 py-2 text-[11px] font-bold" style={{ background: "var(--salmon-soft)" }}>{photoError}</p>}
     <Field label="Имя и фамилия"><Input value={draft.name} onChange={(event) => update({ name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
     <RegionZoneFields draft={draft} update={update} />

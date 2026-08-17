@@ -12,8 +12,9 @@ import { rub } from "@/lib/subscription";
 import { displayName, displayPhoto, useProfile } from "@/lib/profile";
 import { DocumentViewer } from "@/components/document-viewer";
 import {
-  demoPrimaryDocument, MAX_DOCUMENT_MB, MAX_DOCUMENTS, useDeleteDocument, usePsyDocuments, useUploadDocument, type PsyDocument,
+  demoPrimaryDocument, DocumentTooLarge, MAX_DOCUMENT_BYTES, MAX_DOCUMENT_MB, MAX_DOCUMENTS, useDeleteDocument, usePsyDocuments, useUploadDocument, type PsyDocument,
 } from "@/lib/psy-documents";
+import { mb, MEDIA_LIMITS } from "@/lib/image";
 import {
   CATALOG_MIN_PERCENT, useSubmitCatalogVerification, useVerification,
 } from "@/lib/psy-verification";
@@ -56,15 +57,21 @@ export function CatalogVerification() {
     const isImage = file.type.startsWith("image/");
     const isPdf = file.type === "application/pdf";
     if (!isImage && !isPdf) { setFileError("Подойдёт фото (JPG, PNG, HEIC) или PDF."); return; }
-    if (file.size > MAX_DOCUMENT_MB * 1024 * 1024) { setFileError(`Файл больше ${MAX_DOCUMENT_MB} МБ — сожмите или сфотографируйте заново.`); return; }
+    // Фото сжимается в браузере, поэтому снимок диплома на 8 МБ — нормальный
+    // случай, и отбивать его до сжатия нельзя. PDF идёт как есть: его предел —
+    // тот же, что у сервера.
+    if (isPdf && file.size > MAX_DOCUMENT_BYTES) { setFileError(`PDF тяжелее ${MAX_DOCUMENT_MB} МБ не принимаем — сохраните документ полегче или сфотографируйте его.`); return; }
+    if (file.size > MEDIA_LIMITS.input.maxBytes) { setFileError(`Файл тяжелее ${mb(MEDIA_LIMITS.input.maxBytes)} браузер не откроет. Сфотографируйте документ заново.`); return; }
     if (documents.length >= MAX_DOCUMENTS) { setFileError(`Больше ${MAX_DOCUMENTS} документов не нужно — уберите лишний.`); return; }
     try {
       // Файл уезжает сразу, а не ждёт отправки анкеты: до сервера он идёт
       // отдельным запросом, и держать мегабайты в форме незачем.
       await upload.mutateAsync({ file, kind: documents.length ? "certificate" : "diploma" });
       tap();
-    } catch {
-      setFileError("Не удалось загрузить файл. Попробуйте ещё раз.");
+    } catch (error) {
+      setFileError(error instanceof DocumentTooLarge
+        ? `${error.message} Сфотографируйте документ ещё раз — снимок весит меньше скана.`
+        : "Не удалось загрузить файл. Попробуйте ещё раз.");
     }
   };
 

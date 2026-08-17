@@ -21,6 +21,8 @@ import {
   User,
   UsersThree,
   VideoCamera,
+  ImageSquare,
+  MagnifyingGlassPlus,
   MapPin,
   ChartPolar,
   Smiley,
@@ -56,6 +58,8 @@ import {
 } from "@phosphor-icons/react";
 
 export type IconName =
+  | "image"
+  | "zoom"
   | "home"
   | "calendar"
   | "users"
@@ -131,6 +135,8 @@ const MAP: Record<IconName, PhIcon> = {
   sun: Sun,
   moon: MoonStars,
   video: VideoCamera,
+  image: ImageSquare,
+  zoom: MagnifyingGlassPlus,
   pin: MapPin,
   swap: ArrowsLeftRight,
   gear: GearSix,
