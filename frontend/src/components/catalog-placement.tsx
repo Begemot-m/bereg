@@ -10,7 +10,7 @@ import { catalogProfileGaps } from "@/lib/catalog";
 import { tap } from "@/lib/haptics";
 import { useProfile } from "@/lib/profile";
 import { useVerification } from "@/lib/psy-verification";
-import { CATALOG_FREE_DAYS, catalogDaysLeft, getSubscription, PLAN_PRICE, rub } from "@/lib/subscription";
+import { FREE_CLIENT_LIMIT, getSubscription, TRIAL_DAYS, trialWindowLeft } from "@/lib/subscription";
 
 const dayWord = (n: number) => {
   const lastTwo = n % 100;
@@ -22,9 +22,9 @@ const dayWord = (n: number) => {
 };
 
 /**
- * Где сейчас анкета: в каталоге или нет — и почему. Три условия сходятся в
- * одном месте, потому что человек видит только результат: проверка пройдена,
- * анкета собрана целиком, размещение оплачено (или идут бесплатные дни).
+ * Где сейчас анкета: в каталоге или нет — и почему. Условий два: проверка
+ * пройдена и анкета собрана целиком. Место в каталоге не продаётся, поэтому
+ * подписка тут ни при чём — она только упоминается там, где идут пробные дни.
  */
 const HIDDEN_KEY = "bereg_catalog_placement_hidden";
 
@@ -37,7 +37,7 @@ export function CatalogPlacement({ className }: { className?: string }) {
 
   const status = verification?.status ?? "none";
   const gaps = catalogProfileGaps(profile);
-  const daysLeft = sub ? catalogDaysLeft(sub) : 0;
+  const daysLeft = sub ? trialWindowLeft(sub) : 0;
 
   let tone = "var(--purple-edge)";
   let title: string;
@@ -45,7 +45,7 @@ export function CatalogPlacement({ className }: { className?: string }) {
   let icon: "seal" | "clock" | "compass" | "spark" = "compass";
   // Что именно сейчас показано — по этому ключу помним, что человек закрыл
   // блок. Состояние сменилось (например, анкету одобрили) — покажем снова.
-  const state = status !== "approved" ? status : gaps.length ? "gaps" : sub?.pro ? "pro" : daysLeft > 0 ? "free" : "expired";
+  const state = status !== "approved" ? status : gaps.length ? "gaps" : sub?.pro && sub.status === "active" ? "pro" : daysLeft > 0 ? "trial" : "after-trial";
 
   if (status === "declined") {
     // Отказ окончательный — обещать «после верификации» тут было бы враньём.
@@ -59,28 +59,28 @@ export function CatalogPlacement({ className }: { className?: string }) {
     title = status === "review" ? "Анкета на проверке" : "Анкеты в каталоге пока нет";
     note =
       status === "review"
-        ? `После подтверждения карточка встаёт в каталог: ${CATALOG_FREE_DAYS} ${dayWord(CATALOG_FREE_DAYS)} бесплатно, дальше по подписке PRO.`
-        : `Каталог открывается после верификации. Первые ${CATALOG_FREE_DAYS} ${dayWord(CATALOG_FREE_DAYS)} размещения — бесплатно.`;
+        ? `После подтверждения карточка встаёт в каталог — бесплатно и насовсем. Заодно включатся ${TRIAL_DAYS} ${dayWord(TRIAL_DAYS)} PRO.`
+        : `Каталог открывается после верификации: место в нём бесплатное. В день одобрения включаются ${TRIAL_DAYS} ${dayWord(TRIAL_DAYS)} PRO.`;
   } else if (gaps.length) {
     icon = "seal";
     tone = "var(--salmon-edge)";
     title = "Проверка пройдена, карточка не собрана";
     note = `Не хватает: ${gaps.join(", ")}. Пока анкета неполная, в каталог она не попадает.`;
-  } else if (sub?.pro) {
+  } else if (sub?.pro && sub.status === "active") {
     icon = "spark";
     tone = "var(--green-edge)";
     title = "Анкета в каталоге";
-    note = "Размещение входит в Хронику PRO — карточка стоит в выдаче, пока подписка активна.";
+    note = "Место бесплатное и остаётся за вами всегда. Выше в выдаче — те, кто чаще заходит: место не продаётся.";
   } else if (daysLeft > 0) {
     icon = "compass";
     tone = "var(--purple-edge)";
     title = "Анкета в каталоге";
-    note = `Бесплатное размещение — ещё ${daysLeft} ${dayWord(daysLeft)}. Дальше карточку держит PRO, ${rub(PLAN_PRICE.pro)} в месяц.`;
+    note = `Место в каталоге бесплатное — карточка не снимается. Пробный PRO без лимита клиентов — ещё ${daysLeft} ${dayWord(daysLeft)}.`;
   } else {
     icon = "compass";
-    tone = "var(--salmon-edge)";
-    title = "Карточка снята с каталога";
-    note = `Бесплатные ${CATALOG_FREE_DAYS} ${dayWord(CATALOG_FREE_DAYS)} закончились. Анкета осталась подтверждённой — вернуть её в выдачу можно подпиской PRO.`;
+    tone = "var(--purple-edge)";
+    title = "Анкета в каталоге";
+    note = `Карточка стоит в выдаче бесплатно. Пробные дни вышли: подтверждать записи можно, пока клиентов не больше ${FREE_CLIENT_LIMIT}, дальше нужен PRO.`;
   }
 
   const close = () => { tap(); localStorage.setItem(HIDDEN_KEY, state); setHidden(state); };
@@ -98,7 +98,7 @@ export function CatalogPlacement({ className }: { className?: string }) {
         </div>
         <p className="t-body mt-1 font-black">{title}</p>
         <p className="mt-1 text-[11.5px] font-semibold leading-snug text-[var(--muted)]">{note}</p>
-        {status === "approved" && !gaps.length && !sub?.pro && (
+        {status === "approved" && !gaps.length && sub?.status !== "active" && (
           <Link href="/cabinet" className="mt-2 inline-block text-[12px] font-black" style={{ color: "var(--purple-edge)" }}>
             {daysLeft > 0 ? "Что входит в PRO" : "Подключить PRO"}
           </Link>

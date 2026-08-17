@@ -1,18 +1,19 @@
 import { apiFetch } from "@/lib/api";
 import { PRO_PRICE_RUB } from "@/lib/pricing";
 
-// Тариф один: Хроника PRO. Размещение в каталоге входит в него, а до подписки
-// работает бесплатные 14 дней с момента одобрения анкеты.
+// Тариф один: Хроника PRO. Место в каталоге в него не входит — оно бесплатное
+// у всех, чью анкету одобрили. PRO снимает лимит трёх клиентов, и каждому
+// после верификации даются 14 пробных дней.
 export type PlanId = "pro";
 export type SubStatus = "free" | "trial" | "active" | "pending" | "expired";
 export type Subscription = {
   status: SubStatus;
   trialEndsAt: string | null;
-  trialStarted: boolean;      // была ли первая сессия — с неё стартует триал
+  trialStarted: boolean;      // прошла ли верификация — с неё стартует триал
   currentPeriodEnd: string | null;
   pro: boolean;
   catalog: boolean;           // карточка сейчас видна в каталоге
-  catalogUntil: string | null; // до какого числа каталог бесплатно
+  catalogUntil: string | null; // докуда идут пробные дни после одобрения анкеты
   pendingPlan: PlanId | null;
   /** Цена месяца для этого человека: со скидкой она ниже базовой. */
   priceRub?: number;
@@ -33,10 +34,9 @@ export const crossedPrice = (sub?: Subscription | null) => sub?.fullPriceRub ?? 
 // Бесплатный тариф «Старт»: до 3 клиентов, дальше — PRO.
 export const FREE_CLIENT_LIMIT = 3;
 
-// Сколько длится пробный PRO и бесплатное размещение в каталоге.
-// Дублируют константы сервера — там источник правды, здесь только тексты.
+// Сколько длится пробный PRO после одобрения анкеты. Дублирует константу
+// сервера — там источник правды, здесь только тексты.
 export const TRIAL_DAYS = 14;
-export const CATALOG_FREE_DAYS = 14;
 
 // PRO активен во время триала и при оплаченной подписке. Решение принимает
 // сервер, здесь — только чтение его ответа.
@@ -49,8 +49,10 @@ export function trialDaysLeft(sub: Subscription): number {
   return Math.max(0, Math.ceil((new Date(sub.trialEndsAt).getTime() - Date.now()) / 86_400_000));
 }
 
-// Сколько дней осталось от бесплатного размещения в каталоге.
-export function catalogDaysLeft(sub: Subscription, now = Date.now()): number {
+// Сколько дней осталось от пробных 14 после верификации. Отдельно от
+// `trialDaysLeft`: тот читает `trialEndsAt`, который сервер обнуляет, как
+// только триал кончился, — а тут нужен сам факт «шли и вышли».
+export function trialWindowLeft(sub: Subscription, now = Date.now()): number {
   if (!sub.catalogUntil) return 0;
   return Math.max(0, Math.ceil((new Date(sub.catalogUntil).getTime() - now) / 86_400_000));
 }

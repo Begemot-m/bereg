@@ -5,7 +5,7 @@ type Row = { status: string } | null;
 let row: Row = null;
 // Статус переехал к пользователю; анкета осталась запасным источником на время
 // перехода, поэтому в тесте есть обе таблицы.
-let userRow: { psyStatus?: string; createdAt?: Date; catalogTrialAt?: Date | null } | null = null;
+let userRow: { psyStatus?: string; createdAt?: Date } | null = null;
 let psyRow: { status: string; reviewedAt: Date | null } | null = null;
 let subRow: { status: string; plan?: string; currentPeriodEnd: Date | null; grantedBy?: number | null } | null = null;
 let firstAppt: { startsAt: Date } | null = null;
@@ -107,21 +107,15 @@ describe("пробный PRO", () => {
     expect(left).toBe(4);
   });
 
-  test("заявка из каталога включает пробные 30 дней", async () => {
+  test("других пробных периодов нет: после 14 дней доступ только по подписке", async () => {
+    // Заявка из каталога когда-то включала свои 30 дней — этой ветки больше
+    // нет, пробный PRO у человека ровно один и уже истёк.
     psyRow = { status: "approved", reviewedAt: days(-90) };
-    userRow = { createdAt: days(-200), catalogTrialAt: days(-2) };
-    const acc = await access(1);
-    expect(acc.pro).toBe(true);
-    expect(acc.reason).toBe("lead_trial");
-    expect(acc.leadTrialUsed).toBe(true);
-  });
-
-  test("пробные 30 дней даются один раз", async () => {
-    psyRow = { status: "approved", reviewedAt: days(-90) };
-    userRow = { createdAt: days(-200), catalogTrialAt: days(-40) };
+    userRow = { createdAt: days(-200) };
     const acc = await access(1);
     expect(acc.pro).toBe(false);
-    expect(acc.leadTrialUsed).toBe(true);
+    expect(acc.reason).toBe("none");
+    expect(acc.trialEndsAt).toBeNull();
   });
 
   test("после подписки триал не возвращается", async () => {

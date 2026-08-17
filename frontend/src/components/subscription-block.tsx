@@ -9,7 +9,7 @@ import { HelpDeck, type HelpPage } from "@/components/help-deck";
 import { Icon, type IconName } from "@/components/icons";
 import { ProCta } from "@/components/pro-sell";
 import { Disclosure } from "@/components/ui";
-import { CATALOG_FREE_DAYS, catalogDaysLeft, crossedPrice, FREE_CLIENT_LIMIT, getSubscription, monthlyPrice, paidDaysLeft, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, type PlanId, type Subscription } from "@/lib/subscription";
+import { crossedPrice, FREE_CLIENT_LIMIT, getSubscription, monthlyPrice, paidDaysLeft, PLAN_PRICE, rub, startSubscription, TRIAL_DAYS, trialDaysLeft, trialWindowLeft, type PlanId, type Subscription } from "@/lib/subscription";
 import { tap } from "@/lib/haptics";
 
 import { zoneFormat } from "@/lib/zone";
@@ -21,13 +21,13 @@ const PSY_PLANS: Plan[] = [
   {
     id: "pro",
     name: "Хроника PRO",
-    tag: "безлимит + размещение",
+    tag: "клиенты без лимита",
     best: true,
     perks: [
       `Клиенты без лимита (бесплатно — ${FREE_CLIENT_LIMIT}, со всем функционалом)`,
-      `Каталог специалистов дальше первых ${CATALOG_FREE_DAYS} дней — честная выдача`,
+      "Подтверждение любой новой записи — из каталога, из «Терапии», по ссылке",
       "Комиссии за запись нет",
-      "Весь функционал по клиенту доступен и бесплатно",
+      "Анкета в каталоге и весь функционал по клиенту — бесплатно и без подписки",
     ],
   },
 ];
@@ -40,10 +40,11 @@ const NewTag = () => <span className="rounded-full bg-[var(--coral)] px-1.5 py-0
 // Что входит в бесплатную версию, а что — в PRO.
 const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[] = [
   { label: "Клиенты", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
+  { label: "Подтверждение новых записей", free: `в пределах ${FREE_CLIENT_LIMIT}`, pro: "любых" },
   { label: "Записи, график, карточки", free: true, pro: true },
   { label: "Настроение, домашки, шаблоны", free: true, pro: true },
   { label: "Аналитика и сводка недели", free: true, pro: true },
-  { label: "Размещение в каталоге специалистов", free: `${CATALOG_FREE_DAYS} дней`, pro: "постоянно" },
+  { label: "Анкета в каталоге специалистов", free: true, pro: true },
   { label: "Комиссия за запись", free: "нет", pro: "нет" },
 ];
 
@@ -69,6 +70,71 @@ function FreeVsPro({ compact = false }: { compact?: boolean }) {
           <span className="flex w-14 justify-center rounded-[8px] py-1" style={{ background: "var(--purple-soft)" }}><CompareCell value={row.pro} /></span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Как устроен тариф — по шагам, в порядке, в котором человек с этим
+ * столкнётся. Пишем прямо: место в каталоге бесплатное, пробные дни даются
+ * всем и один раз, деньги начинаются на четвёртом клиенте.
+ */
+const HOW_IT_WORKS: { icon: IconName; title: string; text: string }[] = [
+  {
+    icon: "users",
+    title: "Сразу и бесплатно",
+    text: `${FREE_CLIENT_LIMIT} клиента со всем функционалом: записи, карточки, задания, настроение, статистика. Комиссии с сессий нет.`,
+  },
+  {
+    icon: "seal",
+    title: `Анкету одобрили — ${TRIAL_DAYS} дней PRO`,
+    text: `Пробные дни получает каждый, кто прошёл верификацию, — отсчёт идёт со дня одобрения. В это время клиентов можно вести сколько угодно.`,
+  },
+  {
+    icon: "compass",
+    title: "Каталог — бесплатно и насовсем",
+    text: "Карточка встаёт в выдачу после верификации и не снимается: ни когда кончились пробные дни, ни когда кончилась подписка. Место в списке не продаётся — выше те, кто чаще заходит.",
+  },
+  {
+    icon: "clock",
+    title: "Пробные дни вышли",
+    text: `Ничего не пропадает: остаются те же ${FREE_CLIENT_LIMIT} клиента, анкета и все инструменты. Записываться к вам по-прежнему можно.`,
+  },
+  {
+    icon: "check",
+    title: `Записался ${FREE_CLIENT_LIMIT + 1}-й — нужен PRO`,
+    text: "Единственное место, где платформа берёт деньги: подтверждение встречи с новым человеком, когда бесплатные места заняты. Не важно, пришёл он из каталога, из «Терапии» или по вашей ссылке.",
+  },
+  {
+    icon: "heart",
+    title: "Подписка закончилась",
+    text: "Клиенты, история и анкета остаются вашими. Закрывается только подтверждение новых записей — до трёх мест всё работает как раньше.",
+  },
+];
+
+function HowItWorks() {
+  return (
+    <div className="overflow-hidden rounded-[16px] bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+      <div className="flex items-center gap-2 px-3.5 py-2.5" style={{ background: "var(--surface-2)", borderBottom: "var(--bw) solid var(--edge-neutral)" }}>
+        <Icon name="question" width={13} weight="bold" color="var(--muted)" />
+        <span className="text-[10px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Как это устроено</span>
+      </div>
+      <ol className="p-3.5">
+        {HOW_IT_WORKS.map((step, i) => (
+          <li key={step.title} className="relative flex gap-3 pb-3.5 last:pb-0">
+            {/* Линия между шагами: список читается как путь, а не как набор
+                отдельных плашек. */}
+            {i < HOW_IT_WORKS.length - 1 && <span className="absolute left-[13px] top-8 bottom-1 w-[1.5px]" style={{ background: "var(--edge-neutral)" }} />}
+            <span className="relative z-[1] flex h-[27px] w-[27px] shrink-0 items-center justify-center rounded-[9px]" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
+              <Icon name={step.icon} width={13} weight="bold" color="var(--purple-edge)" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-black leading-tight">{step.title}</span>
+              <span className="mt-0.5 block text-[11px] font-semibold leading-snug text-[var(--muted)]">{step.text}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -99,7 +165,7 @@ export const PRO_BENEFITS: HelpPage[] = [
         <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-white" style={{ border: "var(--bw) solid var(--purple-edge)" }}><motion.div className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7 }} style={{ background: c as string }} /></div></div>
     ))}</BFrame>
   ) },
-  { title: "Профиль появляется в каталоге", text: `Первые ${CATALOG_FREE_DAYS} дней после верификации анкета стоит в каталоге бесплатно, дальше её держит PRO. Место в выдаче купить нельзя — подборки собираются по совпадению с запросом.`, illo: (
+  { title: "Профиль появляется в каталоге", text: "Место в каталоге бесплатное и остаётся за вами всегда — карточка не снимается ни через месяц, ни когда кончится подписка. Купить строчку выше нельзя: в выдаче поднимаются те, кто чаще заходит и отвечает на записи.", illo: (
     <BFrame>
       <div className="flex items-center gap-2 rounded-[9px] bg-[var(--green-soft)] px-2.5 py-2" style={{ border: "var(--bw) solid var(--green-edge)" }}>
         <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-white" style={{ border: "1px solid var(--green-edge)" }}><Icon name="check" width={15} weight="bold" /></span>
@@ -116,7 +182,7 @@ export const PRO_BENEFITS: HelpPage[] = [
 // Что сказать про тариф прямо в свёрнутом баннере: до оплаты человек видит
 // именно эту строку, поэтому она говорит про срок, а не про список функций.
 function bannerPitch(sub: Subscription | undefined): string {
-  if (!sub) return "Клиенты без лимита и место в каталоге, когда бесплатные дни вышли.";
+  if (!sub) return `Клиенты без лимита, когда бесплатные ${FREE_CLIENT_LIMIT} места заняты.`;
   if (sub.status === "active") {
     // Оплаченный период виден сразу в свёрнутом баннере: «активна» без срока
     // не отвечает на единственный вопрос — сколько ещё осталось.
@@ -126,26 +192,21 @@ function bannerPitch(sub: Subscription | undefined): string {
       : "Подписка активна — лимитов нет, карточка в каталоге.";
   }
   if (sub.status === "pending") return "Ждём подтверждение платежа.";
-  const cat = catalogDaysLeft(sub);
   if (sub.status === "trial") {
     const d = trialDaysLeft(sub);
-    return `Пробный PRO: осталось ${d} ${plural(d, "день", "дня", "дней")}.`;
+    return `Пробный PRO после верификации: осталось ${d} ${plural(d, "день", "дня", "дней")} без лимита клиентов.`;
   }
   if (sub.status === "free") {
-    return cat > 0
-      ? `Каталог бесплатно ещё ${cat} ${plural(cat, "день", "дня", "дней")}. ${TRIAL_DAYS} дней PRO включатся после первой сессии.`
-      : `${TRIAL_DAYS} дней PRO включатся сами после первой проведённой сессии.`;
+    return `${TRIAL_DAYS} дней PRO включатся сами, как только анкету одобрят.`;
   }
-  return cat > 0
-    ? `Карточка в каталоге ещё ${cat} ${plural(cat, "день", "дня", "дней")} — дальше её держит PRO.`
-    : "Клиенты без лимита и место в каталоге специалистов.";
+  return `Пробные ${TRIAL_DAYS} дней вышли. Сейчас бесплатно — ${FREE_CLIENT_LIMIT} клиента и анкета в каталоге.`;
 }
 
 // Оплаченный PRO. Тому, кто уже платит, витрина тарифа не нужна: он приходит
 // сюда за одним — сколько осталось и что у него включено.
 const ACTIVE_PERKS: { icon: IconName; label: string }[] = [
   { icon: "users", label: "Клиенты без лимита" },
-  { icon: "compass", label: "Карточка в каталоге" },
+  { icon: "check", label: "Любые записи подтверждаются" },
   { icon: "chart", label: "Статистика и сводки" },
   { icon: "spark", label: "Новые инструменты" },
 ];
@@ -249,6 +310,7 @@ export function SubscriptionBanner() {
                 </div>
               ))}
             </div>
+            <div className="mt-3"><HowItWorks /></div>
             <div className="mt-3"><ProCta label="Подключить" note={false} /></div>
           </div>
         </div>
@@ -324,6 +386,7 @@ export function SubscriptionBlock({ compact = false }: { compact?: boolean }) {
         ) : (
           <>
             {!paid && <div className="space-y-1.5"><p className="px-1 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Что входит</p><FreeVsPro /></div>}
+            <HowItWorks />
             {shownPlans.map((plan) => <PlanCard key={plan.id} plan={plan} onPick={() => subscribe.mutate(plan.id)} loading={subscribe.isPending} defaultOpen={plan.best || shownPlans.length === 1} price={monthlyPrice(sub)} crossed={crossedPrice(sub)} />)}
             <p className="pt-1 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата через ЮKassa · отмена в любой момент · годовая оплата — 2 месяца в подарок</p>
           </>
@@ -340,8 +403,8 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     const daysLeft = Math.min(TRIAL_DAYS, trialDaysLeft(sub));
     return {
       badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>🎁 Триал</span>,
-      title: `${TRIAL_DAYS} дней бесплатно`,
-      subtitle: `Полный доступ ко всем инструментам. Карта не нужна — осталось ${daysLeft} ${plural(daysLeft, "день", "дня", "дней")}.`,
+      title: `${TRIAL_DAYS} дней PRO после верификации`,
+      subtitle: `Клиенты без лимита, любые записи подтверждаются. Карта не нужна — осталось ${daysLeft} ${plural(daysLeft, "день", "дня", "дней")}.`,
       progress: <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#ffffff]" style={{ border: "var(--bw) solid var(--purple-edge)" }}><motion.div className="h-full rounded-full bg-[var(--ink)]" initial={{ width: 0 }} animate={{ width: `${(daysLeft / TRIAL_DAYS) * 100}%` }} transition={{ duration: 0.6 }} /></div>,
     };
   }
@@ -352,27 +415,24 @@ function psyHero(sub: Subscription): { badge: ReactNode; title: string; subtitle
     return { badge: <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--green-edge)" }}>активна</span>, title: "Хроника PRO активен", subtitle: left > 0 ? `Осталось ${left} ${plural(left, "день", "дня", "дней")} — продлится ${until}.` : `Продлится ${until}.`, progress: null };
   }
 
-  // Триал ещё не начинался: он включится сам, когда пройдёт первая сессия.
+  // Триал ещё не начинался: он включится сам в день, когда анкету одобрят.
   // Про это важно сказать вслух, иначе бесплатный тариф выглядит как отказ.
   if (sub.status === "free") {
-    const days = catalogDaysLeft(sub);
     return {
       badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>🎁 {TRIAL_DAYS} дней впереди</span>,
       title: "Бесплатный тариф",
-      subtitle: days > 0
-        ? `${FREE_CLIENT_LIMIT} клиента со всем функционалом, карточка в каталоге ещё ${days} ${plural(days, "день", "дня", "дней")}. ${TRIAL_DAYS} дней PRO включатся сами после первой проведённой сессии.`
-        : `${FREE_CLIENT_LIMIT} клиента со всем функционалом. ${TRIAL_DAYS} дней PRO включатся сами после первой проведённой сессии.`,
+      subtitle: `${FREE_CLIENT_LIMIT} клиента со всем функционалом. ${TRIAL_DAYS} дней PRO включатся сами в день, когда анкету одобрят, — их получает каждый.`,
       progress: null,
     };
   }
 
-  const days = catalogDaysLeft(sub);
+  const left = trialWindowLeft(sub);
   return {
     badge: <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-black" style={{ border: "var(--bw) solid var(--purple-edge)" }}>{rub(PLAN_PRICE.pro)}/мес</span>,
     title: "Бесплатный тариф",
-    subtitle: days > 0
-      ? `${FREE_CLIENT_LIMIT} клиента со всем функционалом, карточка в каталоге ещё ${days} ${plural(days, "день", "дня", "дней")}. PRO снимает лимит и оставляет вас в каталоге.`
-      : `${FREE_CLIENT_LIMIT} клиента со всем функционалом. PRO — клиенты без лимита и место в каталоге специалистов.`,
+    subtitle: left > 0
+      ? `${FREE_CLIENT_LIMIT} клиента со всем функционалом и анкета в каталоге. PRO снимает лимит: клиентов сколько угодно.`
+      : `${FREE_CLIENT_LIMIT} клиента со всем функционалом и анкета в каталоге — бесплатно. Пробные ${TRIAL_DAYS} дней вышли, PRO снимает лимит клиентов.`,
     progress: null,
   };
 }

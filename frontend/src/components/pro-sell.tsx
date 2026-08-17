@@ -6,20 +6,21 @@ import { useEffect, type ReactNode } from "react";
 
 import { Icon } from "@/components/icons";
 import { tap } from "@/lib/haptics";
-import { CATALOG_FREE_DAYS, FREE_CLIENT_LIMIT, getSubscription, monthlyPrice, PLAN_PRICE, rub, startSubscription } from "@/lib/subscription";
+import { FREE_CLIENT_LIMIT, getSubscription, monthlyPrice, rub, startSubscription, TRIAL_DAYS } from "@/lib/subscription";
 
-// PRO отличается от бесплатного двумя вещами: масштаб и новые клиенты.
-// Весь функционал по клиенту (карточка, настроение, домашки, аналитика,
-// сводка недели, шаблоны) доступен и бесплатно — на первых трёх.
+// PRO отличается от бесплатного одним: сколько человек можно вести. Весь
+// функционал по клиенту (карточка, настроение, домашки, аналитика, сводка
+// недели, шаблоны) и место в каталоге доступны бесплатно.
 // Продающий контент PRO — используется в онбординге, кабинете и пейволле.
 export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: { art?: string; artTone?: string }) {
   void art; void artTone;
   const rows = [
     ["Клиенты", `до ${FREE_CLIENT_LIMIT}`, "без лимита"],
+    ["Подтверждение новых записей", `в пределах ${FREE_CLIENT_LIMIT}`, "любых"],
     ["Записи и расписание", "всё", "всё"],
     ["Задания и заметки", "всё", "всё"],
     ["Статистика работы", "всё", "всё"],
-    ["Размещение в каталоге специалистов", `${CATALOG_FREE_DAYS} дней`, "постоянно"],
+    ["Анкета в каталоге специалистов", "бесплатно", "бесплатно"],
   ];
   return (
     <div>
@@ -28,7 +29,7 @@ export function ProSell({ art = "/sell/pro.webp", artTone = "var(--purple)" }: {
 
       <div className="card-soft mt-3 flex items-start gap-3 p-3.5" style={{ background: "var(--purple-soft)" }}>
         <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="spark" width={18} weight="fill" /></span>
-        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента <span className="text-[var(--purple-edge)]">бесплатно</span></b><br />Все функции доступны сразу.</p>
+        <p className="t-sub"><b className="t-head">{FREE_CLIENT_LIMIT} клиента <span className="text-[var(--purple-edge)]">бесплатно</span></b><br />Все функции и место в каталоге — сразу. После верификации анкеты — {TRIAL_DAYS} дней PRO без лимита.</p>
       </div>
 
       <div className="mt-3 overflow-hidden rounded-[18px] bg-white stroke">

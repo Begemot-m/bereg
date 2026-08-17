@@ -117,8 +117,8 @@ const PSY_INTRO: Intro[] = [
       "Платите фиксированно за инструмент — процент со встреч не берём",
       "Сколько бы клиентов ни пришло, доход остаётся вашим",
       <>
-        Попробуйте платформу бесплатно на первых {FREE_CLIENT_LIMIT} клиентах, а также две недели размещения в каталоге{" "}
-        <span style={{ color: "var(--purple-edge)" }}>в подарок</span>
+        Первые {FREE_CLIENT_LIMIT} клиента и анкета в каталоге — бесплатно всегда, а после верификации ещё{" "}
+        <span style={{ color: "var(--purple-edge)" }}>14 дней PRO без лимитов</span>
       </>,
     ],
     mock: <PriceMock />,
@@ -420,7 +420,8 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
     { icon: "calendar", label: "Записи и расписание", free: "всё", pro: "всё" },
     { icon: "note", label: "Задания и заметки", free: "всё", pro: "всё" },
     { icon: "chart", label: "Статистика работы", free: "всё", pro: "всё" },
-    { icon: "compass", label: "Размещение в каталоге специалистов", free: "14 дней", pro: "включено" },
+    { icon: "compass", label: "Анкета в каталоге специалистов", free: "бесплатно", pro: "бесплатно" },
+    { icon: "check", label: "Подтверждение новых записей", free: `в пределах ${FREE_CLIENT_LIMIT}`, pro: "любых" },
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -440,7 +441,7 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
             <span className="ico ico-accent h-10 w-10 shrink-0"><Icon name="check" width={18} weight="bold" color="#fff" /></span>
             <div>
               <p className="t-head text-[var(--ink)]">{FREE_CLIENT_LIMIT} клиента бесплатно</p>
-              <p className="t-sub mt-0.5">Все функции доступны сразу, а после первой проведённой сессии включаются ещё 14 дней PRO без лимитов.</p>
+              <p className="t-sub mt-0.5">Все функции и место в каталоге доступны сразу. Как только анкету одобрят, каждый получает 14 дней PRO без лимитов — отсчёт со дня верификации.</p>
             </div>
           </div>
         </div>

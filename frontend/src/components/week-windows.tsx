@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ClientAvatar } from "@/components/client-avatar";
+import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
@@ -415,6 +416,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const qc = useQueryClient();
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
   const [resch, setResch] = useState(false);
+  const [needsPro, setNeedsPro] = useState(false);
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: !!slot.appt });
   const contact = clients.find((c) => c.id === slot.appt?.client.id)?.contact ?? null;
   const tgLink = contact && !isPhone(contact)
@@ -424,7 +426,13 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const book = useMutation({ mutationFn: ({ clientId, format }: { clientId: number; format: ApptFormat }) => createAppointment({ clientId, startsAt: slot.iso, format }), onSuccess: () => { success(); onClose(); inv(); } });
   const setFmt = useMutation({ mutationFn: async (format: ApptFormat) => { if (slot.appt) await updateAppointment(slot.appt.id, { format }); else await setOverride(slot.iso, { fmt: format }); }, onSuccess: () => { select(); inv(); } });
   const cancel = useMutation({ mutationFn: () => updateAppointment(slot.appt!.id, { status: "cancelled" }), onSuccess: () => { onClose(); inv(); } });
-  const confirm = useMutation({ mutationFn: () => confirmAppointment(slot.appt!.id), onSuccess: () => { success(); inv(); } });
+  // Отказ по лимиту показываем предложением PRO, а не молчанием: кнопка
+  // «Подтвердить» иначе просто ничего не делает.
+  const confirm = useMutation({
+    mutationFn: () => confirmAppointment(slot.appt!.id),
+    onSuccess: () => { success(); inv(); },
+    onError: (e) => { if (isNeedsPro(e)) setNeedsPro(true); },
+  });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(slot.appt!.id, { startsAt: iso }), onSuccess: () => { success(); onClose(); inv(); } });
   const closeWin = useMutation({ mutationFn: () => setOverride(slot.iso, { removed: true }), onSuccess: () => { onClose(); inv(); } });
 
@@ -468,6 +476,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
             </button>
           </div>
         )}
+        <ConfirmProPaywall open={needsPro} onClose={() => setNeedsPro(false)} />
         {/* Перенести и «Написать» — строкой, «Освободить» под «Перенести»
             той же шириной: отмена в общей сетке, но своим рядом. */}
         <div className="grid grid-cols-2 gap-1.5">

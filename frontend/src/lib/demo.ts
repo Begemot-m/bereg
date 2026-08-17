@@ -352,21 +352,10 @@ function notify(db: DB, forRole: NotifRole, kind: string, text: string) {
   db.notifications.push({ id: ++db.seq, forRole, kind, text, createdAt: new Date().toISOString(), read: false });
 }
 
-// Те же правила, что в lib/server/access.ts: пробный PRO идёт 14 дней от первой
-// проведённой сессии, каталог бесплатен 14 дней после одобрения анкеты.
+// То же правило, что в lib/server/access.ts: пробный PRO идёт 14 дней от
+// одобрения анкеты, каталог бесплатен всегда.
 const TRIAL_DAYS = 14;
-const CATALOG_FREE_DAYS = 14;
 const addDays = (from: number, days: number) => new Date(from + days * 86_400_000);
-
-/** Момент первой проведённой сессии — с него стартует триал. */
-function firstSessionAt(db: DB): number | null {
-  const now = Date.now();
-  const past = db.appts
-    .filter((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() <= now)
-    .map((a) => new Date(a.startsAt).getTime())
-    .sort((a, b) => a - b);
-  return past[0] ?? null;
-}
 
 /**
  * Когда анкету одобрили. В демо модерация проходит сама через 6 секунд после
@@ -400,8 +389,8 @@ function resolveSub(db: DB) {
 
   if (s.status === "pending" || s.status === "active") return;
 
-  // Подписки нет: считаем триал от первой сессии.
-  const started = firstSessionAt(db);
+  // Подписки нет: считаем триал от одобрения анкеты.
+  const started = approvedAt();
   const trialEndsAt = started === null ? null : addDays(started, TRIAL_DAYS);
   const trialActive = Boolean(trialEndsAt && trialEndsAt.getTime() > now);
   const nextStatus = trialActive ? "trial" : started === null ? "free" : "expired";
@@ -429,9 +418,6 @@ const NOT_ACCEPTING = '{"error":"not_accepting","message":"Специалист 
 
 const NEEDS_PRO = `{"error":"needs_pro","message":"Бесплатно можно вести ${FREE_CLIENT_LIMIT} клиентов. Чтобы подтвердить встречу с новым человеком, нужна подписка PRO."}`;
 
-/** Пробный PRO по первой заявке из каталога — как `LEAD_TRIAL_DAYS` на сервере. */
-const LEAD_TRIAL_DAYS = 30;
-
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
 
 const LIMIT_HEAD = "Заняты все бесплатные карточки";
@@ -446,7 +432,7 @@ function notifyLimit(db: DB) {
 /** Ответ /subscription в демо: подписка + окно бесплатного каталога. */
 function subPayload(db: DB) {
   const approved = approvedAt();
-  const catalogUntil = approved === null ? null : addDays(approved, CATALOG_FREE_DAYS);
+  const catalogUntil = approved === null ? null : addDays(approved, TRIAL_DAYS);
   const { status, trialEndsAt, currentPeriodEnd, pro, pendingPlan } = db.sub;
   return {
     status,
@@ -1041,16 +1027,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       else if (body.startsAt !== undefined) notify(db, "client", "reschedule", `Психолог перенёс сессию на ${fmtWhen(new Date(String(body.startsAt)).toISOString())}`);
       if (body.confirm && !a.confirmedAt) {
         // Единственное место, где платформа берёт деньги за приведённого
-        // человека. Пока есть свободные места — подтверждаем молча; когда они
-        // кончились, один раз включаем пробный PRO на 30 дней, дальше нужна
-        // подписка (как в `confirmGate` на сервере).
-        if (!demoAccepting(db)) {
-          if (db.sub.trialEndsAt) throw new Error(`API 402: ${NEEDS_PRO}`);
-          const until = addDays(Date.now(), LEAD_TRIAL_DAYS);
-          db.sub.pro = true;
-          db.sub.trialEndsAt = until.toISOString();
-          notify(db, "psychologist", "system", `Включили пробный PRO на ${LEAD_TRIAL_DAYS} дней — до ${fmtDay(until.toISOString())}. Клиенты без ограничений, записи подтверждаются сразу. Дальше — подписка.`);
-        }
+        // человека. Пока есть свободные места — подтверждаем молча, дальше
+        // нужна подписка (как в `confirmGate` на сервере).
+        if (!demoAccepting(db)) throw new Error(`API 402: ${NEEDS_PRO}`);
         a.confirmedAt = new Date().toISOString();
         notify(db, "client", "booking", `Встреча подтверждена · ${fmtWhen(a.startsAt)}`);
       }

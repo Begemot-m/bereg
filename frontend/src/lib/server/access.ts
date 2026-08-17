@@ -10,21 +10,13 @@ import { prisma } from "@/lib/server/prisma";
 export const FREE_CLIENT_LIMIT = 3;
 
 /**
- * Пробный PRO на перенос практики. Отсчёт идёт от одобрения анкеты: до
- * верификации человеку нечего переносить, а от `createdAt` триал сгорал прямо
- * в очереди модерации. Дата берётся из `reviewedAt`, поэтому у тех, кто прошёл
- * верификацию раньше, счётчик продолжает идти с их собственного дня, а не
- * запускается заново.
+ * Пробный PRO — единственный на всю платформу. Даётся каждому сразу после
+ * верификации анкеты и отсчитывается от `reviewedAt`: до одобрения человеку
+ * нечего переносить, а от `createdAt` триал сгорал прямо в очереди модерации.
+ * У тех, кто прошёл верификацию раньше, счётчик идёт с их собственного дня, а
+ * не запускается заново.
  */
 export const TRIAL_DAYS = 14;
-
-/**
- * Пробный PRO по первой заявке из каталога. Даётся один раз и в тот момент,
- * когда специалист впервые упирается в подтверждение записи: до этого он не
- * знает, приводит ли платформа людей, и платит вслепую. Тридцати дней хватает
- * провести человека и увидеть, за что берутся деньги.
- */
-export const LEAD_TRIAL_DAYS = 30;
 
 /** Что известно о размещении одной анкеты: её статус и подписка владельца. */
 export type PlacementInput = {
@@ -65,13 +57,11 @@ export function catalogPlacement(input: PlacementInput, now = Date.now()): Place
 
 export type Access = {
   pro: boolean;
-  reason: "trial" | "lead_trial" | "paid" | "granted" | "none";
+  reason: "trial" | "paid" | "granted" | "none";
   /** Когда кончится пробный PRO. `null` — триал не идёт или ещё не начался. */
   trialEndsAt: Date | null;
   /** Прошла ли верификация, то есть запущен ли отсчёт пробных дней. */
   trialStarted: boolean;
-  /** Потрачен ли разовый пробный PRO по первой заявке из каталога. */
-  leadTrialUsed: boolean;
   currentPeriodEnd: Date | null;
   /** До какого момента идёт пробный PRO после одобрения анкеты. */
   catalogUntil: Date | null;
@@ -84,7 +74,6 @@ const NO_ACCESS: Access = {
   reason: "none",
   trialEndsAt: null,
   trialStarted: false,
-  leadTrialUsed: false,
   currentPeriodEnd: null,
   catalogUntil: null,
   catalog: false,
@@ -100,14 +89,13 @@ function endOfTrial(startedAt: Date | null | undefined, days: number): Date | nu
 
 /**
  * Есть ли у психолога доступ PRO. Пути: идут пробные 14 дней после
- * верификации, идут пробные 30 дней по первой заявке из каталога, оплачена
- * подписка, либо доступ выдан вручную из админки (тот же `status: active`, но
- * с пометкой `grantedBy`). Размещение в каталоге в PRO не входит — оно
- * бесплатное у всех одобренных.
+ * верификации, оплачена подписка, либо доступ выдан вручную из админки (тот же
+ * `status: active`, но с пометкой `grantedBy`). Размещение в каталоге в PRO не
+ * входит — оно бесплатное у всех одобренных.
  */
 export async function access(userId: number): Promise<Access> {
   const [user, sub, psy] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true, catalogTrialAt: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
     prisma.subscription.findUnique({ where: { psychologistId: userId } }),
     prisma.psyProfile.findUnique({ where: { userId }, select: { status: true, reviewedAt: true } }),
   ]);
@@ -120,7 +108,6 @@ export async function access(userId: number): Promise<Access> {
     now,
   );
   const catalogUntil = placement.freeUntil;
-  const leadTrialUsed = Boolean(user.catalogTrialAt);
 
   const paidActive = sub?.status === "active" && (!sub.currentPeriodEnd || sub.currentPeriodEnd.getTime() > now);
   if (paidActive) {
@@ -129,32 +116,23 @@ export async function access(userId: number): Promise<Access> {
       reason: sub?.grantedBy ? "granted" : "paid",
       trialEndsAt: null,
       trialStarted: true,
-      leadTrialUsed,
       currentPeriodEnd: sub?.currentPeriodEnd ?? null,
       catalogUntil,
       catalog: true,
     };
   }
 
-  // Оба триала привязаны к своей дате в базе, а не к «была ли подписка»:
+  // Триал привязан к дате одобрения анкеты, а не к «была ли подписка»:
   // истёкшая оплата не возвращает человека в пробный период по кругу — те дни
   // к тому моменту давно прошли сами.
   const afterVerify = psy?.status === "approved" ? endOfTrial(psy.reviewedAt, TRIAL_DAYS) : null;
-  const afterLead = endOfTrial(user.catalogTrialAt, LEAD_TRIAL_DAYS);
-  const verifyActive = Boolean(afterVerify && afterVerify.getTime() > now);
-  const leadActive = Boolean(afterLead && afterLead.getTime() > now);
-
-  // Показываем тот, что кончится позже: человеку важен остаток доступа, а не
-  // из какого повода он взялся.
-  const ends = [afterVerify, afterLead].filter((d): d is Date => Boolean(d) && d!.getTime() > now);
-  const trialEndsAt = ends.length ? new Date(Math.max(...ends.map((d) => d.getTime()))) : null;
+  const trialActive = Boolean(afterVerify && afterVerify.getTime() > now);
 
   return {
-    pro: verifyActive || leadActive,
-    reason: leadActive && !verifyActive ? "lead_trial" : verifyActive ? "trial" : "none",
-    trialEndsAt,
+    pro: trialActive,
+    reason: trialActive ? "trial" : "none",
+    trialEndsAt: trialActive ? afterVerify : null,
     trialStarted: Boolean(afterVerify),
-    leadTrialUsed,
     currentPeriodEnd: sub?.currentPeriodEnd ?? null,
     catalogUntil,
     catalog: placement.placed,
@@ -185,52 +163,26 @@ export function countSeats(userId: number): Promise<number> {
 
 export type ConfirmGate = {
   ok: boolean;
-  /** Чем подтверждение оплачено: подписка, свободное место или разовый триал. */
-  reason: "pro" | "seat" | "lead_trial" | "needs_pro";
+  /** Чем подтверждение оплачено: подписка или свободное место из трёх. */
+  reason: "pro" | "seat" | "needs_pro";
   used: number;
   limit: number;
-  /** Доступен ли разовый пробный PRO на 30 дней прямо сейчас. */
-  trialAvailable: boolean;
 };
 
 /**
  * Можно ли подтвердить запись, пришедшую снаружи. Это единственное место, где
  * платформа берёт деньги за приведённого человека, поэтому правило одно на все
- * входы.
- *
- * Порядок такой: у PRO вопросов нет; на бесплатном тарифе есть три места, и
- * пока они не заняты, подтверждение ничего не стоит; когда мест не осталось —
- * один раз в жизни даётся пробный PRO на 30 дней, дальше нужна подписка.
- * Триал выдаётся именно здесь, а не при первой заявке вообще: пока у человека
- * есть свободные места, тратить на него пробный месяц незачем.
+ * входы: у PRO вопросов нет; на бесплатном тарифе есть три места, и пока они
+ * не заняты, подтверждение ничего не стоит; когда мест не осталось — нужна
+ * подписка. Пробные дни к подтверждению отношения не имеют: их выдают один раз
+ * при верификации анкеты, отдельного триала «по заявке» нет.
  */
 export async function confirmGate(userId: number): Promise<ConfirmGate> {
   const acc = await access(userId);
   const used = await countSeats(userId);
-  if (acc.pro) return { ok: true, reason: "pro", used, limit: FREE_CLIENT_LIMIT, trialAvailable: false };
-  if (used < FREE_CLIENT_LIMIT) {
-    return { ok: true, reason: "seat", used, limit: FREE_CLIENT_LIMIT, trialAvailable: !acc.leadTrialUsed };
-  }
-  return {
-    ok: false,
-    reason: acc.leadTrialUsed ? "needs_pro" : "lead_trial",
-    used,
-    limit: FREE_CLIENT_LIMIT,
-    trialAvailable: !acc.leadTrialUsed,
-  };
-}
-
-/**
- * Включить разовый пробный PRO на 30 дней. Пишем дату только если её не было:
- * второй раз пробный период не начинается, даже если два подтверждения пришли
- * одновременно.
- */
-export async function startLeadTrial(userId: number): Promise<boolean> {
-  const done = await prisma.user.updateMany({
-    where: { id: userId, catalogTrialAt: null },
-    data: { catalogTrialAt: new Date() },
-  });
-  return done.count > 0;
+  if (acc.pro) return { ok: true, reason: "pro", used, limit: FREE_CLIENT_LIMIT };
+  if (used < FREE_CLIENT_LIMIT) return { ok: true, reason: "seat", used, limit: FREE_CLIENT_LIMIT };
+  return { ok: false, reason: "needs_pro", used, limit: FREE_CLIENT_LIMIT };
 }
 
 /**

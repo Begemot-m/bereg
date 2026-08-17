@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHead, SectionTitle } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
@@ -20,6 +21,7 @@ import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
+import { FREE_CLIENT_LIMIT, getSubscription } from "@/lib/subscription";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { loadTherapists, mergeWithBookings, syncTherapists, therapistCard, type TherapistStore } from "@/lib/therapists";
@@ -165,9 +167,15 @@ function PersonHome({ guest }: { guest: boolean }) {
 // висит в расписании, но обеим сторонам нужен ответ «да».
 function ConfirmQueue({ items }: { items: Appointment[] }) {
   const qc = useQueryClient();
+  const [needsPro, setNeedsPro] = useState(false);
+  const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const confirm = useMutation({
     mutationFn: (id: number) => confirmAppointment(id),
     onSuccess: () => { tap(); qc.invalidateQueries({ queryKey: ["appointments"] }); },
+    // Бесплатные места заняты — вместо голой ошибки показываем, чем это
+    // лечится. Клиент в это время ждёт ответа, поэтому предложение открывается
+    // сразу, а не прячется в кабинете.
+    onError: (e) => { if (isNeedsPro(e)) setNeedsPro(true); },
   });
   if (items.length === 0) return null;
 
@@ -189,6 +197,18 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
           </button>
         </div>
       ))}
+      {/* К человеку записались, а подписки нет — самый честный момент
+          рассказать, где заканчивается бесплатное. */}
+      {sub && sub.status !== "active" && !sub.pro && (
+        <button onClick={() => { tap(); setNeedsPro(true); }} className="flex w-full items-center gap-2 rounded-[13px] bg-white px-3 py-2.5 text-left">
+          <Icon name="spark" width={14} weight="fill" color="var(--purple-edge)" className="shrink-0" />
+          <span className="flex-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">
+            Бесплатно подтверждаются встречи с {FREE_CLIENT_LIMIT} клиентами. Дальше — PRO.
+          </span>
+          <span className="text-[11px] font-black" style={{ color: "var(--purple-edge)" }}>Подробнее</span>
+        </button>
+      )}
+      <ConfirmProPaywall open={needsPro} onClose={() => setNeedsPro(false)} />
     </section>
   );
 }
