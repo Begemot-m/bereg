@@ -20,7 +20,7 @@ import { CatalogFiltersSheet, CatalogSurvey } from "@/components/catalog-control
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
-import { Button, Disclosure, Input, Prose } from "@/components/ui";
+import { Button, Disclosure, Input, Prose, SkeletonCards } from "@/components/ui";
 import { asset } from "@/lib/asset";
 import { listMyBookings } from "@/lib/clients";
 import {
@@ -119,7 +119,7 @@ export default function CatalogPage() {
   // Каталог перечитывается при каждом заходе на страницу: с 60-секундной
   // «свежестью» психолог правил анкету и минуту видел в выдаче прежнюю
   // карточку. Кэш остаётся — он только рисует список до ответа сервера.
-  const { data: serverPsys } = useQuery({ queryKey: ["catalog"], queryFn: listCatalog, staleTime: 60_000, refetchOnMount: "always", retry: false });
+  const { data: serverPsys, isLoading: catalogLoading } = useQuery({ queryKey: ["catalog"], queryFn: listCatalog, staleTime: 60_000, refetchOnMount: "always", retry: false });
   const [mode, setMode] = useState<CatalogMode>("personal");
   const [prefs, setPrefs] = useState<CatalogPrefs>(EMPTY_PREFS);
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
@@ -227,10 +227,10 @@ export default function CatalogPage() {
         {mode === "all" && <AllControls filters={filters} setFilters={(next) => { setFilters(next); setPage(0); }} sort={sort} setSort={(next) => { setSort(next); setPage(0); }} activeFilters={activeFilters} openFilters={() => setFiltersOpen(true)} />}
 
         <div className="mb-3 mt-5 flex items-end justify-between gap-3">
-          <div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{mode === "personal" ? "Персональная подборка" : `${allFiltered.length} специалистов`}</p><h2 className="font-tight mt-0.5 text-[21px] font-black">{mode === "personal" ? "Специалисты для вас" : `Страница ${Math.min(page + 1, pageCount)} из ${pageCount}`}</h2></div>
+          <div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{mode === "personal" ? "Персональная подборка" : catalogLoading && !catalog.length ? "Загружаем анкеты" : `${allFiltered.length} специалистов`}</p><h2 className="font-tight mt-0.5 text-[21px] font-black">{mode === "personal" ? "Специалисты для вас" : catalogLoading && !catalog.length ? "Каталог" : `Страница ${Math.min(page + 1, pageCount)} из ${pageCount}`}</h2></div>
         </div>
 
-        {visible.length ? <Stagger className="space-y-3">{visible.map((psy) => <StaggerItem key={psy.id}><PsyCard psy={psy} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} catalogEmpty={catalog.length === 0} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
+        {catalogLoading && !catalog.length ? <SkeletonCards count={4} /> : visible.length ? <Stagger className="space-y-3">{visible.map((psy) => <StaggerItem key={psy.id}><PsyCard psy={psy} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} catalogEmpty={catalog.length === 0} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
 
         {mode === "all" && allFiltered.length > 10 && <div className="mt-5 flex items-center justify-between gap-2"><Button variant="soft" disabled={page === 0} onClick={() => { setPage((value) => Math.max(0, value - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Предыдущие 10</Button><span className="tnum text-[11px] font-black text-[var(--muted)]">{page + 1}/{pageCount}</span><Button disabled={page + 1 >= pageCount} onClick={() => { setPage((value) => Math.min(pageCount - 1, value + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Следующие 10</Button></div>}
       </main>

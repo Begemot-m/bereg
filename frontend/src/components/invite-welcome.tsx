@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 
 import { ClientAvatar } from "@/components/client-avatar";
 import { Icon, type IconName } from "@/components/icons";
+import { PrivacyNote } from "@/components/privacy-note";
 import { APP_NAME } from "@/lib/brand";
 import { success, tap } from "@/lib/haptics";
 import { getInvitePreview, type InviteKind } from "@/lib/invite";
@@ -63,7 +64,9 @@ export function InviteWelcome({ token, kind, onStart }: { token: string; kind: I
             ))}
           </div>
 
-          <div className="mt-4 flex items-start gap-2.5 rounded-[16px] px-3.5 py-3" style={{ background: "var(--tiffany-soft)" }}>
+          <div className="mt-4"><PrivacyNote variant="invite" /></div>
+
+          <div className="mt-3 flex items-start gap-2.5 rounded-[16px] px-3.5 py-3" style={{ background: "var(--tiffany-soft)" }}>
             <Icon name="spark" width={16} weight="fill" color="var(--tiffany-edge)" className="mt-0.5 shrink-0" />
             <p className="text-[13px] font-black leading-snug">Первым делом загляните в раздел «Терапия»</p>
           </div>

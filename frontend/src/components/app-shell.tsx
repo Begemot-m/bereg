@@ -19,11 +19,8 @@ const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.Ro
 const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => m.WebLanding));
 // Экран приглашения видят только те, кто пришёл по ссылке специалиста.
 const InviteWelcome = dynamic(() => import("@/components/invite-welcome").then((m) => m.InviteWelcome));
-import { DesktopNote, desktopNoteDismissed } from "@/components/desktop-note";
 import { serverMessage } from "@/lib/api";
 import { APP_NAME } from "@/lib/brand";
-import { DEMO } from "@/lib/demo";
-import { isDesktopTelegram } from "@/lib/telegram";
 import { joinClientCard } from "@/lib/clients";
 import { acceptPsyInvite, readInvitePayload, type InviteKind } from "@/lib/invite";
 import { select } from "@/lib/haptics";
@@ -169,8 +166,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [greeted, setGreeted] = useState(false);
   // Ссылка не сработала: своя же или просроченная — объясняем, что произошло.
   const [inviteNote, setInviteNote] = useState<keyof typeof INVITE_NOTES | null>(null);
-  // Открыли в Telegram на компьютере — зовём на телефон, пока десктоп в работе.
-  const [desktopStay, setDesktopStay] = useState(false);
+  // Пришли по ссылке на запись: знакомство всё равно обязательно, но роль
+  // спрашивать незачем — человека позвали как клиента.
+  const [entryRole, setEntryRole] = useState<Role | null>(null);
   const items = NAV[role];
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
@@ -245,6 +243,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const enter = (psy: string | null) => {
       setRole("client");
       setFastEntry(true);
+      if (psy) setEntryRole("client");
       if (psy && navRef.current.pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}&book=1`);
     };
 
@@ -375,13 +374,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Telegram на компьютере: интерфейс рассчитан на телефон, десктопную версию
-  // ещё делаем. Проверка синхронная — к моменту, когда env стал «tma», скрипт
-  // Telegram уже загружен и платформа известна. Демо не трогаем: на нём правят
-  // с компьютера.
-  if (env === "tma" && !DEMO && !desktopStay && !desktopNoteDismissed() && isDesktopTelegram()) {
-    return <DesktopNote onStay={() => setDesktopStay(true)} />;
-  }
   // Пока идёт вход, приложение не показываем: иначе экраны успевают отправить
   // запросы без токена, получить 401 и остаться в бесконечной загрузке.
   if (authState === "loading" || onboarded === null || fastEntry === null) return <div className="min-h-[100dvh]" style={{ background: "var(--bg)" }} />;
@@ -400,7 +392,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (invite && !greeted && !onboarded) {
     return <InviteWelcome token={invite.token} kind={invite.kind} onStart={() => setGreeted(true)} />;
   }
-  if (!onboarded && !fastEntry) return <Onboarding startRole={invite ? "client" : undefined} />;
+  // Знакомство обязательно: на его последнем шаге даётся согласие на обработку
+  // данных, без которого пользоваться платформой нельзя. Быстрый вход по ссылке
+  // на запись больше мимо не проносит — он только пускает посмотреть окна тому,
+  // кто ещё не вошёл в аккаунт.
+  if (!onboarded && (authState === "authed" || !fastEntry)) {
+    return <Onboarding startRole={invite ? "client" : entryRole ?? undefined} />;
+  }
 
   return (
     <div data-accent={accent} className="@container fixed inset-0 overflow-hidden" style={{ background: "var(--page)" }}>

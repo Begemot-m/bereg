@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
+import { PhoneShell } from "@/components/phone-shell";
 import { ConsentGate } from "@/components/consent-gate";
 import { DemoFrame } from "@/components/demo-frame";
 import { DragScroll } from "@/components/drag-scroll";
@@ -118,7 +119,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <AppShell>{children}</AppShell>
               </DemoFrame>
             ) : (
-              <AppShell>{children}</AppShell>
+              <PhoneShell>
+                <AppShell>{children}</AppShell>
+              </PhoneShell>
             )}
           </ConsentGate>
         </Providers>

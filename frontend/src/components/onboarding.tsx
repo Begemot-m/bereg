@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { PrivacyNote } from "@/components/privacy-note";
 import { apiFetch } from "@/lib/api";
 import { APP_NAME, APP_NAME_ACC } from "@/lib/brand";
 import { DEMO } from "@/lib/demo";
@@ -221,7 +222,10 @@ export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; 
           <div className="flex flex-1 gap-1.5">
             {!isWelcome && Array.from({ length: FINISH_STEP }).map((_, k) => <span key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k < step ? "var(--ink)" : "rgba(32,28,24,.2)" }} />)}
           </div>
-          <button onClick={finish} className="shrink-0 text-[11px] font-black" style={{ color: "rgba(32,28,24,.6)" }}>{preview ? "Закрыть" : "Пропустить"}</button>
+          {/* «Пропустить» осталось только в просмотре из кабинета: на боевом
+              знакомстве это была единственная дверь мимо согласия на обработку
+              данных — человек оказывался внутри платформы, ничего не подписав. */}
+          {preview && <button onClick={finish} className="shrink-0 text-[11px] font-black" style={{ color: "rgba(32,28,24,.6)" }}>Закрыть</button>}
         </div>
 
         <AnimatePresence mode="wait">
@@ -466,6 +470,8 @@ function PsySell({ agreed, saving, onAgree, onStart }: FinishProps) {
           <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: "1.5px solid var(--purple-edge)" }}><Icon name="user" width={11} weight="bold" color="var(--purple-edge)" /></span>
           Роль клиента тоже открыта: в кабинете переключитесь на неё и посмотрите приложение глазами тех, кого ведёте.
         </p>
+
+        <div className="mt-4"><PrivacyNote variant="psy" /></div>
       </div>
       <div className="pt-2">
         <Consent agreed={agreed} onAgree={onAgree} />
@@ -513,6 +519,8 @@ function ClientFinish({ agreed, saving, onAgree, onStart }: FinishProps) {
             </div>
           ))}
         </div>
+
+        <div className="mt-5"><PrivacyNote variant="client" /></div>
 
         <SoonBanner />
       </div>
