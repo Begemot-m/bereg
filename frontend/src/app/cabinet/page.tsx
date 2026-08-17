@@ -20,13 +20,13 @@ import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch, logout } from "@/lib/api";
 import { asset } from "@/lib/asset";
-import { AUTHOR_TG, AUTHOR_TG_URL, CENTER_SITE, CENTER_URL } from "@/lib/brand";
+import { AUTHOR_TG, AUTHOR_TG_URL, CENTER_SITE, CENTER_URL, PROD_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, resetLocalData } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
 import { useVerification } from "@/lib/psy-verification";
 import { ROLE_LABEL, setRole, setRoleIntent, useRole, useRoleIntent, type Role } from "@/lib/role";
-import { addToHomeScreen, homeScreenStatus, isTelegramMiniApp, onHomeScreenAdded, openTelegramLink, type HomeScreenStatus } from "@/lib/telegram";
+import { addToHomeScreen, homeScreenMode, homeScreenStatus, isApplePhone, isTelegramMiniApp, onHomeScreenAdded, openTelegramLink, type HomeScreenMode } from "@/lib/telegram";
 
 const ROLES: Role[] = ["psychologist", "client"];
 
@@ -167,34 +167,84 @@ export default function CabinetPage() {
   );
 }
 
-// Иконка мини-приложения на рабочем столе телефона. Умеет это только клиент
-// Telegram от Bot API 8.0 и только на телефоне: на десктопе метода нет, и
-// кнопка обещала бы то, чего не произойдёт, — поэтому блок там не появляется.
-// В демо показываем всегда, иначе вёрстку не посмотреть.
+// Страница-ярлык: её и добавляют на рабочий стол там, где Telegram сам этого не
+// умеет. Лежит статикой в public, поэтому открывается без входа и без оболочки
+// приложения, а запущенная с иконки сразу уводит в мини-приложение.
+const SHORTCUT_FILE = "open.html";
+
+function shortcutUrl(): string {
+  if (DEMO && typeof window !== "undefined") return `${window.location.origin}${asset(`/${SHORTCUT_FILE}`)}`;
+  return `${PROD_URL}${SHORTCUT_FILE}`;
+}
+
+// Иконка мини-приложения на рабочем столе телефона.
+//
+// Положить ярлык сам умеет только Telegram для Android (Bot API 8.0). На iPhone
+// метод в API есть, но не делает ничего: iOS не разрешает приложениям ставить
+// иконки. Раньше человек видел там живую кнопку, жал — и не происходило ничего.
+// Теперь на таких клиентах вместо кнопки — шаги: ярлык ставится из браузера.
+// На компьютере блока нет. В демо показываем ручной путь: демо и так открывают
+// из браузера, шаги в нём настоящие.
 function HomeScreenCard() {
-  const [status, setStatus] = useState<HomeScreenStatus | null>(null);
+  const [mode, setMode] = useState<HomeScreenMode | null>(null);
+  const [apple, setApple] = useState(true);
+  const [inTelegram, setInTelegram] = useState(false);
+  const [added, setAdded] = useState(false);
   const [asked, setAsked] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (DEMO) { setStatus("missed"); return; }
+    if (DEMO) { setMode("manual"); return; }
     let alive = true;
     let off = () => {};
     // telegram-web-app.js подключается отложенно — спрашиваем не в первый кадр.
     const timer = setTimeout(() => {
-      off = onHomeScreenAdded(() => { if (alive) setStatus("added"); });
-      void homeScreenStatus().then((s) => { if (alive) setStatus(s); });
+      if (!alive) return;
+      const next = homeScreenMode();
+      setMode(next);
+      setApple(isApplePhone());
+      setInTelegram(isTelegramMiniApp());
+      if (next !== "native") return;
+      off = onHomeScreenAdded(() => { if (alive) setAdded(true); });
+      void homeScreenStatus().then((s) => { if (alive && s === "added") setAdded(true); });
     }, 300);
     return () => { alive = false; clearTimeout(timer); off(); };
   }, []);
 
-  if (!status || status === "unsupported") return null;
-  const added = status === "added";
+  if (!mode || mode === "none") return null;
 
   const add = () => {
     setAsked(true);
-    if (DEMO) { success(); setStatus("added"); return; }
+    if (DEMO) { success(); setAdded(true); return; }
     addToHomeScreen();
   };
+
+  const copy = async () => {
+    tap();
+    try {
+      await navigator.clipboard.writeText(shortcutUrl());
+      setCopied(true);
+      success();
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const steps = inTelegram
+    ? [
+        "Скопируйте ссылку на приложение",
+        apple ? "Откройте её в Safari" : "Откройте её в браузере телефона",
+        apple ? "Нажмите «Поделиться» внизу экрана и выберите «На экран „Домой“»" : "В меню браузера выберите «Добавить на главный экран»",
+      ]
+    : apple
+      ? [
+          "Нажмите «Поделиться» — квадрат со стрелкой внизу экрана",
+          "Выберите «На экран „Домой“» и подтвердите",
+        ]
+      : [
+          "Откройте меню браузера — три точки в углу",
+          "Выберите «Установить приложение» или «Добавить на главный экран»",
+        ];
 
   return (
     <div>
@@ -205,14 +255,37 @@ function HomeScreenCard() {
           <div className="min-w-0 flex-1">
             <p className="t-head">Иконка на рабочем столе</p>
             <p className="t-sub mt-1 font-normal">Хроника будет открываться прямо с экрана телефона, как обычное приложение, — без поиска чата в Telegram.</p>
+
             {added ? (
               <span className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>
                 <Icon name="check" width={13} weight="bold" color="var(--green-edge)" /> Иконка уже на месте
               </span>
-            ) : (
+            ) : mode === "native" ? (
               <>
                 <Button size="sm" className="mt-3" onClick={add}>Добавить на рабочий стол</Button>
                 {asked && <p className="t-cap mt-2 leading-snug opacity-70">Подтвердите добавление в окне Telegram — иконка появится на экране телефона.</p>}
+              </>
+            ) : (
+              <>
+                <ol className="mt-3 space-y-1.5">
+                  {steps.map((step, i) => (
+                    <li key={step} className="flex items-start gap-2">
+                      <span className="mt-[2px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-black" style={{ background: "#fff", color: "var(--amber-edge)" }}>{i + 1}</span>
+                      <span className="t-sub font-normal">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+                {inTelegram && (
+                  <>
+                    <Button size="sm" className="mt-3" onClick={copy}>{copied ? "Ссылка скопирована" : "Скопировать ссылку"}</Button>
+                    <p className="t-cap mt-2 leading-snug opacity-70">
+                      Или наберите вручную: {shortcutUrl().replace(/^https?:\/\//, "")}
+                    </p>
+                  </>
+                )}
+                {apple && inTelegram && (
+                  <p className="t-cap mt-2 leading-snug opacity-70">Внутри Telegram iPhone ставить иконки не разрешает — только из браузера. Ярлык откроет ту же Хронику.</p>
+                )}
               </>
             )}
           </div>

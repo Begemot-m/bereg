@@ -63,6 +63,13 @@ export const metadata: Metadata = {
     images: ["/og.png"],
   },
   formatDetection: { telephone: false, email: false, address: false },
+  // Иконка ярлыка на телефоне. Без неё iOS кладёт на рабочий стол уменьшенный
+  // снимок страницы — по такому значку приложение не узнать.
+  icons: {
+    icon: [{ url: "/icon-512.png", sizes: "512x512", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

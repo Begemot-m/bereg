@@ -24,6 +24,9 @@ type TelegramWebApp = {
 // приложение лишнему десктопу, чем закрыть его перед новым мобильным клиентом.
 const DESKTOP_PLATFORMS = new Set(["tdesktop", "macos", "linux", "web", "weba", "webk", "unigram"]);
 
+// Только эти клиенты реально кладут ярлык на рабочий стол сами.
+const ANDROID_PLATFORMS = new Set(["android", "android_x"]);
+
 declare global {
   interface Window {
     Telegram?: { WebApp?: TelegramWebApp };
@@ -95,6 +98,40 @@ export function homeScreenStatus(timeout = 1500): Promise<HomeScreenStatus> {
 
 export function addToHomeScreen(): void {
   getTelegramWebApp()?.addToHomeScreen?.();
+}
+
+export type HomeScreenMode = "native" | "manual" | "none";
+
+/** iPhone или iPad — и внутри Telegram, и в обычном браузере. */
+export function isApplePhone(): boolean {
+  const p = telegramPlatform();
+  if (p) return p === "ios";
+  if (typeof navigator === "undefined") return false;
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isMobileBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+}
+
+/**
+ * Что клиент реально умеет с иконкой на рабочем столе.
+ *
+ * `addToHomeScreen` из Bot API 8.0 честно работает только на Android: там
+ * Telegram кладёт ярлык через системный диалог. На iPhone метод в API есть, но
+ * не делает ничего — iOS не даёт приложениям ставить иконки. Поэтому
+ * `checkHomeScreenStatus` отвечает там `unknown` («поддерживается, но не знаю
+ * статус»), блок показывался, а кнопка молчала. Единственный путь на iPhone —
+ * веб-ярлык из браузера, и его надо объяснить словами, а не изображать кнопкой.
+ */
+export function homeScreenMode(): HomeScreenMode {
+  const wa = getTelegramWebApp();
+  const platform = telegramPlatform();
+  if (!wa || !platform) return isMobileBrowser() ? "manual" : "none";
+  if (DESKTOP_PLATFORMS.has(platform)) return "none";
+  if (ANDROID_PLATFORMS.has(platform) && typeof wa.addToHomeScreen === "function") return "native";
+  return "manual";
 }
 
 /** Подписка на подтверждение от клиента Telegram, что иконка добавлена. */
