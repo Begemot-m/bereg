@@ -26,7 +26,7 @@ export function MoodHomeCard({ mood, moods, onOpen, embedded = false }: { mood?:
       <div className="relative flex items-center gap-3">
         <motion.span className="relative flex h-[58px] w-[58px] shrink-0 items-center justify-center" animate={{ y: [0, -4, 0], rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
           <MoodBlob value={value} size={70} still />
-          {!mood && <DailyDot size={16} className="absolute right-0 top-0 z-[1]" label="Настроение дня ещё не отмечено" />}
+          {!mood && <DailyDot size={16} tone="green" className="absolute right-0 top-0 z-[1]" label="Настроение дня ещё не отмечено" />}
         </motion.span>
         <span className="min-w-0 flex-1">
           <span className="t-micro block">Настроение дня</span>
@@ -79,7 +79,7 @@ export function MoodCard({ mood, emotions, onOpen }: { mood?: number; emotions?:
       <div className="flex items-center gap-3">
         <span className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center">
           <MoodBlob value={value} size={64} still />
-          {!mood && <DailyDot size={15} className="absolute right-0 top-0 z-[1]" label="Настроение дня ещё не отмечено" />}
+          {!mood && <DailyDot size={15} tone="green" className="absolute right-0 top-0 z-[1]" label="Настроение дня ещё не отмечено" />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="t-head block">Какое у вас настроение сегодня?</span>

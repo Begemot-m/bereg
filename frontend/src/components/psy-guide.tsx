@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { ArrowGlyph } from "@/components/blocks";
 import { GuideShot } from "@/components/guide-shots";
 import { Icon, type IconName } from "@/components/icons";
 import { LandingScreen } from "@/components/landing-screens";
@@ -133,6 +134,9 @@ export function PsyGuide() {
   // Развернуть можно сколько угодно раз, но отметка «пройдено» остаётся: после
   // перезагрузки человек видит миниатюру, а не полный блок с первого шага.
   const expand = () => { tap(); setIndex(0); setMode("full"); };
+  // Стрелка в шапке сворачивает гид в строку — тот же жест, что у раскрытых
+  // блоков в остальном приложении. Знакомство при этом никуда не девается.
+  const collapse = () => { tap(); localStorage.setItem(KEY, "mini"); setMode("mini"); };
   const endSwipe = (x: number) => {
     const start = swipeX.current;
     swipeX.current = null;
@@ -162,11 +166,11 @@ export function PsyGuide() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[13.5px] font-black leading-tight">С чего начать?</span>
-            <span className="t-cap block">Знакомство с платформой — можно открыть снова</span>
+            <span className="t-cap block">Наглядное знакомство с платформой</span>
           </span>
           {/* Крестик появляется только здесь, у пройденного знакомства, и стоит
-              над кнопкой: убрать строку совсем — отдельное решение. */}
-          <span className="flex shrink-0 flex-col items-center gap-1">
+              слева от кнопки: убрать строку совсем — отдельное решение. */}
+          <span className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
               aria-label="Убрать знакомство"
@@ -210,6 +214,15 @@ export function PsyGuide() {
             <span className="font-tight block text-[19px] font-black leading-tight">С чего начать?</span>
             <span className="t-sub mt-0.5 block">Познакомьтесь с функциями платформы</span>
           </span>
+          <button
+            type="button"
+            onClick={collapse}
+            aria-label="Свернуть знакомство"
+            className="arrow shrink-0 self-start"
+            style={{ background: "var(--purple-edge)" }}
+          >
+            <ArrowGlyph size={14} style={{ transform: "rotate(-90deg)" }} />
+          </button>
         </div>
 
         <div

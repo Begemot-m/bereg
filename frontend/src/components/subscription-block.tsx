@@ -15,6 +15,9 @@ import { tap } from "@/lib/haptics";
 import { zoneFormat } from "@/lib/zone";
 
 const dF = zoneFormat({ day: "numeric", month: "long" });
+// В карточке оплаченного PRO дата идёт с годом: подписка живёт дольше месяца,
+// и «до 12 сентября» без года читается двусмысленно.
+const dFY = zoneFormat({ day: "numeric", month: "long", year: "numeric" });
 
 type Plan = { id: PlanId; name: string; tag: string; perks: string[]; best?: boolean };
 const PSY_PLANS: Plan[] = [
@@ -297,8 +300,9 @@ const ACTIVE_PERKS: { icon: IconName; label: string }[] = [
 ];
 
 function ProActiveCard({ sub }: { sub: Subscription }) {
+  const [open, setOpen] = useState(false);
   const left = paidDaysLeft(sub);
-  const until = sub.currentPeriodEnd ? dF.format(new Date(sub.currentPeriodEnd)) : null;
+  const until = sub.currentPeriodEnd ? dFY.format(new Date(sub.currentPeriodEnd)) : null;
 
   return (
     <section className="overflow-hidden rounded-[20px]" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
@@ -314,9 +318,6 @@ function ProActiveCard({ sub }: { sub: Subscription }) {
           </div>
           <p className="mt-0.5 text-[12px] font-black leading-snug">
             Статус: <span style={{ color: "var(--green-edge)" }}>активна</span>
-          </p>
-          <p className="t-sub block">
-            {left > 0 ? `Осталось ${left} ${plural(left, "день", "дня", "дней")}` : "Период продлевается автоматически"}
           </p>
         </div>
       </div>
@@ -335,7 +336,6 @@ function ProActiveCard({ sub }: { sub: Subscription }) {
           )}
           <div className="min-w-0">
             <p className="text-[12.5px] font-black leading-tight">{until ? `Оплачено до ${until}` : "Доступ открыт"}</p>
-            <p className="t-cap mt-0.5">{left > 0 ? "Столько осталось от оплаченного периода" : "Период продлевается"}</p>
           </div>
         </div>
 
@@ -348,7 +348,21 @@ function ProActiveCard({ sub }: { sub: Subscription }) {
           ))}
         </div>
 
-        <p className="mt-2.5 text-center text-[10px] font-semibold text-[var(--muted-2)]">Оплата прошла через ЮKassa · спасибо, что поддерживаете Хронику</p>
+        {/* Тот же разворот, что и в витрине тарифа: платящему тоже случается
+            перепроверить, что именно у него включено. */}
+        <button onClick={() => { tap(); setOpen(!open); }} className="mt-3 flex w-full items-center gap-2 text-left" aria-expanded={open}>
+          <span className="text-[12.5px] font-black" style={{ color: "var(--purple-edge)" }}>Что входит в подписку?</span>
+          <span className="transition-transform duration-300" style={{ color: "var(--purple-edge)", transform: open ? "rotate(-90deg)" : "rotate(90deg)" }}>
+            <ArrowGlyph size={16} />
+          </span>
+        </button>
+        <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>
+          <div className="min-h-0 overflow-hidden">
+            <div className="pt-2.5"><FreeVsPro compact /></div>
+          </div>
+        </div>
+
+        <p className="mt-3 text-center text-[10px] font-semibold text-[var(--muted-2)]">Спасибо, что остаётесь с нами!</p>
       </div>
     </section>
   );

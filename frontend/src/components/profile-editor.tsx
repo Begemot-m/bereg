@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { ArrowGlyph } from "@/components/blocks";
 import { VerificationPrompt } from "@/components/verification-prompt";
+import { useVerification } from "@/lib/psy-verification";
 import { Button, Disclosure, Input, Prose, Textarea } from "@/components/ui";
 import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
@@ -54,8 +55,12 @@ const STEPS: StepDefinition[] = [
 export function ProfileEditor({ embedded = false, professional = true, roleControl }: { embedded?: boolean; professional?: boolean; roleControl?: ReactNode }) {
   const profile = useProfile();
   const router = useRouter();
+  const verification = useVerification();
   const [editing, setEditing] = useState(false);
   const name = profile?.name || displayName();
+  // Печать у имени — ровно та же, что видит клиент в каталоге: подтверждённый
+  // профиль узнаётся с одного взгляда, без отдельной строки о статусе.
+  const verified = professional && verification.data?.status === "approved";
   const photo = displayPhoto();
   const openEditor = () => {
     tap();
@@ -68,7 +73,10 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
       <div className="flex items-center gap-3">
         <ProfilePhoto photo={photo} name={name} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[21px] font-extrabold leading-tight">{name}</p>
+          <p className="flex items-center gap-1.5 text-[21px] font-extrabold leading-tight">
+            <span className="truncate">{name}</span>
+            {verified && <Icon name="seal" width={19} weight="fill" color="var(--green)" className="shrink-0" />}
+          </p>
           <button onClick={openEditor} className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="edit" width={12} weight="bold" color="currentColor" /> Редактировать профиль</button>
         </div>
       </div>
