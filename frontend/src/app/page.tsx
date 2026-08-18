@@ -196,7 +196,7 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
         <Icon name="calendar" width={15} weight="bold" color="var(--green-edge)" />
         <p className="t-head">К вам записался клиент</p>
         {/* Тот же красный ярлык, что у задания дня: «сюда надо ткнуть». */}
-        <DailyDot size={18} label="Ждёт вашего ответа" />
+        <DailyDot size={18} tone="green" label="Ждёт вашего ответа" />
       </div>
       {items.map((a) => (
         <div key={a.id} className="rounded-[13px] bg-white px-3 py-2.5">
@@ -389,8 +389,6 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
       <div className="flex items-center gap-3.5">
         <span className="relative h-[80px] w-[80px] shrink-0">
           <ClientAvatar name={appointment.client.name} photo={appointment.client.photo} className="ico ico-white h-full w-full text-[32px] font-black" style={{ color: "var(--purple-edge)" }} />
-          {/* пульсирующая точка «скоро» — на своём слое, иначе от неё дрожит соседний текст */}
-          <span className="pulse-dot absolute -right-1 -top-1 h-3 w-3 rounded-full" style={{ background: "var(--amber)" }} />
         </span>
         <span className="relative min-w-0 flex-1">
           <span className="t-micro block">Ближайшая сессия</span>

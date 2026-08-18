@@ -22,13 +22,13 @@ export function ConfirmDone({ open, when, note, onClose }: { open: boolean; when
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => { tap(); onClose(); }}
-          className="fixed inset-0 z-[70] flex items-end justify-center p-3 @md:items-center"
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
           style={{ background: "rgba(32,28,24,.42)", backdropFilter: "blur(2px)" }}
         >
           <motion.div
-            initial={{ y: 30, scale: 0.98 }}
+            initial={{ y: 18, scale: 0.96 }}
             animate={{ y: 0, scale: 1 }}
-            exit={{ y: 30, opacity: 0 }}
+            exit={{ y: 18, opacity: 0 }}
             transition={{ type: "spring", stiffness: 420, damping: 32 }}
             onClick={(e) => e.stopPropagation()}
             className="chunk w-full max-w-md p-5 text-center"
@@ -51,7 +51,7 @@ export function ConfirmDone({ open, when, note, onClose }: { open: boolean; when
                 {when}
               </p>
             )}
-            <p className="t-sub mt-2">{note ?? "Обе стороны получили уведомление — встреча в расписании."}</p>
+            {note && <p className="t-sub mt-2">{note}</p>}
 
             <button onClick={() => { tap(); onClose(); }} className="btn mt-4 w-full py-3">Понятно</button>
           </motion.div>

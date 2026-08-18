@@ -313,6 +313,17 @@ h1, h2, h3, .font-tight {
   70%  { box-shadow: 0 0 0 8px rgba(244, 69, 31, 0); }
   100% { box-shadow: 0 0 0 0 rgba(244, 69, 31, 0); }
 }
+/* Тот же знак в зелёном: там, где ярлык зовёт в свою же зелёную карточку,
+   красный читался как ошибка. */
+.daily-dot-green {
+  background: linear-gradient(160deg, #3ec98a, #14a06a);
+  animation-name: daily-halo-green;
+}
+@keyframes daily-halo-green {
+  0%   { box-shadow: 0 0 0 0 rgba(20, 160, 106, .55); }
+  70%  { box-shadow: 0 0 0 8px rgba(20, 160, 106, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(20, 160, 106, 0); }
+}
 @media (prefers-reduced-motion: reduce) { .daily-dot { animation: none; } }
 
 /* Фон приветственного экрана онбординга: волны едут только по transform,

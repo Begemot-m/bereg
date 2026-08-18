@@ -69,13 +69,13 @@ export function PageHead({ title, sub, subIcon, icon, back, backLight, right, ch
  * Дейлик — персиковый кружок с жёлтым «!». Мигает, пока задание дня не пройдено:
  * значит, сюда надо ткнуть. Один вид на весь проект.
  */
-export function DailyDot({ size = 22, className, label = "Задание дня — пройдите его" }: { size?: number; className?: string; label?: string }) {
+export function DailyDot({ size = 22, tone, className, label = "Задание дня — пройдите его" }: { size?: number; tone?: "green"; className?: string; label?: string }) {
   return (
     <motion.span
       role="img"
       aria-label={label}
       title={label}
-      className={`daily-dot ${className ?? ""}`}
+      className={`daily-dot ${tone === "green" ? "daily-dot-green" : ""} ${className ?? ""}`}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.62) }}
       animate={{ scale: [1, 1.16, 1], opacity: [1, 0.72, 1] }}
       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
