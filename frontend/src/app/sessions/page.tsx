@@ -15,6 +15,7 @@ import { SCHEDULE_HELP, SESSIONS_FULL_HELP } from "@/components/help-deck";
 
 // Справка открывается по кнопке «Как это работает?» — до этого не нужна.
 const HelpDeck = dynamic(() => import("@/components/help-deck").then((m) => m.HelpDeck));
+import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
@@ -473,6 +474,7 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
   const [client, setClient] = useState<{ id: number; name: string; photo?: string | null } | null>(null);
   // Лимит бесплатного тарифа не прячет кнопку, а объясняет себя через пейволл.
   const [paywall, setPaywall] = useState(false);
+  const { ask, askNode } = useConfirmAsk();
   const book = useMutation({
     mutationFn: ({ iso, format }: { iso: string; format: ApptFormat }) => createAppointment({ clientId: client!.id, startsAt: iso, format }),
     onSuccess: () => { success(); setClient(null); onClose(); for (const k of ["appointments", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); },
@@ -516,12 +518,21 @@ function QuickAddBooking({ open, onClose }: { open: boolean; onClose: () => void
                     <span className="min-w-0 break-words text-[13px] font-black leading-tight">{client.name}</span>
                   </div>
                   <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Свободное окно</p>
-                  <SlotPicker variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} />
+                  <SlotPicker variant="calendar" showAvail onPick={(iso, format) => ask({
+                    title: "Записать на встречу?",
+                    when: `${dayShort.format(new Date(iso))}, ${timeF.format(new Date(iso))}`,
+                    note: `${client!.name} увидит встречу в своём расписании и получит напоминание перед началом.`,
+                    confirm: "Записать",
+                    tone: "green",
+                    icon: "check",
+                    run: () => book.mutate({ iso, format }),
+                  })} />
                 </div>
               )}
             </div>
           </motion.section>
           <ProPaywall open={paywall} onClose={() => setPaywall(false)} reason={`Заняты все ${FREE_CLIENT_LIMIT} бесплатные карточки. PRO открывает клиентов без лимита.`} />
+          {askNode}
         </motion.div>
       )}
     </AnimatePresence>

@@ -10,6 +10,7 @@ import Image from "next/image";
 // Колесо баланса — тридцать вопросов с анимациями. В терапию заходят каждый
 // день, колесо проходят раз в пару недель: в стартовый бандл ему не место.
 const WheelFlow = dynamic(() => import("@/components/balance-flow").then((m) => m.WheelFlow));
+import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon } from "@/components/icons";
 import { InviteButton } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
@@ -300,6 +301,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
   const invBookings = () => { for (const k of ["my-bookings", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [k] }); };
   // К кому записываемся. Имени серверу мало — нужен id специалиста.
   const psyId = useMemo(() => therapistId(name, bookings), [name, bookings]);
+  const { ask, askNode } = useConfirmAsk();
   const book = useMutation({
     mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot({ id: psyId, name }, iso, format),
     onSuccess: (b) => { success(); setBooked({ at: b.startsAt, format: b.format }); invBookings(); },
@@ -321,7 +323,17 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
   return (
     <div className="relative mt-3 rounded-[18px] bg-[#ffffff] p-3" style={{ border: "var(--bw-lg) solid var(--purple-edge)" }}>
       {/* Открепить — незаметная иконка в углу */}
-      {onRemove && <button onClick={() => { if (confirm(`Открепить ${name}? Ваши записи к этому специалисту будут отменены.`)) onRemove(); }} className="absolute right-2 top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)", color: "var(--salmon-edge)" }} aria-label="Открепить терапевта">×</button>}
+      {onRemove && <button onClick={() => ask({
+        title: `Открепить ${name}?`,
+        note: mine.length > 0
+          ? `Ваши записи к этому специалисту будут отменены — их ${mine.length}. Специалист получит уведомление.`
+          : "Специалист пропадёт из раздела «Терапия». Вернуться к нему можно через каталог.",
+        confirm: "Открепить",
+        tone: "danger",
+        icon: "close",
+        run: onRemove,
+      })} className="absolute right-2 top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-black" style={{ background: "var(--salmon-soft)", border: "var(--bw) solid var(--salmon-edge)", color: "var(--salmon-edge)" }} aria-label="Открепить терапевта">×</button>}
+      {askNode}
       {/* Тап по карточке — на страницу терапевта */}
       <Link href={href} onClick={tap} className="flex gap-3">
         {portrait ? (
@@ -415,7 +427,15 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
             <>
               <p className="t-micro mb-1 px-1">Свободные окна</p>
               <p className="t-cap mb-2 flex items-center gap-1.5 px-1"><Icon name="calendar" width={12} weight="bold" color="currentColor" />{next ? `Ближайшая запись — ${dateTime.format(new Date(next.startsAt))}` : "Записи пока нет — выберите день и время"}</p>
-              <SlotPicker psyId={psyId} variant="calendar" calendarTone="blend" showAvail startDay={firstFree} onPick={(iso, format) => book.mutate({ iso, format })} />
+              <SlotPicker psyId={psyId} variant="calendar" calendarTone="blend" showAvail startDay={firstFree} onPick={(iso, format) => ask({
+                title: "Записаться на встречу?",
+                when: dateTime.format(new Date(iso)).replace(/^./, (c) => c.toUpperCase()),
+                note: `${name.split(" ")[0]} получит запрос и подтвердит встречу — ответ придёт уведомлением.`,
+                confirm: "Записаться",
+                tone: "green",
+                icon: "check",
+                run: () => book.mutate({ iso, format }),
+              })} />
               {mine.length > 0 && <button onClick={() => { tap(); setPickSlot(false); }} className="back-link mt-2 w-full justify-center">Назад к моим записям</button>}
             </>
           )}

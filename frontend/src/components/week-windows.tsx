@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 
 import { ClientAvatar } from "@/components/client-avatar";
 import { ConfirmActions } from "@/components/confirm-actions";
+import { useConfirmAsk } from "@/components/confirm-ask";
 import { ConfirmDone } from "@/components/confirm-done";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { ClientPicker } from "@/components/day-slots";
@@ -241,6 +242,7 @@ export function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Dat
   }, [date, taken.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [dur, setDur] = useState(50);
+  const { ask, askNode } = useConfirmAsk();
   // Время выбрано заранее — первое свободное; всё меню видно одним экраном.
   const chosen = iso ?? times[0]?.iso ?? null;
   // Открыть окно, не назначая никого: клиента в него можно записать позже —
@@ -317,8 +319,17 @@ export function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Dat
           >
             <Icon name="clock" width={13} weight="bold" color="var(--olive-edge)" /> {openWindow.isPending ? "Открываем…" : "Открыть свободное окно"}
           </button>
-          <PickClient onPick={(clientId) => book.mutate({ clientId })} />
+          <PickClient onPick={(clientId) => ask({
+            title: "Записать на встречу?",
+            when: chosen ? `${cap(dLong.format(new Date(chosen)))} в ${timeF.format(new Date(chosen))} · ${dur} мин` : undefined,
+            note: "Клиент увидит встречу в своём расписании и получит напоминание перед началом.",
+            confirm: "Записать",
+            tone: "green",
+            icon: "check",
+            run: () => book.mutate({ clientId }),
+          })} />
           <p className="t-cap text-center">Окно останется свободным — клиента можно записать позже.</p>
+          {askNode}
         </div>
       )}
     </div>
@@ -420,6 +431,8 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const [resch, setResch] = useState(false);
   const [needsPro, setNeedsPro] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const { ask, askNode } = useConfirmAsk();
+  const whenLabel = `${cap(dLong.format(new Date(slot.iso)))} в ${timeF.format(new Date(slot.iso))}`;
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: !!slot.appt });
   const contact = clients.find((c) => c.id === slot.appt?.client.id)?.contact ?? null;
   const tgLink = contact && !isPhone(contact)
@@ -444,8 +457,17 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       return (
         <div className="rounded-[11px] bg-white p-2.5">
           <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Новое окно</p>
-          <SlotPicker variant="calendar" showAvail onPick={(iso) => move.mutate(iso)} />
+          <SlotPicker variant="calendar" showAvail onPick={(iso) => ask({
+            title: "Перенести встречу?",
+            when: `${cap(dLong.format(new Date(iso)))} в ${timeF.format(new Date(iso))}`,
+            note: `Сейчас встреча стоит на ${whenLabel.toLowerCase()}. ${slot.appt!.client.name} получит уведомление о новом времени.`,
+            confirm: "Перенести",
+            tone: "accent",
+            icon: "swap",
+            run: () => move.mutate(iso),
+          })} />
           <button onClick={() => setResch(false)} className="mt-2 text-[12px] font-semibold text-[var(--muted)]">Отмена</button>
+          {askNode}
         </div>
       );
     }
@@ -470,8 +492,24 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
               <span className="text-[11.5px] font-black text-white">Клиент записался сам — ждёт подтверждения</span>
             </div>
             <ConfirmActions
-              onConfirm={() => confirm.mutate()}
-              onDecline={() => cancel.mutate()}
+              onConfirm={() => ask({
+                title: "Подтвердить встречу?",
+                when: whenLabel,
+                note: `${slot.appt!.client.name} получит уведомление, что встреча в силе.`,
+                confirm: "Подтвердить",
+                tone: "green",
+                icon: "check",
+                run: () => confirm.mutate(),
+              })}
+              onDecline={() => ask({
+                title: "Отклонить запись?",
+                when: whenLabel,
+                note: `Окно снова станет свободным, а ${slot.appt!.client.name} узнает, что встреча не состоится.`,
+                confirm: "Отклонить",
+                tone: "danger",
+                icon: "close",
+                run: () => cancel.mutate(),
+              })}
               confirming={confirm.isPending}
               declining={cancel.isPending}
             />
@@ -497,11 +535,24 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           )}
           {/* Отмена снимает запись, но окно остаётся свободным — не удаляем его. */}
           {!slot.past && (
-            <button onClick={() => cancel.mutate()} className={`${FLAT_BTN} gap-1.5`} style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)", color: "#fff" }}>
+            <button
+              onClick={() => ask({
+                title: "Освободить окно?",
+                when: whenLabel,
+                note: `Запись ${slot.appt!.client.name} будет отменена, а окно снова станет свободным. Клиент получит уведомление.`,
+                confirm: "Освободить",
+                tone: "danger",
+                icon: "close",
+                run: () => cancel.mutate(),
+              })}
+              className={`${FLAT_BTN} gap-1.5`}
+              style={{ ...THIN_BTN, background: "var(--salmon-edge)", borderColor: "var(--salmon-edge)", color: "#fff" }}
+            >
               <Icon name="close" width={12} weight="bold" color="#fff" /> Освободить
             </button>
           )}
         </div>
+        {askNode}
       </div>
     );
   }
@@ -512,14 +563,35 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         <p className="t-micro mr-auto">Кого записать?</p>
         <FmtSwitch fmt={slot.fmt} onToggle={() => setFmt.mutate(slot.fmt === "online" ? "offline" : "online")} />
       </div>
-      <PickClient onPick={(id) => book.mutate({ clientId: id, format: slot.fmt })} />
+      <PickClient onPick={(id) => ask({
+        title: "Записать на встречу?",
+        when: whenLabel,
+        note: `${clients.find((c) => c.id === id)?.name ?? "Клиент"} увидит встречу в своём расписании и получит напоминание перед началом.`,
+        confirm: "Записать",
+        tone: "green",
+        icon: "check",
+        run: () => book.mutate({ clientId: id, format: slot.fmt }),
+      })} />
       {/* Удаление — текстом в правом нижнем углу: разрушающее действие не должно
           спорить по весу с основным сценарием «кого записать». */}
       <div className="flex justify-end pt-0.5">
-        <button onClick={() => closeWin.mutate()} className="inline-flex items-center gap-1 text-[12px] font-black" style={{ color: "var(--danger)" }}>
+        <button
+          onClick={() => ask({
+            title: "Удалить окно?",
+            when: whenLabel,
+            note: "Окно пропадёт из расписания — клиенты больше не смогут записаться на это время.",
+            confirm: "Удалить",
+            tone: "danger",
+            icon: "close",
+            run: () => closeWin.mutate(),
+          })}
+          className="inline-flex items-center gap-1 text-[12px] font-black"
+          style={{ color: "var(--danger)" }}
+        >
           <Icon name="close" width={11} weight="bold" color="var(--danger)" /> Удалить окно
         </button>
       </div>
+      {askNode}
     </div>
   );
 }

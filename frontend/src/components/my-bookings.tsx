@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { useState } from "react";
 
+import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure } from "@/components/ui";
@@ -29,6 +30,7 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
   // Правило приезжает вместе с записью. Локальное значение — запасной вариант
   // для демо, где обе роли живут в одном браузере.
   const [localLock] = useCancelLockDays();
+  const { ask, askNode } = useConfirmAsk();
   const lockDays = b.cancelLockDays ?? localLock;
   const date = new Date(b.startsAt);
   const past = date.getTime() < Date.now();
@@ -103,7 +105,15 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
                 <Icon name="calendar" width={12} weight="bold" color="currentColor" />
                 Сейчас — {cap(dayF.format(date))} в {timeF.format(date)}
               </p>
-              <SlotPicker psyId={b.psychologistId} variant="calendar" calendarTone="blend" showAvail bookedStart={b.startsAt} bookedLabel="Текущая запись" onPick={(iso) => move.mutate(iso)} />
+              <SlotPicker psyId={b.psychologistId} variant="calendar" calendarTone="blend" showAvail bookedStart={b.startsAt} bookedLabel="Текущая запись" onPick={(iso) => ask({
+                title: "Перенести встречу?",
+                when: `${cap(dayF.format(new Date(iso)))} в ${timeF.format(new Date(iso))}`,
+                note: `Сейчас встреча стоит на ${dayF.format(date)} в ${timeF.format(date)}. ${b.psyName.split(" ")[0]} получит уведомление о новом времени.`,
+                confirm: "Перенести",
+                tone: "accent",
+                icon: "swap",
+                run: () => move.mutate(iso),
+              })} />
               <button onClick={() => { tap(); setResch(false); }} className="back-link mt-2 w-full justify-center" disabled={move.isPending}>
                 {move.isPending ? "Переносим…" : "Оставить как есть"}
               </button>
@@ -120,11 +130,26 @@ export function BookingRow({ b, onChange, defaultOpen = false }: { b: MyBooking;
           ) : (
             <div className="flex items-center gap-2">
               <button onClick={() => setResch(true)} className="btn btn-white px-3 py-1.5 text-[12px]">Перенести</button>
-              <button onClick={() => cancel.mutate()} className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold text-white" style={{ background: "var(--salmon-edge)" }}>Отменить</button>
+              <button
+                onClick={() => ask({
+                  title: "Отменить встречу?",
+                  when: `${cap(dayF.format(date))} в ${timeF.format(date)}`,
+                  note: `${b.psyName.split(" ")[0]} получит уведомление об отмене. Записаться снова можно будет на любое свободное окно.`,
+                  confirm: "Отменить встречу",
+                  tone: "danger",
+                  icon: "close",
+                  run: () => cancel.mutate(),
+                })}
+                className="ml-auto rounded-full px-3 py-1.5 text-[12px] font-extrabold text-white"
+                style={{ background: "var(--salmon-edge)" }}
+              >
+                Отменить
+              </button>
             </div>
           )}
         </div>
       </Disclosure>
+      {askNode}
     </motion.div>
   );
 }

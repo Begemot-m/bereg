@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon } from "@/components/icons";
 import { EmotionChips, MoodStats, topEmotions } from "@/components/mood-stats";
 import { PsychologistHomeworkPreview } from "@/components/psychologist-homework";
@@ -124,6 +125,7 @@ export function ClientDetail() {
   );
   const apptDay = nextAppt ? ymdLocal(new Date(nextAppt.startsAt)) : undefined;
 
+  const { ask, askNode } = useConfirmAsk();
   const patch = useMutation({ mutationFn: (p: Parameters<typeof updateClient>[1]) => updateClient(id, p), onSuccess: inv });
   const book = useMutation({
     // «Перезаписать» переносит текущую сессию, а не заводит вторую рядом.
@@ -267,7 +269,17 @@ export function ClientDetail() {
                   <>
                     <p className="t-micro mb-2">{nextAppt ? "Новое время вместо текущей записи" : "Свободное окно из вашего расписания"}</p>
                     {/* Есть запись — открываемся на её дне, иначе на ближайшем свободном */}
-                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} onDayChange={setPickDay} onPick={(iso, format) => book.mutate({ iso, format })} />
+                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} onDayChange={setPickDay} onPick={(iso, format) => ask({
+                      title: nextAppt ? "Перенести встречу?" : "Записать на встречу?",
+                      when: dtf.format(new Date(iso)),
+                      note: nextAppt
+                        ? `Текущая запись на ${dtf.format(new Date(nextAppt.startsAt))} освободится, ${client.name} получит уведомление о новом времени.`
+                        : `${client.name} увидит встречу в своём расписании и получит напоминание перед началом.`,
+                      confirm: nextAppt ? "Перенести" : "Записать",
+                      tone: nextAppt ? "accent" : "green",
+                      icon: nextAppt ? "swap" : "check",
+                      run: () => book.mutate({ iso, format }),
+                    })} />
                     <ClientDayTools day={pickDay ?? apptDay ?? firstFree ?? todayY} clientId={client.id} />
                   </>
                 )}
@@ -326,7 +338,15 @@ export function ClientDetail() {
               {appts.length === 0 ? (
                 <p className="text-[13px] text-[var(--muted-2)]">Встреч пока не было. Запишите клиента в свободное окно.</p>
               ) : (
-                <MeetingHistory appts={appts} onReschedule={(id, iso, format) => updateAppointment(id, { startsAt: iso, format }).then(() => { success(); inv(); })} />
+                <MeetingHistory appts={appts} onReschedule={(apptId, iso, format, from) => ask({
+                  title: "Перенести встречу?",
+                  when: dtf.format(new Date(iso)),
+                  note: `Сейчас встреча стоит на ${dtf.format(new Date(from))}. ${client.name} получит уведомление о новом времени.`,
+                  confirm: "Перенести",
+                  tone: "accent",
+                  icon: "swap",
+                  run: () => { void updateAppointment(apptId, { startsAt: iso, format }).then(() => { success(); inv(); }); },
+                })} />
               )}
             </div>
           </Disclosure>
@@ -341,6 +361,7 @@ export function ClientDetail() {
         <RemoveClient client={client} />
 
       </main>
+      {askNode}
     </div>
   );
 }
@@ -530,7 +551,7 @@ const HISTORY_PAGE = 5;
 
 type Meeting = { id: number; startsAt: string; durationMin: number; status: string; format: "online" | "offline" };
 
-function MeetingHistory({ appts, onReschedule }: { appts: Meeting[]; onReschedule: (id: number, iso: string, format: "online" | "offline") => void }) {
+function MeetingHistory({ appts, onReschedule }: { appts: Meeting[]; onReschedule: (id: number, iso: string, format: "online" | "offline", from: string) => void }) {
   const [page, setPage] = useState(0);
   const sorted = [...appts].sort((a, b) => b.startsAt.localeCompare(a.startsAt));
   const pages = Math.max(1, Math.ceil(sorted.length / HISTORY_PAGE));
@@ -539,7 +560,7 @@ function MeetingHistory({ appts, onReschedule }: { appts: Meeting[]; onReschedul
   return (
     <div className="space-y-2">
       {slice.map((a) => (
-        <MeetingRow key={a.id} appt={a} onReschedule={(iso, format) => onReschedule(a.id, iso, format)} />
+        <MeetingRow key={a.id} appt={a} onReschedule={(iso, format) => onReschedule(a.id, iso, format, a.startsAt)} />
       ))}
       {pages > 1 && (
         <div className="flex items-center justify-between pt-1">

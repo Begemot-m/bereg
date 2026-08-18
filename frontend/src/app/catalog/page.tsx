@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { syncTelegramChrome } from "@/components/telegram-init";
 
 import { CatalogFiltersSheet, CatalogSurvey } from "@/components/catalog-controls";
+import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
@@ -959,9 +960,22 @@ function RatingBlock({ psy, canRate }: { psy: Psy; canRate: boolean }) {
 function BookFlow({ psy, onDone }: { psy: Psy; onDone: () => void }) {
   const qc = useQueryClient();
   const [done, setDone] = useState<{ at: string; format: string } | null>(null);
+  const { ask, askNode } = useConfirmAsk();
   const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psy, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
   if (done) return <BookedNext psy={psy} at={done.at} format={done.format} onDone={onDone} />;
-  return <><p className="t-micro mb-2">День и окно</p><SlotPicker psyId={psy.id} psyTimezone={psy.timezone} variant="calendar" showAvail onPick={(iso, format) => book.mutate({ iso, format })} /></>;
+  return <>
+    <p className="t-micro mb-2">День и окно</p>
+    <SlotPicker psyId={psy.id} psyTimezone={psy.timezone} variant="calendar" showAvail onPick={(iso, format) => ask({
+      title: "Записаться на встречу?",
+      when: `${dayLongF.format(new Date(iso)).replace(/^./, (c) => c.toUpperCase())} в ${timeF.format(new Date(iso))}`,
+      note: `${psy.name.split(" ")[0]} получит запрос и подтвердит встречу — ответ придёт уведомлением.`,
+      confirm: "Записаться",
+      tone: "green",
+      icon: "check",
+      run: () => book.mutate({ iso, format }),
+    })} />
+    {askNode}
+  </>;
 }
 
 // Что делать сразу после записи. Для новичка это первый экран приложения:

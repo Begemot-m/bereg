@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DailyDot, PageHead, SectionTitle } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
 import { ConfirmActions } from "@/components/confirm-actions";
+import { useConfirmAsk } from "@/components/confirm-ask";
 import { ClientConfirmWatch, ConfirmDone } from "@/components/confirm-done";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { Icon, type IconName } from "@/components/icons";
@@ -167,6 +168,7 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
   const qc = useQueryClient();
   const [needsPro, setNeedsPro] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const { ask, askNode } = useConfirmAsk();
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const confirm = useMutation({
     mutationFn: (id: number) => confirmAppointment(id),
@@ -216,8 +218,24 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
           </div>
           <div className="mt-2.5">
             <ConfirmActions
-              onConfirm={() => confirm.mutate(a.id)}
-              onDecline={() => decline.mutate(a.id)}
+              onConfirm={() => ask({
+                title: "Подтвердить встречу?",
+                when: cap(dateTimeF.format(new Date(a.startsAt))),
+                note: `${a.client.name} получит уведомление, что встреча в силе.`,
+                confirm: "Подтвердить",
+                tone: "green",
+                icon: "check",
+                run: () => confirm.mutate(a.id),
+              })}
+              onDecline={() => ask({
+                title: "Отклонить запись?",
+                when: cap(dateTimeF.format(new Date(a.startsAt))),
+                note: `Окно снова станет свободным, а ${a.client.name} узнает, что встреча не состоится.`,
+                confirm: "Отклонить",
+                tone: "danger",
+                icon: "close",
+                run: () => decline.mutate(a.id),
+              })}
               confirming={confirm.isPending && confirm.variables === a.id}
               declining={decline.isPending && decline.variables === a.id}
             />
@@ -237,6 +255,7 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
       )}
       <ConfirmProPaywall open={needsPro} onClose={() => setNeedsPro(false)} />
       {doneWindow}
+      {askNode}
     </section>
   );
 }
