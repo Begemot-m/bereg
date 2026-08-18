@@ -106,9 +106,16 @@ export function domainFocus(result: WheelResult | null, key: string): number | n
   if (importance === null) return null;
   return (importance * (10 - domainScore(result, key))) / 10;
 }
-export function wheelPercent(result: WheelResult | null): number {
+/**
+ * Индекс колеса, 0–100. `keys` — считать только по этим сферам: пока колесо
+ * заполняют, непройденные сферы лежат на середине шкалы, и средним по всем
+ * восьми число тянуло к 50 % независимо от ответов.
+ */
+export function wheelPercent(result: WheelResult | null, keys?: string[]): number {
   if (!result) return 0;
-  const mean = WHEEL.reduce((s, d) => s + domainScore(result, d.key), 0) / WHEEL.length;
+  const list = keys ?? WHEEL.map((d) => d.key);
+  if (list.length === 0) return 0;
+  const mean = list.reduce((s, key) => s + domainScore(result, key), 0) / list.length;
   return Math.round(mean * 10); // 0..100
 }
 export function wheelLowest(result: WheelResult | null, n = 2): WheelDomain[] {

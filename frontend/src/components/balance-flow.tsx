@@ -82,8 +82,14 @@ export function WheelFlow({ guide, onClose, onGuideSeen, onSave, locked = false,
 
   const summary = step === WHEEL.length;
   const domain = WHEEL[step];
-  const pct = wheelPercent(asResult(answers));
-  const band = wheelBand(pct);
+  const result = asResult(answers);
+  const fullPct = wheelPercent(result);
+  // Ответы стартуют на середине шкалы, поэтому средним по всем восьми сферам
+  // шапка показывала около 50 % ещё до первого ответа и почти не двигалась от
+  // ползунков. Пока колесо собирают, считаем по пройденным сферам и той, что
+  // человек заполняет прямо сейчас.
+  const pct = summary ? fullPct : wheelPercent(result, WHEEL.slice(0, step + 1).map((d) => d.key));
+  const band = wheelBand(fullPct);
   const filled = summary ? WHEEL.length : step;
   const next = () => { if (step === WHEEL.length - 1) { success(); setStep(WHEEL.length); } else { select(); setStep((v) => v + 1); } };
   const setVal = (qi: number, v: number) => domain && setAnswers((s) => ({ ...s, [domain.key]: s[domain.key].map((x, i) => (i === qi ? v : x)) }));

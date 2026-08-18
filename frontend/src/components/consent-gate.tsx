@@ -3,13 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/icons";
 import { apiFetch } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
 import { success, tap } from "@/lib/haptics";
-import { useOnboarded } from "@/lib/profile";
+import { markOnboardedFromServer, useOnboarded } from "@/lib/profile";
 
 type ConsentState = {
   policyVersion: string;
@@ -40,6 +40,16 @@ export function ConsentGate({ children }: { children: React.ReactNode }) {
     mutationFn: () => apiFetch("/consents", { method: "POST", body: JSON.stringify({ kinds: ["pd", "health"] }) }),
     onSuccess: () => { success(); qc.invalidateQueries({ queryKey: ["consents"] }); },
   });
+
+  // Отметка о пройденном знакомстве лежит в localStorage, а согласие — в базе.
+  // На втором устройстве отметки нет, и человек, давно работающий в платформе,
+  // получал знакомство заново. Подписанное согласие и есть доказательство, что
+  // знакомство пройдено, — переносим отметку с сервера.
+  const granted = state.data?.granted;
+  useEffect(() => {
+    if (DEMO || onboarded !== false) return;
+    if (granted?.pd?.current && granted?.health?.current) markOnboardedFromServer();
+  }, [granted, onboarded]);
 
   // В демо ничего не собираем: данных настоящих нет, и экран только мешал бы
   // смотреть приложение. Ошибку запроса тоже не превращаем в стену — иначе

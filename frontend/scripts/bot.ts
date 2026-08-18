@@ -4,7 +4,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Bot, InlineKeyboard } from "grammy";
 
-import { claimNudge, loadPsyRows, pickNudges } from "../src/lib/server/nudges";
+import { EVENT_NUDGES, claimNudge, loadPendingNudges, loadPsyRows, pickNudges } from "../src/lib/server/nudges";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) throw new Error("TELEGRAM_BOT_TOKEN not set");
@@ -231,9 +231,40 @@ async function sendNudges() {
   }
 }
 
+// Событийные сообщения: очередь наполняют роуты, здесь только отправка.
+// Строка пишется до отправки, поэтому второй экземпляр воркера тот же
+// «verified» не пришлёт — ключ «получатель + вид + период» уникален.
+let eventing = false;
+async function sendEventNudges() {
+  if (eventing) return;
+  eventing = true;
+  try {
+    for (const row of await loadPendingNudges(prisma)) {
+      const plan = EVENT_NUDGES[row.kind];
+      if (!plan) continue;
+      const keyboard = new InlineKeyboard().webApp(plan.button, appLink(plan.path));
+      try {
+        await bot.api.sendMessage(Number(row.telegramId), plan.text, { reply_markup: keyboard });
+        await prisma.nudge.update({ where: { id: row.id }, data: { sentAt: new Date() } });
+      } catch (error) {
+        const apiError = error as { description?: string; message?: string };
+        const message = (apiError.description ?? apiError.message ?? "Telegram event failed").slice(0, 500);
+        await prisma.nudge.update({ where: { id: row.id }, data: { error: message } });
+        console.error(`Не удалось отправить ${row.kind} #${row.id}: ${message}`);
+      }
+    }
+  } finally {
+    eventing = false;
+  }
+}
+
 async function main() {
   await sendDueDeliveries();
-  const tick = setInterval(() => void sendDueDeliveries().catch((error) => console.error("notification tick error", error)), TICK_MS);
+  await sendEventNudges();
+  const tick = setInterval(() => {
+    void sendDueDeliveries().catch((error) => console.error("notification tick error", error));
+    void sendEventNudges().catch((error) => console.error("event tick error", error));
+  }, TICK_MS);
   const nudgeTick = setInterval(() => void sendNudges().catch((error) => console.error("nudge tick error", error)), NUDGE_TICK_MS);
   const shutdown = async () => {
     clearInterval(tick);
@@ -244,7 +275,7 @@ async function main() {
   };
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
-  console.log("Telegram worker запущен: события расписания, напоминания клиента, итог недели специалиста.");
+  console.log("Telegram worker запущен: события расписания, напоминания клиента, итог недели специалиста, приветствие после верификации.");
   await bot.start();
 }
 

@@ -150,6 +150,18 @@ export function completeOnboarding() {
   window.dispatchEvent(new CustomEvent(EVENT));
 }
 
+/**
+ * Знакомство пройдено — это известно из базы: согласие на обработку данных
+ * даётся на его последнем шаге и больше нигде. Сама отметка живёт только в
+ * localStorage, поэтому на втором устройстве (Telegram на компьютере) человека
+ * вели через знакомство заново, а вместе с ним — и через выбор роли.
+ */
+export function markOnboardedFromServer() {
+  if (typeof window === "undefined") return;
+  if (localStorage.getItem(KEY_ONBOARDED) === "1") return;
+  completeOnboarding();
+}
+
 // Знакомство запускается заново — и только оно. Анкету профиля не трогаем:
 // человек просил показать онбординг, а не стереть заполненные данные.
 export function resetOnboarding() {

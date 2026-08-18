@@ -9,8 +9,16 @@ import { isTelegramMiniApp } from "@/lib/telegram";
 // оболочка сама уходит в мобильную раскладку: сайдбар прячется, возвращаются
 // нижние табы. Отдельного «десктопного» кода для этого не нужно.
 const COLUMN = 430;
-// Ниже этой ширины окно и так телефонное — рамку не показываем.
-const WIDE_FROM = 520;
+// Ниже этой ширины окно и так телефонное — рамку не показываем. Ровно 448 px
+// (`@md` у Tailwind), а не 520: на 448–519 колонки не было, зато контейнерные
+// запросы уже переключались на десктопную раскладку с сайдбаром — и окно
+// такой ширины открывалось непроверенным «широким» видом.
+const WIDE_FROM = 448;
+// Сколько ждать telegram-web-app.js. Он подключается стратегией
+// afterInteractive, то есть уже после гидрации, и на медленной сети приезжает
+// через несколько секунд.
+const WAIT_MS = 15_000;
+const STEP_MS = 120;
 
 /**
  * Telegram на компьютере и на планшете: приложение всегда открывается
@@ -28,13 +36,16 @@ export function PhoneShell({ children }: { children: ReactNode }) {
     if (DEMO) return;
     let stopped = false;
     const measure = () => setFramed(isTelegramMiniApp() && window.innerWidth >= WIDE_FROM);
-    // telegram-web-app.js подключается после гидрации: до него мини-приложение
-    // выглядит обычным браузером. Ждём его так же, как вход — короткими
-    // попытками, а не одной проверкой.
+    // До telegram-web-app.js мини-приложение выглядит обычным браузером, так
+    // что ждём его короткими попытками, а не одной проверкой.
+    // Прежние 24 попытки по 40 мс — меньше секунды. На компьютере скрипт часто
+    // не успевал, попытки заканчивались, и приложение оставалось на весь экран
+    // до конца сессии. Меряем на каждом шаге, пока не дождёмся.
     const poll = (tries: number) => {
       if (stopped) return;
-      if (isTelegramMiniApp() || tries >= 24) { measure(); return; }
-      window.setTimeout(() => poll(tries + 1), 40);
+      measure();
+      if (isTelegramMiniApp() || tries * STEP_MS >= WAIT_MS) return;
+      window.setTimeout(() => poll(tries + 1), STEP_MS);
     };
     poll(0);
     window.addEventListener("resize", measure);

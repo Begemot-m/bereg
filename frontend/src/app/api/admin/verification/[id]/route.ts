@@ -6,6 +6,7 @@ import { CATALOG_DECLINE_TEXT } from "@/lib/pricing";
 import { audit } from "@/lib/server/audit";
 import { isAdmin } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
+import { queueNudge } from "@/lib/server/nudges";
 import { grantPsychologist, setPsyStatus } from "@/lib/server/roles";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
@@ -67,6 +68,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
             : `Анкета вернулась на доработку: ${body.reason}`,
       },
     });
+
+    // Уведомление в кабинете человек увидит, только если сам зайдёт. Одобрение
+    // он ждёт — поэтому о нём пишет и бот. Очередь защищена ключом «получатель +
+    // вид + период», так что повторное одобрение приветствие не продублирует.
+    if (approve) await queueNudge(prisma, { recipientId: userId, kind: "verified" });
 
     await audit(req, {
       userId: admin.id,

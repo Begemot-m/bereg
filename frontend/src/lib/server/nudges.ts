@@ -212,3 +212,58 @@ export async function claimNudge(prisma: PrismaClient, plan: PlannedNudge): Prom
     return null;
   }
 }
+
+/**
+ * Сообщения по событию, а не по расписанию: их ставит в очередь тот роут, где
+ * событие случилось. Текст живёт здесь, а не в строке базы, — `Nudge` хранит
+ * только «кому, что и за какой период».
+ */
+export type EventNudgeKind = "verified";
+
+export const EVENT_NUDGES: Record<EventNudgeKind, { text: string; button: string; path: string }> = {
+  verified: {
+    text: [
+      "✅ Мы подтвердили вашу анкету!",
+      "",
+      "🗂 Теперь она размещена в каталоге специалистов — вас смогут найти клиенты.",
+      "",
+      "🌿 Добро пожаловать на платформу «Хроника»!",
+      "",
+      "👥 Следующим шагом добавьте клиентов, чтобы начать с ними работу.",
+      "",
+      "⭐️ 14 дней подписки PRO активированы — все возможности платформы без ограничений.",
+    ].join("\n"),
+    button: "Добавить клиентов",
+    path: "/clients",
+  },
+};
+
+type NudgeDb = Pick<PrismaClient, "nudge">;
+
+/**
+ * Ставит событийное сообщение в очередь. Уникальный ключ «получатель + вид +
+ * период» и делает всю работу по защите от повторов: второе одобрение той же
+ * анкеты приветствие уже не пришлёт, поэтому ошибку вставки глотаем.
+ */
+export async function queueNudge(db: NudgeDb, input: { recipientId: number; kind: EventNudgeKind; periodKey?: string }) {
+  try {
+    await db.nudge.create({
+      data: { recipientId: input.recipientId, kind: input.kind, periodKey: input.periodKey ?? "once" },
+    });
+  } catch {
+    /* уже в очереди или уже отправлено */
+  }
+}
+
+export type PendingNudge = { id: number; kind: EventNudgeKind; telegramId: bigint };
+
+/** Что ждёт отправки из событийной очереди. */
+export async function loadPendingNudges(prisma: PrismaClient): Promise<PendingNudge[]> {
+  const rows = await prisma.nudge.findMany({
+    where: { kind: { in: Object.keys(EVENT_NUDGES) }, sentAt: null, error: null },
+    select: { id: true, kind: true, recipient: { select: { telegramId: true } } },
+    orderBy: { id: "asc" },
+    take: 50,
+  });
+  return rows.map((row) => ({ id: row.id, kind: row.kind as EventNudgeKind, telegramId: row.recipient.telegramId }));
+}
