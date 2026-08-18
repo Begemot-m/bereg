@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
@@ -135,6 +136,7 @@ const PSY_INTRO: Intro[] = [
 // онбординга остаётся как был. Закрытие — onClose, а не вход в приложение.
 export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; preview?: boolean; onClose?: () => void } = {}) {
   const qc = useQueryClient();
+  const router = useRouter();
   // Роль выбирается на первом же экране, дальше знакомство идёт под неё.
   const [picked, setPicked] = useState<Role | null>(startRole ?? null);
   const [step, setStep] = useState(1); // 1..slides.length — слайды, последний+1 — финал
@@ -148,7 +150,10 @@ export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; 
   const isFinish = !isWelcome && step === FINISH_STEP;
   const cur = isWelcome || isFinish ? undefined : slides[step - 1];
 
-  const finish = () => { success(); if (preview) onClose?.(); else completeOnboarding(); };
+  // Знакомство закончилось — человек попадает на главную, а не на тот экран,
+  // с которого его увели в онбординг (по ссылке это мог быть каталог или чужая
+  // анкета).
+  const finish = () => { success(); if (preview) { onClose?.(); return; } completeOnboarding(); router.replace("/"); };
 
   // Согласие даётся здесь же, галочкой на последнем шаге: отдельная стена
   // перед знакомством встречала человека юридическим текстом раньше, чем он

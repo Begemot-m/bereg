@@ -3,47 +3,89 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
-import { Icon } from "@/components/icons";
+import { GuideShot } from "@/components/guide-shots";
+import { Icon, type IconName } from "@/components/icons";
 import { LandingScreen } from "@/components/landing-screens";
 import { select, success, tap } from "@/lib/haptics";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const KEY = "bereg_guide_done";
 
-type Step = { tab: string; accent: string; text: string };
+type Step = {
+  /** Кадр реального интерфейса. Если его нет — рисованный экран раздела. */
+  shot?: string;
+  tab?: string;
+  accent: string;
+  title: string;
+  /** Строка «Перейдите в раздел …» — с иконкой самого раздела. */
+  go?: { label: string; icon: IconName };
+  lines: { icon: IconName; text: string }[];
+};
 
-// Шесть шагов знакомства. Тексты владельца, менять их на ходу нельзя: это
-// обещания платформы, а не подписи к картинкам.
+// Шесть шагов знакомства. Смысл шагов — обещания платформы, а не подписи к
+// картинкам: их не переписываем. Сплошной абзац разобран на строки с иконками —
+// раньше человек упирался в шесть строк текста подряд и листал дальше.
 const STEPS: Step[] = [
   {
-    tab: "profile",
+    shot: "cabinet-profile",
     accent: "var(--purple)",
-    text: "Сперва заполните анкету специалиста с информацией о себе",
+    title: "Заполните профиль",
+    go: { label: "Кабинет", icon: "user" },
+    lines: [
+      { icon: "user", text: "Анкета специалиста: о себе, подход, образование и условия работы." },
+      { icon: "check", text: "Полоса заполненности ведёт в редактор — можно возвращаться и дописывать." },
+    ],
   },
   {
-    tab: "catalog",
+    shot: "cabinet-verify",
     accent: "var(--amber)",
-    text: "Отправьте анкету на верификацию, после чего она будет опубликована в каталог. Ключевое требование: профильное высшее образование или профессиональная переподготовка. Без верификации профиль будут видеть только ваши клиенты",
+    title: "Пройдите верификацию",
+    go: { label: "Кабинет", icon: "user" },
+    lines: [
+      { icon: "seal", text: "Отправьте анкету на проверку — после неё она публикуется в каталоге." },
+      { icon: "note", text: "Ключевое требование: профильное высшее образование или профессиональная переподготовка." },
+      { icon: "users", text: "Без верификации профиль видят только ваши клиенты." },
+    ],
   },
   {
-    tab: "sessions",
+    shot: "sessions-schedule",
     accent: "var(--green)",
-    text: "Настройте свой график рабочих часов, чтобы клиенты могли записываться к вам напрямую через каталог или раздел «Терапия»",
+    title: "Настройте график",
+    go: { label: "Сессии", icon: "calendar" },
+    lines: [
+      { icon: "gear", text: "Кнопка «График» задаёт рабочие дни, часы приёма и длительность встречи." },
+      { icon: "compass", text: "Клиенты записываются в открытые окна напрямую — из каталога или раздела «Терапия»." },
+    ],
   },
   {
-    tab: "clients",
+    shot: "clients-plus",
     accent: "var(--purple)",
-    text: "Заведите первых клиентов в разделе «Клиенты». Добавить можно вручную нажав на плюсик или по ссылке-приглашению. Рекомендуем направлять ссылку, после чего клиент автоматически добавляется в список после авторизации, а вы автоматически закрепляетесь у клиента как специалист. Кроме того, вы сможете видеть отметки, которые ведёт клиент",
+    title: "Заведите первых клиентов",
+    go: { label: "Клиенты", icon: "users" },
+    lines: [
+      { icon: "plus", text: "Плюс открывает два способа: приглашение по ссылке и ручной ввод." },
+      { icon: "telegram", text: "Ссылку лучше направить: клиент авторизуется, сам попадает в список, а вы закрепляетесь за ним как специалист." },
+      { icon: "mood", text: "После этого вам видны его отметки настроения, задания и записи." },
+    ],
   },
   {
-    tab: "profile",
+    shot: "client-card",
     accent: "var(--tiffany)",
-    text: "Платформа позволяет бесплатно размещать анкету, а также вести 3 клиентов. С момента верификации анкеты вы получите бесплатно 14 дней подписки и сможете внести больше клиентов",
+    title: "Бесплатно — и 14 дней PRO",
+    lines: [
+      { icon: "check", text: "Анкета в каталоге и три клиента — бесплатно, без срока." },
+      { icon: "spark", text: "С момента верификации анкеты — 14 дней подписки в подарок, лимит клиентов снимается." },
+      { icon: "users", text: "В карточке клиента собрана вся работа: встречи, задания, настроение, заметки." },
+    ],
   },
   {
     tab: "tools",
     accent: "var(--tiffany)",
-    text: "Платформа будет обновляться новыми инструментами в помощь вам и клиентам. Пользуйтесь с удовольствием!",
+    title: "Дальше — больше",
+    lines: [
+      { icon: "tools", text: "Платформа будет обновляться новыми инструментами в помощь вам и клиентам." },
+      { icon: "heart", text: "Пользуйтесь с удовольствием!" },
+    ],
   },
 ];
 
@@ -142,10 +184,11 @@ export function PsyGuide() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, ease: EASE }}
           >
-            {/* Кадр раздела обрезан снизу и уведён в фон: это окно в приложение,
-                а не его точная копия — иначе на карточку главной не влезет. */}
+            {/* Кадр интерфейса показывает ровно тот блок, на который просят
+                нажать. Обрезан снизу и уведён в фон: полный экран на карточку
+                главной не влезет, а так это читается как окно в приложение. */}
             <div className="relative h-[236px] overflow-hidden rounded-[16px] @md:h-[290px] @md:rounded-[24px]">
-              <LandingScreen tab={step.tab} accent={step.accent} compact />
+              {step.shot ? <GuideShot name={step.shot} /> : <LandingScreen tab={step.tab ?? "tools"} accent={step.accent} compact />}
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
@@ -153,9 +196,30 @@ export function PsyGuide() {
               />
             </div>
 
-            <div className="mt-3 min-h-[136px] px-1 @md:min-h-[104px]">
+            <div className="mt-3 min-h-[188px] px-1 @md:min-h-[160px]">
               <span className="t-micro">Шаг {index + 1} из {STEPS.length}</span>
-              <p className="t-body mt-1.5 leading-[1.4]">{step.text}</p>
+              <p className="font-tight mt-0.5 text-[16px] font-black leading-tight">{step.title}</p>
+
+              {/* Куда идти — отдельной плашкой с иконкой раздела: раньше это
+                  тонуло первой строкой абзаца. */}
+              {step.go && (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5">
+                  <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>Перейдите в раздел</span>
+                  <Icon name={step.go.icon} width={14} weight="bold" color="var(--purple-edge)" />
+                  <span className="text-[11.5px] font-black" style={{ color: "var(--purple-edge)" }}>{step.go.label}</span>
+                </span>
+              )}
+
+              <ul className="mt-2 space-y-1.5">
+                {step.lines.map((line) => (
+                  <li key={line.text} className="flex gap-2">
+                    <span className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white">
+                      <Icon name={line.icon} width={11} weight="bold" color="var(--purple-edge)" />
+                    </span>
+                    <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-[1.35]">{line.text}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </motion.div>
 

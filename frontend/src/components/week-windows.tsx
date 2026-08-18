@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 
 import { ClientAvatar } from "@/components/client-avatar";
 import { ConfirmActions } from "@/components/confirm-actions";
+import { ConfirmDone } from "@/components/confirm-done";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
@@ -418,6 +419,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
   const [resch, setResch] = useState(false);
   const [needsPro, setNeedsPro] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: !!slot.appt });
   const contact = clients.find((c) => c.id === slot.appt?.client.id)?.contact ?? null;
   const tgLink = contact && !isPhone(contact)
@@ -431,7 +433,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   // «Подтвердить» иначе просто ничего не делает.
   const confirm = useMutation({
     mutationFn: () => confirmAppointment(slot.appt!.id),
-    onSuccess: () => { success(); inv(); },
+    onSuccess: () => { success(); setConfirmed(true); inv(); },
     onError: (e) => { if (isNeedsPro(e)) setNeedsPro(true); },
   });
   const move = useMutation({ mutationFn: (iso: string) => updateAppointment(slot.appt!.id, { startsAt: iso }), onSuccess: () => { success(); onClose(); inv(); } });
@@ -476,6 +478,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           </div>
         )}
         <ConfirmProPaywall open={needsPro} onClose={() => setNeedsPro(false)} />
+        <ConfirmDone open={confirmed} onClose={() => setConfirmed(false)} />
         {/* Перенести и «Написать» — строкой, «Освободить» под «Перенести»
             той же шириной: отмена в общей сетке, но своим рядом. */}
         <div className="grid grid-cols-2 gap-1.5">

@@ -10,6 +10,7 @@ import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
 import { PageHead } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { CLIENTS_HELP, HelpDeck } from "@/components/help-deck";
 import { InviteShare } from "@/components/invite-share";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
@@ -24,6 +25,9 @@ import { zoneDayDiff, zoneFormat } from "@/lib/zone";
 
 // Анонс модулей закрывается насовсем: показывать его на каждом заходе — шум.
 const MODULES_TEASER_KEY = "bereg_modules_teaser_hidden";
+// Инструкция «как добавить клиентов» показывается сама один раз, дальше — по
+// кнопке в шапке.
+const CLIENTS_HELP_KEY = "bereg_clients_help_seen";
 
 const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
   { key: "all", label: "Все" },
@@ -85,6 +89,19 @@ function ClientsList() {
   const [last, setLast] = useState("");
   const [contact, setContact] = useState("");
   const [open, setOpen] = useState(false);
+  const [help, setHelp] = useState(false);
+  const [firstVisit, setFirstVisit] = useState(false);
+
+  useEffect(() => {
+    setFirstVisit(window.localStorage.getItem(CLIENTS_HELP_KEY) !== "1");
+  }, []);
+
+  // Прочитал до конца — сразу открываем меню плюсика: следующий шаг ровно там.
+  const closeFirstVisit = (openMenu: boolean) => {
+    window.localStorage.setItem(CLIENTS_HELP_KEY, "1");
+    setFirstVisit(false);
+    if (openMenu) setOpen(true);
+  };
 
   const { data: clients = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["clients"],
@@ -125,7 +142,26 @@ function ClientsList() {
     <div>
       {/* Приглашение переехало в меню плюсика: в шапке оно спорило с заголовком,
           а по смыслу это один из двух способов завести клиента. */}
-      <PageHead title="Клиенты" sub={`Всего: ${clients.length}`} icon="users" />
+      <PageHead
+        title="Клиенты"
+        sub={`Всего: ${clients.length}`}
+        icon="users"
+        right={
+          <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
+            <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как добавить клиентов?
+          </button>
+        }
+      />
+
+      {(help || firstVisit) && (
+        <HelpDeck
+          title="Как добавить клиентов"
+          pages={CLIENTS_HELP}
+          doneLabel={firstVisit ? "Добавить клиента" : "Понятно"}
+          onClose={() => { setHelp(false); closeFirstVisit(false); }}
+          onDone={() => { setHelp(false); closeFirstVisit(true); }}
+        />
+      )}
 
       <div className="sheet">
       <Reveal delay={0.04}>

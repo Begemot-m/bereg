@@ -185,27 +185,44 @@ export const PRO_BENEFITS: HelpPage[] = [
 
 // Миниатюра-баннер: свёрнутая — витрина тарифа, раскрытая — что бесплатно,
 // что в подписке, и сам блок оплаты.
-// Что сказать про тариф прямо в свёрнутом баннере: до оплаты человек видит
-// именно эту строку, поэтому она говорит про срок, а не про список функций.
-function bannerPitch(sub: Subscription | undefined): string {
-  if (!sub) return `Клиенты без лимита, когда бесплатные ${FREE_CLIENT_LIMIT} места заняты.`;
-  if (sub.status === "active") {
-    // Оплаченный период виден сразу в свёрнутом баннере: «активна» без срока
-    // не отвечает на единственный вопрос — сколько ещё осталось.
-    const left = paidDaysLeft(sub);
-    return left > 0
-      ? `Подписка активна — осталось ${left} ${plural(left, "день", "дня", "дней")}${sub.currentPeriodEnd ? `, до ${dF.format(new Date(sub.currentPeriodEnd))}` : ""}.`
-      : "Подписка активна — лимитов нет, карточка в каталоге.";
-  }
-  if (sub.status === "pending") return "Ждём подтверждение платежа.";
-  if (sub.status === "trial") {
-    const d = trialDaysLeft(sub);
-    return `Пробный PRO после верификации: осталось ${d} ${plural(d, "день", "дня", "дней")} без лимита клиентов.`;
+// Что сказать про тариф прямо под заголовком PRO. Три состояния и ничего
+// больше: новичку — что сделать ради подарка, работающей подписке — статус и
+// остаток дней, закончившейся — статус и предложение.
+type Pitch = { status?: "on" | "off"; lines: string[] };
+
+function bannerPitch(sub: Subscription | undefined): Pitch {
+  if (!sub) return { lines: [`Клиенты без лимита, когда бесплатные ${FREE_CLIENT_LIMIT} места заняты.`] };
+  if (sub.status === "pending") return { lines: ["Ждём подтверждение платежа."] };
+  // Подписка работает: пробные дни после верификации, оплата или подарок из
+  // админки — для человека это одно и то же состояние.
+  if (sub.status === "active" || sub.status === "trial") {
+    const left = sub.status === "active" ? paidDaysLeft(sub) : trialDaysLeft(sub);
+    return {
+      status: "on",
+      lines: left > 0 ? [`Осталось ${left} ${plural(left, "день", "дня", "дней")}`] : ["Период продлевается автоматически"],
+    };
   }
   if (sub.status === "free") {
-    return `Пройдите верификацию профиля, чтобы получить ${TRIAL_DAYS} дней в подарок.`;
+    return { lines: [`Заполните профиль и пройдите верификацию, чтобы получить ${TRIAL_DAYS} дней без лимитов.`] };
   }
-  return `Пробные ${TRIAL_DAYS} дней вышли. Сейчас бесплатно — ${FREE_CLIENT_LIMIT} клиента и анкета в каталоге.`;
+  return { status: "off", lines: ["Оформите подписку, чтобы расширить возможности."] };
+}
+
+// Строка состояния под заголовком: «Статус: активна» и остаток дней.
+function PitchLines({ pitch }: { pitch: Pitch }) {
+  return (
+    <span className="mt-0.5 block">
+      {pitch.status && (
+        <span className="block text-[12px] font-black leading-snug">
+          Статус:{" "}
+          <span style={{ color: pitch.status === "on" ? "var(--green-edge)" : "var(--muted)" }}>
+            {pitch.status === "on" ? "активна" : "неактивна"}
+          </span>
+        </span>
+      )}
+      {pitch.lines.map((line) => <span key={line} className="t-sub block">{line}</span>)}
+    </span>
+  );
 }
 
 /**
@@ -293,7 +310,12 @@ function ProActiveCard({ sub }: { sub: Subscription }) {
             <span className="t-head">Хроника PRO</span>
             <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[.04em]" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>активна</span>
           </div>
-          <p className="t-sub mt-0.5 block">Подписка работает — ограничений нет.</p>
+          <p className="mt-0.5 text-[12px] font-black leading-snug">
+            Статус: <span style={{ color: "var(--green-edge)" }}>активна</span>
+          </p>
+          <p className="t-sub block">
+            {left > 0 ? `Осталось ${left} ${plural(left, "день", "дня", "дней")}` : "Период продлевается автоматически"}
+          </p>
         </div>
       </div>
 
@@ -355,7 +377,7 @@ export function SubscriptionBanner() {
             {crossed && <span className="tnum text-[11px] font-bold text-[var(--muted-2)] line-through">{rub(crossed)}</span>}
             <span className="tnum text-[12.5px] font-black" style={{ color: "var(--purple-edge)" }}>{rub(price)}/мес</span>
           </span>
-          <span className="t-sub mt-0.5 block">{pitch}</span>
+          <PitchLines pitch={pitch} />
         </span>
       </div>
 
@@ -363,7 +385,14 @@ export function SubscriptionBanner() {
           ней прячется сравнение тарифов. */}
       <button onClick={() => { tap(); setOpen(!open); }} className="flex w-full items-center gap-2 px-4 pb-3 text-left" aria-expanded={open}>
         <span className="text-[12.5px] font-black" style={{ color: "var(--purple-edge)" }}>Что входит в подписку?</span>
-        <span className="arrow" style={{ transform: open ? "rotate(-90deg)" : "rotate(90deg)" }}><ArrowGlyph /></span>
+        {/* Чёрный круг рядом читался как кнопка оплаты — теперь просто стрелка
+            в цвете подписки. */}
+        <span
+          className="transition-transform duration-300"
+          style={{ color: "var(--purple-edge)", transform: open ? "rotate(-90deg)" : "rotate(90deg)" }}
+        >
+          <ArrowGlyph size={16} />
+        </span>
       </button>
 
       <div className={`grid transition-[grid-template-rows,opacity] duration-300 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} aria-hidden={!open} inert={!open}>

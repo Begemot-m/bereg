@@ -14,14 +14,11 @@ export type IconTrick = Record<string, number[]>;
 export type IconLoop = { animate: IconTrick; duration: number };
 
 const LOOPS: Partial<Record<IconName, IconLoop>> = {
-  // Дом подпрыгивает, приземляется с приседанием и отдыхает.
+  // Дом дышит на месте. Прыжок с приседанием отсюда убран: на главной он
+  // дёргался в глаза при каждом заходе.
   home: {
-    animate: {
-      y: [0, -11, 0, -4, 0, 0, 0, 0],
-      scaleY: [1, 0.78, 1.14, 0.92, 1, 1, 1, 1],
-      scaleX: [1, 1.16, 0.9, 1.05, 1, 1, 1, 1],
-    },
-    duration: 3.4,
+    animate: { scale: [1, 1.09, 1, 1, 1, 1] },
+    duration: 3.2,
   },
   // Люди перекликаются: качнулись друг к другу и обратно.
   users: {

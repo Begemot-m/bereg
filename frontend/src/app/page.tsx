@@ -5,16 +5,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { PageHead, SectionTitle } from "@/components/blocks";
+import { DailyDot, PageHead, SectionTitle } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
 import { ConfirmActions } from "@/components/confirm-actions";
+import { ClientConfirmWatch, ConfirmDone } from "@/components/confirm-done";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { PsyGuide } from "@/components/psy-guide";
 import { WorkStats } from "@/components/work-stats";
-import { motion } from "motion/react";
 
 import { Stagger, StaggerItem } from "@/components/motion";
 import { awaitsConfirm, confirmAppointment, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
@@ -26,8 +26,6 @@ import { FREE_CLIENT_LIMIT, getSubscription } from "@/lib/subscription";
 import { getMyTherapy, updateMyTherapy } from "@/lib/therapy";
 import { asset } from "@/lib/asset";
 import { loadTherapists, mergeWithBookings, syncTherapists, therapistCard, type TherapistStore } from "@/lib/therapists";
-import { startTour, tourSeen } from "@/components/room-tour";
-import type { Role } from "@/lib/role";
 import { zoneDayDiff, zoneFormat } from "@/lib/zone";
 
 const dateF = zoneFormat({ weekday: "long", day: "numeric", month: "long" });
@@ -85,8 +83,6 @@ function PsyHome() {
 
       <PsyGuide />
 
-      <TourBanner role="psychologist" />
-
       {/* Статистика в нулях новичку ничего не говорит — до первой записи её место занимает знакомство с платформой. */}
       {appts.length > 0 && (
         <WorkStats items={held.map((a) => ({ startsAt: a.startsAt, durationMin: a.durationMin, clientKey: String(a.client.id) }))} title="Статистика работы" />
@@ -143,7 +139,8 @@ function PersonHome({ guest }: { guest: boolean }) {
       icon="home"
       focus={guest ? undefined : <div data-tour="next-session"><NextSession booking={next} therapist={therapist} /></div>}
     >
-      <TourBanner role={guest ? "guest" : "client"} />
+      {/* Специалист ответил на самозапись — клиент узнаёт об этом окном. */}
+      {!guest && <ClientConfirmWatch bookings={bookings} />}
 
       {guest ? <GuestStart /> : <MoodQuick today={todayEntry} moods={therapy?.moods ?? []} />}
 
@@ -169,10 +166,16 @@ function PersonHome({ guest }: { guest: boolean }) {
 function ConfirmQueue({ items }: { items: Appointment[] }) {
   const qc = useQueryClient();
   const [needsPro, setNeedsPro] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const confirm = useMutation({
     mutationFn: (id: number) => confirmAppointment(id),
-    onSuccess: () => { tap(); qc.invalidateQueries({ queryKey: ["appointments"] }); },
+    onSuccess: (_r, id) => {
+      tap();
+      const a = items.find((x) => x.id === id);
+      setDone(a ? cap(dateTimeF.format(new Date(a.startsAt))) : "");
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
     // Бесплатные места заняты — вместо голой ошибки показываем, чем это
     // лечится. Клиент в это время ждёт ответа, поэтому предложение открывается
     // сразу, а не прячется в кабинете.
@@ -182,13 +185,18 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
     mutationFn: (id: number) => updateAppointment(id, { status: "cancelled" }),
     onSuccess: () => { tap(); qc.invalidateQueries({ queryKey: ["appointments"] }); },
   });
-  if (items.length === 0) return null;
+  // Окно «подтверждено» живёт отдельно от очереди: после ответа она пустеет, а
+  // сообщение должно остаться на экране.
+  const doneWindow = <ConfirmDone open={done !== null} when={done || undefined} onClose={() => setDone(null)} />;
+  if (items.length === 0) return doneWindow;
 
   return (
     <section className="card-soft space-y-2.5 p-4" style={{ background: "var(--green-soft)", borderColor: "var(--green-edge)" }}>
       <div className="flex items-center gap-2">
         <Icon name="calendar" width={15} weight="bold" color="var(--green-edge)" />
         <p className="t-head">К вам записался клиент</p>
+        {/* Тот же красный ярлык, что у задания дня: «сюда надо ткнуть». */}
+        <DailyDot size={18} label="Ждёт вашего ответа" />
       </div>
       {items.map((a) => (
         <div key={a.id} className="rounded-[13px] bg-white px-3 py-2.5">
@@ -228,6 +236,7 @@ function ConfirmQueue({ items }: { items: Appointment[] }) {
         </button>
       )}
       <ConfirmProPaywall open={needsPro} onClose={() => setNeedsPro(false)} />
+      {doneWindow}
     </section>
   );
 }
@@ -426,46 +435,6 @@ function GuestStart() {
         <div className="px-4 pb-4 pt-2"><Link href="/catalog" onClick={tap} className="btn w-full py-3 transition-transform active:scale-[0.98]">Начать подбор</Link></div>
       </div>
     </section>
-  );
-}
-
-// Баннер обучения: ярко-лавандовый постер с игровым «!». Запускает прожекторный тур.
-function TourBanner({ role }: { role: Role }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const sync = () => setShow(!tourSeen(role));
-    sync();
-    window.addEventListener("bereg:tour-change", sync);
-    return () => window.removeEventListener("bereg:tour-change", sync);
-  }, [role]);
-  if (!show) return null;
-  const title = role === "psychologist" ? "Что делать в кабинете психолога" : "Что делать в приложении";
-  // Сплошная заливка и белый текст: это первое действие новичка, и раньше
-  // баннер терялся среди светлых карточек — его просто пролистывали.
-  return (
-    <motion.button
-      onClick={() => { tap(); startTour(); }}
-      animate={{ boxShadow: ["0 10px 24px -16px rgba(91,91,214,.9)", "0 16px 34px -14px rgba(91,91,214,.75)", "0 10px 24px -16px rgba(91,91,214,.9)"] }}
-      transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-      className="relative w-full overflow-hidden rounded-[var(--r-block)] p-4 text-left transition-transform active:scale-[0.99]"
-      style={{ background: "var(--purple-edge)" }}
-    >
-      <div className="relative flex items-center gap-3.5">
-        <motion.span
-          animate={{ scale: [1, 1.12, 1] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[24px] font-black leading-none"
-          style={{ background: "#fff", color: "var(--purple-edge)" }}
-        >!</motion.span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[16px] font-black leading-tight text-white">{title}</span>
-          <span className="mt-1.5 block text-[12.5px] font-bold leading-snug" style={{ color: "rgba(255,255,255,.82)" }}>
-            Пошаговая экскурсия: за минуту покажем, с чего начать
-          </span>
-        </span>
-        <span className="shrink-0 text-[20px] font-black leading-none text-white">›</span>
-      </div>
-    </motion.button>
   );
 }
 

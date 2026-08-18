@@ -20,23 +20,25 @@ export function ConfirmActions({
 }) {
   const busy = Boolean(confirming || declining);
   return (
-    <div className="flex flex-wrap gap-1.5">
+    // Обе кнопки в одну строку и поровну на всю ширину блока: раньше они
+    // жались влево и на узком экране переносились одна под другую.
+    <div className="grid grid-cols-2 gap-1.5">
       <button
         onClick={() => { tap(); onConfirm(); }}
         disabled={busy}
-        className="btn gap-1 px-2.5 py-1 text-[11.5px] leading-none"
+        className="btn w-full gap-1 px-2 py-1 text-[11px] leading-none"
         style={{ background: "var(--green-edge)", borderColor: "var(--green-edge)" }}
       >
-        <Icon name="check" width={12} weight="bold" color="#fff" />
+        <Icon name="check" width={11} weight="bold" color="#fff" />
         {confirming ? "Минуту…" : "Подтвердить"}
       </button>
       <button
         onClick={() => { tap(); onDecline(); }}
         disabled={busy}
-        className="btn gap-1 px-2.5 py-1 text-[11.5px] leading-none"
+        className="btn w-full gap-1 px-2 py-1 text-[11px] leading-none"
         style={{ background: "var(--coral-edge)", borderColor: "var(--coral-edge)" }}
       >
-        <Icon name="close" width={12} weight="bold" color="#fff" />
+        <Icon name="close" width={11} weight="bold" color="#fff" />
         {declining ? "Минуту…" : "Отклонить"}
       </button>
     </div>

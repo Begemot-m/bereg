@@ -11,7 +11,7 @@ import { MonthCalendar } from "@/components/calendar";
 import { ArrowGlyph, PageHead } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
 import { ClientPicker } from "@/components/day-slots";
-import { SCHEDULE_HELP, SESSIONS_HELP } from "@/components/help-deck";
+import { SCHEDULE_HELP, SESSIONS_FULL_HELP } from "@/components/help-deck";
 
 // Справка открывается по кнопке «Как это работает?» — до этого не нужна.
 const HelpDeck = dynamic(() => import("@/components/help-deck").then((m) => m.HelpDeck));
@@ -265,14 +265,17 @@ function PsySessions() {
           />
         )}
         {!calOpen && <Segmented value={view} dayPicked={!!selDay} onChange={(v) => { tap(); setView(v); if (v === "soon") setSelDay(null); }} />}
-        {help && <HelpDeck title="Как работают сессии" pages={SESSIONS_HELP} onClose={() => setHelp(false)} />}
+        {/* Кнопка в шапке показывает то же самое, что человек видел при первом
+            заходе: график, а следом работу с расписанием. Раньше она открывала
+            только вторую половину, и вернуться к настройке графика было некуда. */}
+        {help && <HelpDeck title="Как это работает" pages={SESSIONS_FULL_HELP} onClose={() => setHelp(false)} />}
         {scheduleHelp && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setScheduleHelp(false)} />}
         {/* Первый визит: сразу инструкция, а не окно-заглушка перед ней —
             два окна подряд об одном и том же читались как сбой. */}
         {scheduleFirstVisit && (
           <HelpDeck
-            title="Как настроить расписание"
-            pages={SCHEDULE_HELP}
+            title="Как это работает"
+            pages={SESSIONS_FULL_HELP}
             doneLabel="Настроить график"
             onClose={() => finishScheduleIntro(false)}
             onDone={() => finishScheduleIntro(true)}
