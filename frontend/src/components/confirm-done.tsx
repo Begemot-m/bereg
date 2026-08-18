@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@/components/icons";
 import type { MyBooking } from "@/lib/clients";
@@ -14,7 +15,12 @@ import { zoneFormat } from "@/lib/zone";
  * когда заходит и обнаруживает, что его встречу приняли.
  */
 export function ConfirmDone({ open, when, note, onClose }: { open: boolean; when?: string; note?: string; onClose: () => void }) {
-  return (
+  if (typeof document === "undefined") return null;
+
+  // Окно рисуем в body: внутри страницы оно лежит в слое `.sheet` (z-0), и
+  // поверх затемнения оставался фокус-блок главной — «ближайшая сессия»
+  // светилась сквозь окно, как будто её подсветили нарочно.
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -57,7 +63,8 @@ export function ConfirmDone({ open, when, note, onClose }: { open: boolean; when
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

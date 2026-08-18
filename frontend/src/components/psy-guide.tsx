@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { GuideShot } from "@/components/guide-shots";
 import { Icon, type IconName } from "@/components/icons";
@@ -98,14 +99,16 @@ const STEPS: Step[] = [
  * устроена, и новичок уходил с главной. Здесь рисованные экраны разделов и
  * шесть шагов словами — от анкеты до подписки.
  *
- * Блок убирает сам человек — крестиком или кнопкой на последнем шаге. По
- * данным его прятать нельзя: заведённый клиент не значит, что специалист
- * знает про верификацию и лимиты.
+ * Пока человек не дошёл до конца, блок висит развёрнутым и закрыть его нечем:
+ * по данным судить нельзя — заведённый клиент не значит, что специалист знает
+ * про верификацию и лимиты. Прошёл до «Всё понятно» — остаётся миниатюра, и
+ * только у неё есть крестик, да и тот спрашивает.
  */
 export function PsyGuide() {
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
   const [mode, setMode] = useState<Mode>("hidden");
+  const [askClose, setAskClose] = useState(false);
   const swipeX = useRef<number | null>(null);
   const reduce = useReducedMotion();
 
@@ -125,13 +128,11 @@ export function PsyGuide() {
     setDir(next > index ? 1 : -1);
     setIndex(next);
   };
-  const dismiss = (finished: boolean) => {
-    if (finished) { success(); localStorage.setItem(KEY, "mini"); setMode("mini"); return; }
-    tap();
-    localStorage.setItem(KEY, "hidden");
-    setMode("hidden");
-  };
-  const expand = () => { tap(); localStorage.removeItem(KEY); setIndex(0); setMode("full"); };
+  const finish = () => { success(); localStorage.setItem(KEY, "mini"); setMode("mini"); };
+  const hide = () => { tap(); localStorage.setItem(KEY, "hidden"); setAskClose(false); setMode("hidden"); };
+  // Развернуть можно сколько угодно раз, но отметка «пройдено» остаётся: после
+  // перезагрузки человек видит миниатюру, а не полный блок с первого шага.
+  const expand = () => { tap(); setIndex(0); setMode("full"); };
   const endSwipe = (x: number) => {
     const start = swipeX.current;
     swipeX.current = null;
@@ -148,10 +149,12 @@ export function PsyGuide() {
   if (mode === "mini") {
     return (
       <section>
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={expand}
-          className="chunk flex w-full items-center gap-3 px-3 py-2.5 text-left transition-transform active:scale-[.99]"
+          onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); expand(); } }}
+          className="chunk flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-transform active:scale-[.99]"
           style={{ background: "var(--purple-soft)", borderColor: "var(--purple)" }}
         >
           <span className="ico h-9 w-9 shrink-0 rounded-[12px]" style={{ background: "var(--purple-edge)" }}>
@@ -161,8 +164,21 @@ export function PsyGuide() {
             <span className="block text-[13.5px] font-black leading-tight">С чего начать?</span>
             <span className="t-cap block">Знакомство с платформой — можно открыть снова</span>
           </span>
-          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ color: "var(--purple-edge)" }}>Открыть</span>
-        </button>
+          {/* Крестик появляется только здесь, у пройденного знакомства, и стоит
+              над кнопкой: убрать строку совсем — отдельное решение. */}
+          <span className="flex shrink-0 flex-col items-center gap-1">
+            <button
+              type="button"
+              aria-label="Убрать знакомство"
+              onClick={(event) => { event.stopPropagation(); tap(); setAskClose(true); }}
+              className="x-close h-6 w-6 rounded-full bg-white text-[12px]"
+            >
+              ✕
+            </button>
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ color: "var(--purple-edge)" }}>Открыть</span>
+          </span>
+        </div>
+        <CloseAsk open={askClose} onCancel={() => { tap(); setAskClose(false); }} onConfirm={hide} />
       </section>
     );
   }
@@ -194,14 +210,6 @@ export function PsyGuide() {
             <span className="font-tight block text-[19px] font-black leading-tight">С чего начать?</span>
             <span className="t-sub mt-0.5 block">Познакомьтесь с функциями платформы</span>
           </span>
-          <button
-            type="button"
-            onClick={() => dismiss(false)}
-            aria-label="Скрыть знакомство"
-            className="x-close h-8 w-8 rounded-full bg-white text-[15px]"
-          >
-            ✕
-          </button>
         </div>
 
         <div
@@ -280,7 +288,7 @@ export function PsyGuide() {
             </button>
             <button
               type="button"
-              onClick={() => { if (last) dismiss(true); else { tap(); go(index + 1); } }}
+              onClick={() => { if (last) finish(); else { tap(); go(index + 1); } }}
               className="btn flex-1 py-2.5"
               style={{ background: "var(--purple-edge)", color: "#fff", borderColor: "var(--purple-edge)" }}
             >
@@ -290,5 +298,59 @@ export function PsyGuide() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Вопрос перед тем, как убрать знакомство совсем. */
+function CloseAsk({ open, onCancel, onConfirm }: { open: boolean; onCancel: () => void; onConfirm: () => void }) {
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onCancel}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(32,28,24,.42)", backdropFilter: "blur(2px)" }}
+        >
+          <motion.div
+            initial={{ y: 18, scale: 0.96 }}
+            animate={{ y: 0, scale: 1 }}
+            exit={{ y: 18, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            onClick={(e) => e.stopPropagation()}
+            className="chunk w-full max-w-sm p-5 text-center"
+            style={{ background: "var(--surface)" }}
+          >
+            <span className="ico mx-auto h-12 w-12 rounded-[15px]" style={{ background: "var(--purple)" }}>
+              <Icon name="question" width={22} weight="bold" color="var(--purple-edge)" />
+            </span>
+            <p className="font-tight mt-3 text-[17px] font-black leading-tight">Вы уверены, что этот гид вам больше не понадобится?</p>
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="btn flex-1 py-2.5"
+                style={{ background: "transparent", color: "var(--purple-edge)", borderColor: "var(--purple-edge)" }}
+              >
+                Нет
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="btn flex-1 py-2.5"
+                style={{ background: "var(--purple-edge)", color: "#fff", borderColor: "var(--purple-edge)" }}
+              >
+                Да
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
   );
 }
