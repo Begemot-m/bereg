@@ -34,9 +34,13 @@ export function WheelChart({ result, size = 260, showLabels = true }: { result: 
       ); })}
 
       {showLabels && WHEEL.map((d, i) => {
-        const [x, y] = pt(i, R + 16);
+        const [rx, y] = pt(i, R + 14);
         const a = angle(i);
         const anchor = Math.abs(Math.cos(a)) < 0.3 ? "middle" : Math.cos(a) > 0 ? "start" : "end";
+        // Боковые подписи («Любовь», «Отдых») упирались в край svg и обрезались.
+        // Ширину считаем по числу букв и подтягиваем метку внутрь кадра.
+        const w = d.short.length * 6.8;
+        const x = anchor === "start" ? Math.min(rx, size - w - 3) : anchor === "end" ? Math.max(rx, w + 3) : rx;
         return <text key={d.key} x={x} y={y} textAnchor={anchor} dominantBaseline="middle" className="fill-[var(--ink)] text-[8.5px] font-black uppercase" style={{ letterSpacing: ".02em" }}>{d.short}</text>;
       })}
     </svg>

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowGlyph } from "@/components/blocks";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useState, type ReactNode } from "react";
 
 import { HelpDeck, type HelpPage } from "@/components/help-deck";
@@ -49,7 +49,8 @@ const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[
 function CompareCell({ value }: { value: boolean | string }) {
   if (value === true) return <Icon name="check" width={15} weight="bold" color="var(--green-edge)" />;
   if (value === false) return <Icon name="close" width={13} weight="bold" color="var(--coral-edge)" />;
-  return <span className="text-[10px] font-black leading-none">{value}</span>;
+  // «без лимита» переносится на две строки — держим их по центру колонки.
+  return <span className="block w-full text-center text-[10px] font-black leading-tight">{value}</span>;
 }
 
 // Компактная таблица сравнения «Бесплатно / PRO».
@@ -77,7 +78,7 @@ function FreeVsPro({ compact = false }: { compact?: boolean }) {
  * столкнётся. Пишем прямо: место в каталоге бесплатное, пробные дни даются
  * всем и один раз, деньги начинаются на четвёртом клиенте.
  */
-const HOW_IT_WORKS: { icon: IconName; title: string; text: string }[] = [
+const HOW_IT_WORKS: { icon: IconName; title: ReactNode; text: string }[] = [
   {
     icon: "users",
     title: "Пользуйтесь сразу бесплатно",
@@ -90,7 +91,7 @@ const HOW_IT_WORKS: { icon: IconName; title: string; text: string }[] = [
   },
   {
     icon: "compass",
-    title: "Место в каталоге — бесплатно навсегда",
+    title: <>Место в каталоге — <span style={{ color: "var(--purple-edge)" }}>бесплатно</span> навсегда</>,
     text: "Место и рейтинг не повышается за деньги. Повышайте оценки с помощью клиентов, с кем провели хотя бы одну сессию на платформе. Неактивные профили, кто не пользуется платформой, будут падать в выдаче.",
   },
   {
@@ -100,8 +101,8 @@ const HOW_IT_WORKS: { icon: IconName; title: string; text: string }[] = [
   },
   {
     icon: "check",
-    title: "Больше клиентов — оформите подписку",
-    text: "Единственное место, где платформа берёт деньги: подтверждение встречи с новым человеком, когда бесплатные места заняты. Не важно, пришёл он из каталога, из «Терапии» или по вашей ссылке.",
+    title: "Оформите подписку, чтобы вести больше клиентов",
+    text: `Подписка снимает лимит: заводите сколько угодно клиентов и подтверждайте любые записи — не важно, пришёл человек из каталога, из «Терапии» или по вашей ссылке. Первые ${FREE_CLIENT_LIMIT} остаются бесплатными, комиссии с ваших сессий нет.`,
   },
 ];
 
@@ -114,7 +115,7 @@ function HowItWorks() {
       </div>
       <ol className="p-3.5">
         {HOW_IT_WORKS.map((step, i) => (
-          <li key={step.title} className="relative flex gap-3 pb-3.5 last:pb-0">
+          <li key={i} className="relative flex gap-3 pb-3.5 last:pb-0">
             {/* Линия между шагами: список читается как путь, а не как набор
                 отдельных плашек. */}
             {i < HOW_IT_WORKS.length - 1 && <span className="absolute left-[13px] top-8 bottom-1 w-[1.5px]" style={{ background: "var(--edge-neutral)" }} />}
@@ -245,7 +246,7 @@ function subState(sub: Subscription | undefined): { label: string; tone: string;
   }
   if (sub.status === "trial") {
     const d = trialDaysLeft(sub);
-    return { label: "Пробный PRO", tone: "purple", days: d, caption: plural(d, "день", "дня", "дней"), note: "Клиентов без лимита, любые записи подтверждаются. Карта не нужна." };
+    return { label: "Пробный PRO", tone: "purple", days: d, caption: plural(d, "день", "дня", "дней"), note: "Пользуйтесь всеми функциями платформы без ограничений." };
   }
   if (sub.status === "active") {
     const left = paidDaysLeft(sub);
@@ -301,11 +302,12 @@ function ProActiveCard({ sub }: { sub: Subscription }) {
 
   return (
     <section className="overflow-hidden rounded-[20px]" style={{ background: "var(--purple-soft)", border: "var(--bw) solid var(--purple-edge)" }}>
-      <div className="flex items-center gap-3 px-4 pt-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--purple)" }}>
+      <div className="relative flex items-center gap-3 px-4 pt-4">
+        <ProGlow />
+        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--purple)" }}>
           <Icon name="seal" width={22} weight="fill" color="var(--purple-edge)" />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="t-head">Хроника PRO</span>
             <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[.04em]" style={{ background: "var(--green-soft)", color: "var(--green-edge)" }}>активна</span>
@@ -352,6 +354,44 @@ function ProActiveCard({ sub }: { sub: Subscription }) {
   );
 }
 
+/**
+ * Фон шапки баннера справа: рядом с ценой оставалось пустое место, и блок
+ * читался недоделанным. Кольца медленно дышат, искры всплывают — движение
+ * фоновое, текст перекрывает его сверху. При `prefers-reduced-motion` замирает.
+ */
+function ProGlow() {
+  const reduce = useReducedMotion();
+  const sparks = [
+    { right: 16, top: "18%", size: 14, delay: 0 },
+    { right: 54, top: "46%", size: 9, delay: 0.9 },
+    { right: 28, top: "72%", size: 7, delay: 1.7 },
+  ];
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-[142px] overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, #000 48%)", WebkitMaskImage: "linear-gradient(to right, transparent, #000 48%)" }}>
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full"
+          style={{ right: -36 - i * 12, top: "50%", height: 92 + i * 36, width: 92 + i * 36, marginTop: -(46 + i * 18), border: "1.5px solid var(--purple-edge)", opacity: 0.24 - i * 0.06 }}
+          animate={reduce ? undefined : { scale: [1, 1.07, 1] }}
+          transition={{ duration: 4.5 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.5 }}
+        />
+      ))}
+      {sparks.map((sp) => (
+        <motion.span
+          key={sp.delay}
+          className="absolute"
+          style={{ right: sp.right, top: sp.top, opacity: 0.65 }}
+          animate={reduce ? undefined : { y: [0, -7, 0], opacity: [0.4, 0.9, 0.4] }}
+          transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut", delay: sp.delay }}
+        >
+          <Icon name="spark" width={sp.size} weight="fill" color="var(--purple-edge)" />
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
 export function SubscriptionBanner() {
   const [open, setOpen] = useState(false);
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
@@ -365,11 +405,12 @@ export function SubscriptionBanner() {
 
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: "var(--purple-soft)" }}>
-      <div className="flex items-center gap-3 p-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--purple)" }}>
+      <div className="relative flex items-center gap-3 p-4">
+        <ProGlow />
+        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "var(--purple)" }}>
           <Icon name="spark" width={22} weight="fill" color="var(--purple-edge)" />
         </span>
-        <span className="min-w-0 flex-1">
+        <span className="relative min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
             <span className="t-head">{title}</span>
             {/* Скидка за отказ в каталоге: старую цену перечёркиваем, чтобы
