@@ -8,7 +8,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Arrow, PageHead, SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
-import { CatalogPlacement } from "@/components/catalog-placement";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
@@ -20,7 +19,7 @@ import { Button, Card, Input } from "@/components/ui";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch } from "@/lib/api";
 import { asset } from "@/lib/asset";
-import { AUTHOR_TG, AUTHOR_TG_URL, CENTER_SITE, CENTER_URL, PROD_URL } from "@/lib/brand";
+import { AUTHOR_TG, AUTHOR_TG_URL, CENTER_SITE, CENTER_URL } from "@/lib/brand";
 import { DEMO_OWNER, useMe } from "@/lib/me";
 import { DEMO, isFreshDemo, resetLocalData, startFreshDemo, stopFreshDemo } from "@/lib/demo";
 import { select, success, tap } from "@/lib/haptics";
@@ -69,10 +68,7 @@ export default function CabinetPage() {
         <div className="space-y-3">
           <SectionTitle>{psy ? "Практика" : "Забота о себе"}</SectionTitle>
           {psy ? (
-            <>
-              <SubscriptionBanner />
-              <CatalogPlacement />
-            </>
+            <SubscriptionBanner />
           ) : (
             <div className="card-soft flex items-start gap-3 p-4" style={{ background: "var(--purple-soft)" }}>
               <span className="ico ico-white h-11 w-11 shrink-0"><Icon name="spark" width={21} weight="bold" color="var(--purple-edge)" /></span>
@@ -164,16 +160,6 @@ export default function CabinetPage() {
   );
 }
 
-// Страница-ярлык: её и добавляют на рабочий стол там, где Telegram сам этого не
-// умеет. Лежит статикой в public, поэтому открывается без входа и без оболочки
-// приложения, а запущенная с иконки сразу уводит в мини-приложение.
-const SHORTCUT_FILE = "open.html";
-
-function shortcutUrl(): string {
-  if (DEMO && typeof window !== "undefined") return `${window.location.origin}${asset(`/${SHORTCUT_FILE}`)}`;
-  return `${PROD_URL}${SHORTCUT_FILE}`;
-}
-
 // Иконка мини-приложения на рабочем столе телефона.
 //
 // Положить ярлык сам умеет только Telegram для Android (Bot API 8.0). На iPhone
@@ -188,7 +174,6 @@ function HomeScreenCard() {
   const [mode, setMode] = useState<HomeScreenMode | null>(null);
   const [added, setAdded] = useState(false);
   const [asked, setAsked] = useState(false);
-  const [copied, setCopied] = useState(false);
   // Блок закрывается крестиком навсегда: иконку ставят один раз, и висеть
   // разделом в кабинете ему потом незачем.
   const [hidden, setHidden] = useState(true);
@@ -225,17 +210,6 @@ function HomeScreenCard() {
     tap();
     localStorage.setItem(HOME_HIDDEN_KEY, "1");
     setHidden(true);
-  };
-
-  const copy = async () => {
-    tap();
-    try {
-      await navigator.clipboard.writeText(shortcutUrl());
-      setCopied(true);
-      success();
-    } catch {
-      setCopied(false);
-    }
   };
 
   // Шаги владельца, дословно: путь через встроенный браузер Telegram — тот
@@ -284,9 +258,6 @@ function HomeScreenCard() {
                     </li>
                   ))}
                 </ol>
-                <button onClick={copy} className="t-cap mt-2 block leading-snug underline underline-offset-2 opacity-70">
-                  {copied ? "Ссылка скопирована" : `Не нашли пункт? Скопируйте ссылку: ${shortcutUrl().replace(/^https?:\/\//, "")}`}
-                </button>
               </>
             )}
           </div>

@@ -11,6 +11,8 @@ import { select, success, tap } from "@/lib/haptics";
 const EASE = [0.16, 1, 0.3, 1] as const;
 const KEY = "bereg_guide_done";
 
+type Mode = "full" | "mini" | "hidden";
+
 type Step = {
   /** Кадр реального интерфейса. Если его нет — рисованный экран раздела. */
   shot?: string;
@@ -18,8 +20,8 @@ type Step = {
   accent: string;
   title: string;
   /** Строка «Перейдите в раздел …» — с иконкой самого раздела. */
-  go?: { label: string; icon: IconName };
-  lines: { icon: IconName; text: string }[];
+  go?: { label: string; icon: IconName; tone?: string };
+  lines: { icon: IconName; text: string; strong?: boolean }[];
 };
 
 // Шесть шагов знакомства. Тексты владельца — дословно, слово в слово; здесь
@@ -33,6 +35,8 @@ const STEPS: Step[] = [
     go: { label: "Кабинет", icon: "user" },
     lines: [
       { icon: "user", text: "Сперва заполните анкету специалиста с информацией о себе" },
+      { icon: "edit", text: "Нажмите на кнопку «Заполнить профиль»" },
+      { icon: "steps", text: "Следуйте по шагам и заполните все разделы информацией о себе. Это займёт немного времени." },
     ],
   },
   {
@@ -42,7 +46,7 @@ const STEPS: Step[] = [
     go: { label: "Кабинет", icon: "user" },
     lines: [
       { icon: "seal", text: "Отправьте анкету на верификацию, после чего она будет опубликована в каталог" },
-      { icon: "note", text: "Ключевое требование: профильное высшее образование или профессиональная переподготовка" },
+      { icon: "warn", text: "Ключевое требование: профильное высшее образование или профессиональная переподготовка", strong: true },
       { icon: "users", text: "Без верификации профиль будут видеть только ваши клиенты" },
     ],
   },
@@ -50,10 +54,9 @@ const STEPS: Step[] = [
     shot: "sessions-schedule",
     accent: "var(--green)",
     title: "Настройте график",
-    go: { label: "Сессии", icon: "calendar" },
+    go: { label: "Сессии", icon: "calendar", tone: "var(--green-edge)" },
     lines: [
-      { icon: "gear", text: "Настройте свой график рабочих часов" },
-      { icon: "compass", text: "Чтобы клиенты могли записываться к вам напрямую через каталог или раздел «Терапия»" },
+      { icon: "gear", text: "Настройте свой график рабочих часов, чтобы клиенты могли записываться к вам напрямую через каталог или раздел «Терапия»" },
     ],
   },
   {
@@ -83,6 +86,7 @@ const STEPS: Step[] = [
     title: "Дальше — больше",
     lines: [
       { icon: "tools", text: "Платформа будет обновляться новыми инструментами в помощь вам и клиентам" },
+      { icon: "question", text: "На каждой странице раздела есть сверху кнопка «Как это работает?» — нажмите её, чтобы гид показал все функции" },
       { icon: "heart", text: "Пользуйтесь с удовольствием!" },
     ],
   },
@@ -101,13 +105,16 @@ const STEPS: Step[] = [
 export function PsyGuide() {
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
-  const [hidden, setHidden] = useState(true);
+  const [mode, setMode] = useState<Mode>("hidden");
   const swipeX = useRef<number | null>(null);
   const reduce = useReducedMotion();
 
   // Флаг читается после монтирования: на сервере localStorage нет, а разметка
   // должна совпасть с первой отрисовкой в браузере.
-  useEffect(() => setHidden(localStorage.getItem(KEY) === "1"), []);
+  useEffect(() => {
+    const saved = localStorage.getItem(KEY);
+    setMode(saved === "hidden" ? "hidden" : saved ? "mini" : "full");
+  }, []);
 
   const last = index === STEPS.length - 1;
   const step = STEPS[index];
@@ -119,10 +126,12 @@ export function PsyGuide() {
     setIndex(next);
   };
   const dismiss = (finished: boolean) => {
-    if (finished) success(); else tap();
-    localStorage.setItem(KEY, "1");
-    setHidden(true);
+    if (finished) { success(); localStorage.setItem(KEY, "mini"); setMode("mini"); return; }
+    tap();
+    localStorage.setItem(KEY, "hidden");
+    setMode("hidden");
   };
+  const expand = () => { tap(); localStorage.removeItem(KEY); setIndex(0); setMode("full"); };
   const endSwipe = (x: number) => {
     const start = swipeX.current;
     swipeX.current = null;
@@ -132,7 +141,31 @@ export function PsyGuide() {
     go(delta < 0 ? index + 1 : index - 1);
   };
 
-  if (hidden) return null;
+  if (mode === "hidden") return null;
+
+  // Свёрнутое знакомство: «Всё понятно» не убирает блок насовсем, а оставляет
+  // строку — вернуться к шагам можно в любой момент.
+  if (mode === "mini") {
+    return (
+      <section>
+        <button
+          type="button"
+          onClick={expand}
+          className="chunk flex w-full items-center gap-3 px-3 py-2.5 text-left transition-transform active:scale-[.99]"
+          style={{ background: "var(--purple-soft)", borderColor: "var(--purple)" }}
+        >
+          <span className="ico h-9 w-9 shrink-0 rounded-[12px]" style={{ background: "var(--purple-edge)" }}>
+            <Icon name="question" width={17} weight="bold" color="#fff" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13.5px] font-black leading-tight">С чего начать?</span>
+            <span className="t-cap block">Знакомство с платформой — можно открыть снова</span>
+          </span>
+          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ color: "var(--purple-edge)" }}>Открыть</span>
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -195,7 +228,7 @@ export function PsyGuide() {
               />
             </div>
 
-            <div className="mt-3 min-h-[188px] px-1 @md:min-h-[160px]">
+            <div className="mt-3 min-h-[188px] px-1 pb-4 @md:min-h-[160px]">
               <span className="t-micro">Шаг {index + 1} из {STEPS.length}</span>
               <p className="font-tight mt-0.5 text-[16px] font-black leading-tight">{step.title}</p>
 
@@ -204,25 +237,25 @@ export function PsyGuide() {
               {step.go && (
                 <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5">
                   <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>Перейдите в раздел</span>
-                  <Icon name={step.go.icon} width={14} weight="bold" color="var(--purple-edge)" />
-                  <span className="text-[11.5px] font-black" style={{ color: "var(--purple-edge)" }}>{step.go.label}</span>
+                  <Icon name={step.go.icon} width={14} weight="bold" color={step.go.tone ?? "var(--purple-edge)"} />
+                  <span className="text-[11.5px] font-black" style={{ color: step.go.tone ?? "var(--purple-edge)" }}>{step.go.label}</span>
                 </span>
               )}
 
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-2.5 space-y-2">
                 {step.lines.map((line) => (
                   <li key={line.text} className="flex gap-2">
                     <span className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white">
-                      <Icon name={line.icon} width={11} weight="bold" color="var(--purple-edge)" />
+                      <Icon name={line.icon} width={11} weight="bold" color={line.strong ? "var(--salmon-edge)" : "var(--purple-edge)"} />
                     </span>
-                    <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-[1.35]">{line.text}</span>
+                    <span className={`min-w-0 flex-1 text-[12.5px] leading-[1.35] `}>{line.text}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </motion.div>
 
-          <div className="flex gap-1.5 px-1">
+          <div className="mt-1 flex gap-1.5 px-1">
             {STEPS.map((_, k) => (
               <button
                 key={k}

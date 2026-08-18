@@ -147,8 +147,8 @@ function ClientsList() {
         sub={`Всего: ${clients.length}`}
         icon="users"
         right={
-          <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
-            <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как добавить клиентов?
+          <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 whitespace-nowrap px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
+            <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как это работает?
           </button>
         }
       />

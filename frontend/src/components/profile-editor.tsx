@@ -77,7 +77,7 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
       {professional && <ProfileProgress profile={profile} onContinue={openEditor} />}
       {professional && (profileCompletionPercent(profile) === 100
         ? <NextSteps />
-        : <p className="px-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">Заполненный профиль увидят ваши клиенты. Чтобы вас находили другие пользователи, нужна подписка PRO.</p>)}
+        : <p className="px-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">Заполненный профиль увидят ваши клиенты. Для размещения в каталоге пройдите верификацию.</p>)}
     </div>
 
     <ProfileSheet open={editing} title="Профиль специалиста" onClose={() => setEditing(false)}>
@@ -439,10 +439,14 @@ function IdentityStep({ draft, update, fileRef }: { draft: PsyProfile; update: (
   };
   const setMain = (index: number) => { select(); const photos = [draft.photos[index], ...draft.photos.filter((_, itemIndex) => itemIndex !== index)]; update({ photos, photo: photos[0] ?? null }); };
   const removePhoto = (index: number) => { tap(); const photos = draft.photos.filter((_, itemIndex) => itemIndex !== index); update({ photos, photo: photos[0] ?? null }); };
-  return <StepCard title="Сначала — то, что помогает узнать вас" hint="Первое фото станет крупным портретом в каталоге. Можно добавить до трёх.">
+  return <StepCard>
     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; onFile(file); }} />
     {cropping && <PhotoCropper file={cropping} onCancel={() => setCropping(null)} onDone={addPhoto} />}
-    <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[15px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} disabled={Boolean(cropping)} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[15px] bg-white text-[10px] font-bold text-[var(--muted)] disabled:opacity-50" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
+    <div>
+      <span className="mb-1.5 block text-[12px] font-extrabold text-[var(--muted)]">Фото</span>
+      <span className="mb-2 block text-[11px] font-semibold text-[var(--muted-2)]">Первое фото станет крупным портретом в каталоге. Можно добавить до трёх.</span>
+      <div className="flex flex-wrap gap-2.5">{draft.photos.map((src, index) => <div key={`${src.slice(0, 20)}-${index}`} className="relative"><button onClick={() => setMain(index)} className="block h-[88px] w-[76px] overflow-hidden rounded-[15px] stroke" aria-label={index === 0 ? "Основное фото" : "Сделать основным"}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt="" className="h-full w-full object-cover" /></button><span className="absolute bottom-1 left-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black stroke">{index === 0 ? "основное" : `${index + 1}`}</span><button onClick={() => removePhoto(index)} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-black stroke" aria-label="Удалить фото">×</button></div>)}{draft.photos.length < 3 && <button onClick={() => fileRef.current?.click()} disabled={Boolean(cropping)} className="flex h-[88px] w-[76px] flex-col items-center justify-center gap-1 rounded-[15px] bg-white text-[10px] font-bold text-[var(--muted)] disabled:opacity-50" style={{ border: "var(--bw) dashed var(--edge-neutral)" }}><Icon name="plus" width={18} />Фото</button>}</div>
+    </div>
     {photoError && <p className="rounded-[12px] px-3 py-2 text-[11px] font-bold" style={{ background: "var(--salmon-soft)" }}>{photoError}</p>}
     <Field label="Имя и фамилия"><Input value={draft.name} onChange={(event) => update({ name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
     <RegionZoneFields draft={draft} update={update} />
@@ -548,28 +552,21 @@ function TopicsStep({ draft, update }: { draft: PsyProfile; update: (patch: Part
     if (topTopics.length >= 3) return;
     update({ topTopics: [...topTopics, topic] });
   };
-  return <StepCard title="С чем к вам можно обратиться" hint="Выберите запросы или впишите свои. В карточке покажем два наиболее подходящих под выбор клиента.">
-    <div className="flex flex-wrap gap-2">{topicOptions.map((topic) => <Choice key={topic} active={draft.topics.includes(topic)} onClick={() => toggleTopic(topic)}>{topic}</Choice>)}</div>
-    <ChipInput placeholder="Свой запрос" onAdd={addTopic} />
-    <p className="text-[11px] font-semibold text-[var(--muted)]">Выбрано: {draft.topics.length}. Оптимально 3–7 запросов.</p>
-    {draft.topics.length > 0 && <Field label="Главные запросы — до трёх">
-      <div className="flex flex-wrap gap-2">{draft.topics.map((topic) => {
-        const on = topTopics.includes(topic);
+  return <StepCard title="С чем к вам можно обратиться" hint="Выберите запросы или впишите свои. В миниатюре карточки покажем три основных — их вы отмечаете звёздочкой.">
+    <div className="flex flex-wrap gap-2">
+      {topicOptions.map((topic) => {
+        const active = draft.topics.includes(topic);
+        const top = topTopics.includes(topic);
         return (
-          <button
-            key={topic}
-            type="button"
-            onClick={() => toggleTop(topic)}
-            disabled={!on && topTopics.length >= 3}
-            className={`chip inline-flex items-center gap-1 disabled:opacity-40 ${on ? "font-black" : "font-semibold"}`}
-            style={{ background: "#fff", borderColor: on ? "var(--tiffany-edge)" : "var(--stroke)" }}
-          >
-            <Icon name="star" width={11} weight={on ? "fill" : "regular"} color={on ? "var(--tiffany-edge)" : "var(--muted-2)"} />{topic}
-          </button>
+          <span key={topic} className="inline-flex items-center overflow-hidden rounded-full" style={{ border: `var(--bw) solid var(--${active ? "tiffany-edge" : "edge-neutral"})`, background: active ? "var(--tiffany)" : "#fff" }}>
+            <button onClick={() => { select(); toggleTopic(topic); }} className="py-2 pl-3 pr-1.5 text-[11px] font-black" style={{ color: "var(--ink)" }}>{topic}</button>
+            {active && <button onClick={() => { select(); toggleTop(topic); }} disabled={!top && topTopics.length >= 3} className="flex h-7 w-7 items-center justify-center disabled:opacity-40" aria-label={top ? "Убрать из главных" : "Сделать главным"}><Icon name="star" width={14} weight={top ? "fill" : "regular"} color={top ? "var(--amber-edge)" : "var(--muted)"} /></button>}
+          </span>
         );
-      })}</div>
-      <p className="mt-1 text-[10px] font-semibold text-[var(--muted-2)]">Отмеченные стоят в карточке первыми — по ним клиент считывает вашу специализацию.</p>
-    </Field>}
+      })}
+    </div>
+    <ChipInput placeholder="Свой запрос" onAdd={addTopic} />
+    <p className="text-[11px] font-semibold leading-snug text-[var(--muted)]">Выбрано: {draft.topics.length}. Оптимально 3–7 запросов. Отмеченные звёздочкой стоят в карточке первыми — их можно выбрать до трёх.</p>
     <Field label="С чем не работаете (по желанию)">
       <div className="flex flex-wrap gap-2">{avoids.map((a) => <Choice key={a} active tone="coral" onClick={() => update({ avoids: avoids.filter((x) => x !== a) })}>{a} ×</Choice>)}</div>
       <div className="mt-2"><ChipInput placeholder="Например: зависимости" onAdd={addAvoid} /></div>
@@ -609,7 +606,7 @@ function MethodsStep({ draft, update }: { draft: PsyProfile; update: (patch: Par
       })}
     </div>
     <div className="flex items-center gap-2">
-      <div className="flex flex-1 items-center gap-2 rounded-[13px] bg-white px-3 stroke"><Icon name="plus" width={15} color="var(--muted-2)" /><input value={custom} onChange={(event) => setCustom(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustom(); } }} placeholder="Свой подход" className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
+      <div className="flex flex-1 items-center gap-2 rounded-[13px] bg-white px-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}><Icon name="plus" width={15} color="var(--muted-2)" /><input value={custom} onChange={(event) => setCustom(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustom(); } }} placeholder="Свой подход" className="w-full bg-transparent py-2.5 text-[13px] font-semibold outline-none" /></div>
       <button onClick={addCustom} disabled={!custom.trim()} className="shrink-0 rounded-[12px] bg-[var(--ink)] px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40">Добавить</button>
     </div>
     {draft.primaryMethod && <p className="text-[11px] font-semibold text-[var(--muted)]">Основной метод: <span className="font-black text-[var(--ink)]">{draft.primaryMethod}</span></p>}
@@ -635,7 +632,7 @@ function FormatStep({ draft, update, updateLocation }: { draft: PsyProfile; upda
       <Field label="Город"><Input value={draft.location.city} onChange={(event) => updateLocation({ city: event.target.value })} placeholder="Москва" /></Field>
       <Field label="Метро или ориентир"><Input value={draft.location.metro} onChange={(event) => updateLocation({ metro: event.target.value })} placeholder="м. Фрунзенская" /></Field>
       <Field label="Точный адрес"><Input value={draft.location.address} onChange={(event) => updateLocation({ address: event.target.value })} placeholder="Улица, дом, кабинет" /></Field>
-      <label className="flex cursor-pointer items-start gap-3 py-1"><button role="switch" aria-checked={draft.location.publicExactAddress} onClick={(event) => { event.preventDefault(); select(); updateLocation({ publicExactAddress: !draft.location.publicExactAddress }); }} className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full stroke" style={{ background: draft.location.publicExactAddress ? "var(--ink)" : "white" }}><motion.span animate={{ x: draft.location.publicExactAddress ? 20 : 2 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white stroke" /></button><span><span className="block text-[12px] font-black">Показывать точный адрес в профиле</span><span className="mt-0.5 block text-[10px] font-semibold leading-relaxed text-[var(--muted)]">Если выключено, клиент увидит только город и метро. Точный адрес откроется после подтверждения записи.</span></span></label>
+      <label className="flex cursor-pointer items-start gap-3 py-1"><button role="switch" aria-checked={draft.location.publicExactAddress} onClick={(event) => { event.preventDefault(); select(); updateLocation({ publicExactAddress: !draft.location.publicExactAddress }); }} className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full stroke" style={{ background: draft.location.publicExactAddress ? "var(--ink)" : "var(--head-soft)" }}><motion.span animate={{ x: draft.location.publicExactAddress ? 20 : 2 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }} /></button><span><span className="block text-[12px] font-black">Показывать точный адрес в профиле</span><span className="mt-0.5 block text-[10px] font-semibold leading-relaxed text-[var(--muted)]">Если выключено, клиент увидит только город и метро. Точный адрес откроется после подтверждения записи.</span></span></label>
     </div>}
   </StepCard>;
 }
@@ -658,7 +655,7 @@ function ConditionsStep({ draft, update }: { draft: PsyProfile; update: (patch: 
     <Field label={`Стоимость, ${currencySymbol(currency)}`}>
       <Input type="number" min={0} step={currency === "RUB" ? 100 : 5} value={draft.sessionPrice || ""} placeholder={currency === "RUB" ? "3500" : "60"} onChange={(event) => update({ sessionPrice: Number(event.target.value) })} />
       <p className="mt-1 text-[10px] font-semibold" style={{ color: low ? "var(--salmon-edge)" : "var(--muted-2)" }}>Шкала каталога начинается с {formatMoney(MIN_PRICE[currency], currency)}{low ? " — с меньшей ценой вас не найдут по фильтру" : ""}.</p>
-    </Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.max(30, draft.sessionMinutes - 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[12px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes ? `${draft.sessionMinutes} мин` : "не выбрано"}</span></div><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.min(120, draft.sessionMinutes + 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field><p className="t-cap">Размещение в каталоге платное, но цена размещения не влияет на рейтинг и порядок рекомендаций.</p></StepCard>; }
+    </Field><Field label="Длительность"><div className="flex items-center gap-2.5"><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.max(30, draft.sessionMinutes - 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Уменьшить">−</button><div className="flex h-11 min-w-[104px] items-center justify-center rounded-[12px] bg-[var(--head-soft)] px-3 stroke"><span className="tnum text-[16px] font-black">{draft.sessionMinutes ? `${draft.sessionMinutes} мин` : "не выбрано"}</span></div><button onClick={() => { select(); update({ sessionMinutes: draft.sessionMinutes ? Math.min(120, draft.sessionMinutes + 5) : 50 }); }} className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-[20px] font-black stroke" aria-label="Увеличить">+</button></div></Field></StepCard>; }
 
 function ExperienceStep({ draft, update }: { draft: PsyProfile; update: (patch: Partial<PsyProfile>) => void }) {
   const setEducation = (index: number, value: string) => update({ education: draft.education.map((item, itemIndex) => itemIndex === index ? value : item) });
@@ -774,8 +771,8 @@ function SwitchRow({ active, title, text, onToggle }: { active: boolean; title: 
         {text && <span className="t-cap mt-0.5 block">{text}</span>}
         <span className="mt-1 block text-[10px] font-black uppercase tracking-[.06em]" style={{ color: active ? "var(--tiffany-edge)" : "var(--muted-2)" }}>{active ? "включено" : "выключено"}</span>
       </span>
-      <span className="relative h-6 w-11 shrink-0 rounded-full stroke" style={{ background: active ? "var(--tiffany-edge)" : "white" }}>
-        <motion.span animate={{ x: active ? 20 : 2 }} transition={{ type: "spring", stiffness: 420, damping: 32 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white stroke" />
+      <span className="relative h-6 w-11 shrink-0 rounded-full stroke" style={{ background: active ? "var(--tiffany-edge)" : "var(--head-soft)" }}>
+        <motion.span animate={{ x: active ? 20 : 2 }} transition={{ type: "spring", stiffness: 420, damping: 32 }} className="absolute left-0 top-[2px] h-[18px] w-[18px] rounded-full bg-white" style={{ border: "var(--bw) solid var(--edge-neutral)" }} />
       </span>
     </button>
   );
@@ -809,7 +806,7 @@ function SettingToggle({ active, title, text, bare = false, bold = true, onToggl
 }
 
 // Без заливки: шаг анкеты — это список выборов, фон под ним только рябит.
-function StepCard({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) { return <section className="chunk space-y-4 p-4"><div><h4 className="font-tight text-[18px] font-black">{title}</h4>{hint && <p className="t-cap mt-1">{hint}</p>}</div>{children}</section>; }
+function StepCard({ title, hint, children }: { title?: string; hint?: string; children: ReactNode }) { return <section className="chunk space-y-4 p-4">{(title || hint) && <div>{title && <h4 className="font-tight text-[18px] font-black">{title}</h4>}{hint && <p className="t-cap mt-1">{hint}</p>}</div>}{children}</section>; }
 function Choice({ active, onClick, children, tone = "tiffany" }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string }) { return <motion.button layout initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} whileTap={{ scale: 0.9 }} onClick={() => { select(); onClick(); }} className="rounded-full px-3 py-2 text-[11px] font-black" style={active ? { background: `var(--${tone})`, color: "var(--ink)", border: `var(--bw) solid var(--${tone}-edge)` } : { background: "white", border: "var(--bw) solid var(--edge-neutral)" }}>{children}</motion.button>; }
 
 // Компактный ввод своего варианта — добавляет строку в список по Enter/кнопке.

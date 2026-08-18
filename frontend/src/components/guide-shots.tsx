@@ -39,6 +39,14 @@ function Focus({ children }: { children: React.ReactNode }) {
 function CabinetProfile() {
   return (
     <Shot title="Личный кабинет" sub="Профиль специалиста">
+      <div className="flex items-center gap-3 rounded-[15px] bg-white p-3 opacity-55">
+        <Icon name="seal" width={30} weight="fill" color="var(--green)" />
+        <div className="min-w-0">
+          <p className="text-[11.5px] font-black leading-tight">Пройдите верификацию</p>
+          <p className="mt-0.5 text-[9.5px] font-semibold leading-snug" style={{ color: "var(--muted)" }}>Чтобы профиль разместили в каталоге</p>
+        </div>
+      </div>
+
       <Focus>
         <div className="flex items-center gap-3 bg-white p-3">
           <Icon name="user" width={34} weight="fill" color="var(--tiffany)" />
@@ -53,14 +61,6 @@ function CabinetProfile() {
           <span className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black text-white" style={{ background: "var(--ink)" }}>Правка</span>
         </div>
       </Focus>
-
-      <div className="flex items-center gap-3 rounded-[15px] bg-white p-3 opacity-55">
-        <Icon name="seal" width={30} weight="fill" color="var(--green)" />
-        <div className="min-w-0">
-          <p className="text-[11.5px] font-black leading-tight">Пройдите верификацию</p>
-          <p className="mt-0.5 text-[9.5px] font-semibold leading-snug" style={{ color: "var(--muted)" }}>Чтобы профиль разместили в каталоге</p>
-        </div>
-      </div>
       <div className="flex items-center gap-3 rounded-[15px] bg-white p-3 opacity-40">
         <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: "var(--purple-soft)" }}>
           <Icon name="spark" width={15} weight="fill" color="var(--purple-edge)" />
@@ -76,16 +76,6 @@ function CabinetProfile() {
 function CabinetVerify() {
   return (
     <Shot title="Личный кабинет" sub="Профиль специалиста">
-      <div className="flex items-center gap-3 rounded-[15px] bg-white p-3 opacity-45">
-        <Icon name="user" width={30} weight="fill" color="var(--tiffany)" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[11.5px] font-black leading-tight">Профиль заполнен на 100%</p>
-          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white" style={{ border: "1px solid var(--tiffany-edge)" }}>
-            <div className="h-full w-full rounded-full" style={{ background: "var(--tiffany-edge)" }} />
-          </div>
-        </div>
-      </div>
-
       <Focus>
         <div className="flex items-center gap-3 bg-white p-3">
           <span className="relative flex shrink-0 items-center justify-center">
@@ -105,6 +95,16 @@ function CabinetVerify() {
           </span>
         </div>
       </Focus>
+
+      <div className="flex items-center gap-3 rounded-[15px] bg-white p-3 opacity-45">
+        <Icon name="user" width={30} weight="fill" color="var(--tiffany)" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11.5px] font-black leading-tight">Профиль заполнен на 100%</p>
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white" style={{ border: "1px solid var(--tiffany-edge)" }}>
+            <div className="h-full w-full rounded-full" style={{ background: "var(--tiffany-edge)" }} />
+          </div>
+        </div>
+      </div>
 
       <div className="rounded-[15px] bg-white p-3 opacity-40">
         <p className="text-[11px] font-black">Диплом или переподготовка · скан документа</p>

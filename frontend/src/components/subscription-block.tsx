@@ -362,9 +362,12 @@ function ProActiveCard({ sub }: { sub: Subscription }) {
 function ProGlow() {
   const reduce = useReducedMotion();
   const sparks = [
-    { right: 16, top: "18%", size: 14, delay: 0 },
-    { right: 54, top: "46%", size: 9, delay: 0.9 },
-    { right: 28, top: "72%", size: 7, delay: 1.7 },
+    { right: 16, top: "18%", size: 14, delay: 0, color: "#fff", opacity: 0.9 },
+    { right: 54, top: "46%", size: 9, delay: 0.9, color: "#fff", opacity: 0.85 },
+    { right: 28, top: "72%", size: 7, delay: 1.7, color: "#fff", opacity: 0.85 },
+    { right: 70, top: "10%", size: 30, delay: 0.5, color: "var(--purple-edge)", opacity: 0.34 },
+    { right: 4, top: "40%", size: 40, delay: 1.4, color: "var(--purple-edge)", opacity: 0.28 },
+    { right: 82, top: "74%", size: 24, delay: 2.2, color: "var(--purple-edge)", opacity: 0.32 },
   ];
   return (
     <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-[142px] overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, #000 48%)", WebkitMaskImage: "linear-gradient(to right, transparent, #000 48%)" }}>
@@ -379,13 +382,13 @@ function ProGlow() {
       ))}
       {sparks.map((sp) => (
         <motion.span
-          key={sp.delay}
+          key={sp.right + sp.top}
           className="absolute"
-          style={{ right: sp.right, top: sp.top, opacity: 0.65 }}
-          animate={reduce ? undefined : { y: [0, -7, 0], opacity: [0.4, 0.9, 0.4] }}
+          style={{ right: sp.right, top: sp.top, opacity: sp.opacity }}
+          animate={reduce ? undefined : { y: [0, -7, 0], opacity: [sp.opacity * 0.55, sp.opacity, sp.opacity * 0.55] }}
           transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut", delay: sp.delay }}
         >
-          <Icon name="spark" width={sp.size} weight="fill" color="var(--purple-edge)" />
+          <Icon name="spark" width={sp.size} weight="fill" color={sp.color} />
         </motion.span>
       ))}
     </span>
