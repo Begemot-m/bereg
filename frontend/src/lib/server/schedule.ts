@@ -356,7 +356,7 @@ export async function checkSlotOpen(
   const ymd = zoneYmd(startsAt);
   const from = zonedDayStart(ymd)!;
   const to = zonedDayStart(addDays(ymd, 1))!;
-  const [work, overrides, appts] = await Promise.all([
+  const [work, overrides, appts, meetings] = await Promise.all([
     getWorkHours(psychologistId),
     getOverrides(psychologistId, { from, to }),
     prisma.appointment.findMany({
@@ -368,8 +368,9 @@ export async function checkSlotOpen(
       },
       select: { startsAt: true, durationMin: true },
     }),
+    groupBusy(psychologistId, { from, to }),
   ]);
-  const busy: Busy[] = appts.map((a) => ({ start: a.startsAt.toISOString(), minutes: a.durationMin }));
+  const busy: Busy[] = [...appts.map((a) => ({ start: a.startsAt.toISOString(), minutes: a.durationMin })), ...meetings];
   const iso = startsAt.toISOString();
   const slot = slotsFor(work, ymd, busy, overrides, false).find((s) => s.start === iso);
   if (!slot) return { ok: false, reason: "closed", leadDays: 0, fmt: "online" };
@@ -379,7 +380,23 @@ export async function checkSlotOpen(
   return { ok: true, fmt: slot.fmt };
 }
 
-/** Занятые интервалы психолога: всё, что не отменено. */
+/**
+ * Встречи групп в календаре специалиста. Занимают окно целиком: одна встреча —
+ * это вся группа, записать в это время человека из каталога нельзя.
+ */
+export async function groupBusy(psychologistId: number, range?: Range): Promise<Busy[]> {
+  const meetings = await prisma.groupMeeting.findMany({
+    where: {
+      group: { psychologistId, status: "active" },
+      status: { not: "cancelled" },
+      ...(range ? { startsAt: { gte: range.from, lte: range.to } } : {}),
+    },
+    select: { startsAt: true, durationMin: true },
+  });
+  return meetings.map((m) => ({ start: m.startsAt.toISOString(), minutes: m.durationMin }));
+}
+
+/** Занятые интервалы психолога: всё, что не отменено, включая встречи групп. */
 export async function takenTimes(userId: number, range?: Range): Promise<Busy[]> {
   // Занятость нужна только на горизонте календаря. Раньше читались все
   // записи за всё время — и попадали в память ради проверки двух месяцев.
@@ -391,5 +408,6 @@ export async function takenTimes(userId: number, range?: Range): Promise<Busy[]>
     },
     select: { startsAt: true, durationMin: true },
   });
-  return appts.map((a) => ({ start: a.startsAt.toISOString(), minutes: a.durationMin }));
+  const meetings = await groupBusy(userId, range);
+  return [...appts.map((a) => ({ start: a.startsAt.toISOString(), minutes: a.durationMin })), ...meetings];
 }

@@ -656,11 +656,18 @@ const CATALOG_WORK: WorkHours = {
 // (lib/server/schedule.ts) — иначе демо и прод расходятся в занятости.
 type Busy = { start: string; minutes: number };
 
-// Занятость психолога (его сессии) либо самого пользователя-клиента.
+// Встречи групп занимают окно целиком: это вся группа, второй записи в это
+// время быть не может. Тот же расчёт на сервере — `groupBusy`.
+const groupBusy = (db: DB): Busy[] =>
+  db.groups
+    .filter((g) => g.status === "active")
+    .flatMap((g) => g.meetings.filter((m) => m.status !== "cancelled").map((m) => ({ start: m.startsAt, minutes: m.durationMin })));
+
+// Занятость психолога (его сессии и встречи групп) либо самого пользователя-клиента.
 const busyOf = (db: DB, isClient: boolean): Busy[] =>
   isClient
-    ? db.myBookings.map((b) => ({ start: b.startsAt, minutes: b.durationMin }))
-    : db.appts.filter((a) => a.status !== "cancelled").map((a) => ({ start: a.startsAt, minutes: a.durationMin }));
+    ? [...db.myBookings.map((b) => ({ start: b.startsAt, minutes: b.durationMin })), ...groupBusy(db)]
+    : [...db.appts.filter((a) => a.status !== "cancelled").map((a) => ({ start: a.startsAt, minutes: a.durationMin })), ...groupBusy(db)];
 
 // Правила приёма — те же формулы, что на сервере (lib/server/schedule.ts):
 // запись не ближе leadDays, отмена не позже cancelLockDays.
@@ -730,9 +737,10 @@ const clientWork = (db: DB): WorkHours => ({
 // (`checkSlotOpen` в lib/server/schedule.ts).
 function slotOpen(db: DB, startsAt: Date, exceptId?: number): { ok: true; fmt: ApptFormat } | { ok: false; reason: "closed" | "taken" | "lead"; lead: number; fmt: ApptFormat } {
   const work = clientWork(db);
-  const busy: Busy[] = db.myBookings
-    .filter((b) => b.id !== exceptId)
-    .map((b) => ({ start: b.startsAt, minutes: b.durationMin }));
+  const busy: Busy[] = [
+    ...db.myBookings.filter((b) => b.id !== exceptId).map((b) => ({ start: b.startsAt, minutes: b.durationMin })),
+    ...groupBusy(db),
+  ];
   const ymd = zoneYmd(startsAt);
   const iso = startsAt.toISOString();
   const slot = slotsFor(work, ymd, busy, db.overrides, false).find((s) => s.start === iso);

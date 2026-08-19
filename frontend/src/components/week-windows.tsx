@@ -17,6 +17,8 @@ import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { awaitsConfirm, confirmAppointment, createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
 import { createClient, isPhone, listClients } from "@/lib/clients";
+import { activeMembers, listGroups, type GroupKind, type GroupMember } from "@/lib/groups";
+import { GROUPS_LIVE } from "@/lib/modules";
 import { select, success, tap } from "@/lib/haptics";
 import { getOverrides, getWorkHours, setOverride, ymdLocal } from "@/lib/schedule";
 import { addDays, weekdayOf, zoneAt, zoneDay, zoneFormat, zoneHour, sameZoneDay } from "@/lib/zone";
@@ -26,13 +28,35 @@ const dLong = zoneFormat({ weekday: "long", day: "numeric", month: "long" });
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pl = (n: number, one: string, few: string, many: string) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
 
-export type Slot = { iso: string; hour: number; t: string; dur: number; fmt: ApptFormat; past: boolean; appt?: Appointment; removed: boolean };
+/** Встреча группы в календаре: занимает окно целиком, тап ведёт в карточку. */
+export type GroupSlot = { groupId: number; meetingId: number; title: string; kind: GroupKind; members: GroupMember[]; done: boolean; marked: boolean };
 
-// Окна дня собираются из графика + записей, которые в график не попали.
+export type Slot = { iso: string; hour: number; t: string; dur: number; fmt: ApptFormat; past: boolean; appt?: Appointment; group?: GroupSlot; removed: boolean };
+
+// Окна дня собираются из графика + записей и встреч групп, которые в график не попали.
 export function useDayWindows() {
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const { data: overrides = {} } = useQuery({ queryKey: ["overrides"], queryFn: getOverrides });
+  // Модуль закрыт — в календаре групп нет, и роут ответил бы 402.
+  const { data: groups = [] } = useQuery({ queryKey: ["groups"], queryFn: listGroups, enabled: GROUPS_LIVE });
+
+  // Все живые встречи всех активных групп, разложенные по времени начала.
+  const meetings = useMemo(() => {
+    const out = new Map<number, GroupSlot & { startsAt: string; durationMin: number }>();
+    for (const g of groups) {
+      if (g.status !== "active") continue;
+      for (const m of g.meetings) {
+        if (m.status === "cancelled") continue;
+        out.set(new Date(m.startsAt).getTime(), {
+          groupId: g.id, meetingId: m.id, title: g.title, kind: g.kind,
+          members: activeMembers(g), done: m.status === "done", marked: m.attendance.length > 0,
+          startsAt: m.startsAt, durationMin: m.durationMin,
+        });
+      }
+    }
+    return out;
+  }, [groups]);
 
   const daySlots = (d: Date): Slot[] => {
     const ymd = ymdLocal(d);
@@ -43,7 +67,8 @@ export function useDayWindows() {
       const dt = zoneAt(ymd, hh, mm) ?? new Date(NaN);
       const iso = dt.toISOString(); const ov = overrides[iso];
       const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
-      return { iso, hour: hh, t: s.t, dur: appt?.durationMin ?? s.d, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, appt, removed: !!ov?.removed };
+      const grp = meetings.get(dt.getTime());
+      return { iso, hour: hh, t: s.t, dur: grp?.durationMin ?? appt?.durationMin ?? s.d, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, appt, group: grp, removed: !!ov?.removed };
     });
     // Разовые окна: открыты на конкретную дату, в шаблоне недели их нет.
     const extra: Slot[] = Object.entries(overrides)
@@ -58,7 +83,13 @@ export function useDayWindows() {
         && !schedule.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime())
         && !extra.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime()))
       .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: a.durationMin, fmt: a.format, past: dt.getTime() < now, appt: a, removed: false }; });
-    return [...schedule, ...extra, ...apptOnly].sort((a, b) => a.iso.localeCompare(b.iso));
+    // Встреча группы поставлена вне шаблона недели — в дне она всё равно видна:
+    // окно занято, и специалист должен об этом узнать из календаря, а не из модуля.
+    const taken = new Set([...schedule, ...extra, ...apptOnly].map((s) => new Date(s.iso).getTime()));
+    const groupOnly: Slot[] = [...meetings.values()]
+      .filter((m) => sameZoneDay(new Date(m.startsAt), d) && !taken.has(new Date(m.startsAt).getTime()))
+      .map((m) => { const dt = new Date(m.startsAt); return { iso: m.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: m.durationMin, fmt: "offline" as ApptFormat, past: dt.getTime() < now, group: m, removed: false }; });
+    return [...schedule, ...extra, ...apptOnly, ...groupOnly].sort((a, b) => a.iso.localeCompare(b.iso));
   };
 
   const hasWork = Object.values(work?.hours ?? {}).some((a) => (a ?? []).length > 0);
@@ -79,14 +110,14 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
   const { daySlots } = useDayWindows();
   const [open, setOpen] = useState<string | null>(null);
   // Закрытые окна и пустые прошедшие не показываем — они только шумят.
-  const visible = daySlots(date).filter((s) => !s.removed && !(s.past && !s.appt));
+  const visible = daySlots(date).filter((s) => !s.removed && !(s.past && !s.appt && !s.group));
   // «Ближайшие» — занятые окна дня целиком, вместе с уже состоявшимися:
   // сессия, которая прошла час назад, пропадала с экрана вместе с днём, будто
   // её и не было. Пустые прошедшие окна по-прежнему не показываем.
-  const slots = busyOnly ? visible.filter((s) => !!s.appt) : visible;
-  const free = slots.filter((s) => !s.appt && !s.past).length;
-  const busy = slots.filter((s) => !!s.appt).length;
-  const held = slots.filter((s) => !!s.appt && s.past).length;
+  const slots = busyOnly ? visible.filter((s) => !!s.appt || !!s.group) : visible;
+  const free = slots.filter((s) => !s.appt && !s.group && !s.past).length;
+  const busy = slots.filter((s) => !!s.appt || !!s.group).length;
+  const held = slots.filter((s) => (!!s.appt || !!s.group) && s.past).length;
 
   return (
     <section>
@@ -148,6 +179,9 @@ export function WeekWindows() {
 type Look = { bg: string; ring?: string; label: string; labelColor: string };
 
 function look(s: Slot): Look {
+  // Встреча группы — тоном модуля «Группы и пары», как его карточка в
+  // «Инструментах»: в дне сразу видно, что это не сессия один на один.
+  if (s.group) return { bg: "var(--salmon-soft)", ring: "var(--salmon-edge)", label: s.group.title, labelColor: "var(--ink)" };
   // Занятое окно — светлая заливка тоном раздела; прошедшее ещё тише.
   // Занятое окно тоже в рамке — плитки дня выглядят одной сеткой.
   // Состоявшаяся встреча — зелёная, с галочкой в углу: она не «потухшая
@@ -336,7 +370,59 @@ export function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Dat
   );
 }
 
+// Окно занято группой. Раскрывать его нечем: состав, посещаемость и задания
+// живут в карточке группы — плитка просто ведёт туда.
+function GroupCell({ slot }: { slot: Slot }) {
+  const g = slot.group!;
+  const st = look(slot);
+  const shown = g.members.slice(0, 3);
+  const rest = g.members.length - shown.length;
+  // Прошедшая встреча без отметок — то самое «отметьте, кто был» с дашборда.
+  const needsMark = slot.past && !g.marked;
+  return (
+    <Link
+      href={`/groups/${g.groupId}`}
+      onClick={() => tap()}
+      className="relative flex min-h-[60px] flex-col items-center justify-center gap-1 px-1.5 pb-1.5 pt-4"
+      style={{ borderRadius: 13, background: st.bg, border: `1px solid ${st.ring}` }}
+    >
+      <span className="absolute left-1.5 top-1.5 flex items-center gap-0.5">
+        <Icon name="clock" width={9} weight="bold" color="var(--muted-2)" />
+        <span className="tnum text-[8.5px] font-black text-[var(--muted-2)]">{slot.dur}</span>
+      </span>
+      <span className="absolute right-1.5 top-1.5">
+        {needsMark
+          ? <Icon name="clock" width={10} weight="bold" color="var(--amber-edge)" />
+          : g.done
+            ? <Icon name="check" width={10} weight="bold" color="var(--green-edge)" />
+            : <Icon name="users" width={10} weight="fill" color="var(--salmon-edge)" />}
+      </span>
+      <span className="flex items-center -space-x-1.5">
+        {shown.map((m) => (
+          <ClientAvatar
+            key={m.id}
+            name={m.name}
+            photo={m.photo}
+            className="h-[22px] w-[22px] rounded-full text-[10px] font-black leading-none"
+            style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}
+          />
+        ))}
+        {rest > 0 && (
+          <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full text-[9px] font-black leading-none" style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}>
+            +{rest}
+          </span>
+        )}
+      </span>
+      <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
+        <span className="tnum text-[13.5px] font-black leading-none">{slot.t}</span>
+        <span className="block w-full break-words text-[9.5px] font-bold leading-[1.05]" style={{ color: st.labelColor }}>{st.label}</span>
+      </span>
+    </Link>
+  );
+}
+
 export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active: boolean; onTap: () => void; onClose: () => void }) {
+  if (slot.group) return <GroupCell slot={slot} />;
   const st = look(slot);
   return (
     <div
