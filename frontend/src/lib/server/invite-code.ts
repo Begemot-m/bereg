@@ -20,7 +20,7 @@ async function sign(kind: string, id: number): Promise<string> {
   return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").slice(0, 10);
 }
 
-export type InviteKind = "psy" | "card";
+export type InviteKind = "psy" | "card" | "group";
 
 export async function inviteCode(kind: InviteKind, id: number): Promise<string> {
   return `${id}-${await sign(kind, id)}`;

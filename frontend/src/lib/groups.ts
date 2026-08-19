@@ -133,6 +133,16 @@ export const updateGroup = (id: number, patch: GroupPatch) =>
 
 export const deleteGroup = (id: number) => apiFetch<void>(`/groups/${id}`, { method: "DELETE" });
 
+/** Ссылка на набор: одна на группу, без срока. */
+export const groupInviteToken = (id: number) => apiFetch<{ token: string }>(`/groups/${id}/invite`);
+
+/** Приход по ссылке набора: карточка клиента и место в составе заводятся сами. */
+export const joinGroup = (token: string) =>
+  apiFetch<{ ok: boolean; groupId: number; clientId: number; joined: boolean }>("/groups/join", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+
 export const addMembers = (id: number, clientIds: number[]) =>
   apiFetch<Group>(`/groups/${id}/members`, { method: "POST", body: JSON.stringify({ clientIds }) });
 

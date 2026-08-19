@@ -23,7 +23,29 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Приглашение недействительно" }, { status: 400 });
 
   let psychologistId: number | null = await readInviteCode("psy", token);
-  let kind: "psy" | "card" = "psy";
+  let kind: "psy" | "card" | "group" = "psy";
+  let group: { id: number; title: string; kind: "group" | "pair"; seats: number } | undefined;
+
+  if (!psychologistId) {
+    // Набор в группу: код подписан номером группы, ведущего берём из неё.
+    const groupId = await readInviteCode("group", token);
+    if (groupId) {
+      const found = await prisma.group.findUnique({
+        where: { id: groupId },
+        select: { id: true, title: true, kind: true, capacity: true, psychologistId: true, status: true, _count: { select: { members: { where: { status: "active" } } } } },
+      });
+      if (found && found.status === "active") {
+        psychologistId = found.psychologistId;
+        kind = "group";
+        group = {
+          id: found.id,
+          title: found.title,
+          kind: found.kind === "pair" ? "pair" : "group",
+          seats: Math.max(0, found.capacity - found._count.members),
+        };
+      }
+    }
+  }
 
   if (!psychologistId) {
     // Именная ссылка на карточку: короткий код, а для писем, отправленных до
@@ -50,6 +72,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     kind,
+    group,
     psy: {
       id: psychologistId,
       name: profile?.name?.trim() || user.firstName?.trim() || "Специалист",

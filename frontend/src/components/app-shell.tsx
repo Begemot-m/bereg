@@ -22,6 +22,7 @@ const InviteWelcome = dynamic(() => import("@/components/invite-welcome").then((
 import { serverMessage } from "@/lib/api";
 import { APP_NAME } from "@/lib/brand";
 import { joinClientCard } from "@/lib/clients";
+import { joinGroup } from "@/lib/groups";
 import { acceptPsyInvite, readInvitePayload, type InviteKind } from "@/lib/invite";
 import { select } from "@/lib/haptics";
 import { iconLoop } from "@/lib/icon-motion";
@@ -219,6 +220,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         .then(() => { qc.invalidateQueries(); })
         .catch(onSelf /* лимит мест или неподтверждённая анкета — человека это не касается */);
     }
+    // Ссылка на набор в группу: тот же приход, только человек сразу встаёт в
+    // состав — ведущему не нужно добавлять его руками.
+    const groupToken = sessionStorage.getItem("bereg_pending_group");
+    if (groupToken) {
+      sessionStorage.removeItem("bereg_pending_group");
+      joinGroup(groupToken)
+        .then(() => { qc.invalidateQueries(); })
+        .catch(onSelf /* мест не осталось или ссылка чужая — человека это не касается */);
+    }
     // invite в зависимостях не для красоты: разбор ссылки живёт в соседнем
     // эффекте, и когда вход успевал пройти раньше него, метка ложилась в
     // sessionStorage уже после этой проверки — специалист так и не цеплялся.
@@ -239,6 +249,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const { router, setRole } = navRef.current;
     const params = new URLSearchParams(window.location.search);
     const invite = params.get("invite");
+    const groupInvite = params.get("group");
     const ref = params.get("ref");
     if (ref) sessionStorage.setItem("bereg_pending_ref", ref);
 
@@ -256,8 +267,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     // проверяя, что она открывается, — и до ответа сервера успевал оказаться в
     // клиентском интерфейсе. Клиенту роль по-прежнему ставим сразу: на ней
     // держатся экран приглашения и знакомство.
+    const PENDING: Record<InviteKind, string> = {
+      psy: "bereg_pending_psy",
+      card: "bereg_pending_invite",
+      group: "bereg_pending_group",
+    };
     const greet = (kind: InviteKind, token: string) => {
-      sessionStorage.setItem(kind === "psy" ? "bereg_pending_psy" : "bereg_pending_invite", token);
+      sessionStorage.setItem(PENDING[kind], token);
       if (getRole() !== "psychologist") setRole("client");
       setInvite({ kind, token });
       setFastEntry(false);
@@ -267,6 +283,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (invite) {
       // Ссылка старого образца — сразу на сайт, с подписанным токеном карточки.
       greet("card", invite);
+    } else if (groupInvite) {
+      // Набор в группу тем же адресом на сайт: ссылка из бота приходит меткой
+      // `grp_`, но её пересылают и просто веб-адресом.
+      greet("group", groupInvite);
     } else if (psy || ref) {
       enter(psy);
     } else {

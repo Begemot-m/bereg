@@ -11,13 +11,13 @@ import { INVITE_TEXT, inviteShareLink } from "@/lib/invite";
  * тут нет намеренно: контакт клиента для приглашения не нужен, ссылка сама
  * приводит человека в приложение и связывает его со специалистом.
  */
-export function InviteShare({ link, status, onSent }: { link: string; status?: ReactNode; onSent?: () => void }) {
+export function InviteShare({ link, status, onSent, text = INVITE_TEXT }: { link: string; status?: ReactNode; onSent?: () => void; text?: string }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
     tap();
     try {
-      await navigator.clipboard.writeText(`${INVITE_TEXT} ${link}`);
+      await navigator.clipboard.writeText(`${text} ${link}`);
       success();
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
@@ -38,7 +38,7 @@ export function InviteShare({ link, status, onSent }: { link: string; status?: R
           {copied ? "Скопировано" : "Скопировать"}
         </button>
         <a
-          href={link ? inviteShareLink(link) : undefined}
+          href={link ? inviteShareLink(link, text) : undefined}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => { tap(); onSent?.(); }}

@@ -9,7 +9,7 @@ const THERAPISTS_KEY = "bereg_my_therapists_v1";
 // Приём собственного приглашения: ответ сервера один в один, чтобы демо и бой
 // вели себя одинаково.
 const SELF_INVITE = `API 400: {"error":"self","message":"Это ваша собственная ссылка"}`;
-const SELF_INVITE_PATHS = new Set(["/invite/accept", "/clients/join"]);
+const SELF_INVITE_PATHS = new Set(["/invite/accept", "/clients/join", "/groups/join"]);
 const INVITE_EXPIRED = `{"error":"expired","message":"Приглашение больше не действует. Попросите специалиста прислать ссылку ещё раз"}`;
 const demoIsPsy = () => typeof window !== "undefined" && localStorage.getItem("psy_demo_role") === "psychologist";
 
@@ -889,7 +889,18 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
 
   if (clean === "/invite/preview" && method === "GET") {
     const psy = demoPsyName();
-    return delay(({ kind: q.get("token")?.startsWith("demo") ? "psy" : "card", psy: { id: 1, name: psy.name, photo: psy.photo, method: psy.method, city: "" } }) as T);
+    const token = q.get("token") ?? "";
+    // Ссылка на набор в группу: в демо метка — это `g` и номер группы.
+    const groupToken = /^g(\d+)$/.exec(token);
+    const g = groupToken ? db.groups.find((x) => x.id === Number(groupToken[1])) : null;
+    const kind = g ? "group" : token.startsWith("demo") ? "psy" : "card";
+    return delay(({
+      kind,
+      group: g
+        ? { id: g.id, title: g.title, kind: g.kind, seats: Math.max(0, g.capacity - g.members.filter((m) => m.status === "active").length) }
+        : undefined,
+      psy: { id: 1, name: psy.name, photo: psy.photo, method: psy.method, city: "" },
+    }) as T);
   }
 
   if (clean === "/invite/accept" && method === "POST") {
@@ -1049,6 +1060,50 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       save(db);
       return delay(withMemberPhotos(g) as T);
     }
+  }
+
+  // Приход по ссылке набора: карточка клиента и место в составе заводятся
+  // одним переходом — ровно то же делает боевой роут.
+  if (clean === "/groups/join" && method === "POST") {
+    const g = db.groups.find((x) => x.id === Number(String(body.token ?? "").replace(/^g/, "")));
+    if (!g || g.status !== "active") throw new Error("API 400");
+    const name = "Клиент по ссылке";
+    let c = db.clients.find((x) => x.name === name);
+    if (!c) {
+      if (!demoAccepting(db)) { notifyLimit(db); save(db); throw new Error(`API 402: ${NOT_ACCEPTING}`); }
+      const now = new Date().toISOString();
+      c = {
+        id: ++db.seq,
+        name,
+        contact: null,
+        note: "",
+        status: "new",
+        link: "joined",
+        invitedAt: null,
+        notesModuleEnabled: false,
+        notesModuleShared: true,
+        notesModulePsychologist: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.clients.push(c);
+    }
+    const inGroup = g.members.some((m) => m.clientId === c.id && m.status === "active");
+    if (!inGroup) {
+      if (g.members.filter((m) => m.status === "active").length >= g.capacity) throw new Error(`API 409: {"error":"no_seats","message":"В группе не осталось мест"}`);
+      g.members.push({ id: ++db.seq, clientId: c.id, name: c.name, status: "active", joinedAt: new Date().toISOString() });
+      announce(db, g, "event", `В группе новый участник: ${c.name}`);
+      notify(db, "psychologist", "join", `«${c.name}» пришёл по ссылке в группу «${g.title}»`);
+    }
+    save(db);
+    return delay(({ ok: true, groupId: g.id, clientId: c.id, joined: !inGroup }) as T);
+  }
+
+  const inviteOf = clean.match(/^\/groups\/(\d+)\/invite$/)?.[1];
+  if (inviteOf && method === "GET") {
+    const g = db.groups.find((x) => x.id === Number(inviteOf));
+    if (!g) throw new Error("API 404");
+    return delay(({ token: `g${g.id}` }) as T);
   }
 
   const groupId = clean.match(/^\/groups\/(\d+)$/)?.[1];

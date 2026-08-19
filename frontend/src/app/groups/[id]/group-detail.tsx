@@ -25,6 +25,7 @@ import {
   Toggle,
 } from "@/components/groups-ui";
 import { Icon } from "@/components/icons";
+import { InviteShare } from "@/components/invite-share";
 import { Reveal } from "@/components/motion";
 import { Disclosure } from "@/components/ui";
 import {
@@ -40,6 +41,7 @@ import {
   deleteGroup,
   deleteMeeting,
   getGroup,
+  groupInviteToken,
   groupMoods,
   isOver,
   markAttendance,
@@ -64,6 +66,7 @@ import {
   type MeetFormat,
 } from "@/lib/groups";
 import { tap } from "@/lib/haptics";
+import { inviteDeepLink } from "@/lib/invite";
 
 type Tab = "meetings" | "feed" | "members" | "tasks";
 
@@ -308,6 +311,8 @@ function GroupDetailInner() {
                     <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Участники</p>
                     {seatsLeft(g) > 0 && <SectionAction icon="plus" label="Добавить" onClick={() => setPicking(true)} />}
                   </div>
+                  <GroupInvite group={g} />
+                  <div className="h-2" />
                   {members.length ? (
                     <div className="flex flex-col gap-1.5">
                       {members.map((m) => {
@@ -455,6 +460,37 @@ function Empty({ text }: { text: string }) {
     <p className="rounded-[13px] bg-white p-4 text-center text-[12px] font-semibold leading-snug text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
       {text}
     </p>
+  );
+}
+
+/**
+ * Ссылка на набор. Отдаём её только пока в группе есть места: набор с полным
+ * составом — это очередь, а очередей в модуле пока нет. Пришедший по ссылке
+ * встаёт в состав сам, ведущему остаётся увидеть его в ленте.
+ */
+function GroupInvite({ group }: { group: Group }) {
+  const seats = seatsLeft(group);
+  const { data } = useQuery({
+    queryKey: ["group-invite", group.id],
+    queryFn: () => groupInviteToken(group.id),
+    staleTime: Infinity,
+    retry: false,
+    enabled: seats > 0,
+  });
+  if (seats <= 0) return null;
+  const link = data ? inviteDeepLink("group", data.token) : "";
+  const text = `Приглашаю вас в ${group.kind === "pair" ? "работу парой" : "группу"} «${group.title}». Ссылка сразу поставит вас в состав — расписание и объявления будут в приложении`;
+
+  return (
+    <div className="mb-2 rounded-[13px] bg-white p-3" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+      <p className="text-[12.5px] font-black leading-tight">Ссылка на набор</p>
+      <p className="mt-0.5 text-[11px] font-semibold leading-snug" style={{ color: "var(--muted-2)" }}>
+        Кто перейдёт — займёт место сам: {seats === 1 ? "осталось 1 место" : `свободно мест: ${seats}`}
+      </p>
+      <div className="mt-2">
+        <InviteShare link={link} text={text} />
+      </div>
+    </div>
   );
 }
 

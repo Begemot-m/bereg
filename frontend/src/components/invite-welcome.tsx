@@ -30,7 +30,14 @@ export function InviteWelcome({ token, kind, onStart }: { token: string; kind: I
     staleTime: Infinity,
   });
   const psy = data?.psy;
+  const group = data?.group;
   const sub = [psy?.method, psy?.city].filter(Boolean).join(" · ");
+  // Приглашение в группу отличается от обычного одним: человек уже знает, куда
+  // идёт, и место в составе займётся само — об этом и говорим прямо.
+  const label = kind === "group" ? "Приглашение в группу" : kind === "card" ? "Приглашение специалиста" : "Приглашение";
+  const title = group
+    ? `${psy?.name ? `${psy.name} приглашает` : "Вас приглашают"} в ${group.kind === "pair" ? "работу парой" : "группу"} «${group.title}»`
+    : `${psy?.name ? `Вас пригласил(а) ${psy.name}` : "Вас пригласили"} на платформу «${APP_NAME}»`;
 
   return (
     <div className="fixed inset-0 z-[120] overflow-y-auto" style={{ background: "var(--page)" }}>
@@ -44,15 +51,18 @@ export function InviteWelcome({ token, kind, onStart }: { token: string; kind: I
               style={{ background: "#fff", border: "var(--bw) solid var(--purple-edge)" }}
             />
             <div className="min-w-0">
-              <p className="t-micro" style={{ color: "var(--purple-edge)" }}>{kind === "card" ? "Приглашение специалиста" : "Приглашение"}</p>
+              <p className="t-micro" style={{ color: "var(--purple-edge)" }}>{label}</p>
               <p className="font-tight mt-0.5 break-words text-[17px] font-black leading-tight">{psy?.name ?? "Специалист"}</p>
               {sub && <p className="t-cap mt-0.5">{sub}</p>}
             </div>
           </div>
 
-          <h1 className="font-tight mt-6 text-[24px] font-black leading-tight">
-            {psy?.name ? `Вас пригласил(а) ${psy.name}` : "Вас пригласили"} на платформу «{APP_NAME}»
-          </h1>
+          <h1 className="font-tight mt-6 text-[24px] font-black leading-tight">{title}</h1>
+          {group && (
+            <p className="t-sub mt-2">
+              Место в составе займётся сразу — расписание встреч и объявления ведущего будут в приложении.
+            </p>
+          )}
           <p className="t-sub mt-2">Далее вы можете:</p>
 
           <div className="mt-3 space-y-2">
