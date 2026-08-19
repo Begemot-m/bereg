@@ -60,11 +60,6 @@ function ClientTools({ psy = false }: { psy?: boolean }) {
 
       <Reveal y={10}>
         <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
-          {psy && (
-            <div className="mb-6">
-              <ModulesShelf />
-            </div>
-          )}
           <section className="overflow-hidden rounded-[20px] bg-[var(--ink)] text-white">
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
@@ -77,6 +72,8 @@ function ClientTools({ psy = false }: { psy?: boolean }) {
               <span className="ico h-14 w-14 shrink-0" style={{ background: "rgba(255,255,255,.14)" }}><Icon name="compass" width={28} weight="bold" color="#fff" /></span>
             </div>
           </section>
+
+          {psy && <div className="mt-6"><ModulesShelf /></div>}
 
           <div className="mb-2 mt-6">
             <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Практики</p>

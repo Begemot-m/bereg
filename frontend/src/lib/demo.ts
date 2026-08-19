@@ -62,6 +62,9 @@ type Appointment = {
   client: { id: number; name: string; photo?: string | null };
 };
 
+type GroupKind = "group" | "pair";
+type GroupMember = { id: number; clientId: number | null; name: string; status: "active" | "left"; joinedAt: string };
+type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; status: "active" | "archived"; createdAt: string; members: GroupMember[] };
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number; emotions?: string[] }; // 1..5 + отмеченные состояния
 type SessionReflection = { appointmentId: number; startsAt: string; status: string; therapistName: string; preparation: string; takeaway: string; feeling: number | null; updatedAt: string };
@@ -93,6 +96,7 @@ type DB = {
   clients: Client[];
   appts: Appointment[];
   homework: Homework[];
+  groups: Group[];
   moods: Record<number, Mood[]>;
   goodNotes: Record<number, { date: string; text: string }[]>;
   board: Record<number, string>;
@@ -184,6 +188,19 @@ export function stopFreshDemo() {
   wipeKeepingOwner();
 }
 
+// Демо-группа: дашборд модуля не должен встречать пустотой, как и раздел
+// клиентов с карточкой-примером. Состав берём из тех же демо-клиентов.
+function seedGroups(clients: Client[], now: string): Group[] {
+  const members: GroupMember[] = clients.slice(0, 2).map((c, i) => ({
+    id: 900 + i,
+    clientId: c.id,
+    name: c.name,
+    status: "active",
+    joinedAt: now,
+  }));
+  return [{ id: 901, title: "Группа поддержки «Опоры»", kind: "group", capacity: 8, note: "", status: "active", createdAt: now, members }];
+}
+
 // Специалист, который только что завёл аккаунт: разделы пустые, знакомство и
 // блок «С чего начать» показываются заново, анкета не заполнена.
 function freshSeed(): DB {
@@ -192,6 +209,7 @@ function freshSeed(): DB {
     clients: [],
     appts: [],
     homework: [],
+    groups: [],
     moods: {},
     goodNotes: {},
     board: {},
@@ -300,6 +318,7 @@ function seed(): DB {
     clients,
     appts: [...appts, pendingAppt],
     homework,
+    groups: seedGroups(clients, now),
     moods,
     goodNotes,
     board: { [DEMO_CLIENT_ID]: "Ушла в отпуск, меня не будет 3 недели." },
@@ -347,6 +366,7 @@ function load(): DB {
           db.work.hours[Number(k)] = (arr as WorkSlot[]).map((s) => ({ ...s, fmt: s.fmt ?? ("online" as ApptFormat) }));
         }
       }
+      if (!db.groups) db.groups = [];
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
       if (!db.goodNotes) db.goodNotes = s.goodNotes;
@@ -918,6 +938,81 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     save(db);
     return delay(withStats(db, c) as T);
   }
+  // ——— модуль «Группы и пары» ———
+  const withMemberPhotos = (g: Group) => ({
+    ...g,
+    members: g.members
+      .filter((m) => m.status === "active")
+      .map((m) => ({ ...m, photo: db.clients.find((c) => c.id === m.clientId)?.photo ?? null })),
+  });
+
+  if (clean === "/groups") {
+    if (method === "GET") return delay(db.groups.filter((g) => g.status === "active").map(withMemberPhotos) as T);
+    if (method === "POST") {
+      const kind = (body.kind as GroupKind) ?? "group";
+      const g: Group = {
+        id: ++db.seq,
+        title: String(body.title ?? "").trim() || "Без названия",
+        // У пары мест ровно два — иначе это уже группа.
+        capacity: kind === "pair" ? 2 : Math.max(2, Math.min(40, Number(body.capacity ?? 8))),
+        kind,
+        note: "",
+        status: "active",
+        createdAt: new Date().toISOString(),
+        members: [],
+      };
+      db.groups.unshift(g);
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+  }
+
+  const groupId = clean.match(/^\/groups\/(\d+)$/)?.[1];
+  if (groupId) {
+    const g = db.groups.find((x) => x.id === Number(groupId));
+    if (!g) throw new Error("API 404");
+    if (method === "GET") return delay(withMemberPhotos(g) as T);
+    if (method === "PATCH") {
+      if (body.title !== undefined) g.title = String(body.title);
+      if (body.capacity !== undefined) g.capacity = Number(body.capacity);
+      if (body.note !== undefined) g.note = String(body.note);
+      if (body.status !== undefined) g.status = body.status as Group["status"];
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+    if (method === "DELETE") {
+      db.groups = db.groups.filter((x) => x.id !== g.id);
+      save(db);
+      return delay(undefined as T);
+    }
+  }
+
+  const membersOf = clean.match(/^\/groups\/(\d+)\/members$/)?.[1];
+  if (membersOf) {
+    const g = db.groups.find((x) => x.id === Number(membersOf));
+    if (!g) throw new Error("API 404");
+    const seats = () => g.members.filter((m) => m.status === "active").length;
+    if (method === "POST") {
+      const taken = new Set(g.members.filter((m) => m.status === "active").map((m) => m.clientId));
+      for (const raw of (body.clientIds as number[]) ?? []) {
+        if (taken.has(raw) || seats() >= g.capacity) continue;
+        const c = db.clients.find((x) => x.id === raw);
+        if (!c) continue;
+        g.members.push({ id: ++db.seq, clientId: c.id, name: c.name, status: "active", joinedAt: new Date().toISOString() });
+        taken.add(c.id);
+      }
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+    if (method === "DELETE") {
+      // Ушедшего помечаем, а не стираем: посещаемость прошлых встреч остаётся.
+      const m = g.members.find((x) => x.id === Number(q.get("memberId")));
+      if (m) m.status = "left";
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+  }
+
   const cid = clean.match(/^\/clients\/(\d+)$/)?.[1];
   if (cid) {
     const id = Number(cid);

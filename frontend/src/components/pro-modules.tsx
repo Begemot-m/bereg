@@ -19,11 +19,9 @@ export type ProModule = {
   href: string;
   soft: string;
   edge: string;
-  /** Модуль объявлен, но ещё не открыт — внутрь не пускаем даже с PRO. */
-  soon?: boolean;
 };
 
-// Витрина платных модулей. Порядок — по готовности: работающее сверху.
+// Витрина платных модулей. Пока модуль один — карточка идёт во всю ширину.
 export const PRO_MODULES: ProModule[] = [
   {
     id: "groups",
@@ -34,58 +32,55 @@ export const PRO_MODULES: ProModule[] = [
     soft: "var(--salmon-soft)",
     edge: "var(--salmon-edge)",
   },
-  {
-    id: "supervision",
-    title: "Супервизия",
-    desc: "Разбор случаев с супервизором внутри платформы",
-    icon: "chalkboard",
-    href: "/supervision",
-    soft: "var(--alt-soft)",
-    edge: "var(--alt-edge)",
-    soon: true,
-  },
-  {
-    id: "notes",
-    title: "Заметки после сессии",
-    desc: "Черновик записи по встрече — остаётся только у вас",
-    icon: "note",
-    href: "/session-notes",
-    soft: "var(--alt-soft)",
-    edge: "var(--alt-edge)",
-    soon: true,
-  },
 ];
 
 export const findModule = (id: string) => PRO_MODULES.find((m) => m.id === id)!;
 
-function ModuleRow({ mod, locked, onLocked }: { mod: ProModule; locked: boolean; onLocked: () => void }) {
-  const dim = Boolean(mod.soon);
+/**
+ * Фон карточки модуля. Картинки для групп нет, и рисовать её незачем: круги
+ * участников вокруг ведущего читаются с одного взгляда и живут в тоне раздела.
+ */
+function GroupsArt({ edge, soft }: { edge: string; soft: string }) {
+  const dot = (size: number, opacity: number) => (
+    <span className="keep-style flex shrink-0 items-center justify-center rounded-full" style={{ width: size, height: size, background: "#fff", opacity, border: `2px solid ${edge}` }}>
+      <Icon name="user" width={size * 0.5} weight="bold" color={edge} />
+    </span>
+  );
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2" style={{ background: soft }}>
+      {dot(28, 0.55)}
+      {dot(40, 0.8)}
+      <span className="keep-style flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ background: edge }}>
+        <Icon name="users" width={28} weight="bold" color="#fff" />
+      </span>
+      {dot(40, 0.8)}
+      {dot(28, 0.55)}
+    </span>
+  );
+}
+
+function ModuleTile({ mod, locked, onLocked }: { mod: ProModule; locked: boolean; onLocked: () => void }) {
   const inner = (
     <>
-      <span className="ico h-11 w-11 shrink-0 keep-style" style={{ background: dim ? "var(--surface-2)" : mod.soft }}>
-        <Icon name={mod.icon} width={21} weight="bold" color={dim ? "var(--muted-2)" : mod.edge} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-1.5">
-          <span className="font-tight text-[15px] font-black leading-tight">{mod.title}</span>
-          {mod.soon
-            ? <span className="chip keep-style" style={{ background: "var(--head-soft)", color: "var(--muted)" }}>скоро</span>
-            : locked && (
-              <span className="chip keep-style inline-flex items-center gap-0.5" style={{ background: "var(--purple-soft)", color: "var(--purple-edge)" }}>
-                <Icon name="lock" width={9} weight="bold" color="var(--purple-edge)" />PRO
-              </span>
-            )}
+      <span className="relative flex h-[104px] items-center justify-center overflow-hidden">
+        <GroupsArt edge={mod.edge} soft={mod.soft} />
+        <span className="keep-style absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[.06em]" style={{ color: "var(--purple-edge)" }}>
+          <Icon name={locked ? "lock" : "spark"} width={11} weight={locked ? "bold" : "fill"} color="var(--purple-edge)" />PRO
         </span>
-        <span className="mt-1 block text-[11.5px] font-semibold leading-snug text-[var(--muted)]">{mod.desc}</span>
       </span>
-      {!mod.soon && <ArrowGlyph size={13} />}
+      <span className="flex flex-1 flex-col bg-white p-3">
+        <span className="font-tight text-[15px] font-black leading-tight">{mod.title}</span>
+        <span className="mt-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">{mod.desc}</span>
+        <span className="mt-3 flex items-center justify-center gap-1.5 rounded-full py-2 text-[12px] font-black text-white" style={{ background: mod.edge }}>
+          {locked ? "Подключить" : "Перейти"} <ArrowGlyph size={12} />
+        </span>
+      </span>
     </>
   );
 
-  const cls = "flex w-full items-center gap-3 rounded-[17px] bg-white p-3 text-left transition-transform duration-200 active:scale-[.98]";
-  const style = { border: `var(--bw) solid ${dim ? "var(--edge-neutral)" : mod.edge}`, opacity: dim ? 0.6 : 1 };
+  const cls = "group relative flex w-full flex-col overflow-hidden rounded-[19px] text-left transition-transform duration-200 active:scale-[.98]";
+  const style = { border: `var(--bw) solid ${mod.edge}` };
 
-  if (mod.soon) return <div className={cls} style={style}>{inner}</div>;
   if (locked) return <button onClick={() => { tap(); onLocked(); }} className={cls} style={style}>{inner}</button>;
   return <Link href={mod.href} onClick={() => tap()} className={cls} style={style}>{inner}</Link>;
 }
@@ -108,7 +103,7 @@ export function ModulesShelf() {
       <div className="flex flex-col gap-2.5">
         {PRO_MODULES.map((m, i) => (
           <Reveal key={m.id} delay={0.03 + i * 0.04}>
-            <ModuleRow mod={m} locked={!pro} onLocked={() => setAsked(m)} />
+            <ModuleTile mod={m} locked={!pro} onLocked={() => setAsked(m)} />
           </Reveal>
         ))}
       </div>

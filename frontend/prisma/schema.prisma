@@ -78,6 +78,7 @@ model User {
   reviewsWritten     Review[]           @relation("ReviewAuthor")
   reviewsReceived    Review[]           @relation("ReviewTarget")
   nudges             Nudge[]
+  groups Group[] @relation("PsyGroups")
 }
 
 /// Догоняющее сообщение в Telegram вне расписания: итог недели специалиста и
@@ -86,6 +87,45 @@ model User {
 /// Строка пишется до отправки и заодно защищает от повторов: пара
 /// «получатель + вид + период» уникальна, так что второй тик того же дня
 /// ничего не пришлёт.
+/// Группа или пара из модуля PRO «Группы и пары»: одна встреча ведётся сразу
+/// с несколькими людьми, поэтому состав живёт отдельно от карточек клиентов.
+model Group {
+  id             Int      @id @default(autoincrement())
+  psychologist   User     @relation("PsyGroups", fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologistId Int
+  title          String
+  /// group — группа, pair — пара. У пары всегда два места и раздельные заметки.
+  kind           String   @default("group")
+  /// Сколько мест всего. Заполненность считается по активным участникам.
+  capacity       Int      @default(8)
+  note           String   @default("") @db.Text
+  /// active | archived. Архив не удаляет историю встреч.
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  members GroupMember[]
+
+  @@index([psychologistId, status])
+}
+
+/// Участник группы. Обычно это карточка клиента, но место можно занять и
+/// именем — человек мог прийти в группу раньше, чем завёл профиль.
+model GroupMember {
+  id       Int      @id @default(autoincrement())
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId  Int
+  client   Client?  @relation("ClientGroups", fields: [clientId], references: [id], onDelete: SetNull)
+  clientId Int?
+  name     String
+  /// active | left. Ушедшего не удаляем: его посещаемость остаётся в истории.
+  status   String   @default("active")
+  joinedAt DateTime @default(now())
+
+  @@index([groupId, status])
+  @@index([clientId])
+}
+
 model Nudge {
   id          Int       @id @default(autoincrement())
   recipient   User      @relation(fields: [recipientId], references: [id], onDelete: Cascade)
@@ -349,6 +389,7 @@ model Client {
 
   @@index([psychologistId])
   @@index([userId])
+  groupMemberships GroupMember[] @relation("ClientGroups")
 }
 
 /// Публичная анкета психолога — то, что видно в каталоге.
