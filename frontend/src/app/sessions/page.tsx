@@ -425,8 +425,9 @@ function BulkItem({ onClick, children }: { onClick: () => void; children: React.
 }
 
 // dayPicked — сверху выбран день, и «Ближайшие» показывают его, а не ленту
-// вперёд. Кнопка становится контурной: видно, что состояние особое и нажатие
-// вернёт на сегодня, а не переключит вкладку впустую.
+// вперёд. Особое состояние помечено заливкой в тон раздела. Раньше здесь была
+// белая кнопка с чёрной обводкой: внутри белой пилюли, у которой своя обводка,
+// она садилась контур в контур и читалась как лишняя рамка поверх кнопок.
 function Segmented({ value, dayPicked, onChange }: { value: View; dayPicked: boolean; onChange: (v: View) => void }) {
   const opts: { v: View; label: string }[] = [{ v: "soon", label: "Ближайшие" }, { v: "week", label: "Неделя" }];
   return (
@@ -434,7 +435,7 @@ function Segmented({ value, dayPicked, onChange }: { value: View; dayPicked: boo
       {opts.map((o) => {
         const outlined = o.v === "soon" && dayPicked && value === "soon";
         const style: React.CSSProperties = outlined
-          ? { background: "#fff", color: "var(--ink)", border: "var(--bw) solid var(--ink)" }
+          ? { background: "var(--head)", color: "var(--ink)" }
           : value === o.v
             ? { background: "var(--ink)", color: "#fff" }
             : { color: "var(--muted)" };
