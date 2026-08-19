@@ -16,6 +16,7 @@ const demoIsPsy = () => typeof window !== "undefined" && localStorage.getItem("p
 // Зона платформы — единственный внешний импорт: модуль ни от чего не зависит,
 // круга на инициализации не будет. Мок обязан резать сутки как сервер.
 import { PRO_DISCOUNT_PRICE_RUB, PRO_PRICE_RUB } from "@/lib/pricing";
+import { pinManualDays, sameHours } from "@/lib/schedule-pin";
 import { addDays as addZoneDays, parseYmd, weekdayOf, zoneAt, zoneYmd } from "@/lib/zone";
 
 export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
@@ -652,6 +653,32 @@ function slotsFor(work: WorkHours, dateStr: string, busy: Busy[], overrides: Rec
   return out;
 }
 
+// Окна каталожного специалиста глазами клиента: правки дат и правила приёма
+// берём из настроек психолога в этом же браузере — в демо обе роли один
+// человек, иначе выставленный запрет было бы не проверить.
+const clientWork = (db: DB): WorkHours => ({
+  ...CATALOG_WORK,
+  leadDaysOffline: db.work.leadDaysOffline,
+  leadDaysOnline: db.work.leadDaysOnline,
+});
+
+// Открыто ли окно на самом деле — тот же ответ, что даёт сервер
+// (`checkSlotOpen` в lib/server/schedule.ts).
+function slotOpen(db: DB, startsAt: Date, exceptId?: number): { ok: true; fmt: ApptFormat } | { ok: false; reason: "closed" | "taken" | "lead"; lead: number; fmt: ApptFormat } {
+  const work = clientWork(db);
+  const busy: Busy[] = db.myBookings
+    .filter((b) => b.id !== exceptId)
+    .map((b) => ({ start: b.startsAt, minutes: b.durationMin }));
+  const ymd = zoneYmd(startsAt);
+  const iso = startsAt.toISOString();
+  const slot = slotsFor(work, ymd, busy, db.overrides, false).find((s) => s.start === iso);
+  if (!slot) return { ok: false, reason: "closed", lead: 0, fmt: "online" };
+  const lead = leadDaysFor(work, slot.fmt);
+  if (slot.taken) return { ok: false, reason: "taken", lead, fmt: slot.fmt };
+  if (leadBlocked(startsAt, lead)) return { ok: false, reason: "lead", lead, fmt: slot.fmt };
+  return { ok: true, fmt: slot.fmt };
+}
+
 // Небольшая задержка, чтобы демо вело себя как сеть. 150 мс на каждый запрос
 // складывались в заметные подвисания, когда экран тянет по 3-4 запроса сразу.
 const delay = <T>(v: T): Promise<T> => new Promise((r) => setTimeout(() => r(v), 40));
@@ -1122,7 +1149,27 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
   // рабочие окна психолога
   if (clean === "/work-hours" && method === "GET") return delay(db.work as T);
   if (clean === "/work-hours" && method === "PATCH") {
-    if (body.hours) db.work.hours = body.hours as WorkHours["hours"];
+    if (body.hours) {
+      const next = body.hours as WorkHours["hours"];
+      // Тронутые руками даты не перестраиваем под новый шаблон — прибиваем их
+      // разовыми окнами (та же логика, что на сервере).
+      if (!sameHours(db.work.hours, next)) {
+        const session = Number(body.sessionMinutes) || db.work.sessionMinutes;
+        for (const w of pinManualDays(
+          { hours: db.work.hours, sessionMinutes: db.work.sessionMinutes },
+          { hours: next, sessionMinutes: session },
+          db.overrides,
+        )) {
+          db.overrides[w.iso] = {
+            ...(w.removed ? { removed: true } : {}),
+            ...(w.fmt ? { fmt: w.fmt } : {}),
+            ...(w.added ? { added: true } : {}),
+            ...(w.dur ? { dur: w.dur } : {}),
+          };
+        }
+      }
+      db.work.hours = next;
+    }
     if (body.sessionMinutes) db.work.sessionMinutes = Number(body.sessionMinutes);
     if (body.cancelLockDays !== undefined) db.work.cancelLockDays = Number(body.cancelLockDays);
     if (body.leadDaysOffline !== undefined) db.work.leadDaysOffline = Number(body.leadDaysOffline);
@@ -1141,7 +1188,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     // Клиент смотрит окна каталожного специалиста, но правила записи берём из
     // настроек психолога в этом же браузере: в демо обе роли — один человек,
     // и иначе выставленное правило было бы не проверить.
-    const work = isClient ? { ...CATALOG_WORK, leadDaysOffline: db.work.leadDaysOffline, leadDaysOnline: db.work.leadDaysOnline } : db.work;
+    const work = isClient ? clientWork(db) : db.work;
     return delay(slotsFor(work, date, busy, db.overrides, isClient) as T);
   }
 
@@ -1167,7 +1214,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const withAppt = new Set(busy.map((b) => zoneYmd(new Date(b.start))));
     const out: Record<string, "free" | "full"> = {};
     const base = zoneYmd(new Date());
-    const work = isClient ? { ...CATALOG_WORK, leadDaysOffline: db.work.leadDaysOffline, leadDaysOnline: db.work.leadDaysOnline } : db.work;
+    const work = isClient ? clientWork(db) : db.work;
     for (let i = 0; i < 60; i++) {
       const ymd = addZoneDays(base, i);
       const slots = slotsFor(work, ymd, busy, db.overrides, isClient);
@@ -1208,11 +1255,15 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     // клиента не касается. Деньги стоят на подтверждении встречи, а не здесь.
     if (!demoAccepting(db)) notifyLimit(db);
     const startsAt = new Date(String(body.startsAt));
-    const fmt = (body.format as ApptFormat) ?? "online";
-    const lead = leadDaysFor(db.work, fmt);
-    if (leadBlocked(startsAt, lead)) {
-      throw new Error(`API 422: {"error":"Записаться можно не позже чем за ${lead} дн. до встречи"}`);
+    // Окно должно быть открыто по-настоящему: снятая дата, занятое время и
+    // запрет на запись действуют и здесь — ровно как на сервере.
+    const open = slotOpen(db, startsAt);
+    if (!open.ok) {
+      if (open.reason === "taken") throw new Error(`API 409: {"error":"Слот уже занят"}`);
+      if (open.reason === "lead") throw new Error(`API 422: {"error":"Записаться можно не позже чем за ${open.lead} дн. до встречи"}`);
+      throw new Error(`API 409: {"error":"Это время закрыто для записи. Выберите другое окно"}`);
     }
+    const fmt = open.fmt;
     // Самозапись ждёт ответа специалиста — как на сервере.
     const b = { id: ++db.seq, psyName: String(body.psyName ?? "Специалист"), startsAt: startsAt.toISOString(), durationMin: Number(body.durationMin ?? db.work.sessionMinutes), format: fmt, confirmed: false };
     db.myBookings.push(b);
@@ -1232,7 +1283,17 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       throw new Error(`API 422: {"error":"Терапевт установил запрет на отмену сессии за ${lock} дн. до встречи. Свяжитесь с ним напрямую"}`);
     }
     if (method === "PATCH") {
-      if (body.startsAt) { b.startsAt = new Date(String(body.startsAt)).toISOString(); b.confirmed = false; }
+      if (body.startsAt) {
+        const next = new Date(String(body.startsAt));
+        const open = slotOpen(db, next, b.id);
+        if (!open.ok) {
+          if (open.reason === "taken") throw new Error(`API 409: {"error":"Слот уже занят"}`);
+          if (open.reason === "lead") throw new Error(`API 409: {"error":"Записаться можно не позже чем за ${open.lead} дн. до встречи"}`);
+          throw new Error(`API 409: {"error":"Это время закрыто для записи. Выберите другое окно"}`);
+        }
+        b.startsAt = next.toISOString();
+        b.confirmed = false;
+      }
       notify(db, "psychologist", "reschedule", `Клиент перенёс сессию на ${fmtWhen(b.startsAt)}. Подтвердите новое время в приложении`);
       save(db);
       return delay(b as T);

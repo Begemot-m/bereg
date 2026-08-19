@@ -65,8 +65,17 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
   // на вкладку) стирало расставленные, но ещё не сохранённые окна.
   useEffect(() => { setDraft((current) => current ?? (data ? structuredClone(data) : null)); }, [data]);
 
+  // Уезжает только сам график. Правила приёма (запрет отмены, предварительная
+  // запись) живут в этом же блоке, но сохраняются отдельными запросами сразу
+  // по нажатию: пошли бы они целым черновиком — «Сохранить расписание»
+  // возвращало бы дни, набранные после того, как черновик сняли с сервера.
   const save = useMutation({
-    mutationFn: () => saveWorkHours(draft!),
+    mutationFn: () => saveWorkHours({
+      hours: draft!.hours,
+      sessionMinutes: draft!.sessionMinutes,
+      dayFrom: draft!.dayFrom,
+      dayTo: draft!.dayTo,
+    }),
     onSuccess: () => { success(); qc.invalidateQueries({ queryKey: ["work-hours"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); onSaved?.(); },
   });
 

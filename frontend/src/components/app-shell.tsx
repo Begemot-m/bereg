@@ -133,6 +133,8 @@ function accentFor(pathname: string) {
   if (pathname.startsWith("/therapy")) return "purple";
   if (pathname.startsWith("/clients")) return "purple";
   if (pathname.startsWith("/tools")) return "peach";
+  // Модули из подписки — свой тон, чтобы не сливаться с витриной «Инструментов».
+  if (pathname.startsWith("/groups")) return "salmon";
   // Каталог и страницы специалистов — единый нежный тиффани.
   if (pathname.startsWith("/catalog")) return "tiffany";
   return "amber";

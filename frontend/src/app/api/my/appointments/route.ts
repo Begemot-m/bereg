@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { acceptingNewClients, canWorkWithPsy, notifyLimitReached } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
-import { leadBlocked } from "@/lib/server/schedule";
+import { checkSlotOpen } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 import { queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
@@ -99,26 +99,21 @@ export async function POST(req: NextRequest) {
     const seats = await acceptingNewClients(psychologistId);
     if (!seats.accepting) await notifyLimitReached(psychologistId);
 
-    // Предварительная запись: правило психолога, поэтому проверяем здесь, а не
-    // на экране клиента — окно ему мог прислать кто угодно.
-    const format = body.format === "offline" ? "offline" : "online";
-    const work = await prisma.workHours.findUnique({
-      where: { userId: psychologistId },
-      select: { leadDaysOffline: true, leadDaysOnline: true },
-    });
-    const leadDays = format === "offline" ? work?.leadDaysOffline ?? 0 : work?.leadDaysOnline ?? 0;
-    if (leadBlocked(startsAt, leadDays)) {
-      return NextResponse.json(
-        { error: `${format === "offline" ? "Очная запись" : "Онлайн-запись"} — не позже чем за ${leadDays} ${plDays(leadDays)}` },
-        { status: 422 },
-      );
+    // Окно должно быть по-настоящему открыто: правила приёма — дело психолога,
+    // и проверять их можно только здесь. Экран клиенту не указ: закрытую дату,
+    // чужое время и окно ближе запрета на запись он может прислать сам.
+    const open = await checkSlotOpen(psychologistId, startsAt);
+    if (!open.ok) {
+      if (open.reason === "taken") return NextResponse.json({ error: "Слот уже занят" }, { status: 409 });
+      if (open.reason === "lead") {
+        return NextResponse.json(
+          { error: `${open.fmt === "offline" ? "Очная запись" : "Онлайн-запись"} — не позже чем за ${open.leadDays} ${plDays(open.leadDays)}` },
+          { status: 422 },
+        );
+      }
+      return NextResponse.json({ error: "Это время закрыто для записи. Выберите другое окно" }, { status: 409 });
     }
-
-    // Занято? Проверяем на сервере: клиент мог прислать любое время.
-    const busy = await prisma.appointment.findFirst({
-      where: { psychologistId, startsAt, status: { not: "cancelled" } },
-    });
-    if (busy) return NextResponse.json({ error: "Слот уже занят" }, { status: 409 });
+    const format = open.fmt;
 
     // Карточка клиента у этого психолога: если её нет — заводим.
     // Так запись сразу появляется у специалиста в разделе «Клиенты».

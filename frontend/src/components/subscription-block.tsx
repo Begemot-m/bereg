@@ -46,6 +46,7 @@ const COMPARE: { label: string; free: boolean | string; pro: boolean | string }[
   { label: "Подтверждение новых записей", free: `до ${FREE_CLIENT_LIMIT}`, pro: true },
   { label: "Прямая запись на сессию", free: `до ${FREE_CLIENT_LIMIT}`, pro: "без лимита" },
   { label: "Работа с карточкой клиента", free: `до ${FREE_CLIENT_LIMIT}`, pro: true },
+  { label: "Группы и парная терапия", free: false, pro: true },
   { label: "Продвинутые модули", free: false, pro: true },
 ];
 

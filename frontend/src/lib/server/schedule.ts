@@ -6,6 +6,7 @@ import { buildAvailability, timeOfDay, type Availability, type DayGroup } from "
 import type { TimeOfDay } from "@/lib/catalog";
 import { canWorkWithPsy } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
+import { pinManualDays as planPins, sameHours } from "@/lib/schedule-pin";
 import { addDays, parseYmd, weekdayOf, zonedDayStart, zonedTime, zoneHour, zoneYmd } from "@/lib/server/zone";
 
 export type SlotFormat = "online" | "offline";
@@ -62,6 +63,11 @@ export async function getWorkHours(userId: number): Promise<WorkHoursDTO> {
 export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>): Promise<WorkHoursDTO> {
   const current = await getWorkHours(userId);
   const hours = patch.hours ?? current.hours;
+  // Новый шаблон идёт вперёд, но даты, которые правили руками, остаются
+  // такими, какими их оставили: перед записью прибиваем их разовыми окнами.
+  if (patch.hours !== undefined && !sameHours(current.hours, hours)) {
+    await pinManualDays(userId, current, { ...current, hours, sessionMinutes: patch.sessionMinutes ?? current.sessionMinutes });
+  }
   const sessionMinutes = patch.sessionMinutes ?? current.sessionMinutes;
   const cancelLockDays = patch.cancelLockDays === undefined ? current.cancelLockDays : clampLock(patch.cancelLockDays);
   const leadDaysOffline = patch.leadDaysOffline === undefined ? current.leadDaysOffline : clampLead(patch.leadDaysOffline);
@@ -144,6 +150,36 @@ export async function setOverride(userId: number, iso: string, patch: OverrideDT
     });
   }
   return getOverrides(userId);
+}
+
+/**
+ * Перед сменой шаблона недели: даты, где психолог уже правил окна руками,
+ * переводим на разовые окна. Дальше новый график их не касается — он ложится
+ * только на дни, которых никто не трогал.
+ */
+async function pinManualDays(userId: number, before: WorkHoursDTO, after: WorkHoursDTO) {
+  const now = Date.now();
+  const rows = await prisma.slotOverride.findMany({ where: { userId, startsAt: { gte: new Date(now) } } });
+  if (!rows.length) return;
+  const overrides: Record<string, OverrideDTO> = {};
+  for (const r of rows) {
+    overrides[r.startsAt.toISOString()] = {
+      ...(r.removed ? { removed: true } : {}),
+      ...(r.fmt ? { fmt: r.fmt as SlotFormat } : {}),
+      ...(r.added ? { added: true } : {}),
+      ...(r.dur ? { dur: r.dur } : {}),
+    };
+  }
+  const writes = planPins(before, after, overrides, now);
+  if (!writes.length) return;
+  await prisma.$transaction(writes.map((w) => {
+    const data = { removed: w.removed, fmt: w.fmt, added: w.added, dur: w.dur };
+    return prisma.slotOverride.upsert({
+      where: { userId_startsAt: { userId, startsAt: new Date(w.iso) } },
+      create: { userId, startsAt: new Date(w.iso), ...data },
+      update: data,
+    });
+  }));
 }
 
 /**
@@ -304,6 +340,43 @@ export function freeAvailability(
     }
   }
   return buildAvailability(dayGroups, times, slots);
+}
+
+/**
+ * Открыто ли это время у специалиста на самом деле. Клиент присылает начало
+ * окна, но прислать он может что угодно: снятую дату, чужое время, окно ближе
+ * запрета на запись. Правило должно стоять здесь — экран клиенту не указ.
+ * `exceptAppointmentId` — перенос: своя же запись не должна считаться занятой.
+ */
+export async function checkSlotOpen(
+  psychologistId: number,
+  startsAt: Date,
+  exceptAppointmentId?: number,
+): Promise<{ ok: true; fmt: SlotFormat } | { ok: false; reason: "closed" | "taken" | "lead"; leadDays: number; fmt: SlotFormat }> {
+  const ymd = zoneYmd(startsAt);
+  const from = zonedDayStart(ymd)!;
+  const to = zonedDayStart(addDays(ymd, 1))!;
+  const [work, overrides, appts] = await Promise.all([
+    getWorkHours(psychologistId),
+    getOverrides(psychologistId, { from, to }),
+    prisma.appointment.findMany({
+      where: {
+        psychologistId,
+        status: { not: "cancelled" },
+        startsAt: { gte: from, lte: to },
+        ...(exceptAppointmentId ? { id: { not: exceptAppointmentId } } : {}),
+      },
+      select: { startsAt: true, durationMin: true },
+    }),
+  ]);
+  const busy: Busy[] = appts.map((a) => ({ start: a.startsAt.toISOString(), minutes: a.durationMin }));
+  const iso = startsAt.toISOString();
+  const slot = slotsFor(work, ymd, busy, overrides, false).find((s) => s.start === iso);
+  if (!slot) return { ok: false, reason: "closed", leadDays: 0, fmt: "online" };
+  const leadDays = leadDaysFor(work, slot.fmt);
+  if (slot.taken) return { ok: false, reason: "taken", leadDays, fmt: slot.fmt };
+  if (leadBlocked(startsAt, leadDays)) return { ok: false, reason: "lead", leadDays, fmt: slot.fmt };
+  return { ok: true, fmt: slot.fmt };
 }
 
 /** Занятые интервалы психолога: всё, что не отменено. */

@@ -61,7 +61,7 @@ import { useMe } from "@/lib/me";
 import { helpsLine } from "@/lib/morph";
 import { publicRules } from "@/lib/profile-rules";
 import { bookSlot } from "@/lib/mybookings";
-import { hasRestrictedLink, INSTAGRAM_NOTE, LINK_META, normalizeLinkUrl, PROFILE_SYNCED, useProfile, type LinkKind } from "@/lib/profile";
+import { hasRestrictedLink, INSTAGRAM_NOTE, LINK_META, normalizeLinkUrl, PROFILE_SYNCED, topTopicsOf, useProfile, type LinkKind } from "@/lib/profile";
 import { FREE_CLIENT_LIMIT, getSubscription } from "@/lib/subscription";
 import { listClients } from "@/lib/clients";
 import { attachTherapist, isAttached } from "@/lib/therapists";
@@ -253,6 +253,9 @@ function specialistLine(psy: Psy): string {
 
 function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
   const portrait = asset(psy.portrait);
+  // Три запроса, отмеченные звёздочкой в анкете, — главное, что человек должен
+  // прочитать в миниатюре. Не отметил ни одного — остаётся строка «Помогаю с…».
+  const topTopics = topTopicsOf(psy);
   const helps = psy.helps ?? helpsLine(psy.topics);
   const soon = psy.nextDays <= 3;
 
@@ -275,7 +278,17 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
           </div>
           <p className="mt-0.5 text-[11px] font-black" style={{ color: "var(--edge)" }}>{specialistLine(psy)}</p>
           <PsyZoneLine psy={psy} />
-           <p className="t-body mt-1.5"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
+           {topTopics.length ? (
+             <div className="mt-1.5 flex flex-wrap gap-1">
+               {topTopics.map((topic) => (
+                 <span key={topic} className="chip inline-flex items-center gap-1 font-black" style={{ background: "var(--head-soft)", borderColor: "var(--edge)" }}>
+                   <Icon name="star" width={10} weight="fill" color="var(--edge)" />{topic}
+                 </span>
+               ))}
+             </div>
+           ) : (
+             <p className="t-body mt-1.5"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
+           )}
            {psy.quote && <p className="t-sub mt-2 pl-2.5 italic" style={{ borderLeft: "2px solid var(--edge)" }}>«{psy.quote}»</p>}
          </div>
        </div>
@@ -339,7 +352,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
   const firstSession = psy.firstSession ?? "На первой встрече знакомимся, обсуждаем ваш запрос и то, какой поддержки вы ждёте. В конце сверяемся — комфортно ли вам продолжать. Ничего решать сразу не нужно.";
   // Главные запросы специалист отмечает звёздочкой в анкете: их показываем
   // первыми и заметнее, остальные идут следом обычными чипами.
-  const topTopics = (psy.topTopics ?? []).filter((topic) => psy.topics.includes(topic)).slice(0, 3);
+  const topTopics = topTopicsOf(psy);
   const restTopics = psy.topics.filter((topic) => !topTopics.includes(topic));
   const photos = psy.photos?.length ? psy.photos : psy.portrait ? [psy.portrait] : [];
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);

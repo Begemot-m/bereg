@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/server/prisma";
-import { lockedByPolicy } from "@/lib/server/schedule";
+import { checkSlotOpen, lockedByPolicy } from "@/lib/server/schedule";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { cancelPendingReminders, queueTelegramEvent, replaceReminders } from "@/lib/server/telegram-delivery";
 import { APP_ZONE } from "@/lib/server/zone";
@@ -37,10 +37,20 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const startsAt = new Date(String(body.startsAt));
     if (Number.isNaN(startsAt.getTime())) return NextResponse.json({ error: "invalid startsAt" }, { status: 422 });
 
-    const busy = await prisma.appointment.findFirst({
-      where: { psychologistId: appt.psychologistId, startsAt, status: { not: "cancelled" }, id: { not: appt.id } },
-    });
-    if (busy) return NextResponse.json({ error: "Слот уже занят" }, { status: 409 });
+    // Перенос — та же запись, только в другое окно: правила приёма действуют
+    // и здесь. Иначе запрет обходится в два касания — отменить нельзя, а
+    // сдвинуть в закрытый день можно.
+    const open = await checkSlotOpen(appt.psychologistId, startsAt, appt.id);
+    if (!open.ok) {
+      if (open.reason === "taken") return NextResponse.json({ error: "Слот уже занят" }, { status: 409 });
+      if (open.reason === "lead") {
+        return NextResponse.json(
+          { error: `Записаться можно не позже чем за ${open.leadDays} дн. до встречи` },
+          { status: 409 },
+        );
+      }
+      return NextResponse.json({ error: "Это время закрыто для записи. Выберите другое окно" }, { status: 409 });
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       // Новое время — новое согласие: перенос снимает подтверждение.

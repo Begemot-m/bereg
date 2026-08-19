@@ -15,7 +15,7 @@ import { MEDIA_LIMITS, mb } from "@/lib/image";
 import { PhotoCropper } from "@/components/photo-cropper";
 import { CURRENCIES, currencySymbol, formatMoney, MIN_PRICE, toCurrency } from "@/lib/money";
 import { deviceTimezone, TIMEZONES, zoneLabel } from "@/lib/timezones";
-import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, normalizeLinkUrl, savePsyProfile, tgUsername, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
+import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, normalizeLinkUrl, savePsyProfile, tgUsername, topTopicsOf, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
 import { EMPTY_RULES, normalizeRules, publicRules, RULE_PRESETS, rulesFilled, type RuleId } from "@/lib/profile-rules";
 import { helpsLine } from "@/lib/morph";
 
@@ -222,6 +222,7 @@ function PublicProfilePreview({ profile, name, photo }: { profile: PsyProfile | 
 
 // Карточка-миниатюра повторяет представление специалиста в каталоге.
 function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; name: string; photo: string | null }) {
+  const topTopics = topTopicsOf(profile);
   const helps = helpsLine(profile?.topics);
   const price = profile?.sessionPrice ? formatMoney(profile.sessionPrice, toCurrency(profile.currency)) : "—";
   const minutes = profile?.sessionMinutes || "—";
@@ -239,7 +240,17 @@ function CatalogThumb({ profile, name, photo }: { profile: PsyProfile | null; na
               <h3 className="min-w-0 text-[17px] font-black leading-[1.06]">{name}</h3>
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green-soft)]" style={{ border: "1.5px solid var(--green-edge)" }}><Icon name="check" width={12} weight="fill" color="var(--green-edge)" /></span>
             </div>
-            <p className="mt-1.5 text-[12.5px] font-bold leading-snug"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
+            {topTopics.length ? (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {topTopics.map((topic) => (
+                  <span key={topic} className="chip inline-flex items-center gap-1 font-black" style={{ background: "var(--head-soft)", borderColor: "var(--edge)" }}>
+                    <Icon name="star" width={10} weight="fill" color="var(--edge)" />{topic}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1.5 text-[12.5px] font-bold leading-snug"><span className="text-[var(--muted)]">Помогаю с </span>{helps}</p>
+            )}
             {profile?.quote && <p className="mt-2 border-l-2 pl-2.5 text-[11.5px] font-semibold italic leading-snug text-[var(--muted)]" style={{ borderColor: "var(--tiffany-edge)" }}>«{profile.quote}»</p>}
           </div>
         </div>

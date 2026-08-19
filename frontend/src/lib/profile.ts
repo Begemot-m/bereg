@@ -407,3 +407,11 @@ export function useOnboarded(): [boolean | null, () => void] {
 
   return [state, completeOnboarding];
 }
+
+/**
+ * Главные запросы анкеты: отмеченные звёздочкой, не больше трёх и только те,
+ * что остались в списке запросов. Ими подписана миниатюра карточки — и в
+ * каталоге, и в предпросмотре анкеты.
+ */
+export const topTopicsOf = (p: { topics?: string[]; topTopics?: string[] } | null | undefined): string[] =>
+  (p?.topTopics ?? []).filter((topic) => (p?.topics ?? []).includes(topic)).slice(0, 3);

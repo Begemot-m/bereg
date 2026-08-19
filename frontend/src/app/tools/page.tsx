@@ -14,8 +14,10 @@ import type { TechKey } from "@/components/techniques";
 const TechniqueRunner = dynamic(() => import("@/components/techniques").then((m) => m.TechniqueRunner));
 // Тест тянет за собой банк из 300 вопросов и тексты отчёта — грузим только по нажатию.
 const TraitTest = dynamic(() => import("@/components/trait-test").then((m) => m.TraitTest));
+import { ModulesShelf } from "@/components/pro-modules";
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
+import { useRole } from "@/lib/role";
 // Интерактивные клиентские практики.
 const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string; soon?: boolean }[] = [
   { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.webp", bg: "#d9edf3", edge: "#5f95ab" },
@@ -43,11 +45,12 @@ function FillGlyph() {
 }
 
 export default function ToolsPage() {
-  // Инструменты у психолога и клиента одинаковые — общий набор практик.
-  return <ClientTools />;
+  // Практики у обеих ролей общие, а модули из подписки — только у специалиста.
+  const [role] = useRole();
+  return <ClientTools psy={role === "psychologist"} />;
 }
 
-function ClientTools() {
+function ClientTools({ psy = false }: { psy?: boolean }) {
   const [tech, setTech] = useState<TechKey | null>(null);
   const [test, setTest] = useState(false);
 
@@ -57,6 +60,11 @@ function ClientTools() {
 
       <Reveal y={10}>
         <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+          {psy && (
+            <div className="mb-6">
+              <ModulesShelf />
+            </div>
+          )}
           <section className="overflow-hidden rounded-[20px] bg-[var(--ink)] text-white">
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
