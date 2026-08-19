@@ -98,7 +98,19 @@ model Group {
   kind           String   @default("group")
   /// Сколько мест всего. Заполненность считается по активным участникам.
   capacity       Int      @default(8)
+  /// Приватная заметка ведущего — участники её не видят.
   note           String   @default("") @db.Text
+  /// Что видят участники: правила, о чём группа, что взять с собой.
+  about          String   @default("") @db.Text
+  /// online | offline — формат по умолчанию для всех встреч цикла.
+  format         String   @default("offline")
+  /// Адрес для очных встреч или ссылка на созвон для онлайна.
+  place          String   @default("")
+  /// Внешний ресурс группы: сайт, канал, чат.
+  resourceUrl    String   @default("")
+  /// Напоминания участникам перед встречей.
+  remind24h      Boolean  @default(true)
+  remind2h       Boolean  @default(true)
   /// active | archived. Архив не удаляет историю встреч.
   status         String   @default("active")
   createdAt      DateTime @default(now())
@@ -106,6 +118,7 @@ model Group {
 
   members  GroupMember[]
   meetings GroupMeeting[]
+  tasks    GroupTask[]
 
   @@index([psychologistId, status])
 }
@@ -142,9 +155,27 @@ model GroupMeeting {
   note        String   @default("") @db.Text
   createdAt   DateTime @default(now())
 
+  /// Разовое отступление от формата группы. Пусто — как у группы.
+  format String?
+  place  String?
+
   attendance GroupAttendance[]
 
   @@index([groupId, startsAt])
+}
+
+/// Задание всей группе: одно на цикл или к конкретной встрече.
+model GroupTask {
+  id        Int       @id @default(autoincrement())
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   Int
+  text      String    @db.Text
+  dueAt     DateTime?
+  /// open | done
+  status    String    @default("open")
+  createdAt DateTime  @default(now())
+
+  @@index([groupId, status])
 }
 
 /// Кто был на встрече. Отметки нет — значит встречу ещё не отметили.

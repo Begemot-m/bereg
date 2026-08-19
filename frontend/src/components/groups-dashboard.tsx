@@ -5,18 +5,21 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
-import { EDGE, MemberStack, Sheet, SOFT } from "@/components/groups-ui";
+import { AttendanceDonut, EDGE, MemberStack, Sheet, SOFT } from "@/components/groups-ui";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import {
+  FORMAT_LABEL,
   KIND_LABEL,
   activeMembers,
+  attendanceStats,
   createGroup,
   cycle,
   isOver,
   listGroups,
   marked,
   meetingNo,
+  meetFormat,
   nextMeeting,
   seatsLeft,
   whenLabel,
@@ -41,8 +44,27 @@ export function GroupsDashboard() {
     .filter((x) => isOver(x.m) && !marked(x.m))
     .sort((a, b) => +new Date(b.m.startsAt) - +new Date(a.m.startsAt))[0];
 
+  const stats = attendanceStats(list);
+
   return (
     <>
+      {stats.held > 0 && (
+        <Reveal y={8}>
+          <div className="mb-2.5 flex items-center gap-4 rounded-[19px] bg-white p-4" style={{ border: `var(--bw) solid ${EDGE}` }}>
+            <AttendanceDonut rate={stats.rate} />
+            <div className="min-w-0 flex-1">
+              <p className="font-tight text-[15px] font-black leading-tight">Посещаемость</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">по {stats.held} отмеченным встречам</p>
+              <div className="mt-2 flex flex-col gap-1">
+                <StatLine color={EDGE} label="пришли" value={stats.present} />
+                <StatLine color="var(--edge-neutral)" label="пропустили" value={stats.missed} />
+                {stats.ahead > 0 && <StatLine label="встреч впереди" value={stats.ahead} />}
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      )}
+
       {unmarked && (
         <Reveal y={8}>
           <Link
@@ -117,6 +139,16 @@ export function GroupsDashboard() {
   );
 }
 
+function StatLine({ color, label, value }: { color?: string; label: string; value: number }) {
+  return (
+    <span className="flex items-center gap-1.5 text-[11.5px] font-bold">
+      {color ? <span className="keep-style h-2 w-2 shrink-0 rounded-full" style={{ background: color }} /> : <span className="w-2 shrink-0" />}
+      <span className="tnum font-black">{value}</span>
+      <span className="text-[var(--muted)]">{label}</span>
+    </span>
+  );
+}
+
 function GroupRow({ group }: { group: Group }) {
   const next = nextMeeting(group);
   const left = seatsLeft(group);
@@ -140,8 +172,8 @@ function GroupRow({ group }: { group: Group }) {
           </span>
         </span>
         <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold" style={{ color: next ? EDGE : "var(--muted-2)" }}>
-          <Icon name="calendar" width={12} weight="bold" color={next ? EDGE : "var(--muted-2)"} />
-          {next ? whenLabel(next.startsAt) : "встречи не запланированы"}
+          <Icon name={next ? "calendar" : "clock"} width={12} weight="bold" color={next ? EDGE : "var(--muted-2)"} />
+          {next ? `${whenLabel(next.startsAt)} · ${FORMAT_LABEL[meetFormat(group, next)].toLowerCase()}` : "встречи не запланированы"}
         </span>
       </span>
       <ArrowGlyph size={13} />

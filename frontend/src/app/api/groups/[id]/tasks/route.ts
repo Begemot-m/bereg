@@ -2,35 +2,30 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE } from "@/lib/server/groups";
 import { access } from "@/lib/server/access";
+import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE } from "@/lib/server/groups";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
 
 export const runtime = "nodejs";
 
-// Владение проверяем всегда по токену, id из ссылки ему не доверяем.
+const newTaskSchema = z.object({
+  text: z.string().trim().min(1, "Напишите задание").max(2000),
+  dueAt: z.string().datetime({ offset: true }).nullish(),
+});
+
+const patchSchema = z.object({ status: z.enum(["open", "done"]) });
+
 async function owned(groupId: number, psychologistId: number) {
-  const group = await prisma.group.findUnique({ where: { id: groupId }, include: MEMBERS_INCLUDE });
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group || group.psychologistId !== psychologistId) return null;
   return group;
 }
 
-const patchSchema = z.object({
-  title: z.string().trim().min(1).max(120).optional(),
-  capacity: z.number().int().min(2).max(40).optional(),
-  note: z.string().max(4000).optional(),
-  about: z.string().max(4000).optional(),
-  format: z.enum(["online", "offline"]).optional(),
-  place: z.string().trim().max(300).optional(),
-  resourceUrl: z.string().trim().max(500).optional(),
-  remind24h: z.boolean().optional(),
-  remind2h: z.boolean().optional(),
-  status: z.enum(["active", "archived"]).optional(),
-});
+const full = (id: number) => prisma.group.findUnique({ where: { id }, include: MEMBERS_INCLUDE });
 
-export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser(req);
     const acc = await access(user.id);
@@ -39,8 +34,14 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const { id } = await ctx.params;
     const group = await owned(Number(id), user.id);
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(group);
+
+    const body = await parseBody(req, newTaskSchema);
+    await prisma.groupTask.create({
+      data: { groupId: group.id, text: body.text, dueAt: body.dueAt ? new Date(body.dueAt) : null },
+    });
+    return NextResponse.json(await full(group.id), { status: 201 });
   } catch (e) {
+    if (e instanceof InvalidBody) return invalidBodyResponse(e);
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;
   }
@@ -56,9 +57,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const group = await owned(Number(id), user.id);
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const patch = await parseBody(req, patchSchema);
-    const next = await prisma.group.update({ where: { id: group.id }, data: patch, include: MEMBERS_INCLUDE });
-    return NextResponse.json(next);
+    const taskId = Number(new URL(req.url).searchParams.get("taskId"));
+    const { status } = await parseBody(req, patchSchema);
+    await prisma.groupTask.updateMany({ where: { id: taskId, groupId: group.id }, data: { status } });
+    return NextResponse.json(await full(group.id));
   } catch (e) {
     if (e instanceof InvalidBody) return invalidBodyResponse(e);
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
@@ -76,8 +78,9 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     const group = await owned(Number(id), user.id);
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    await prisma.group.delete({ where: { id: group.id } });
-    return new NextResponse(null, { status: 204 });
+    const taskId = Number(new URL(req.url).searchParams.get("taskId"));
+    await prisma.groupTask.deleteMany({ where: { id: taskId, groupId: group.id } });
+    return NextResponse.json(await full(group.id));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
     throw e;

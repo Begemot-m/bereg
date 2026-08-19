@@ -64,8 +64,10 @@ type Appointment = {
 
 type GroupKind = "group" | "pair";
 type GroupMember = { id: number; clientId: number | null; name: string; status: "active" | "left"; joinedAt: string };
-type GroupMeeting = { id: number; startsAt: string; durationMin: number; status: "planned" | "done" | "cancelled"; note: string; attendance: { memberId: number; present: boolean }[] };
-type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; status: "active" | "archived"; createdAt: string; members: GroupMember[]; meetings: GroupMeeting[] };
+type MeetFormat = "online" | "offline";
+type GroupMeeting = { id: number; startsAt: string; durationMin: number; status: "planned" | "done" | "cancelled"; note: string; format?: MeetFormat | null; place?: string | null; attendance: { memberId: number; present: boolean }[] };
+type GroupTask = { id: number; text: string; dueAt: string | null; status: "open" | "done"; createdAt: string };
+type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; about: string; format: MeetFormat; place: string; resourceUrl: string; remind24h: boolean; remind2h: boolean; status: "active" | "archived"; createdAt: string; members: GroupMember[]; meetings: GroupMeeting[]; tasks: GroupTask[] };
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number; emotions?: string[] }; // 1..5 + отмеченные состояния
 type SessionReflection = { appointmentId: number; startsAt: string; status: string; therapistName: string; preparation: string; takeaway: string; feeling: number | null; updatedAt: string };
@@ -215,7 +217,27 @@ function seedGroups(clients: Client[], now: string): Group[] {
       attendance: past ? members.map((m, k) => ({ memberId: m.id, present: !(i === 1 && k === 1) })) : [],
     };
   });
-  return [{ id: 901, title: "Группа поддержки «Опоры»", kind: "group", capacity: 8, note: "", status: "active", createdAt: now, members, meetings }];
+  const tasks: GroupTask[] = [
+    { id: 930, text: "Записать три ситуации за неделю, где было трудно попросить о помощи", dueAt: meetings[2]?.startsAt ?? null, status: "open", createdAt: now },
+  ];
+  return [{
+    id: 901,
+    title: "Группа поддержки «Опоры»",
+    kind: "group",
+    capacity: 8,
+    note: "",
+    about: "Закрытая группа на восемь встреч. Всё, что звучит в кругу, остаётся в кругу. Опоздание — не повод не приходить.",
+    format: "offline",
+    place: "Малый Козихинский пер., 7, кабинет 3",
+    resourceUrl: "",
+    remind24h: true,
+    remind2h: true,
+    status: "active",
+    createdAt: now,
+    members,
+    meetings,
+    tasks,
+  }];
 }
 
 // Специалист, который только что завёл аккаунт: разделы пустые, знакомство и
@@ -384,7 +406,11 @@ function load(): DB {
         }
       }
       if (!db.groups) db.groups = [];
-      for (const g of db.groups) if (!g.meetings) g.meetings = [];
+      for (const g of db.groups) {
+        if (!g.meetings) g.meetings = [];
+        if (!g.tasks) g.tasks = [];
+        if (g.about === undefined) { g.about = ""; g.format = "offline"; g.place = ""; g.resourceUrl = ""; g.remind24h = true; g.remind2h = true; }
+      }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
       if (!db.goodNotes) db.goodNotes = s.goodNotes;
@@ -976,9 +1002,16 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         kind,
         note: "",
         status: "active",
+        about: "",
+        format: "offline",
+        place: "",
+        resourceUrl: "",
+        remind24h: true,
+        remind2h: true,
         createdAt: new Date().toISOString(),
         members: [],
         meetings: [],
+        tasks: [],
       };
       db.groups.unshift(g);
       save(db);
@@ -995,6 +1028,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       if (body.title !== undefined) g.title = String(body.title);
       if (body.capacity !== undefined) g.capacity = Number(body.capacity);
       if (body.note !== undefined) g.note = String(body.note);
+      if (body.about !== undefined) g.about = String(body.about);
+      if (body.format !== undefined) g.format = body.format as MeetFormat;
+      if (body.place !== undefined) g.place = String(body.place);
+      if (body.resourceUrl !== undefined) g.resourceUrl = String(body.resourceUrl);
+      if (body.remind24h !== undefined) g.remind24h = Boolean(body.remind24h);
+      if (body.remind2h !== undefined) g.remind2h = Boolean(body.remind2h);
       if (body.status !== undefined) g.status = body.status as Group["status"];
       save(db);
       return delay(withMemberPhotos(g) as T);
@@ -1003,6 +1042,35 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       db.groups = db.groups.filter((x) => x.id !== g.id);
       save(db);
       return delay(undefined as T);
+    }
+  }
+
+  const tasksOf = clean.match(/^\/groups\/(\d+)\/tasks$/)?.[1];
+  if (tasksOf) {
+    const g = db.groups.find((x) => x.id === Number(tasksOf));
+    if (!g) throw new Error("API 404");
+    if (method === "POST") {
+      g.tasks.unshift({
+        id: ++db.seq,
+        text: String(body.text ?? "").trim(),
+        dueAt: (body.dueAt as string) ?? null,
+        status: "open",
+        createdAt: new Date().toISOString(),
+      });
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+    const task = g.tasks.find((t) => t.id === Number(q.get("taskId")));
+    if (!task) throw new Error("API 404");
+    if (method === "PATCH") {
+      task.status = body.status as GroupTask["status"];
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+    if (method === "DELETE") {
+      g.tasks = g.tasks.filter((t) => t.id !== task.id);
+      save(db);
+      return delay(withMemberPhotos(g) as T);
     }
   }
 

@@ -21,7 +21,13 @@ export const MEMBERS_INCLUDE = {
       durationMin: true,
       status: true,
       note: true,
+      format: true,
+      place: true,
       attendance: { select: { memberId: true, present: true } },
     },
+  },
+  tasks: {
+    orderBy: { createdAt: "desc" },
+    select: { id: true, text: true, dueAt: true, status: true, createdAt: true },
   },
 } as const;

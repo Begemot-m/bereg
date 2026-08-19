@@ -12,13 +12,26 @@ export type GroupMember = {
 
 export type Attendance = { memberId: number; present: boolean };
 
+export type MeetFormat = "online" | "offline";
+
 export type GroupMeeting = {
   id: number;
   startsAt: string;
   durationMin: number;
   status: "planned" | "done" | "cancelled";
   note: string;
+  /** Пусто — формат как у группы. */
+  format?: MeetFormat | null;
+  place?: string | null;
   attendance: Attendance[];
+};
+
+export type GroupTask = {
+  id: number;
+  text: string;
+  dueAt: string | null;
+  status: "open" | "done";
+  createdAt: string;
 };
 
 export type Group = {
@@ -26,12 +39,27 @@ export type Group = {
   title: string;
   kind: GroupKind;
   capacity: number;
+  /** Приватная заметка ведущего. */
   note: string;
+  /** Что видят участники: правила, о чём группа, что взять с собой. */
+  about: string;
+  format: MeetFormat;
+  place: string;
+  resourceUrl: string;
+  remind24h: boolean;
+  remind2h: boolean;
   status: "active" | "archived";
   createdAt: string;
   members: GroupMember[];
   meetings: GroupMeeting[];
+  tasks: GroupTask[];
 };
+
+export const FORMAT_LABEL: Record<MeetFormat, string> = { online: "Онлайн", offline: "Очно" };
+
+/** Формат встречи: своё значение, иначе как у группы. */
+export const meetFormat = (g: Group, m: GroupMeeting): MeetFormat => m.format ?? g.format;
+export const meetPlace = (g: Group, m: GroupMeeting): string => m.place ?? g.place;
 
 export const KIND_LABEL: Record<GroupKind, string> = { group: "Группа", pair: "Пара" };
 
@@ -83,7 +111,9 @@ export const getGroup = (id: number) => apiFetch<Group>(`/groups/${id}`);
 export const createGroup = (input: { title: string; kind: GroupKind; capacity?: number }) =>
   apiFetch<Group>("/groups", { method: "POST", body: JSON.stringify(input) });
 
-export const updateGroup = (id: number, patch: Partial<Pick<Group, "title" | "capacity" | "note" | "status">>) =>
+export type GroupPatch = Partial<Pick<Group, "title" | "capacity" | "note" | "about" | "format" | "place" | "resourceUrl" | "remind24h" | "remind2h" | "status">>;
+
+export const updateGroup = (id: number, patch: GroupPatch) =>
   apiFetch<Group>(`/groups/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 
 export const deleteGroup = (id: number) => apiFetch<void>(`/groups/${id}`, { method: "DELETE" });
@@ -109,3 +139,31 @@ export const cancelMeeting = (id: number, meetingId: number) =>
 
 export const deleteMeeting = (id: number, meetingId: number) =>
   apiFetch<Group>(`/groups/${id}/meetings?meetingId=${meetingId}`, { method: "DELETE" });
+
+export const addTask = (id: number, input: { text: string; dueAt?: string | null }) =>
+  apiFetch<Group>(`/groups/${id}/tasks`, { method: "POST", body: JSON.stringify(input) });
+
+export const toggleTask = (id: number, taskId: number, status: GroupTask["status"]) =>
+  apiFetch<Group>(`/groups/${id}/tasks?taskId=${taskId}`, { method: "PATCH", body: JSON.stringify({ status }) });
+
+export const removeTask = (id: number, taskId: number) =>
+  apiFetch<Group>(`/groups/${id}/tasks?taskId=${taskId}`, { method: "DELETE" });
+
+/** Посещаемость по отмеченным встречам: сколько отметок «был» из всех. */
+export function attendanceStats(groups: Group[]) {
+  let present = 0;
+  let missed = 0;
+  let held = 0;
+  let ahead = 0;
+  for (const g of groups) {
+    for (const m of cycle(g)) {
+      if (isOver(m) && marked(m)) {
+        held += 1;
+        present += m.attendance.filter((a) => a.present).length;
+        missed += m.attendance.filter((a) => !a.present).length;
+      } else if (!isOver(m)) ahead += 1;
+    }
+  }
+  const total = present + missed;
+  return { present, missed, held, ahead, total, rate: total ? Math.round((present / total) * 100) : 0 };
+}

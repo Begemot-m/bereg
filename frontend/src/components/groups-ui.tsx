@@ -250,3 +250,82 @@ export function PlanForm({ onPlan, busy }: { onPlan: (input: { startsAt: string;
     </>
   );
 }
+
+/**
+ * Посещаемость кольцом. Библиотек для графиков в проекте нет и заводить их
+ * ради одного круга незачем: дуга рисуется одним `circle` с обводкой.
+ */
+export function AttendanceDonut({ rate, size = 84 }: { rate: number; size?: number }) {
+  const stroke = 11;
+  const r = (size - stroke) / 2;
+  const len = 2 * Math.PI * r;
+  return (
+    <span className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={SOFT} strokeWidth={stroke} />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={EDGE}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          strokeDasharray={len}
+          initial={{ strokeDashoffset: len }}
+          animate={{ strokeDashoffset: len * (1 - rate / 100) }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </svg>
+      <span className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="tnum font-tight text-[20px] font-black leading-none">{rate}%</span>
+      </span>
+    </span>
+  );
+}
+
+/** Переключатель на два положения — тот же вид, что у настроек напоминаний. */
+export function Toggle({ on, onChange, label, hint }: { on: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
+  return (
+    <button onClick={() => { tap(); onChange(!on); }} role="switch" aria-checked={on} className="flex w-full items-center gap-3 py-2.5 text-left">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-bold leading-tight">{label}</span>
+        {hint && <span className="block text-[10.5px] font-bold text-[var(--muted-2)]">{hint}</span>}
+      </span>
+      <span className="keep-style relative h-[26px] w-[44px] shrink-0 rounded-full transition-colors" style={{ background: on ? EDGE : "var(--edge-neutral)" }}>
+        <motion.span
+          className="absolute top-[3px] h-5 w-5 rounded-full bg-white"
+          animate={{ left: on ? 21 : 3 }}
+          transition={{ type: "spring", stiffness: 500, damping: 32 }}
+        />
+      </span>
+    </button>
+  );
+}
+
+/** Вкладки карточки группы. */
+export function Tabs<T extends string>({ value, items, onChange }: { value: T; items: { id: T; label: string; badge?: number }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="flex gap-1 rounded-[14px] p-1" style={{ background: "var(--surface-2)" }}>
+      {items.map((t) => {
+        const on = t.id === value;
+        return (
+          <button
+            key={t.id}
+            onClick={() => { tap(); onChange(t.id); }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-black transition-colors"
+            style={on ? { background: "#fff", color: "var(--ink)" } : { color: "var(--muted)" }}
+          >
+            {t.label}
+            {typeof t.badge === "number" && t.badge > 0 && (
+              <span className="keep-style rounded-full px-1.5 text-[10px] font-black" style={{ background: on ? SOFT : "transparent", color: on ? EDGE : "var(--muted-2)" }}>
+                {t.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
