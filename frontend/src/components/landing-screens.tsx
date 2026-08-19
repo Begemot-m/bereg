@@ -17,12 +17,14 @@ const NAV: Record<"psy" | "client", { key: string; label: string; icon: IconName
     { key: "clients", label: "Клиенты", icon: "users" },
     { key: "sessions", label: "Сессии", icon: "calendar" },
     { key: "tools", label: "Инструменты", icon: "tools" },
+    { key: "cabinet", label: "Кабинет", icon: "user" },
   ],
   client: [
     { key: "home", label: "Главная", icon: "home" },
     { key: "catalog", label: "Каталог", icon: "compass" },
     { key: "therapy", label: "Терапия", icon: "therapy" },
     { key: "tools", label: "Инструменты", icon: "tools" },
+    { key: "cabinet", label: "Кабинет", icon: "user" },
   ],
 };
 
@@ -242,7 +244,7 @@ function Therapy({ accent, compact }: ScreenProps) {
           <span className="text-[11px] font-medium" style={{ color: "var(--muted)" }}>7 отметок подряд</span>
           <span className="mt-auto flex h-[64px] items-end gap-1.5 pt-2">
             {MOOD.map((v, i) => (
-              <span key={i} className="flex-1 rounded-t-[5px]" style={{ height: `${v * 20}%`, background: i === MOOD.length - 1 ? "var(--tiffany)" : "var(--green-soft)" }} />
+              <span key={i} className="flex-1 rounded-t-[5px]" style={{ height: `${v * 20}%`, background: i === MOOD.length - 1 ? accent : "var(--purple-soft)" }} />
             ))}
           </span>
         </div>
@@ -314,28 +316,64 @@ function Catalog({ accent, compact }: ScreenProps) {
 
 /* ─────────────────────────── Инструменты ─────────────────────────── */
 
-const TOOLS: { icon: IconName; title: string; note: string; tone: string }[] = [
-  { icon: "balance", title: "Колесо баланса", note: "8 сфер жизни, снимок раз в месяц", tone: "var(--tiffany-soft)" },
-  { icon: "mood", title: "Дневник настроения", note: "Отметка за минуту, график за год", tone: "var(--green-soft)" },
-  { icon: "self", title: "Тест на тип личности", note: "10 шкал, отчёт в PDF", tone: "var(--purple-soft)" },
-  { icon: "waves", title: "Техники самопомощи", note: "Дыхание, заземление, стоп-мысль", tone: "var(--coral-soft)" },
+// Раздел «Инструменты» в приложении: чёрный баннер, модуль из подписки,
+// практики и строка тестов. Держим тот же порядок блоков.
+const TOOLS: { icon: IconName; title: string; note: string; time: string; tone: string; soon?: boolean }[] = [
+  { icon: "waves", title: "Спокойное дыхание", note: "Снизить напряжение здесь и сейчас", time: "1–5 мин", tone: "var(--tiffany-soft)" },
+  { icon: "note", title: "Дневник мыслей", note: "Разобрать убеждения по методу КПТ", time: "2–7 мин", tone: "var(--purple-soft)", soon: true },
 ];
 
 function Tools({ accent, compact }: ScreenProps) {
   return (
     <Frame compact={compact} active="tools" accent={accent} title="Инструменты" sub="Практики между встречами — и себе, и клиенту">
+      <div className={`${CARD} flex items-center gap-3 px-3 py-3`} style={{ background: "var(--ink)", color: "#fff" }}>
+        <span className="min-w-0 flex-1">
+          <span className="rounded-full px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[.06em]" style={{ background: "rgba(255,255,255,.16)" }}>Скоро в Хронике</span>
+          <span className="mt-1.5 block text-[13.5px] font-black">Больше опоры между встречами</span>
+          <span className="block text-[11.5px] font-medium text-white/70">AI-ассистент, база знаний и новые практики уже в работе</span>
+        </span>
+        <Icon name="compass" width={20} weight="bold" color="#fff" />
+      </div>
+
+      <div className={`${CARD} flex items-center gap-3 px-3 py-2.5`} style={{ background: "var(--salmon-soft)" }}>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px]" style={{ background: "var(--surface)" }}>
+          <Icon name="users" width={18} weight="regular" color="var(--ink)" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-black">Группы и пары</span>
+          <span className="block truncate text-[11.5px] font-medium" style={{ color: "var(--muted)" }}>Модуль подписки: встречи, состав, посещаемость</span>
+        </span>
+        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: "var(--ink)", color: "#fff" }}>PRO</span>
+      </div>
+
       <div className="grid min-h-0 flex-1 gap-2 sm:grid-cols-2">
         {TOOLS.map((t) => (
-          <div key={t.title} className={`${CARD} flex items-center gap-3 px-3 py-3`} style={{ background: "var(--surface)", border: BORDER }}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px]" style={{ background: t.tone }}>
-              <Icon name={t.icon} width={19} weight="regular" color="var(--ink)" />
+          <div key={t.title} className={`${CARD} flex flex-col overflow-hidden`} style={{ background: t.tone, border: BORDER }}>
+            <span className="flex flex-1 items-center justify-center py-3">
+              <Icon name={t.icon} width={34} weight="duotone" color="var(--ink)" />
             </span>
-            <span className="min-w-0">
-              <span className="block truncate text-[13.5px] font-black">{t.title}</span>
-              <span className="block truncate text-[11.5px] font-medium" style={{ color: "var(--muted)" }}>{t.note}</span>
+            <span className="flex flex-col gap-0.5 px-3 py-2.5" style={{ background: "var(--surface)" }}>
+              <span className="truncate text-[13px] font-black">{t.title}</span>
+              <span className="truncate text-[11px] font-medium" style={{ color: "var(--muted)" }}>{t.note}</span>
+              <span className="mt-1 flex items-center gap-1.5">
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: t.soon ? "var(--bg)" : accent, color: t.soon ? "var(--muted)" : "var(--ink)", border: t.soon ? BORDER : undefined }}>
+                  {t.soon ? "в разработке" : "перейти"}
+                </span>
+                <span className="flex items-center gap-1 text-[10.5px] font-bold" style={{ color: "var(--muted)" }}>
+                  <Icon name="clock" width={11} weight="bold" color="currentColor" />{t.time}
+                </span>
+              </span>
             </span>
           </div>
         ))}
+      </div>
+
+      <div className="flex items-center gap-3 py-1.5" style={{ borderTop: BORDER, borderBottom: BORDER }}>
+        <Icon name="chart" width={18} weight="regular" color="var(--ink)" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[12.5px] font-black">Тесты и диагностика</span>
+          <span className="block truncate text-[11px] font-medium" style={{ color: "var(--muted)" }}>Пройти и приложить результат к карточке</span>
+        </span>
       </div>
     </Frame>
   );
@@ -353,7 +391,7 @@ const PROFILE_TOPICS: { text: string; top?: boolean }[] = [
 
 function Profile({ accent, compact }: ScreenProps) {
   return (
-    <Frame compact={compact} active="profile" accent={accent} title="Анкета специалиста" sub="Кабинет · заполнено 4 шага из 5" action="На проверку">
+    <Frame compact={compact} active="cabinet" accent={accent} title="Анкета специалиста" sub="Кабинет · заполнено 4 шага из 5" action="На проверку">
       <div className={`${CARD} flex items-center gap-3 px-3 py-2.5`} style={{ background: "var(--surface)", border: BORDER }}>
         <span className="flex h-11 w-9 shrink-0 items-center justify-center rounded-[10px]" style={{ background: "var(--purple-soft)" }}>
           <Icon name="user" width={17} weight="regular" color="var(--ink)" />

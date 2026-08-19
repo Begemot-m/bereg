@@ -128,6 +128,17 @@ function InviteNote({ kind, onClose }: { kind: keyof typeof INVITE_NOTES; onClos
   );
 }
 
+const isPublicDoc = (pathname: string) => pathname.startsWith("/docs") || pathname.startsWith("/policy");
+
+/** Страница документа для гостя: без навигации приложения, просто текст. */
+function PublicPage({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-[100dvh] overflow-y-auto px-4 py-6" style={{ background: "var(--bg)", color: "var(--ink)" }}>
+      <div className="mx-auto w-full max-w-2xl">{children}</div>
+    </div>
+  );
+}
+
 function accentFor(pathname: string) {
   if (pathname.startsWith("/therapy/notes") || pathname.startsWith("/clients/notes")) return "tiffany";
   if (pathname.startsWith("/sessions")) return "green";
@@ -405,6 +416,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Из браузера входа пока нет, но пустой замок ничего не объясняет: показываем
   // лендинг с кнопкой в бота. Замок остаётся для сбоев входа внутри Telegram.
   if (authState === "anon" && !fastEntry) {
+    // Публичные документы открываются без входа: на них ведут ссылки из подвала
+    // сайта, и вместо текста человек видел лендинг заново.
+    if (isPublicDoc(pathname)) return <PublicPage>{children}</PublicPage>;
     return env === "desktop"
       ? <WebLanding />
       : <AuthGate env={env} reason={authReason} detail={authDetail} />;

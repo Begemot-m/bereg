@@ -11,7 +11,7 @@ import {
 } from "motion/react";
 import { createPortal } from "react-dom";
 
-import { LEGAL, LEGAL_DOCS } from "@/lib/legal";
+import { LEGAL_DOCS } from "@/lib/legal";
 import {
   createContext,
   type ReactNode,
@@ -25,7 +25,6 @@ import {
 
 import { Icon, type IconName } from "@/components/icons";
 import { LandingScreen } from "@/components/landing-screens";
-import { WebLogin } from "@/components/web-login";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
 import { FAQ_ITEMS } from "@/lib/seo";
 
@@ -54,6 +53,7 @@ function useWide() {
 const NAV = [
   ["Возможности", "#features"],
   ["Разделы", "#screens"],
+  ["С чего начать", "#start"],
   ["Вопросы", "#faq"],
   ["Для кого", "#who"],
 ] as const;
@@ -62,32 +62,38 @@ const NAV = [
 const TABS: { key: string; label: string; icon: IconName; tone: string; accent: string }[] = [
   { key: "sessions", label: "Сессии", icon: "calendar", tone: "var(--green-soft)", accent: "var(--green)" },
   { key: "clients", label: "Клиенты", icon: "users", tone: "var(--purple-soft)", accent: "var(--purple)" },
-  { key: "therapy", label: "Терапия", icon: "pulse", tone: "var(--coral-soft)", accent: "var(--coral)" },
-  { key: "catalog", label: "Каталог", icon: "compass", tone: "var(--amber-soft)", accent: "var(--amber)" },
-  { key: "tools", label: "Инструменты", icon: "spark", tone: "var(--tiffany-soft)", accent: "var(--tiffany)" },
+  { key: "therapy", label: "Терапия", icon: "pulse", tone: "var(--purple-soft)", accent: "var(--purple)" },
+  { key: "catalog", label: "Каталог", icon: "compass", tone: "var(--tiffany-soft)", accent: "var(--tiffany)" },
+  { key: "tools", label: "Инструменты", icon: "spark", tone: "var(--peach-soft)", accent: "var(--peach)" },
 ];
+
+/**
+ * Союз «и» цепляем неразрывным пробелом к следующему слову: тогда при переносе
+ * он уходит на новую строку вместе с ним, а не повисает в конце предыдущей.
+ */
+const tie = (s: string) => s.replace(/(^|\s)и\s+/g, "$1и ");
 
 const TRIO: { icon: IconName; tone: string; edge: string; title: string; text: string }[] = [
   {
     icon: "clock",
     tone: "var(--green-soft)",
     edge: "var(--green-edge)",
-    title: "Экономия времени и комфорт",
-    text: "Удобная система управления окнами записи позволит эффективно управлять временем и сократит согласование встреч с клиентами.",
+    title: "Экономия времени и комфорт",
+    text: "Удобная система управления окнами записи позволит эффективно управлять временем и сократит согласование встреч с клиентами",
   },
   {
     icon: "seal",
     tone: "var(--purple-soft)",
     edge: "var(--purple-edge)",
     title: "Честный каталог",
-    text: "В отличие от других сервисов, платформа делает систему ранжирования прозрачной: реальные отзывы только от тех людей, с кем вы работали, рейтинг не покупается.",
+    text: "В отличие от других сервисов, платформа делает систему ранжирования прозрачной: реальные отзывы только от тех людей, с кем вы работали, рейтинг не покупается",
   },
   {
     icon: "pulse",
     tone: "var(--coral-soft)",
     edge: "var(--coral-edge)",
     title: "Полная цифровизация терапии",
-    text: "История встреч, домашние задания и отслеживание динамики состояния и настроения клиента — всё собрано в одном месте. Это позволит усилить вашу практику.",
+    text: "История встреч, домашние задания и отслеживание динамики состояния и настроения клиента — всё собрано в одном месте и усиливает вашу практику",
   },
 ];
 
@@ -147,8 +153,8 @@ const FEATURES: {
       { icon: "star", label: "Цена и метод" },
     ],
     shot: "catalog",
-    tone: "var(--amber-soft)",
-    accent: "var(--amber)",
+    tone: "var(--tiffany-soft)",
+    accent: "var(--tiffany)",
   },
 ];
 
@@ -197,7 +203,6 @@ export function WebLanding() {
 }
 
 function LandingPage() {
-  const [login, setLogin] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   // Позиция скролла в motion value: иначе параллакс перерисовывал бы страницу
   // на каждом кадре колеса.
@@ -216,7 +221,7 @@ function LandingPage() {
           setScrolled((was) => (was === top > 16 ? was : top > 16));
         }}
       >
-        <Nav scrolled={scrolled} onLogin={() => setLogin(true)} />
+        <Nav scrolled={scrolled} />
 
         <main>
           <Hero scrollY={scrollY} />
@@ -224,15 +229,14 @@ function LandingPage() {
           <Trio />
           <Topics />
           <Features />
+          <Roadmap />
           <Faq />
           <Orbit />
           <Who />
           <Cta />
         </main>
 
-        <Footer onLogin={() => setLogin(true)} />
-
-        {login && <WebLogin onClose={() => setLogin(false)} />}
+        <Footer />
       </div>
     </ScrollBox.Provider>
   );
@@ -302,7 +306,7 @@ const FOOT_LINK =
 
 /* ─────────────────────────── шапка ─────────────────────────── */
 
-function Nav({ scrolled, onLogin }: { scrolled: boolean; onLogin: () => void }) {
+function Nav({ scrolled }: { scrolled: boolean }) {
   return (
     <header
       className="sticky top-0 z-40 transition-all duration-300"
@@ -324,13 +328,6 @@ function Nav({ scrolled, onLogin }: { scrolled: boolean; onLogin: () => void }) 
         </nav>
 
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={onLogin}
-            className="cursor-pointer rounded-full px-5 py-2.5 text-[14.5px] font-semibold transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-[rgba(32,28,24,.13)] active:translate-y-0"
-            style={{ background: "rgba(32,28,24,.07)" }}
-          >
-            Войти
-          </button>
           <TelegramButton />
         </div>
       </div>
@@ -384,7 +381,9 @@ function Hero({ scrollY }: { scrollY: MotionValue<number> }) {
           transition={{ duration: 0.7, delay: 0.06, ease: EASE }}
           className="font-tight mx-auto mt-5 max-w-[1020px] text-[36px] font-black leading-[1.05] tracking-[-0.035em] sm:text-[46px] md:text-[62px]"
         >
-          Цифровая платформа для улучшения<br className="hidden md:block" /> ментального здоровья
+          Практика психолога без рутины,
+          <br />
+          <span style={{ color: "var(--purple-edge)" }}>а терапия — живой непрерывный процесс</span>
         </motion.h1>
 
         <motion.p
@@ -393,7 +392,7 @@ function Hero({ scrollY }: { scrollY: MotionValue<number> }) {
           transition={{ duration: 0.7, delay: 0.14, ease: EASE }}
           className="mx-auto mt-6 max-w-[620px] text-[17px] font-medium leading-[1.5] text-[var(--muted)] md:text-[19px]"
         >
-          Практика психолога, собранная в одном месте
+          Платформа цифровых инструментов для психологов, собранная в одном месте
         </motion.p>
       </motion.div>
     </section>
@@ -498,8 +497,8 @@ function Trio() {
               >
                 <Icon name={card.icon} width={30} weight="regular" color={card.edge} />
               </span>
-              <h3 className="font-tight mt-6 text-[25px] font-black leading-tight tracking-[-0.02em]">{card.title}</h3>
-              <p className="mt-3 text-[15px] font-medium leading-[1.55] text-[var(--muted)]">{card.text}</p>
+              <h3 className="font-tight mt-6 text-[25px] font-black leading-tight tracking-[-0.02em]">{tie(card.title)}</h3>
+              <p className="mt-3 text-[15px] font-medium leading-[1.55] text-[var(--muted)]">{tie(card.text)}</p>
             </motion.article>
           </Reveal>
         ))}
@@ -520,16 +519,16 @@ function Topics() {
       </Reveal>
       <div className="mt-12 grid grid-cols-2 gap-y-10 md:mt-16 md:grid-cols-4">
         {TOPICS.map((topic, i) => (
-          <Reveal key={topic.label} delay={(i % 4) * 0.06}>
-            <div className="flex justify-center px-2">
-              <span className="inline-flex items-center gap-2">
-                <Icon name={topic.icon} width={32} weight="duotone" color={topic.color} className="shrink-0" />
-                <span
-                  className="font-tight text-[21px] font-black leading-[1.12] tracking-[-0.02em] md:text-[25px]"
-                  style={{ color: topic.color }}
-                >
-                  {topic.label}
-                </span>
+          <Reveal key={topic.label} delay={(i % 4) * 0.06} className="h-full">
+            {/* Колонкой, а не строкой: длинные запросы вроде «панических атак»
+                переносились и выбивали соседей из ряда. */}
+            <div className="flex h-full flex-col items-center gap-2.5 px-2 text-center">
+              <Icon name={topic.icon} width={34} weight="duotone" color={topic.color} className="shrink-0" />
+              <span
+                className="font-tight text-[19px] font-black leading-[1.15] tracking-[-0.02em] md:text-[23px]"
+                style={{ color: topic.color }}
+              >
+                {topic.label}
               </span>
             </div>
           </Reveal>
@@ -650,6 +649,92 @@ function FeatureCard({
         )}
       </motion.article>
     </div>
+  );
+}
+
+/* ─────────────────────────── дорожная карта ─────────────────────────── */
+
+const ROADMAP: { icon: IconName; tone: string; title: string; text: string }[] = [
+  {
+    icon: "user",
+    tone: "var(--amber-soft)",
+    title: "Заполните анкету",
+    text: "Метод, опыт, запросы и цена — анкету проверяют руками, после проверки она попадает в каталог",
+  },
+  {
+    icon: "calendar",
+    tone: "var(--green-soft)",
+    title: "Поставьте график записи",
+    text: "Отметьте рабочие часы по дням недели — клиент займёт свободное окно сам, без переписки",
+  },
+  {
+    icon: "users",
+    tone: "var(--purple-soft)",
+    title: "Пригласите клиентов",
+    text: "Пришлите ссылку тем, с кем уже работаете, или заведите карточки вручную — расписание соберётся само",
+  },
+  {
+    icon: "note",
+    tone: "var(--peach-soft)",
+    title: "Ведите практику в приложении",
+    text: "Заметки к встрече, домашние задания и история — всё по каждому клиенту в одном месте",
+  },
+  {
+    icon: "pulse",
+    tone: "var(--tiffany-soft)",
+    title: "Клиент остаётся в процессе",
+    text: "Между встречами он отмечает состояние и пишет заметки — терапия не прерывается, и к вам хочется возвращаться",
+  },
+];
+
+function Roadmap() {
+  return (
+    <section id="start" className={`${WRAP} py-16 md:py-24`}>
+      <Reveal>
+        <h2 className="font-tight max-w-[760px] text-[32px] font-black leading-[1.06] tracking-[-0.03em] sm:text-[36px] md:text-[54px]">
+          С чего начать
+        </h2>
+      </Reveal>
+      <Reveal delay={0.08}>
+        <p className="mt-5 max-w-[560px] text-[17px] font-medium leading-[1.5] text-[var(--muted)] md:text-[19px]">
+          Пять шагов от анкеты до практики, которая дальше идёт сама
+        </p>
+      </Reveal>
+
+      <div className="mt-10 grid gap-4 md:mt-14 md:grid-cols-2">
+        {ROADMAP.map((step, i) => (
+          <Reveal
+            key={step.title}
+            delay={(i % 2) * 0.07}
+            className={i === ROADMAP.length - 1 ? "h-full md:col-span-2" : "h-full"}
+          >
+            <motion.article
+              whileHover={{ y: -5 }}
+              transition={{ duration: 0.3, ease: EASE }}
+              className="flex h-full items-start gap-4 rounded-[26px] p-6 md:p-8"
+              style={{ background: step.tone }}
+            >
+              <span className="font-tight flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[17px] font-black">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-tight text-[20px] font-black leading-tight tracking-[-0.02em] md:text-[24px]">
+                  {tie(step.title)}
+                </h3>
+                <p className="mt-2 text-[15px] font-medium leading-[1.5]">{tie(step.text)}</p>
+              </div>
+              <Icon name={step.icon} width={26} weight="regular" color="var(--ink)" className="hidden shrink-0 opacity-45 sm:block" />
+            </motion.article>
+          </Reveal>
+        ))}
+      </div>
+
+      <Reveal delay={0.1}>
+        <div className="mt-9">
+          <ArrowLink href={BOT_URL}>Заполнить анкету</ArrowLink>
+        </div>
+      </Reveal>
+    </section>
   );
 }
 
@@ -833,7 +918,7 @@ function Cta() {
 
 /* ─────────────────────────── подвал ─────────────────────────── */
 
-function Footer({ onLogin }: { onLogin: () => void }) {
+function Footer() {
   return (
     <footer className={`${WRAP} pb-10`}>
       <div className="rounded-[30px] p-8 md:p-10" style={{ background: "rgba(255,255,255,.7)", border: "1px solid var(--hairline)" }}>
@@ -854,7 +939,7 @@ function Footer({ onLogin }: { onLogin: () => void }) {
 
           <FooterCol title="Начать">
             <a href={BOT_URL} target="_blank" rel="noreferrer" className={FOOT_LINK}>Открыть в Telegram</a>
-            <button onClick={onLogin} className={`${FOOT_LINK} text-left`}>Войти по почте</button>
+            <a href="#start" className={FOOT_LINK}>С чего начать</a>
             <span className="text-[14px] font-medium text-[var(--muted-2)]">t.me/{BOT_NAME}</span>
           </FooterCol>
 
@@ -871,9 +956,11 @@ function Footer({ onLogin }: { onLogin: () => void }) {
           тревоге, выгорании и панических атаках. Психологу — расписание и рабочие часы, карточки клиентов,
           заметки к сессии, домашние задания и динамика терапии. Работает в приложении Telegram и в браузере.
         </p>
+        {/* Реквизиты живут только в разделе «Документы» — в подвале остаётся
+            дисклеймер и ссылка туда. */}
         <p className="mt-4 text-[13px] font-medium text-[var(--muted-2)]">
           Платформа не оказывает экстренную и медицинскую помощь.<br />
-          {LEGAL.operator}, {LEGAL.status}, ИНН {LEGAL.inn}. Связь: {LEGAL.email}.
+          Реквизиты и условия — в разделе <a href="/docs" className="underline underline-offset-2">Документы</a>.
         </p>
       </div>
     </footer>
