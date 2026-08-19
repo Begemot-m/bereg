@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { access } from "@/lib/server/access";
-import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE } from "@/lib/server/groups";
+import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE, moduleClosed } from "@/lib/server/groups";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
@@ -19,6 +19,8 @@ const newGroupSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
+    const closed = moduleClosed();
+    if (closed) return closed;
     const acc = await access(user.id);
     if (!acc.pro) return NextResponse.json(NEEDS_PRO_MODULE, { status: 402 });
 
@@ -37,6 +39,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
+    const closed = moduleClosed();
+    if (closed) return closed;
     const acc = await access(user.id);
     if (!acc.pro) return NextResponse.json(NEEDS_PRO_MODULE, { status: 402 });
 

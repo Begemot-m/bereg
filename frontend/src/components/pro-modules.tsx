@@ -9,6 +9,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import { ProPaywall } from "@/components/pro-sell";
 import { tap } from "@/lib/haptics";
+import { GROUPS_LIVE } from "@/lib/modules";
 import { getSubscription, isPro } from "@/lib/subscription";
 
 export type ProModule = {
@@ -19,6 +20,8 @@ export type ProModule = {
   href: string;
   soft: string;
   edge: string;
+  /** Модуль открыт пользователям. Нет — на витрине стоит «Скоро в PRO». */
+  live: boolean;
 };
 
 // Витрина платных модулей. Пока модуль один — карточка идёт во всю ширину.
@@ -31,6 +34,7 @@ export const PRO_MODULES: ProModule[] = [
     href: "/groups",
     soft: "var(--salmon-soft)",
     edge: "var(--salmon-edge)",
+    live: GROUPS_LIVE,
   },
 ];
 
@@ -60,20 +64,30 @@ function GroupsArt({ edge, soft }: { edge: string; soft: string }) {
 }
 
 function ModuleTile({ mod, locked, onLocked }: { mod: ProModule; locked: boolean; onLocked: () => void }) {
+  // Модуль ещё не открыт: карточка на месте, но приглушена и никуда не ведёт —
+  // обещание, а не мёртвая кнопка, которая уводит в пустой раздел.
+  const soon = !mod.live;
   const inner = (
     <>
       <span className="relative flex h-[104px] items-center justify-center overflow-hidden">
         <GroupsArt edge={mod.edge} soft={mod.soft} />
         <span className="keep-style absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[.06em]" style={{ color: "var(--purple-edge)" }}>
-          <Icon name={locked ? "lock" : "spark"} width={11} weight={locked ? "bold" : "fill"} color="var(--purple-edge)" />PRO
+          <Icon name={soon || locked ? "lock" : "spark"} width={11} weight={soon || locked ? "bold" : "fill"} color="var(--purple-edge)" />
+          {soon ? "Скоро в PRO" : "PRO"}
         </span>
       </span>
       <span className="flex flex-1 flex-col bg-white p-3">
         <span className="font-tight text-[15px] font-black leading-tight">{mod.title}</span>
         <span className="mt-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">{mod.desc}</span>
-        <span className="mt-3 flex items-center justify-center gap-1.5 rounded-full py-2 text-[12px] font-black text-white" style={{ background: mod.edge }}>
-          {locked ? "Подключить" : "Перейти"} <ArrowGlyph size={12} />
-        </span>
+        {soon ? (
+          <span className="mt-3 flex items-center justify-center gap-1.5 rounded-full py-2 text-[12px] font-black" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+            <Icon name="clock" width={12} weight="bold" color="var(--muted)" /> Скоро
+          </span>
+        ) : (
+          <span className="mt-3 flex items-center justify-center gap-1.5 rounded-full py-2 text-[12px] font-black text-white" style={{ background: mod.edge }}>
+            {locked ? "Подключить" : "Перейти"} <ArrowGlyph size={12} />
+          </span>
+        )}
       </span>
     </>
   );
@@ -81,8 +95,38 @@ function ModuleTile({ mod, locked, onLocked }: { mod: ProModule; locked: boolean
   const cls = "group relative flex w-full flex-col overflow-hidden rounded-[19px] text-left transition-transform duration-200 active:scale-[.98]";
   const style = { border: `var(--bw) solid ${mod.edge}` };
 
+  // Затенение — поверх всей плитки, чтобы приглушить и картинку, и текст.
+  if (soon) {
+    return (
+      <div className={`${cls} cursor-default`} style={{ ...style, borderColor: "var(--edge-neutral)" }} aria-disabled>
+        <span className="pointer-events-none absolute inset-0 z-[1]" style={{ background: "color-mix(in srgb, var(--surface) 62%, transparent)" }} />
+        {inner}
+      </div>
+    );
+  }
   if (locked) return <button onClick={() => { tap(); onLocked(); }} className={cls} style={style}>{inner}</button>;
   return <Link href={mod.href} onClick={() => tap()} className={cls} style={style}>{inner}</Link>;
+}
+
+/**
+ * Страница модуля, который ещё не открыт. По прямой ссылке сюда попадают и
+ * без витрины, поэтому заглушка живёт на самой странице, а не только на плитке.
+ */
+export function ModuleSoon({ mod }: { mod: ProModule }) {
+  return (
+    <div className="rounded-[19px] bg-white p-5 text-center" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+      <span className="ico keep-style mx-auto h-12 w-12" style={{ background: "var(--surface-2)" }}>
+        <Icon name="lock" width={22} weight="bold" color="var(--muted)" />
+      </span>
+      <h2 className="mt-3 font-tight text-[19px] font-black leading-tight">{mod.title}</h2>
+      <p className="mx-auto mt-1 max-w-[280px] text-[12px] font-semibold leading-snug text-[var(--muted)]">
+        Модуль готовим — он появится в подписке PRO. Пока пользоваться им нельзя.
+      </p>
+      <span className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-[.06em]" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+        <Icon name="clock" width={12} weight="bold" color="var(--muted)" /> Скоро в PRO
+      </span>
+    </div>
+  );
 }
 
 /**

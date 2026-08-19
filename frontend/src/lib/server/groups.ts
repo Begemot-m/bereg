@@ -1,6 +1,19 @@
 // Общее для роутов модуля «Группы и пары». Живёт вне app/api: из route.ts
 // Next разрешает экспортировать только обработчики.
 
+import { NextResponse } from "next/server";
+
+import { GROUPS_LIVE } from "@/lib/modules";
+
+/**
+ * Пока модуль не открыт пользователям, его роутов для внешнего мира не
+ * существует. Запирать только интерфейс мало: страницу можно обойти, а запросы
+ * — послать руками.
+ */
+export function moduleClosed(): NextResponse | null {
+  return GROUPS_LIVE ? null : NextResponse.json({ error: "Not found" }, { status: 404 });
+}
+
 /** Модуль платный, и запирать его только в интерфейсе нельзя. */
 export const NEEDS_PRO_MODULE = {
   error: "needs_pro",

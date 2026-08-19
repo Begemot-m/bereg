@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/blocks";
 import { GroupsDashboard } from "@/components/groups-dashboard";
 import { Reveal } from "@/components/motion";
-import { ModuleLocked, findModule } from "@/components/pro-modules";
+import { ModuleLocked, ModuleSoon, findModule } from "@/components/pro-modules";
 import { getSubscription, isPro } from "@/lib/subscription";
 
 const MOD = findModule("groups");
@@ -26,7 +26,9 @@ export default function GroupsPage() {
       <PageHead title={MOD.title} icon={MOD.icon} back="/tools" sub="Модуль PRO" />
       <Reveal y={10}>
         <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
-          {isPending ? null : pro ? <GroupsDashboard /> : <ModuleLocked mod={MOD} points={POINTS} />}
+          {/* Модуль ещё не открыт — ни дашборда, ни витрины подписки: по прямой
+              ссылке сюда попадают и в обход «Инструментов». */}
+          {!MOD.live ? <ModuleSoon mod={MOD} /> : isPending ? null : pro ? <GroupsDashboard /> : <ModuleLocked mod={MOD} points={POINTS} />}
         </div>
       </Reveal>
     </div>

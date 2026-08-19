@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE } from "@/lib/server/groups";
+import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE, moduleClosed } from "@/lib/server/groups";
 import { access } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -23,6 +23,8 @@ const withMembers = (id: number) => prisma.group.findUnique({ where: { id }, inc
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser(req);
+    const closed = moduleClosed();
+    if (closed) return closed;
     const acc = await access(user.id);
     if (!acc.pro) return NextResponse.json(NEEDS_PRO_MODULE, { status: 402 });
 
@@ -65,6 +67,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser(req);
+    const closed = moduleClosed();
+    if (closed) return closed;
     const acc = await access(user.id);
     if (!acc.pro) return NextResponse.json(NEEDS_PRO_MODULE, { status: 402 });
 

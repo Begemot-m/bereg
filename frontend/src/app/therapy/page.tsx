@@ -43,7 +43,7 @@ const bookedDay = zoneFormat({ day: "numeric", month: "long" });
 const bookedTime = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 
 // Прикреплённые терапевты: общий стор (каталог добавляет) + автодобавление из записей.
-function useMyTherapists(bookingNames: string[], onDetach: (name: string) => void) {
+function useMyTherapists(bookingNames: string[], bookings: MyBooking[], onDetach: (name: string) => void) {
   const [store, setStore] = useState<TherapistStore>({ list: [], removed: [], active: null, ids: {}, cards: {} });
   const sync = () => {
     const base = loadTherapists();
@@ -60,7 +60,13 @@ function useMyTherapists(bookingNames: string[], onDetach: (name: string) => voi
     active: store.active,
     setActive: (name: string) => { select(); persist({ ...store, active: name }); setActiveTherapist(name); },
     // Открепили — записи к этому специалисту отменяются: и здесь, и на главной.
-    remove: (name: string) => { tap(); setStore(detachTherapist(name)); onDetach(name); },
+    // Отмену запускаем только после того, как открепление доехало до базы: она
+    // обновляет список записей, а тот тянет за собой новый запрос за
+    // терапевтами — и раньше он успевал вернуть ещё не откреплённого.
+    remove: (name: string) => {
+      tap();
+      void detachTherapist(name, therapistId(name, bookings)).then(() => onDetach(name));
+    },
   };
 }
 
@@ -80,7 +86,7 @@ export default function TherapyPage() {
     },
     onSettled: () => { for (const key of ["my-bookings", "slots", "month-avail"]) qc.invalidateQueries({ queryKey: [key] }); },
   });
-  const therapists = useMyTherapists(bookingNames, (name) => dropBookings.mutate(name));
+  const therapists = useMyTherapists(bookingNames, ordered, (name) => dropBookings.mutate(name));
   const active = therapists.active;
   const next = ordered.find((item) => item.psyName === active && new Date(item.startsAt) > new Date())
     ?? ordered.find((item) => new Date(item.startsAt) > new Date()) ?? null;

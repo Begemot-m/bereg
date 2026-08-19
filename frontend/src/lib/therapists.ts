@@ -49,6 +49,11 @@ export function saveTherapists(store: TherapistStore) {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("bereg:therapists"));
 }
 
+// Открепления, которые сервер ещё не подтвердил. Пока запрос в полёте, ответ
+// параллельного GET (его успевает выпустить отмена записей) приходит со старым
+// списком — и возвращал специалиста в раздел сразу после открепления.
+const detaching = new Set<string>();
+
 /** Ответ сервера ложится в кэш целиком: он и есть правда. */
 function applyServer(links: TherapistLink[]): TherapistStore {
   const store = loadTherapists();
@@ -61,9 +66,13 @@ function applyServer(links: TherapistLink[]): TherapistStore {
   const next: TherapistStore = {
     ids,
     cards,
-    list: links.map((l) => l.name),
-    removed: store.removed.filter((name) => !links.some((l) => l.name === name)),
-    active: links.find((l) => l.active)?.name ?? links[0]?.name ?? null,
+    list: links.map((l) => l.name).filter((name) => !detaching.has(name)),
+    // Имя уходит из «удалённых», только когда сервер и правда вернул этого
+    // специалиста, а открепление не в полёте.
+    removed: store.removed.filter((name) => detaching.has(name) || !links.some((l) => l.name === name)),
+    active: links.find((l) => l.active && !detaching.has(l.name))?.name
+      ?? links.map((l) => l.name).find((name) => !detaching.has(name))
+      ?? null,
   };
   saveTherapists(next);
   return next;
@@ -92,7 +101,7 @@ async function pushLink(psyId: number, action: "attach" | "detach" | "active", n
       } catch (e) {
         // Мест у специалиста нет — откатываем прикрепление, иначе в разделе
         // осталась бы карточка терапевта, который клиента не ведёт.
-        if (notAccepting(e) && name) detachTherapist(name);
+        if (notAccepting(e) && name) void detachTherapist(name);
       }
     }
     return;
@@ -104,7 +113,7 @@ async function pushLink(psyId: number, action: "attach" | "detach" | "active", n
       body: JSON.stringify({ psychologistId: psyId, action }),
     }));
   } catch (e) {
-    if (notAccepting(e) && name) detachTherapist(name);
+    if (notAccepting(e) && name) void detachTherapist(name);
     /* иначе останемся на кэше — следующая синхронизация подтянет */
   }
 }
@@ -166,8 +175,11 @@ export function mergeWithBookings(store: TherapistStore, bookingNames: string[])
 }
 
 // Открепить терапевта: уходит из списка и попадает в «удалённые», чтобы его
-// не вернула склейка с записями.
-export function detachTherapist(name: string): TherapistStore {
+// не вернула склейка с записями. Кэш обновляется сразу (раздел не должен ждать
+// сеть), а промис завершается, когда открепление доехало до базы: только после
+// этого можно трогать записи — иначе их отмена выпускает GET, который обгоняет
+// открепление и приносит специалиста обратно.
+export async function detachTherapist(name: string, psyId?: number): Promise<TherapistStore> {
   const store = loadTherapists();
   const list = store.list.filter((item) => item !== name);
   const next: TherapistStore = {
@@ -178,7 +190,15 @@ export function detachTherapist(name: string): TherapistStore {
     active: store.active === name ? list[0] ?? null : store.active,
   };
   saveTherapists(next);
-  const id = store.ids[name];
-  if (id) void pushLink(id, "detach");
-  return next;
+  // id мог не осесть в кэше: специалист попадает в раздел и просто по записи,
+  // без кнопки «В терапию». Без id открепление не доезжало до базы вовсе.
+  const id = store.ids[name] ?? psyId;
+  if (!id) return next;
+  detaching.add(name);
+  try {
+    await pushLink(id, "detach");
+  } finally {
+    detaching.delete(name);
+  }
+  return loadTherapists();
 }
