@@ -24,7 +24,7 @@ import {
 } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
-import { LandingScreen } from "@/components/landing-screens";
+import { asset } from "@/lib/asset";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
 import { FAQ_ITEMS } from "@/lib/seo";
 
@@ -468,7 +468,16 @@ function ScreensTabs() {
               transition={{ duration: 0.45, ease: EASE }}
               className="h-full w-full drop-shadow-[0_20px_60px_rgba(32,28,24,.16)]"
             >
-              <LandingScreen tab={tab.key} accent={tab.accent} />
+              {/* Кадры сняты с живого демо (scripts/landing-shots.mjs): рисованные
+                  копии разделов расходились с приложением. */}
+              <img
+                src={asset(`/shots/w-${tab.key}.webp`)}
+                alt={`Раздел «${tab.label}» в приложении`}
+                width={1320}
+                height={700}
+                className="h-full w-full rounded-[16px] object-cover object-top md:rounded-[24px]"
+                style={{ border: "1px solid var(--hairline)" }}
+              />
             </motion.div>
           </AnimatePresence>
         </motion.div>
@@ -637,7 +646,17 @@ function FeatureCard({
             className="absolute inset-x-4 bottom-0 top-7 md:inset-x-7 md:top-10"
             style={stack ? { y: shotY } : undefined}
           >
-            <LandingScreen tab={block.shot} accent={block.accent} compact />
+            {/* Телефон целиком, срезанный нижним краем карточки: тот же кадр,
+                что видит человек в Telegram, вместе с нижней навигацией. */}
+            <img
+              src={asset(`/shots/p-${block.shot}.webp`)}
+              alt={block.title}
+              width={390}
+              height={844}
+              loading="lazy"
+              className="mx-auto h-full w-auto max-w-full rounded-t-[22px] object-cover object-top"
+              style={{ border: "1px solid var(--hairline)", borderBottom: "none", boxShadow: "0 24px 60px rgba(32,28,24,.18)" }}
+            />
           </motion.div>
         </div>
 

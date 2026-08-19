@@ -50,3 +50,5 @@ frontend/public/mascots/*.png
 frontend/public/mood/*.png
 frontend/public/practices/*.png
 .playwright-mcp/
+# Контактные листы для проверки кадров — локальная сверка, не ассет.
+frontend/scripts/.*.png
