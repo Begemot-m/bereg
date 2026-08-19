@@ -104,7 +104,8 @@ model Group {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  members GroupMember[]
+  members  GroupMember[]
+  meetings GroupMeeting[]
 
   @@index([psychologistId, status])
 }
@@ -122,8 +123,40 @@ model GroupMember {
   status   String   @default("active")
   joinedAt DateTime @default(now())
 
+  attendance GroupAttendance[]
+
   @@index([groupId, status])
   @@index([clientId])
+}
+
+/// Встреча группы. Одна запись на всех — в календаре она занимает окно
+/// целиком, а не превращается в запись на каждого участника.
+model GroupMeeting {
+  id          Int      @id @default(autoincrement())
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     Int
+  startsAt    DateTime
+  durationMin Int      @default(90)
+  /// planned | done | cancelled
+  status      String   @default("planned")
+  note        String   @default("") @db.Text
+  createdAt   DateTime @default(now())
+
+  attendance GroupAttendance[]
+
+  @@index([groupId, startsAt])
+}
+
+/// Кто был на встрече. Отметки нет — значит встречу ещё не отметили.
+model GroupAttendance {
+  id        Int          @id @default(autoincrement())
+  meeting   GroupMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meetingId Int
+  member    GroupMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId  Int
+  present   Boolean      @default(true)
+
+  @@unique([meetingId, memberId])
 }
 
 model Nudge {

@@ -64,7 +64,8 @@ type Appointment = {
 
 type GroupKind = "group" | "pair";
 type GroupMember = { id: number; clientId: number | null; name: string; status: "active" | "left"; joinedAt: string };
-type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; status: "active" | "archived"; createdAt: string; members: GroupMember[] };
+type GroupMeeting = { id: number; startsAt: string; durationMin: number; status: "planned" | "done" | "cancelled"; note: string; attendance: { memberId: number; present: boolean }[] };
+type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; status: "active" | "archived"; createdAt: string; members: GroupMember[]; meetings: GroupMeeting[] };
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number; emotions?: string[] }; // 1..5 + отмеченные состояния
 type SessionReflection = { appointmentId: number; startsAt: string; status: string; therapistName: string; preparation: string; takeaway: string; feeling: number | null; updatedAt: string };
@@ -198,7 +199,23 @@ function seedGroups(clients: Client[], now: string): Group[] {
     status: "active",
     joinedAt: now,
   }));
-  return [{ id: 901, title: "Группа поддержки «Опоры»", kind: "group", capacity: 8, note: "", status: "active", createdAt: now, members }];
+  // Цикл из шести встреч по вторникам: две прошли и отмечены, остальные впереди.
+  // Без этого дашборд выглядит пустым и не показывает, ради чего модуль.
+  const start = new Date(now);
+  start.setHours(19, 0, 0, 0);
+  const meetings: GroupMeeting[] = Array.from({ length: 6 }, (_, i) => {
+    const at = new Date(start.getTime() + (i - 2) * 7 * 86_400_000);
+    const past = i < 2;
+    return {
+      id: 910 + i,
+      startsAt: at.toISOString(),
+      durationMin: 90,
+      status: past ? "done" : "planned",
+      note: "",
+      attendance: past ? members.map((m, k) => ({ memberId: m.id, present: !(i === 1 && k === 1) })) : [],
+    };
+  });
+  return [{ id: 901, title: "Группа поддержки «Опоры»", kind: "group", capacity: 8, note: "", status: "active", createdAt: now, members, meetings }];
 }
 
 // Специалист, который только что завёл аккаунт: разделы пустые, знакомство и
@@ -367,6 +384,7 @@ function load(): DB {
         }
       }
       if (!db.groups) db.groups = [];
+      for (const g of db.groups) if (!g.meetings) g.meetings = [];
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
       if (!db.goodNotes) db.goodNotes = s.goodNotes;
@@ -960,6 +978,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         status: "active",
         createdAt: new Date().toISOString(),
         members: [],
+        meetings: [],
       };
       db.groups.unshift(g);
       save(db);
@@ -984,6 +1003,42 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       db.groups = db.groups.filter((x) => x.id !== g.id);
       save(db);
       return delay(undefined as T);
+    }
+  }
+
+  const meetingsOf = clean.match(/^\/groups\/(\d+)\/meetings$/)?.[1];
+  if (meetingsOf) {
+    const g = db.groups.find((x) => x.id === Number(meetingsOf));
+    if (!g) throw new Error("API 404");
+    if (method === "POST") {
+      const first = new Date(String(body.startsAt));
+      const times = Math.max(1, Math.min(52, Number(body.repeatWeeks ?? 1)));
+      const dur = Math.max(15, Math.min(480, Number(body.durationMin ?? 90)));
+      for (let i = 0; i < times; i++) {
+        g.meetings.push({
+          id: ++db.seq,
+          startsAt: new Date(first.getTime() + i * 7 * 86_400_000).toISOString(),
+          durationMin: dur,
+          status: "planned",
+          note: "",
+          attendance: [],
+        });
+      }
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+    const meeting = g.meetings.find((m) => m.id === Number(q.get("meetingId")));
+    if (!meeting) throw new Error("API 404");
+    if (method === "PATCH") {
+      if (body.status !== undefined) meeting.status = body.status as GroupMeeting["status"];
+      if (body.attendance !== undefined) meeting.attendance = body.attendance as GroupMeeting["attendance"];
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+    if (method === "DELETE") {
+      g.meetings = g.meetings.filter((m) => m.id !== meeting.id);
+      save(db);
+      return delay(withMemberPhotos(g) as T);
     }
   }
 

@@ -13,4 +13,15 @@ export const MEMBERS_INCLUDE = {
     orderBy: { joinedAt: "asc" },
     select: { id: true, clientId: true, name: true, status: true },
   },
+  meetings: {
+    orderBy: { startsAt: "asc" },
+    select: {
+      id: true,
+      startsAt: true,
+      durationMin: true,
+      status: true,
+      note: true,
+      attendance: { select: { memberId: true, present: true } },
+    },
+  },
 } as const;
