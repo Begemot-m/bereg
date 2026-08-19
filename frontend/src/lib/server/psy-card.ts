@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { EMPTY_AVAILABILITY, type Availability } from "@/lib/availability";
 import { publicRules } from "@/lib/profile-rules";
 import { prisma } from "@/lib/server/prisma";
@@ -8,9 +10,28 @@ import { freeAvailability, horizon, nextFreeSlotDays, type OverrideDTO, type Wor
 // дорисовывал остальное из статического `PSYS` — в бою пустого. Отсюда и
 // «специалист без аватарки»: закреплённый терапевт выглядел иначе, чем та же
 // карточка в каталоге.
-export type PsyProfileRow = Awaited<ReturnType<typeof prisma.psyProfile.findMany>>[number];
+// `photoCount` появляется, когда анкету читают без самих снимков (так делает
+// каталог): считать длину `data.photos` тогда не по чему.
+export type PsyProfileRow = Awaited<ReturnType<typeof prisma.psyProfile.findMany>>[number] & { photoCount?: number };
 
 export type PsyCard = ReturnType<typeof mapCard>;
+
+/// Сколько снимков карточка вообще показывает.
+export const MAX_PHOTOS = 3;
+
+/**
+ * Ссылки на фотографии анкеты. Сам снимок лежит data-URL'ом внутри Json, и
+ * подставлять его в карточку нельзя: список каталога распухал до мегабайта на
+ * человека — без кеша и без ленивой загрузки. Отдаём адреса роута
+ * `/api/catalog/photo`, а версия в `?v=` меняется вместе с анкетой: браузер
+ * держит снимок в кеше ровно до тех пор, пока психолог его не заменил.
+ */
+export function psyPhotoUrls(row: Pick<PsyProfileRow, "userId" | "updatedAt" | "photoCount">, data: Record<string, unknown>): string[] {
+  const stored = Array.isArray(data.photos) ? (data.photos as unknown[]).filter(Boolean).length : 0;
+  const count = Math.min(row.photoCount ?? stored, MAX_PHOTOS);
+  const version = row.updatedAt instanceof Date ? row.updatedAt.getTime() : 0;
+  return Array.from({ length: count }, (_, index) => `/api/catalog/photo/${row.userId}/${index}?v=${version}`);
+}
 
 function mapCard(row: PsyProfileRow, ctx: {
   rating: number;
@@ -21,6 +42,7 @@ function mapCard(row: PsyProfileRow, ctx: {
 }) {
   const data = (row.data as Record<string, unknown>) ?? {};
   const location = (data.location ?? {}) as Record<string, unknown>;
+  const photos = psyPhotoUrls(row, data);
   return {
     availability: ctx.availability.slots ? ctx.availability : undefined,
     availableTimes: ctx.availability.times,
@@ -60,8 +82,8 @@ function mapCard(row: PsyProfileRow, ctx: {
     rules: publicRules(data.rules),
     style: data.style ?? "",
     quote: data.quote ?? "",
-    photos: data.photos ?? [],
-    portrait: (data.photos as string[] | undefined)?.[0] ?? "",
+    photos,
+    portrait: photos[0] ?? "",
     city: location.city ?? row.city ?? "",
     district: location.district ?? "",
     metro: location.metro ?? "",
@@ -145,9 +167,28 @@ export async function buildPsyCards(rows: PsyProfileRow[]): Promise<PsyCard[]> {
   });
 }
 
+/**
+ * Анкеты без самих фотографий. Снимки лежат data-URL'ом в Json, и обычный
+ * `findMany` поднимал их из базы целиком: две сотни анкет — это сотни
+ * мегабайт base64 в памяти сервера на каждый заход в каталог. Карточке хватает
+ * их числа, а байты она берёт из `/api/catalog/photo`.
+ */
+export function psyProfileRows(where: Prisma.Sql, limit: number): Promise<PsyProfileRow[]> {
+  return prisma.$queryRaw<PsyProfileRow[]>`
+    SELECT "userId", "name", "primaryMethod", "experienceYears", "sessionPrice", "sessionMinutes",
+           "format", "city", "status", "rejectReason", "submittedAt", "reviewedAt", "updatedAt",
+           "data" - 'photos' AS "data",
+           (CASE WHEN jsonb_typeof("data"->'photos') = 'array' THEN jsonb_array_length("data"->'photos') ELSE 0 END)::int AS "photoCount"
+      FROM "PsyProfile"
+     WHERE ${where}
+     ORDER BY "sessionPrice" ASC
+     LIMIT ${limit}
+  `;
+}
+
 /** Карточки по списку id — для разделов, которые уже знают, кто им нужен. */
 export async function psyCardsByIds(ids: number[]): Promise<PsyCard[]> {
   if (ids.length === 0) return [];
-  const rows = await prisma.psyProfile.findMany({ where: { userId: { in: ids } } });
+  const rows = await psyProfileRows(Prisma.sql`"userId" IN (${Prisma.join(ids)})`, ids.length);
   return buildPsyCards(rows);
 }

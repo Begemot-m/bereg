@@ -1,8 +1,8 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { activityRank, catalogPlacement } from "@/lib/server/access";
-import { prisma } from "@/lib/server/prisma";
-import { buildPsyCards } from "@/lib/server/psy-card";
+import { buildPsyCards, psyProfileRows } from "@/lib/server/psy-card";
 import { LIMITS, limited } from "@/lib/server/rate-limit";
 
 export const runtime = "nodejs";
@@ -27,17 +27,16 @@ export async function GET(req: NextRequest) {
   // по-прежнему не попадает, и галочки «подтверждён» на ней нет.
   const one = Number(url.searchParams.get("id"));
 
-  const found = await prisma.psyProfile.findMany({
-    where: one > 0
-      ? { userId: one }
-      : {
-          status: "approved",
-          ...(format && format !== "any" ? { OR: [{ format }, { format: "both" }] } : {}),
-          ...(maxPrice > 0 ? { sessionPrice: { lte: maxPrice } } : {}),
-        },
-    orderBy: { sessionPrice: "asc" },
-    take: one > 0 ? 1 : 200,
-  });
+  // Фотографии из анкет сюда не поднимаем: они лежат data-URL'ом в Json, и
+  // каталог вытягивал бы из базы сотни мегабайт base64 ради списка. Карточка
+  // отдаёт вместо снимков ссылки на /api/catalog/photo.
+  const where =
+    one > 0
+      ? Prisma.sql`"userId" = ${one}`
+      : Prisma.sql`"status" = 'approved'${
+          format && format !== "any" ? Prisma.sql` AND ("format" = ${format} OR "format" = 'both')` : Prisma.empty
+        }${maxPrice > 0 ? Prisma.sql` AND "sessionPrice" <= ${maxPrice}` : Prisma.empty}`;
+  const found = await psyProfileRows(where, one > 0 ? 1 : 200);
 
   // Размещение бесплатное: анкета стоит в каталоге у всех, кого одобрили.
   // Подписка не добавляет ни места в выдаче, ни строчки выше — иначе

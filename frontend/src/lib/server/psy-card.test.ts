@@ -62,6 +62,7 @@ function cardFromPatch() {
       city: fields.city ?? "",
       status: "approved",
       reviewedAt: new Date(),
+      updatedAt: new Date(1000),
       data,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any,
@@ -114,7 +115,12 @@ describe("анкета доезжает до каталога", () => {
     const [card] = await cardFromPatch();
     expect(card.tg).toBe("vetrova");
     expect(card.links).toEqual([{ kind: "site", url: "https://vetrova.ru" }]);
-    expect(card.portrait).toBe("data:image/png;base64,AAAA");
+    // Снимок в карточку не подставляется: в списке каталога он весил бы
+    // мегабайт на человека. Вместо него — ссылка на роут с фотографией.
+    // Версия в ссылке — время правки анкеты: сменил психолог фото, сменился и
+    // адрес, и браузер перестаёт показывать снимок из кеша.
+    expect(card.portrait).toBe("/api/catalog/photo/42/0?v=1000");
+    expect(card.photos).toEqual(["/api/catalog/photo/42/0?v=1000"]);
   });
 
   test("правила уходят в каталог только отмеченные", async () => {

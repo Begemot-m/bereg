@@ -231,7 +231,7 @@ export default function CatalogPage() {
           <div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{mode === "personal" ? "Персональная подборка" : catalogLoading && !catalog.length ? "Загружаем анкеты" : `${allFiltered.length} специалистов`}</p><h2 className="font-tight mt-0.5 text-[21px] font-black">{mode === "personal" ? "Специалисты для вас" : catalogLoading && !catalog.length ? "Каталог" : `Страница ${Math.min(page + 1, pageCount)} из ${pageCount}`}</h2></div>
         </div>
 
-        {catalogLoading && !catalog.length ? <SkeletonCards count={4} /> : visible.length ? <Stagger className="space-y-3">{visible.map((psy) => <StaggerItem key={psy.id}><PsyCard psy={psy} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} catalogEmpty={catalog.length === 0} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
+        {catalogLoading && !catalog.length ? <SkeletonCards count={4} /> : visible.length ? <Stagger className="space-y-3">{visible.map((psy, index) => <StaggerItem key={psy.id}><PsyCard psy={psy} index={index} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} catalogEmpty={catalog.length === 0} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
 
         {mode === "all" && allFiltered.length > 10 && <div className="mt-5 flex items-center justify-between gap-2"><Button variant="soft" disabled={page === 0} onClick={() => { setPage((value) => Math.max(0, value - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Предыдущие 10</Button><span className="tnum text-[11px] font-black text-[var(--muted)]">{page + 1}/{pageCount}</span><Button disabled={page + 1 >= pageCount} onClick={() => { setPage((value) => Math.min(pageCount - 1, value + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Следующие 10</Button></div>}
       </main>
@@ -251,7 +251,7 @@ function specialistLine(psy: Psy): string {
   return (psy.specialistTypes?.length ? psy.specialistTypes : ["Психолог"]).join(" · ");
 }
 
-function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
+function PsyCard({ psy, index = 0, onOpen }: { psy: Psy; index?: number; onOpen: () => void }) {
   const portrait = asset(psy.portrait);
   // Три запроса, отмеченные звёздочкой в анкете, — главное, что человек должен
   // прочитать в миниатюре. Не отметил ни одного — остаётся строка «Помогаю с…».
@@ -269,7 +269,10 @@ function PsyCard({ psy, onOpen }: { psy: Psy; onOpen: () => void }) {
     >
       <div className="flex gap-3.5 p-4">
         <div className="relative h-[132px] w-[106px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "var(--head-soft)" }}>
-          <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="106px" className="object-cover" priority={psy.id <= 3} unoptimized={isInlineImage(portrait)} />
+          {/* Вперёд грузим только те портреты, что видно без прокрутки: остальные
+              браузер подтянет сам, когда до них дойдут. Раньше «первыми» считались
+              карточки с id до трёх — в бою это могли быть любые места выдачи. */}
+          <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="106px" className="object-cover" priority={index < 2} loading={index < 2 ? undefined : "lazy"} unoptimized={isInlineImage(portrait)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center gap-1.5">
