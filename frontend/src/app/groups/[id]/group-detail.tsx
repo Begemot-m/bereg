@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { PageHead } from "@/components/blocks";
+import { ModuleSoon, findModule } from "@/components/pro-modules";
 import { ClientAvatar } from "@/components/client-avatar";
 import { useConfirmAsk } from "@/components/confirm-ask";
 import {
@@ -59,7 +60,26 @@ import { tap } from "@/lib/haptics";
 
 type Tab = "meetings" | "members" | "tasks";
 
+const MOD = findModule("groups");
+
+// Карточку группы закрывает тот же флаг, что и раздел: иначе внутрь ведёт
+// прямая ссылка на конкретную группу. Обёртка отдельная, чтобы хуки самой
+// карточки не запускались, пока модуль закрыт.
 export function GroupDetail() {
+  if (!MOD.live) {
+    return (
+      <div>
+        <PageHead title={MOD.title} icon={MOD.icon} back="/tools" sub="Модуль PRO" />
+        <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+          <ModuleSoon mod={MOD} />
+        </div>
+      </div>
+    );
+  }
+  return <GroupDetailInner />;
+}
+
+function GroupDetailInner() {
   const params = useParams();
   const search = useSearchParams();
   const router = useRouter();
