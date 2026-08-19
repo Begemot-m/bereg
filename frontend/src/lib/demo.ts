@@ -67,7 +67,8 @@ type GroupMember = { id: number; clientId: number | null; name: string; status: 
 type MeetFormat = "online" | "offline";
 type GroupMeeting = { id: number; startsAt: string; durationMin: number; status: "planned" | "done" | "cancelled"; note: string; format?: MeetFormat | null; place?: string | null; attendance: { memberId: number; present: boolean }[] };
 type GroupTask = { id: number; text: string; dueAt: string | null; status: "open" | "done"; createdAt: string };
-type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; about: string; format: MeetFormat; place: string; resourceUrl: string; remind24h: boolean; remind2h: boolean; status: "active" | "archived"; createdAt: string; members: GroupMember[]; meetings: GroupMeeting[]; tasks: GroupTask[] };
+type GroupPost = { id: number; kind: "post" | "event"; text: string; createdAt: string; reach: number };
+type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; about: string; format: MeetFormat; place: string; resourceUrl: string; remind24h: boolean; remind2h: boolean; status: "active" | "archived"; createdAt: string; members: GroupMember[]; meetings: GroupMeeting[]; tasks: GroupTask[]; posts: GroupPost[] };
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number; emotions?: string[] }; // 1..5 + отмеченные состояния
 type SessionReflection = { appointmentId: number; startsAt: string; status: string; therapistName: string; preparation: string; takeaway: string; feeling: number | null; updatedAt: string };
@@ -220,6 +221,12 @@ function seedGroups(clients: Client[], now: string): Group[] {
   const tasks: GroupTask[] = [
     { id: 930, text: "Записать три ситуации за неделю, где было трудно попросить о помощи", dueAt: meetings[2]?.startsAt ?? null, status: "open", createdAt: now },
   ];
+  // Лента: объявление ведущего и след прошлого переноса — чтобы сразу было
+  // видно, что группе можно писать разом и что изменения записываются сами.
+  const posts: GroupPost[] = [
+    { id: 940, kind: "post", text: "Во вторник начинаем ровно в 19:00 — придите на пять минут раньше, дверь домофона закрывается.", createdAt: new Date(+new Date(now) - 2 * 86_400_000).toISOString(), reach: members.length },
+    { id: 941, kind: "event", text: `Встреча перенесена: ${fmtWhen(meetings[1]?.startsAt ?? now)}`, createdAt: new Date(+new Date(now) - 9 * 86_400_000).toISOString(), reach: members.length },
+  ];
   return [{
     id: 901,
     title: "Группа поддержки «Опоры»",
@@ -237,6 +244,7 @@ function seedGroups(clients: Client[], now: string): Group[] {
     members,
     meetings,
     tasks,
+    posts,
   }];
 }
 
@@ -405,10 +413,13 @@ function load(): DB {
           db.work.hours[Number(k)] = (arr as WorkSlot[]).map((s) => ({ ...s, fmt: s.fmt ?? ("online" as ApptFormat) }));
         }
       }
-      if (!db.groups) db.groups = [];
+      // База, снятая до модуля «Группы»: раздел встречал пустотой, а ссылки на
+      // демо-группу вели в никуда. Досеваем её один раз, при первой загрузке.
+      if (!db.groups) db.groups = seedGroups(db.clients ?? [], new Date().toISOString());
       for (const g of db.groups) {
         if (!g.meetings) g.meetings = [];
         if (!g.tasks) g.tasks = [];
+        if (!g.posts) g.posts = [];
         if (g.about === undefined) { g.about = ""; g.format = "offline"; g.place = ""; g.resourceUrl = ""; g.remind24h = true; g.remind2h = true; }
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
@@ -479,6 +490,18 @@ export function resetLocalData() {
 const fmtWhen = (iso: string) => new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 function notify(db: DB, forRole: NotifRole, kind: string, text: string) {
   db.notifications.push({ id: ++db.seq, forRole, kind, text, createdAt: new Date().toISOString(), read: false });
+}
+
+/**
+ * Одно изменение в группе — одно сообщение всем участникам сразу. Запись
+ * ложится в ленту группы (ведущий видит, что именно ушло) и уходит
+ * уведомлением каждому участнику: перенос, отмена, новая встреча, объявление.
+ */
+function announce(db: DB, g: Group, kind: GroupPost["kind"], text: string, notifKind = "group") {
+  const reach = g.members.filter((m) => m.status === "active").length;
+  g.posts.unshift({ id: ++db.seq, kind, text, createdAt: new Date().toISOString(), reach });
+  if (reach > 0) notify(db, "client", notifKind, `${g.title}: ${text}`);
+  return reach;
 }
 
 // То же правило, что в lib/server/access.ts: пробный PRO идёт 14 дней от
@@ -1020,6 +1043,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         members: [],
         meetings: [],
         tasks: [],
+        posts: [],
       };
       db.groups.unshift(g);
       save(db);
@@ -1036,9 +1060,20 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
       if (body.title !== undefined) g.title = String(body.title);
       if (body.capacity !== undefined) g.capacity = Number(body.capacity);
       if (body.note !== undefined) g.note = String(body.note);
-      if (body.about !== undefined) g.about = String(body.about);
-      if (body.format !== undefined) g.format = body.format as MeetFormat;
-      if (body.place !== undefined) g.place = String(body.place);
+      // Про что участникам важно узнать сразу: где встречаемся и по каким
+      // правилам. Приватная заметка ведущего (`note`) — только его.
+      if (body.about !== undefined && String(body.about) !== g.about) {
+        g.about = String(body.about);
+        announce(db, g, "event", "Ведущий обновил описание группы");
+      }
+      if (body.format !== undefined && body.format !== g.format) {
+        g.format = body.format as MeetFormat;
+        announce(db, g, "event", `Формат встреч: ${g.format === "online" ? "онлайн" : "очно"}`);
+      }
+      if (body.place !== undefined && String(body.place) !== g.place) {
+        g.place = String(body.place);
+        if (g.place) announce(db, g, "event", `Место встреч: ${g.place}`);
+      }
       if (body.resourceUrl !== undefined) g.resourceUrl = String(body.resourceUrl);
       if (body.remind24h !== undefined) g.remind24h = Boolean(body.remind24h);
       if (body.remind2h !== undefined) g.remind2h = Boolean(body.remind2h);
@@ -1058,13 +1093,15 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const g = db.groups.find((x) => x.id === Number(tasksOf));
     if (!g) throw new Error("API 404");
     if (method === "POST") {
+      const text = String(body.text ?? "").trim();
       g.tasks.unshift({
         id: ++db.seq,
-        text: String(body.text ?? "").trim(),
+        text,
         dueAt: (body.dueAt as string) ?? null,
         status: "open",
         createdAt: new Date().toISOString(),
       });
+      announce(db, g, "event", `Новое задание: ${text.length > 60 ? text.slice(0, 60) + "…" : text}`, "homework");
       save(db);
       return delay(withMemberPhotos(g) as T);
     }
@@ -1100,22 +1137,72 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
           attendance: [],
         });
       }
+      announce(db, g, "event", times > 1
+        ? `В расписании ${times} встреч${times < 5 ? "и" : ""}, первая — ${fmtWhen(first.toISOString())}`
+        : `Новая встреча: ${fmtWhen(first.toISOString())}`);
       save(db);
       return delay(withMemberPhotos(g) as T);
     }
     const meeting = g.meetings.find((m) => m.id === Number(q.get("meetingId")));
     if (!meeting) throw new Error("API 404");
     if (method === "PATCH") {
-      if (body.status !== undefined) meeting.status = body.status as GroupMeeting["status"];
+      const was = meeting.startsAt;
+      // Перенос и отмена уходят всем сразу. Отметки посещаемости — нет: это
+      // рабочая кухня ведущего, участникам про неё сообщать незачем.
+      if (body.startsAt !== undefined) {
+        meeting.startsAt = new Date(String(body.startsAt)).toISOString();
+        if (body.durationMin !== undefined) meeting.durationMin = Math.max(15, Math.min(480, Number(body.durationMin)));
+        if (meeting.startsAt !== was) announce(db, g, "event", `Встреча перенесена: было ${fmtWhen(was)}, стало ${fmtWhen(meeting.startsAt)}`, "reschedule");
+      }
+      if (body.status !== undefined) {
+        meeting.status = body.status as GroupMeeting["status"];
+        if (meeting.status === "cancelled") announce(db, g, "event", `Встреча отменена · ${fmtWhen(meeting.startsAt)}`, "cancel");
+      }
       if (body.attendance !== undefined) meeting.attendance = body.attendance as GroupMeeting["attendance"];
       save(db);
       return delay(withMemberPhotos(g) as T);
     }
     if (method === "DELETE") {
       g.meetings = g.meetings.filter((m) => m.id !== meeting.id);
+      if (+new Date(meeting.startsAt) > Date.now()) announce(db, g, "event", `Встреча отменена · ${fmtWhen(meeting.startsAt)}`, "cancel");
       save(db);
       return delay(withMemberPhotos(g) as T);
     }
+  }
+
+  // Лента группы: объявление ведущего уходит всем участникам разом.
+  const postsOf = clean.match(/^\/groups\/(\d+)\/posts$/)?.[1];
+  if (postsOf) {
+    const g = db.groups.find((x) => x.id === Number(postsOf));
+    if (!g) throw new Error("API 404");
+    if (method === "POST") {
+      const text = String(body.text ?? "").trim();
+      if (text) announce(db, g, "post", text, "announce");
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+    if (method === "DELETE") {
+      g.posts = g.posts.filter((p) => p.id !== Number(q.get("postId")));
+      save(db);
+      return delay(withMemberPhotos(g) as T);
+    }
+  }
+
+  // Динамика состояний участников: их же дневники настроения, но собранные
+  // по группе — одним запросом, чтобы вкладка не дёргала по клиенту на брата.
+  const moodOf = clean.match(/^\/groups\/(\d+)\/mood$/)?.[1];
+  if (moodOf && method === "GET") {
+    const g = db.groups.find((x) => x.id === Number(moodOf));
+    if (!g) throw new Error("API 404");
+    return delay(g.members.filter((m) => m.status === "active").map((m) => {
+      const c = db.clients.find((x) => x.id === m.clientId);
+      return {
+        memberId: m.id,
+        name: m.name,
+        photo: c?.photo ?? null,
+        rows: (m.clientId ? db.moods[m.clientId] ?? [] : []).map((r) => ({ date: r.date, mood: r.mood })),
+      };
+    }) as T);
   }
 
   const membersOf = clean.match(/^\/groups\/(\d+)\/members$/)?.[1];
@@ -1131,6 +1218,7 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         if (!c) continue;
         g.members.push({ id: ++db.seq, clientId: c.id, name: c.name, status: "active", joinedAt: new Date().toISOString() });
         taken.add(c.id);
+        announce(db, g, "event", `В группе новый участник: ${c.name}`);
       }
       save(db);
       return delay(withMemberPhotos(g) as T);

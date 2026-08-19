@@ -10,12 +10,7 @@ import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/valida
 
 export const runtime = "nodejs";
 
-const newTaskSchema = z.object({
-  text: z.string().trim().min(1, "Напишите задание").max(2000),
-  dueAt: z.string().datetime({ offset: true }).nullish(),
-});
-
-const patchSchema = z.object({ status: z.enum(["open", "done"]) });
+const postSchema = z.object({ text: z.string().trim().min(1, "Напишите объявление").max(4000) });
 
 async function owned(groupId: number, psychologistId: number) {
   const group = await prisma.group.findUnique({ where: { id: groupId } });
@@ -25,6 +20,7 @@ async function owned(groupId: number, psychologistId: number) {
 
 const full = (id: number) => prisma.group.findUnique({ where: { id }, include: MEMBERS_INCLUDE });
 
+/** Объявление ведущего: уходит всем участникам разом. */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser(req);
@@ -37,11 +33,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const group = await owned(Number(id), user.id);
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const body = await parseBody(req, newTaskSchema);
-    await prisma.groupTask.create({
-      data: { groupId: group.id, text: body.text, dueAt: body.dueAt ? new Date(body.dueAt) : null },
-    });
-    await announce(group.id, "event", `Новое задание: ${body.text.length > 60 ? body.text.slice(0, 60) + "…" : body.text}`);
+    const { text } = await parseBody(req, postSchema);
+    await announce(group.id, "post", text);
     return NextResponse.json(await full(group.id), { status: 201 });
   } catch (e) {
     if (e instanceof InvalidBody) return invalidBodyResponse(e);
@@ -50,29 +43,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }
 }
 
-export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await requireUser(req);
-    const closed = moduleClosed();
-    if (closed) return closed;
-    const acc = await access(user.id);
-    if (!acc.pro) return NextResponse.json(NEEDS_PRO_MODULE, { status: 402 });
-
-    const { id } = await ctx.params;
-    const group = await owned(Number(id), user.id);
-    if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    const taskId = Number(new URL(req.url).searchParams.get("taskId"));
-    const { status } = await parseBody(req, patchSchema);
-    await prisma.groupTask.updateMany({ where: { id: taskId, groupId: group.id }, data: { status } });
-    return NextResponse.json(await full(group.id));
-  } catch (e) {
-    if (e instanceof InvalidBody) return invalidBodyResponse(e);
-    if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });
-    throw e;
-  }
-}
-
+/** Убрать можно только своё объявление: системные события — след истории. */
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser(req);
@@ -85,8 +56,8 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     const group = await owned(Number(id), user.id);
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const taskId = Number(new URL(req.url).searchParams.get("taskId"));
-    await prisma.groupTask.deleteMany({ where: { id: taskId, groupId: group.id } });
+    const postId = Number(new URL(req.url).searchParams.get("postId"));
+    await prisma.groupPost.deleteMany({ where: { id: postId, groupId: group.id, kind: "post" } });
     return NextResponse.json(await full(group.id));
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });

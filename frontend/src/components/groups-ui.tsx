@@ -7,7 +7,7 @@ import { ClientAvatar } from "@/components/client-avatar";
 import { Icon } from "@/components/icons";
 import { listClients } from "@/lib/clients";
 import { useQuery } from "@tanstack/react-query";
-import { activeMembers, type Group, type GroupMeeting } from "@/lib/groups";
+import { activeMembers, moodTrend, trendDelta, type Group, type GroupMeeting, type GroupMood, type GroupPost } from "@/lib/groups";
 import { tap } from "@/lib/haptics";
 
 export const EDGE = "var(--salmon-edge)";
@@ -248,6 +248,213 @@ export function PlanForm({ onPlan, busy }: { onPlan: (input: { startsAt: string;
         {weeks > 1 ? `Запланировать ${weeks} встреч` : "Запланировать встречу"}
       </button>
     </>
+  );
+}
+
+/**
+ * Перенос встречи. Форма нарочно короткая: ведущий меняет время и сразу видит,
+ * скольким участникам об этом уйдёт сообщение.
+ */
+export function MoveForm({ meeting, reach, onMove, busy }: { meeting: GroupMeeting; reach: number; onMove: (input: { startsAt: string; durationMin: number }) => void; busy?: boolean }) {
+  const at = new Date(meeting.startsAt);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const [date, setDate] = useState(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`);
+  const [time, setTime] = useState(`${pad(at.getHours())}:${pad(at.getMinutes())}`);
+  const [dur, setDur] = useState(meeting.durationMin);
+  const when = new Date(`${date}T${time}`);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block">
+          <span className="text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Дата</span>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="tf mt-1 w-full" />
+        </label>
+        <label className="block">
+          <span className="text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Время</span>
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="tf mt-1 w-full" />
+        </label>
+      </div>
+
+      <p className="mb-1 mt-3 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Длительность</p>
+      <div className="grid grid-cols-4 gap-1.5">
+        {[50, 60, 90, 120].map((d) => (
+          <button
+            key={d}
+            onClick={() => { tap(); setDur(d); }}
+            className="rounded-[12px] py-2 text-[12px] font-black"
+            style={dur === d ? { background: EDGE, color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--edge-neutral)" }}
+          >
+            {d} мин
+          </button>
+        ))}
+      </div>
+
+      <Reach n={reach} what="Новое время уйдёт" />
+
+      <button onClick={() => { tap(); onMove({ startsAt: when.toISOString(), durationMin: dur }); }} disabled={busy || Number.isNaN(+when)} className="btn mt-3 w-full py-3">
+        Перенести встречу
+      </button>
+    </>
+  );
+}
+
+/** Подпись «уйдёт N участникам» — она стоит везде, где что-то рассылается. */
+export function Reach({ n, what }: { n: number; what: string }) {
+  const word = n % 10 === 1 && n % 100 !== 11 ? "участнику" : "участникам";
+  return (
+    <p className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-[var(--muted-2)]">
+      <Icon name="bell" width={12} weight="bold" color="var(--muted-2)" />
+      {n > 0 ? `${what} ${n} ${word} сразу` : "В группе пока никого — сообщение просто останется в ленте"}
+    </p>
+  );
+}
+
+/**
+ * Лента группы: объявления ведущего и то, что система записала сама.
+ * Одно место, где видно всё, что участники уже получили.
+ */
+export function Feed({ posts, reach, onSend, onRemove, busy }: { posts: GroupPost[]; reach: number; onSend: (text: string) => void; onRemove: (id: number) => void; busy?: boolean }) {
+  const [text, setText] = useState("");
+  const send = () => { const t = text.trim(); if (!t) return; tap(); onSend(t); setText(""); };
+
+  return (
+    <>
+      <div className="rounded-[17px] bg-white p-3" style={{ border: `var(--bw) solid ${EDGE}` }}>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={2}
+          placeholder="Написать всем: перенос, домашка, что взять с собой…"
+          className="tf w-full resize-none text-[13px]"
+        />
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <Reach n={reach} what="Уйдёт" />
+          <button onClick={send} disabled={busy || !text.trim()} className="btn shrink-0 px-4 py-2 text-[12.5px]">Отправить</button>
+        </div>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {posts.length === 0 && <p className="py-6 text-center text-[12.5px] font-bold text-[var(--muted-2)]">Пока пусто. Объявления и все изменения по встречам появятся здесь.</p>}
+        {posts.map((p) => (
+          <div
+            key={p.id}
+            className="rounded-[15px] p-3"
+            style={p.kind === "post" ? { background: "#fff", border: `var(--bw) solid ${EDGE}` } : { background: "var(--surface-2)" }}
+          >
+            <div className="flex items-start gap-2">
+              <Icon name={p.kind === "post" ? "megaphone" : "bell"} width={13} weight="bold" color={p.kind === "post" ? EDGE : "var(--muted-2)"} />
+              <p className="min-w-0 flex-1 text-[12.5px] font-bold leading-snug">{p.text}</p>
+              {p.kind === "post" && (
+                <button onClick={() => { tap(); onRemove(p.id); }} className="shrink-0 text-[11px] font-black text-[var(--muted-2)]" aria-label="Убрать объявление">×</button>
+              )}
+            </div>
+            <p className="mt-1.5 pl-[21px] text-[10.5px] font-bold text-[var(--muted-2)]">
+              {new Date(p.createdAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              {p.reach > 0 && ` · ушло ${p.reach}`}
+            </p>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Динамика состояний: средний балл настроения группы по неделям и та же
+ * линия по каждому участнику. Библиотек для графиков в проекте нет — рисуем
+ * ломаную руками, как кольцо посещаемости ниже.
+ */
+export function MoodTrend({ rows }: { rows: GroupMood[] }) {
+  const weeks = 6;
+  const all = rows.flatMap((r) => r.rows);
+  const group = moodTrend(all, weeks);
+  const filled = group.filter((p) => p.avg !== null).length;
+
+  if (!filled) {
+    return (
+      <p className="rounded-[17px] bg-white p-4 text-center text-[12.5px] font-bold leading-snug text-[var(--muted-2)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+        Участники ещё не отмечали состояние. Как только они начнут вести дневник, здесь появится динамика — по группе и по каждому.
+      </p>
+    );
+  }
+
+  const last = [...group].reverse().find((p) => p.avg !== null)?.avg ?? 0;
+  const delta = trendDelta(group);
+
+  return (
+    <>
+      <div className="rounded-[19px] bg-white p-4" style={{ border: `var(--bw) solid ${EDGE}` }}>
+        <div className="flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">В среднем по группе</span>
+            <span className="tnum font-tight text-[26px] font-black leading-none">{last.toFixed(1)}</span>
+            <span className="text-[12px] font-black text-[var(--muted-2)]"> из 5</span>
+          </span>
+          <DeltaTag delta={delta} />
+        </div>
+        <Spark points={group.map((p) => p.avg)} width={252} height={54} thick />
+        <p className="mt-1 text-[10.5px] font-bold text-[var(--muted-2)]">Шесть недель · {all.length} отметок от участников</p>
+      </div>
+
+      <div className="mt-3 space-y-1.5">
+        {rows.map((r) => {
+          const own = moodTrend(r.rows, weeks);
+          const has = own.some((p) => p.avg !== null);
+          const mine = [...own].reverse().find((p) => p.avg !== null)?.avg ?? null;
+          return (
+            <div key={r.memberId} className="flex items-center gap-2.5 rounded-[15px] bg-white p-2.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+              <ClientAvatar name={r.name} photo={r.photo} className="h-[30px] w-[30px] shrink-0 rounded-[10px] text-[12px] font-black leading-none" style={{ background: SOFT }} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-black leading-tight">{r.name}</span>
+                <span className="block text-[10.5px] font-bold text-[var(--muted-2)]">
+                  {has ? `сейчас ${mine!.toFixed(1)} из 5` : "нет отметок"}
+                </span>
+              </span>
+              {has && <Spark points={own.map((p) => p.avg)} width={64} height={22} />}
+              {has && <DeltaTag delta={trendDelta(own)} small />}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+/** Ломаная по неделям. Пропуски не соединяем: неделя без отметок — это дыра, а не ноль. */
+function Spark({ points, width, height, thick }: { points: (number | null)[]; width: number; height: number; thick?: boolean }) {
+  const pad = 4;
+  const stepX = points.length > 1 ? (width - pad * 2) / (points.length - 1) : 0;
+  const y = (v: number) => pad + (height - pad * 2) * (1 - (v - 1) / 4);
+  const segs: string[] = [];
+  let run: string[] = [];
+  points.forEach((v, i) => {
+    if (v === null) { if (run.length > 1) segs.push(run.join(" ")); run = []; return; }
+    run.push(`${run.length ? "L" : "M"}${pad + i * stepX},${y(v)}`);
+  });
+  if (run.length > 1) segs.push(run.join(" "));
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={thick ? "mt-2 w-full" : "shrink-0"} aria-hidden>
+      {thick && [1, 3, 5].map((v) => <line key={v} x1={pad} x2={width - pad} y1={y(v)} y2={y(v)} stroke="var(--edge-neutral)" strokeWidth={1} />)}
+      {segs.map((d, i) => <path key={i} d={d} fill="none" stroke={EDGE} strokeWidth={thick ? 2.5 : 1.8} strokeLinecap="round" strokeLinejoin="round" />)}
+      {points.map((v, i) => v === null ? null : (
+        <circle key={i} cx={pad + i * stepX} cy={y(v)} r={thick ? 3.5 : 2} fill="#fff" stroke={EDGE} strokeWidth={thick ? 2.5 : 1.5} />
+      ))}
+    </svg>
+  );
+}
+
+/** Куда идёт настроение: вверх — шалфей, вниз — янтарь, ровно — серым. */
+function DeltaTag({ delta, small }: { delta: number; small?: boolean }) {
+  const up = delta > 0.05;
+  const down = delta < -0.05;
+  const color = up ? "var(--green-edge)" : down ? "var(--amber-edge)" : "var(--muted-2)";
+  return (
+    <span className={`keep-style inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 font-black ${small ? "text-[10px]" : "text-[11.5px]"}`} style={{ background: "var(--surface-2)", color }}>
+      <Icon name={up ? "trend-up" : down ? "trend-down" : "trend-flat"} width={small ? 10 : 12} weight="bold" color={color} />
+      {delta === 0 ? "ровно" : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`}
+    </span>
   );
 }
 

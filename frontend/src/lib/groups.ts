@@ -34,6 +34,20 @@ export type GroupTask = {
   createdAt: string;
 };
 
+/**
+ * Запись в ленте группы. `post` — объявление ведущего, `event` — то, что
+ * система записала сама: перенос, отмена, новая встреча, новый участник.
+ * И то и другое уходит всем участникам сразу, как сообщение в пати.
+ */
+export type GroupPost = {
+  id: number;
+  kind: "post" | "event";
+  text: string;
+  createdAt: string;
+  /** Скольким участникам ушло на момент отправки. */
+  reach: number;
+};
+
 export type Group = {
   id: number;
   title: string;
@@ -53,6 +67,7 @@ export type Group = {
   members: GroupMember[];
   meetings: GroupMeeting[];
   tasks: GroupTask[];
+  posts: GroupPost[];
 };
 
 export const FORMAT_LABEL: Record<MeetFormat, string> = { online: "Онлайн", offline: "Очно" };
@@ -134,6 +149,10 @@ export const markAttendance = (id: number, meetingId: number, attendance: Attend
     body: JSON.stringify({ status: "done", attendance }),
   });
 
+/** Перенос встречи: новое время уходит всем участникам сразу. */
+export const moveMeeting = (id: number, meetingId: number, input: { startsAt: string; durationMin: number }) =>
+  apiFetch<Group>(`/groups/${id}/meetings?meetingId=${meetingId}`, { method: "PATCH", body: JSON.stringify(input) });
+
 export const cancelMeeting = (id: number, meetingId: number) =>
   apiFetch<Group>(`/groups/${id}/meetings?meetingId=${meetingId}`, { method: "PATCH", body: JSON.stringify({ status: "cancelled" }) });
 
@@ -148,6 +167,45 @@ export const toggleTask = (id: number, taskId: number, status: GroupTask["status
 
 export const removeTask = (id: number, taskId: number) =>
   apiFetch<Group>(`/groups/${id}/tasks?taskId=${taskId}`, { method: "DELETE" });
+
+/** Объявление всем участникам разом. */
+export const addPost = (id: number, text: string) =>
+  apiFetch<Group>(`/groups/${id}/posts`, { method: "POST", body: JSON.stringify({ text }) });
+
+export const removePost = (id: number, postId: number) =>
+  apiFetch<Group>(`/groups/${id}/posts?postId=${postId}`, { method: "DELETE" });
+
+/** Настроение участников для диаграмм динамики — одним запросом на группу. */
+export type GroupMood = { memberId: number; name: string; photo?: string | null; rows: { date: string; mood: number }[] };
+
+export const groupMoods = (id: number) => apiFetch<GroupMood[]>(`/groups/${id}/mood`);
+
+/**
+ * Динамика состояний участников: средний балл настроения по неделям.
+ * `weeks` — сколько недель назад считать, свежая справа.
+ */
+export function moodTrend(rows: { mood: number; date: string }[], weeks = 6, now = Date.now()) {
+  const week = 7 * 86_400_000;
+  return Array.from({ length: weeks }, (_, i) => {
+    const to = now - (weeks - 1 - i) * week;
+    const from = to - week;
+    const inWeek = rows.filter((r) => { const t = +new Date(r.date); return t > from && t <= to; });
+    const avg = inWeek.length ? inWeek.reduce((s, r) => s + r.mood, 0) / inWeek.length : null;
+    return { avg, count: inWeek.length };
+  });
+}
+
+/** Куда идёт настроение: сравниваем свежую половину окна с прошлой. */
+export function trendDelta(points: { avg: number | null }[]) {
+  const vals = points.map((p) => p.avg).filter((v): v is number => v !== null);
+  if (vals.length < 2) return 0;
+  const half = Math.ceil(vals.length / 2);
+  const older = vals.slice(0, vals.length - half);
+  const fresh = vals.slice(vals.length - half);
+  if (!older.length) return 0;
+  const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+  return Math.round((mean(fresh) - mean(older)) * 10) / 10;
+}
 
 /** Посещаемость по отмеченным встречам: сколько отметок «был» из всех. */
 export function attendanceStats(groups: Group[]) {

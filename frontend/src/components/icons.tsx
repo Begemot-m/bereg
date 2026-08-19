@@ -53,6 +53,10 @@ import {
   WarningCircle,
   Waves,
   Footprints,
+  Megaphone,
+  TrendUp,
+  TrendDown,
+  Minus,
   type Icon as PhIcon,
   type IconWeight,
 } from "@phosphor-icons/react";
@@ -112,9 +116,17 @@ export type IconName =
   | "warn"
   | "waves"
   | "steps"
-  | "device";
+  | "device"
+  | "megaphone"
+  | "trend-up"
+  | "trend-down"
+  | "trend-flat";
 
 const MAP: Record<IconName, PhIcon> = {
+  megaphone: Megaphone,
+  "trend-up": TrendUp,
+  "trend-down": TrendDown,
+  "trend-flat": Minus,
   home: House,
   calendar: CalendarDots,
   users: UsersThree,

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE, moduleClosed } from "@/lib/server/groups";
+import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE, announce, moduleClosed } from "@/lib/server/groups";
 import { access } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -61,8 +61,13 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const patch = await parseBody(req, patchSchema);
-    const next = await prisma.group.update({ where: { id: group.id }, data: patch, include: MEMBERS_INCLUDE });
-    return NextResponse.json(next);
+    await prisma.group.update({ where: { id: group.id }, data: patch });
+    // Участникам важно узнать сразу про место, формат и правила. Приватная
+    // заметка ведущего (`note`) и вместимость их не касаются.
+    if (patch.place !== undefined && patch.place !== group.place && patch.place) await announce(group.id, "event", `Место встреч: ${patch.place}`);
+    if (patch.format !== undefined && patch.format !== group.format) await announce(group.id, "event", `Формат встреч: ${patch.format === "online" ? "онлайн" : "очно"}`);
+    if (patch.about !== undefined && patch.about !== group.about) await announce(group.id, "event", "Ведущий обновил описание группы");
+    return NextResponse.json(await prisma.group.findUnique({ where: { id: group.id }, include: MEMBERS_INCLUDE }));
   } catch (e) {
     if (e instanceof InvalidBody) return invalidBodyResponse(e);
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: 401 });

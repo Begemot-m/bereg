@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE, moduleClosed } from "@/lib/server/groups";
+import { MEMBERS_INCLUDE, NEEDS_PRO_MODULE, announce, moduleClosed } from "@/lib/server/groups";
 import { access } from "@/lib/server/access";
 import { prisma } from "@/lib/server/prisma";
 import { AuthError, requireUser } from "@/lib/server/session";
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       await prisma.groupMember.createMany({
         data: fresh.map((c) => ({ groupId: group.id, clientId: c.id, name: c.name })),
       });
+      for (const c of fresh) await announce(group.id, "event", `В группе новый участник: ${c.name}`);
     }
     return NextResponse.json(await withMembers(group.id));
   } catch (e) {

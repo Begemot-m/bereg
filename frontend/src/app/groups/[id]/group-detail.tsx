@@ -13,7 +13,10 @@ import {
   AttendanceForm,
   ClientPicker,
   EDGE,
+  Feed,
   MemberStack,
+  MoodTrend,
+  MoveForm,
   PlanForm,
   SOFT,
   SectionAction,
@@ -29,6 +32,7 @@ import {
   KIND_LABEL,
   activeMembers,
   addMembers,
+  addPost,
   addTask,
   attendanceStats,
   cancelMeeting,
@@ -36,16 +40,19 @@ import {
   deleteGroup,
   deleteMeeting,
   getGroup,
+  groupMoods,
   isOver,
   markAttendance,
   marked,
   meetFormat,
   meetPlace,
   memberStats,
+  moveMeeting,
   nextMeeting,
   planMeetings,
   presentCount,
   removeMember,
+  removePost,
   removeTask,
   seatsLeft,
   toggleTask,
@@ -58,7 +65,7 @@ import {
 } from "@/lib/groups";
 import { tap } from "@/lib/haptics";
 
-type Tab = "meetings" | "members" | "tasks";
+type Tab = "meetings" | "feed" | "members" | "tasks";
 
 const MOD = findModule("groups");
 
@@ -93,10 +100,14 @@ function GroupDetailInner() {
   // Встречу держим и после закрытия листа: иначе он уезжает вниз уже пустым.
   const [marking, setMarking] = useState<GroupMeeting | null>(null);
   const [markOpen, setMarkOpen] = useState(false);
+  const [moving, setMoving] = useState<GroupMeeting | null>(null);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [settings, setSettings] = useState(false);
 
   const group = useQuery({ queryKey: ["group", id], queryFn: () => getGroup(id), enabled: Number.isFinite(id) });
   const g = group.data;
+  // Динамика нужна только на вкладке состава — раньше её не тянем.
+  const moods = useQuery({ queryKey: ["group-mood", id], queryFn: () => groupMoods(id), enabled: Number.isFinite(id) && tab === "members" });
 
   const refresh = (next?: Group) => {
     if (next) qc.setQueryData(["group", id], next);
@@ -114,7 +125,13 @@ function GroupDetailInner() {
     mutationFn: (rows: { memberId: number; present: boolean }[]) => markAttendance(id, marking!.id, rows),
     onSuccess: (r) => { refresh(r); setMarkOpen(false); },
   });
+  const move = useMutation({
+    mutationFn: (input: { startsAt: string; durationMin: number }) => moveMeeting(id, moving!.id, input),
+    onSuccess: (r) => { refresh(r); setMoveOpen(false); },
+  });
   const cancel = useMutation({ mutationFn: (mid: number) => cancelMeeting(id, mid), onSuccess: refresh });
+  const post = useMutation({ mutationFn: (text: string) => addPost(id, text), onSuccess: refresh });
+  const dropPost = useMutation({ mutationFn: (postId: number) => removePost(id, postId), onSuccess: refresh });
   const dropMeeting = useMutation({ mutationFn: (mid: number) => deleteMeeting(id, mid), onSuccess: refresh });
   const save = useMutation({ mutationFn: (patch: GroupPatch) => updateGroup(id, patch), onSuccess: refresh });
   const drop = useMutation({ mutationFn: () => deleteGroup(id), onSuccess: () => { refresh(); router.push("/groups"); } });
@@ -211,6 +228,7 @@ function GroupDetailInner() {
                   onChange={setTab}
                   items={[
                     { id: "meetings", label: "Встречи", badge: future.length },
+                    { id: "feed", label: "Лента" },
                     { id: "members", label: "Состав", badge: members.length },
                     { id: "tasks", label: "Задания", badge: openTasks.length },
                   ]}
@@ -231,6 +249,7 @@ function GroupDetailInner() {
                           group={g}
                           meeting={m}
                           onMark={() => { setMarking(m); setMarkOpen(true); }}
+                          onMove={() => { setMoving(m); setMoveOpen(true); }}
                           onCancel={() => ask({
                             title: "Отменить встречу?",
                             when: whenLabel(m.startsAt),
@@ -264,8 +283,27 @@ function GroupDetailInner() {
                 </>
               )}
 
+              {tab === "feed" && (
+                <div className="mt-4">
+                  <Feed
+                    posts={g.posts}
+                    reach={members.length}
+                    onSend={(text) => post.mutate(text)}
+                    onRemove={(postId) => dropPost.mutate(postId)}
+                    busy={post.isPending}
+                  />
+                </div>
+              )}
+
               {tab === "members" && (
                 <>
+                  <div className="mb-2 mt-4 flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Как идут дела</p>
+                  </div>
+                  {/* Дневники участников, собранные в одну картину: средняя
+                      линия по группе и та же линия по каждому. */}
+                  <MoodTrend rows={moods.data ?? []} />
+
                   <div className="mb-2 mt-4 flex items-center justify-between gap-2">
                     <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Участники</p>
                     {seatsLeft(g) > 0 && <SectionAction icon="plus" label="Добавить" onClick={() => setPicking(true)} />}
@@ -391,6 +429,10 @@ function GroupDetailInner() {
             <PlanForm onPlan={(input) => plan.mutate(input)} busy={plan.isPending} />
           </Sheet>
 
+          <Sheet open={moveOpen} onClose={() => setMoveOpen(false)} title="Перенести встречу">
+            {moving && <MoveForm meeting={moving} reach={members.length} onMove={(input) => move.mutate(input)} busy={move.isPending} />}
+          </Sheet>
+
           <Sheet open={markOpen} onClose={() => setMarkOpen(false)} title="Кто был на встрече">
             {marking && (
               <>
@@ -441,7 +483,7 @@ function TaskComposer({ onAdd, busy }: { onAdd: (text: string) => void; busy?: b
   );
 }
 
-function MeetingRow({ group, meeting, onMark, onCancel }: { group: Group; meeting: GroupMeeting; onMark: () => void; onCancel: () => void }) {
+function MeetingRow({ group, meeting, onMark, onMove, onCancel }: { group: Group; meeting: GroupMeeting; onMark: () => void; onMove?: () => void; onCancel: () => void }) {
   const total = activeMembers(group).length;
   const over = isOver(meeting);
   const done = marked(meeting);
@@ -465,7 +507,11 @@ function MeetingRow({ group, meeting, onMark, onCancel }: { group: Group; meetin
           {done ? "Изменить" : "Отметить"}
         </button>
       ) : (
-        <span className="chip keep-style shrink-0" style={{ background: SOFT, color: EDGE }}>впереди</span>
+        // Перенос — самое частое действие с будущей встречей, поэтому он стоит
+        // прямо в строке: новое время уходит всем участникам сразу.
+        <button onClick={() => { tap(); onMove?.(); }} className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: SOFT, color: EDGE }}>
+          Перенести
+        </button>
       )}
       <button onClick={() => { tap(); onCancel(); }} className="ico h-8 w-8 shrink-0 keep-style" style={{ background: "var(--surface-2)" }} aria-label="Убрать встречу">
         <Icon name="close" width={12} weight="bold" color="var(--muted)" />

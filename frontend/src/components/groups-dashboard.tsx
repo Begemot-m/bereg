@@ -68,7 +68,7 @@ export function GroupsDashboard() {
       {unmarked && (
         <Reveal y={8}>
           <Link
-            href={`/groups/${unmarked.g.id}`}
+            href={`/groups/?id=${unmarked.g.id}`}
             onClick={() => tap()}
             className="mb-2.5 flex items-center gap-3 rounded-[17px] p-3 transition-transform duration-200 active:scale-[.98]"
             style={{ background: "var(--amber-soft)", border: "var(--bw) solid var(--amber-edge)" }}
@@ -90,7 +90,7 @@ export function GroupsDashboard() {
       {upcoming && (
         <Reveal y={8}>
           <Link
-            href={`/groups/${upcoming.g.id}`}
+            href={`/groups/?id=${upcoming.g.id}`}
             onClick={() => tap()}
             className="flex flex-col gap-2 rounded-[19px] bg-white p-4 transition-transform duration-200 active:scale-[.98]"
             style={{ border: `var(--bw) solid ${EDGE}` }}
@@ -154,7 +154,7 @@ function GroupRow({ group }: { group: Group }) {
   const left = seatsLeft(group);
   return (
     <Link
-      href={`/groups/${group.id}`}
+      href={`/groups/?id=${group.id}`}
       onClick={() => tap()}
       className="flex items-center gap-3 rounded-[17px] bg-white p-3 transition-transform duration-200 active:scale-[.98]"
       style={{ border: `var(--bw) solid ${EDGE}` }}

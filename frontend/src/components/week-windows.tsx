@@ -375,15 +375,17 @@ export function NewSlotCell({ date, taken, active, onTap, onClose }: { date: Dat
 function GroupCell({ slot }: { slot: Slot }) {
   const g = slot.group!;
   const st = look(slot);
-  const shown = g.members.slice(0, 3);
+  // Плитка та же по размеру, что у обычной записи: группа не должна раздувать
+  // сетку дня. Узнаётся по стопке лиц и названию вместо имени клиента.
+  const shown = g.members.slice(0, 2);
   const rest = g.members.length - shown.length;
   // Прошедшая встреча без отметок — то самое «отметьте, кто был» с дашборда.
   const needsMark = slot.past && !g.marked;
   return (
     <Link
-      href={`/groups/${g.groupId}`}
+      href={`/groups/?id=${g.groupId}`}
       onClick={() => tap()}
-      className="relative flex min-h-[60px] flex-col items-center justify-center gap-1 px-1.5 pb-1.5 pt-4"
+      className="relative flex min-h-[60px] items-center justify-center gap-1.5 pb-1.5 pl-1.5 pr-3 pt-4"
       style={{ borderRadius: 13, background: st.bg, border: `1px solid ${st.ring}` }}
     >
       <span className="absolute left-1.5 top-1.5 flex items-center gap-0.5">
@@ -397,18 +399,18 @@ function GroupCell({ slot }: { slot: Slot }) {
             ? <Icon name="check" width={10} weight="bold" color="var(--green-edge)" />
             : <Icon name="users" width={10} weight="fill" color="var(--salmon-edge)" />}
       </span>
-      <span className="flex items-center -space-x-1.5">
+      <span className="flex shrink-0 items-center -space-x-2">
         {shown.map((m) => (
           <ClientAvatar
             key={m.id}
             name={m.name}
             photo={m.photo}
-            className="h-[22px] w-[22px] rounded-full text-[10px] font-black leading-none"
+            className="h-[21px] w-[21px] rounded-full text-[9.5px] font-black leading-none"
             style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}
           />
         ))}
         {rest > 0 && (
-          <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full text-[9px] font-black leading-none" style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}>
+          <span className="flex h-[21px] w-[21px] items-center justify-center rounded-full text-[8.5px] font-black leading-none" style={{ background: "#fff", border: "1px solid var(--edge-neutral)" }}>
             +{rest}
           </span>
         )}

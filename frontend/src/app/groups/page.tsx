@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 
+import { GroupDetail } from "@/app/groups/[id]/group-detail";
 import { PageHead } from "@/components/blocks";
 import { GroupsDashboard } from "@/components/groups-dashboard";
 import { Reveal } from "@/components/motion";
@@ -17,7 +19,15 @@ const POINTS = [
   "Пара: общие заметки и раздельные приватные по каждому",
 ];
 
+// Карточка группы живёт на этом же роуте: в статическом экспорте страница
+// `/groups/[id]` есть только для демо-группы, а созданные в рантайме открываются
+// как `/groups/?id=N` — тем же приёмом, что карточки клиентов.
 export default function GroupsPage() {
+  const search = useSearchParams();
+  return search.get("id") ? <GroupDetail /> : <GroupsHome />;
+}
+
+function GroupsHome() {
   const { data: sub, isPending } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const pro = isPro(sub);
 

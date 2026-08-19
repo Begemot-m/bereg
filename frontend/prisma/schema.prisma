@@ -119,8 +119,26 @@ model Group {
   members  GroupMember[]
   meetings GroupMeeting[]
   tasks    GroupTask[]
+  posts    GroupPost[]
 
   @@index([psychologistId, status])
+}
+
+/// Лента группы: объявление ведущего (post) и то, что система записала сама
+/// (event) — перенос, отмена, новая встреча, новый участник. И то и другое
+/// уходит всем участникам сразу, поэтому хранится вместе.
+model GroupPost {
+  id        Int      @id @default(autoincrement())
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   Int
+  /// post | event
+  kind      String   @default("post")
+  text      String   @db.Text
+  /// Скольким участникам ушло на момент отправки.
+  reach     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([groupId, createdAt])
 }
 
 /// Участник группы. Обычно это карточка клиента, но место можно занять и
