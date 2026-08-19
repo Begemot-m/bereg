@@ -359,6 +359,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
   const restTopics = psy.topics.filter((topic) => !topTopics.includes(topic));
   const photos = psy.photos?.length ? psy.photos : psy.portrait ? [psy.portrait] : [];
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);
+  const closePhoto = useCallback(() => setPhotoIndex(null), []);
   // Полоска Telegram — в цвет шапки специалиста, на выходе возвращаем тон раздела.
   useEffect(() => { syncTelegramChrome(tone.soft); return () => syncTelegramChrome(); }, [tone.soft]);
 
@@ -462,7 +463,7 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       <TelegramPoster psy={psy} />
     </div>
 
-    <PhotoLightbox photos={photos} name={psy.name} index={photoIndex} onIndex={setPhotoIndex} onClose={() => setPhotoIndex(null)} />
+    <PhotoLightbox photos={photos} name={psy.name} index={photoIndex} onIndex={setPhotoIndex} onClose={closePhoto} />
   </div>;
 }
 
@@ -799,21 +800,26 @@ function PhotoGallery({ psy, onOpen }: { psy: Psy; onOpen: (index: number) => vo
 // точками — остальные снимки анкеты рядом, возвращаться в карточку не нужно.
 function PhotoLightbox({ photos, name, index, onIndex, onClose }: { photos: string[]; name: string; index: number | null; onIndex: (next: number) => void; onClose: () => void }) {
   const open = index !== null;
+  // Замок скролла держим только на факте «просмотр открыт»: раньше эффект
+  // перезапускался на каждом кадре и запоминал уже подменённое значение.
   useEffect(() => {
     if (!open) return;
-    const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowRight") onIndex(Math.min(photos.length - 1, (index ?? 0) + 1));
       if (event.key === "ArrowLeft") onIndex(Math.max(0, (index ?? 0) - 1));
     };
     window.addEventListener("keydown", onKey);
-    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", onKey); };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, index, photos.length, onIndex, onClose]);
 
   return <AnimatePresence>{open && (
-    <motion.div className="fixed inset-0 z-[90] flex flex-col bg-[rgba(24,21,18,.94)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+    <motion.div key="photo-lightbox" className="fixed inset-0 z-[90] flex flex-col bg-[rgba(24,21,18,.94)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
       {/* Крестик белый и плотный: на тёмной подложке полупрозрачный кружок
           терялся, и выйти из просмотра было нечем. Отступ сверху — общий
           `--top-pad`: у самой кромки крестик подлезал под кнопки Telegram
@@ -821,20 +827,24 @@ function PhotoLightbox({ photos, name, index, onIndex, onClose }: { photos: stri
       <div className="flex justify-end px-4" style={{ paddingTop: "var(--top-pad)" }}>
         <button onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(0,0,0,.45)] transition-transform active:scale-90" aria-label="Закрыть просмотр"><Icon name="close" width={20} weight="bold" color="var(--ink)" /></button>
       </div>
+      {/* Область свайпа живёт весь просмотр и не пересоздаётся при смене кадра:
+          на `key={index}` элемент исчезал прямо посреди жеста, motion не
+          отцеплял свои слушатели указателя — после пары листаний экран
+          переставал принимать тапы. Меняется только картинка внутри. */}
       <motion.div
-        key={index}
         className="relative flex-1"
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.18}
+        dragMomentum={false}
         onDragEnd={(_, info) => {
           if (info.offset.x < -60) onIndex(Math.min(photos.length - 1, (index ?? 0) + 1));
           if (info.offset.x > 60) onIndex(Math.max(0, (index ?? 0) - 1));
         }}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
       >
-        <Image src={asset(photos[index ?? 0])} alt={`${name}, фотография ${(index ?? 0) + 1}`} fill sizes="100vw" className="object-contain" unoptimized={isInlineImage(asset(photos[index ?? 0]))} />
+        <motion.div key={index} className="absolute inset-0" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+          <Image src={asset(photos[index ?? 0])} alt={`${name}, фотография ${(index ?? 0) + 1}`} fill sizes="100vw" className="object-contain" unoptimized={isInlineImage(asset(photos[index ?? 0]))} />
+        </motion.div>
 
         {/* Стрелки — для тех, кто смотрит с мышкой: свайп есть только на телефоне. */}
         {photos.length > 1 && (
