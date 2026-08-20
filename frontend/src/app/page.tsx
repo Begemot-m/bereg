@@ -7,12 +7,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { DailyDot, PageHead, SectionTitle } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { ClientInviteBanner } from "@/components/client-invite";
 import { ConfirmActions } from "@/components/confirm-actions";
 import { useConfirmAsk } from "@/components/confirm-ask";
 import { ClientConfirmWatch, ConfirmDone } from "@/components/confirm-done";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { Icon, type IconName } from "@/components/icons";
-import { ClientInviteBanner, InviteBanner } from "@/components/invite";
+import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { PsyGuide } from "@/components/psy-guide";
 import { WorkStats } from "@/components/work-stats";

@@ -29,6 +29,29 @@ export type FreeDay = { ymd: string; label: string; times: string[]; more: numbe
 /** Ссылка на афишу окон: метку `win_<id>` разбирает StartRoute. */
 export const windowsInviteUrl = (psyId?: number | null) => botStartLink(`win_${psyId || OWN_PROFILE_ID}`);
 
+const SPAN_WORD: Record<Span, string> = { week: "на ближайшую неделю", month: "на ближайший месяц" };
+
+/**
+ * Готовое сообщение клиенту: приветствие, свободные окна списком и просьба
+ * выбрать время. Специалисту не надо ничего сочинять — текст копируется вместе
+ * со ссылкой и отправляется как есть.
+ */
+export function inviteMessage(name: string, days: FreeDay[], span: Span): string {
+  const hi = name ? `Здравствуйте! Это ${name}.` : "Здравствуйте!";
+  if (!days.length) {
+    return `${hi}\n\nЗаписаться ко мне на встречу можно по ссылке — там видно моё свободное время, выберите удобное:`;
+  }
+  const lines = days.map((d) => `• ${d.label} — ${d.times.join(", ")}${d.more ? ` и ещё ${d.more}` : ""}`);
+  return [
+    hi,
+    "",
+    `Вот моё свободное время ${SPAN_WORD[span]}:`,
+    ...lines,
+    "",
+    "Выберите удобное время по ссылке — запись займёт полминуты, и встреча сразу окажется у нас обоих в календаре:",
+  ].join("\n");
+}
+
 export function useFreeWindows(psyId: number | null | undefined, span: Span) {
   const { data: avail, isLoading: daysLoading } = useQuery({
     queryKey: ["month-avail", psyId ?? null],

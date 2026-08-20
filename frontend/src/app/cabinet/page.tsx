@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Arrow, PageHead, SectionTitle, ArrowGlyph } from "@/components/blocks";
 import { CareModule } from "@/components/care-module";
+import { ClientInviteSheet } from "@/components/client-invite";
 import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { Reveal } from "@/components/motion";
@@ -48,10 +49,12 @@ export default function CabinetPage() {
   // раньше кнопка снимала флаг онбординга, и человек оказывался в развилке
   // ролей, будто он тут впервые.
   const [intro, setIntro] = useState(false);
+  const [invite, setInvite] = useState(false);
 
   return (
     <div className="stroke-mid">
       {intro && <Onboarding startRole={role} preview onClose={() => setIntro(false)} />}
+      <AnimatePresence>{invite && <ClientInviteSheet onClose={() => setInvite(false)} />}</AnimatePresence>
       <PageHead title="Личный кабинет">
         <ProfileEditor
           key={role}
@@ -131,7 +134,7 @@ export default function CabinetPage() {
           <div>
             <SectionTitle>Приглашение клиентов</SectionTitle>
             <div className="space-y-1 overflow-hidden rounded-[20px] px-2.5 py-2" style={{ background: "var(--surface)" }}>
-              <ActionRow icon="telegram" title="Ссылки для клиентов" tone="var(--tiffany-edge)" onClick={() => router.push("/cabinet/invite")} />
+              <ActionRow icon="telegram" title="Пригласить клиента" tone="var(--tiffany-edge)" onClick={() => { tap(); setInvite(true); }} />
             </div>
           </div>
         )}
