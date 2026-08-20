@@ -9,7 +9,7 @@ import { ArrowGlyph } from "@/components/blocks";
 import { VerificationPrompt } from "@/components/verification-prompt";
 import { useVerification } from "@/lib/psy-verification";
 import { Button, Disclosure, Input, Prose, Textarea } from "@/components/ui";
-import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, TOPICS } from "@/lib/catalog";
+import { EXPERIENCE_OPTIONS, LANGUAGES, METHODS, OWN_PROFILE_ID, TOPICS } from "@/lib/catalog";
 import { select, success, tap } from "@/lib/haptics";
 import { MEDIA_LIMITS, mb } from "@/lib/image";
 import { PhotoCropper } from "@/components/photo-cropper";
@@ -77,7 +77,12 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
             <span className="truncate">{name}</span>
             {verified && <Icon name="seal" width={19} weight="fill" color="var(--green)" className="shrink-0" />}
           </p>
-          <button onClick={openEditor} className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="edit" width={12} weight="bold" color="currentColor" /> Редактировать профиль</button>
+          {/* Под именем — не «правка», а то, ради чего анкету и заполняют:
+              как карточка выглядит в каталоге. Пустую анкету показывать
+              нечего — тогда кнопка честно зовёт её заполнить. */}
+          {professional
+            ? <CatalogCardLink profile={profile} onFill={openEditor} />
+            : <button onClick={openEditor} className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="edit" width={12} weight="bold" color="currentColor" /> Редактировать профиль</button>}
         </div>
       </div>
       {roleControl}
@@ -92,6 +97,22 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
       <BasicProfileForm onDone={() => setEditing(false)} />
     </ProfileSheet>
   </>;
+}
+
+// Ссылка на свою карточку в каталоге — вместо прежней «Редактировать профиль».
+function CatalogCardLink({ profile, onFill }: { profile: PsyProfile | null; onFill: () => void }) {
+  const router = useRouter();
+  const started = profileCompletionPercent(profile) > 0;
+  return (
+    <button
+      onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
+      className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold"
+      style={{ color: started ? "var(--edge)" : "var(--muted)" }}
+    >
+      <Icon name={started ? "compass" : "edit"} width={12} weight="bold" color="currentColor" />
+      {started ? "Моя анкета в каталоге" : "Анкета не заполнена — заполнить"}
+    </button>
+  );
 }
 
 export function ProfessionalProfileEditor() {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -80,6 +81,33 @@ export function InviteBanner({ variant }: { variant: Variant }) {
       </button>
       <AnimatePresence>{open && <InviteSheet variant={variant} onClose={() => setOpen(false)} />}</AnimatePresence>
     </>
+  );
+}
+
+/**
+ * Приглашение своих клиентов — на главной у специалиста. Ведёт на экран с
+ * двумя ссылками: афишей свободных окон и визиткой.
+ */
+export function ClientInviteBanner() {
+  return (
+    <Link
+      href="/cabinet/invite"
+      onClick={() => tap()}
+      className="card-soft relative block w-full overflow-hidden p-5 text-left transition-transform active:scale-[0.99]"
+      style={{ background: "var(--tiffany-soft)" }}
+    >
+      <div className="relative flex items-center gap-3.5">
+        <span className="ico ico-white h-14 w-14 shrink-0"><Icon name="telegram" width={26} weight="fill" color="var(--tiffany-edge)" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="t-micro">Свои клиенты</p>
+          <p className="t-title mt-0.5">Позовите клиентов ссылкой</p>
+          <p className="t-cap mt-1">Афиша свободных окон или визитка — клиент запишется сам</p>
+        </div>
+      </div>
+      <span className="btn relative mt-3.5 w-full keep-style" style={{ background: "var(--tiffany-edge)", border: "var(--bw) solid var(--tiffany-edge)" }}>
+        <Icon name="share" width={15} weight="fill" color="#fff" /> Получить ссылки
+      </span>
+    </Link>
   );
 }
 

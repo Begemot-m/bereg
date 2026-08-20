@@ -127,6 +127,15 @@ export default function CabinetPage() {
         </div>
 
         {/* Приглашения */}
+        {psy && (
+          <div>
+            <SectionTitle>Приглашение клиентов</SectionTitle>
+            <div className="space-y-1 overflow-hidden rounded-[20px] px-2.5 py-2" style={{ background: "var(--surface)" }}>
+              <ActionRow icon="telegram" title="Ссылки для клиентов" tone="var(--tiffany-edge)" onClick={() => router.push("/cabinet/invite")} />
+            </div>
+          </div>
+        )}
+
         <div>
           <SectionTitle>Приглашайте друзей</SectionTitle>
           <InviteBanner variant={psy ? "psy" : "client"} />

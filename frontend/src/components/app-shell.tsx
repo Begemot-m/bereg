@@ -264,11 +264,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     const ref = params.get("ref");
     if (ref) sessionStorage.setItem("bereg_pending_ref", ref);
 
-    const enter = (psy: string | null) => {
+    // href — куда именно ведёт метка: запись открывается в каталоге, афиша
+    // окон на своём экране. Без него всякая ссылка уводила в каталог.
+    const enter = (psy: string | null, href?: string) => {
       setRole("client");
       setFastEntry(true);
       if (psy) setEntryRole("client");
-      if (psy && navRef.current.pathname !== "/catalog") router.replace(`/catalog?psy=${encodeURIComponent(psy)}&book=1`);
+      const to = href ?? (psy ? `/catalog?psy=${encodeURIComponent(psy)}&book=1` : null);
+      if (to && navRef.current.pathname !== to.split("?")[0]) router.replace(to);
     };
 
     // Пришли по приглашению специалиста: сначала экран «вас пригласили», потом
@@ -327,7 +330,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         const href = payload ? target(payload) : null;
         if (href) {
           const id = new URLSearchParams(href.split("?")[1]).get("psy");
-          enter(id);
+          enter(id, href);
           return;
         }
         // Пока это не решится, на экране пусто (см. проверку fastEntry === null

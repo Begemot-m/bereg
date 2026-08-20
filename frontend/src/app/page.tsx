@@ -12,7 +12,7 @@ import { useConfirmAsk } from "@/components/confirm-ask";
 import { ClientConfirmWatch, ConfirmDone } from "@/components/confirm-done";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { Icon, type IconName } from "@/components/icons";
-import { InviteBanner } from "@/components/invite";
+import { ClientInviteBanner, InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { PsyGuide } from "@/components/psy-guide";
 import { WorkStats } from "@/components/work-stats";
@@ -97,7 +97,7 @@ function PsyHome() {
         { title: "Кабинет", detail: "профиль и подписка", icon: "user", href: "/cabinet" },
       ]} />
 
-      <InviteBanner variant="psy" />
+      <ClientInviteBanner />
     </HomeFrame>
   );
 }

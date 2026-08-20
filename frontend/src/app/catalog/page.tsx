@@ -85,8 +85,8 @@ const CATALOG_TONE = { bg: "var(--tiffany)", soft: "var(--tiffany-soft)", edge: 
 
 // Карточку открывают не только из каталога — ссылка `?from=` говорит, куда
 // вернуть человека и как подписать возврат.
-const RETURN_LABEL: Record<string, string> = { therapy: "вернуться в терапию", profile: "вернуться к профилю" };
-const RETURN_ROUTE: Record<string, string> = { therapy: "/therapy", profile: "/cabinet/profile" };
+const RETURN_LABEL: Record<string, string> = { therapy: "вернуться в терапию", profile: "вернуться к профилю", cabinet: "вернуться в кабинет" };
+const RETURN_ROUTE: Record<string, string> = { therapy: "/therapy", profile: "/cabinet/profile", cabinet: "/cabinet" };
 
 const SORTS: { value: SortMode; label: string }[] = [
   { value: "recommended", label: "Рекомендованные" },
@@ -206,7 +206,7 @@ export default function CatalogPage() {
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={returnTo === "profile" && selected.id === OWN_PROFILE_ID && !(hasCatalogPlacement(subscription) && isCatalogProfileReady(profile))} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
+  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={(returnTo === "profile" || returnTo === "cabinet") && selected.id === OWN_PROFILE_ID && !(hasCatalogPlacement(subscription) && isCatalogProfileReady(profile))} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else setSelected(null); }} />;
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
