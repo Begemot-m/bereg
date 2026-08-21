@@ -64,24 +64,32 @@ export async function statsFor(clientIds: number[]): Promise<Map<number, ClientS
   return out;
 }
 
-/** Что подмешать к выборке карточки, чтобы отдать аватарку подключённого клиента. */
-export const PHOTO_INCLUDE = { user: { select: { photoUrl: true } } } as const;
+/** Что подмешать к выборке карточки, чтобы отдать аватарку и ник подключённого клиента. */
+export const PHOTO_INCLUDE = { user: { select: { photoUrl: true, username: true } } } as const;
 
-type MaybeUser = { user?: { photoUrl: string | null } | null };
-type Photo<T> = Omit<T, "user"> & { photo: string | null };
+type MaybeUser = { user?: { photoUrl: string | null; username?: string | null } | null };
+type Photo<T> = Omit<T, "user"> & { photo: string | null; tg: string | null };
 
 /**
  * Фото клиента берётся из его аккаунта: карточку заводит психолог, а аватарка
  * есть только у того, кто вошёл через Telegram. Сам `user` наружу не отдаём —
  * интерфейсу нужна одна ссылка, а не кусок чужого профиля. Карточка без
  * подключённого аккаунта проходит здесь же и получает `photo: null`.
+ *
+ * Оттуда же берётся `tg` — ник подключённого аккаунта. Без него «Написать»
+ * работало только если психолог сам вписал в контакт username: у клиента,
+ * пришедшего по ссылке, кнопка вела в никуда.
  */
 export function withPhoto<T extends object>(row: T): Photo<T> {
   const { user, ...rest } = row as T & MaybeUser;
   // У демо-карточки аккаунта нет и быть не может, а буква вместо лица делает
   // её похожей на недозаполненную настоящую. Отдаём портрет из public.
   const demo = (row as { demo?: boolean }).demo === true;
-  return { ...rest, photo: user?.photoUrl ?? (demo ? DEMO_CLIENT_PHOTO : null) } as Photo<T>;
+  return {
+    ...rest,
+    photo: user?.photoUrl ?? (demo ? DEMO_CLIENT_PHOTO : null),
+    tg: user?.username ?? null,
+  } as Photo<T>;
 }
 
 /** Портрет демо-карточки — файл из public, аккаунта за ним нет. */
