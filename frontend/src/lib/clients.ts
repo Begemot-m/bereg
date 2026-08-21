@@ -93,12 +93,13 @@ export function isPhone(contact: string): boolean {
  * Личный чат в Telegram. Сначала ник подключённого аккаунта: клиент пришёл по
  * ссылке, психолог его контакт руками не вписывал — и «Написать» вело в никуда.
  * Если аккаунт не подключён, годится username из поля контакта; телефон в чат
- * не превращается, для него ссылка своя.
+ * не превращается, для него ссылка своя. Заготовки сообщения в ссылке нет
+ * намеренно: психолог пишет сам, подставленный текст пришлось бы стирать.
  */
-export function chatLink(c: Pick<Client, "tg" | "contact">, text = "Здравствуйте! Пишу из «Хроники»."): string | null {
+export function chatLink(c: Pick<Client, "tg" | "contact">): string | null {
   const nick = c.tg?.trim() || (c.contact && !isPhone(c.contact) ? c.contact.trim() : "");
   if (!nick) return null;
-  return `https://t.me/${nick.replace(/^@/, "")}?text=${encodeURIComponent(text)}`;
+  return `https://t.me/${nick.replace(/^@/, "")}`;
 }
 
 export function formatContact(contact: string): string {
