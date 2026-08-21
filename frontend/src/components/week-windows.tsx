@@ -16,7 +16,7 @@ import { FmtSwitch } from "@/components/fmt-switch";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { awaitsConfirm, confirmAppointment, createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
-import { createClient, isPhone, listClients } from "@/lib/clients";
+import { chatLink, createClient, listClients } from "@/lib/clients";
 import { activeMembers, listGroups, type GroupKind, type GroupMember } from "@/lib/groups";
 import { GROUPS_LIVE } from "@/lib/modules";
 import { select, success, tap } from "@/lib/haptics";
@@ -522,10 +522,8 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const { ask, askNode } = useConfirmAsk();
   const whenLabel = `${cap(dLong.format(new Date(slot.iso)))} в ${timeF.format(new Date(slot.iso))}`;
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients, enabled: !!slot.appt });
-  const contact = clients.find((c) => c.id === slot.appt?.client.id)?.contact ?? null;
-  const tgLink = contact && !isPhone(contact)
-    ? `https://t.me/${contact.replace(/^@/, "")}?text=${encodeURIComponent("Здравствуйте! Пишу из «Хроники».")}`
-    : null;
+  const apptClient = clients.find((c) => c.id === slot.appt?.client.id) ?? null;
+  const tgLink = apptClient ? chatLink(apptClient) : null;
 
   const book = useMutation({ mutationFn: ({ clientId, format }: { clientId: number; format: ApptFormat }) => createAppointment({ clientId, startsAt: slot.iso, format }), onSuccess: () => { success(); onClose(); inv(); } });
   const setFmt = useMutation({ mutationFn: async (format: ApptFormat) => { if (slot.appt) await updateAppointment(slot.appt.id, { format }); else await setOverride(slot.iso, { fmt: format }); }, onSuccess: () => { select(); inv(); } });

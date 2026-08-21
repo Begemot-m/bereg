@@ -15,7 +15,7 @@ import { InviteShare } from "@/components/invite-share";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonCards } from "@/components/ui";
-import { createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
+import { chatLink, createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { getPsyInviteToken, inviteDeepLink } from "@/lib/invite";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
@@ -39,12 +39,13 @@ const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
 const nextF = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 
-// Быстрое сообщение: телеграм по @нику, иначе звонок по номеру.
-function contactHref(contact: string | null): string | null {
-  const v = (contact ?? "").trim();
-  if (!v) return null;
-  if (v.startsWith("@")) return `https://t.me/${v.slice(1)}`;
-  if (/^\+?[\d\s()-]{6,}$/.test(v)) return `tel:${v.replace(/[^\d+]/g, "")}`;
+// Быстрое сообщение: телеграм подключённого клиента или @ник из контакта,
+// иначе звонок по номеру.
+function contactHref(c: Pick<Client, "tg" | "contact">): string | null {
+  const chat = chatLink(c);
+  if (chat) return chat;
+  const v = (c.contact ?? "").trim();
+  if (v && /^\+?[\d\s()-]{6,}$/.test(v)) return `tel:${v.replace(/[^\d+]/g, "")}`;
   return null;
 }
 
@@ -326,7 +327,7 @@ function ClientCard({ client: c }: { client: Client }) {
   // Рамка и плашки — в лавандовом тоне раздела; статус различается словом,
   // а не цветом, иначе карточки пестрят.
   const tone = "purple";
-  const href = contactHref(c.contact);
+  const href = contactHref(c);
   return (
     <div
       className="relative overflow-hidden rounded-[18px] bg-white p-4 transition-transform active:scale-[0.995]"

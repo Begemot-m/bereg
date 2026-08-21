@@ -18,6 +18,8 @@ export type Client = {
   joinedName?: string | null;
   /** Аватарка из Telegram. Есть только у клиента, подключившего свой профиль. */
   photo?: string | null;
+  /** Ник Telegram подключённого аккаунта — по нему открывается личный чат. */
+  tg?: string | null;
   /** Карточка-пример от платформы: не занимает место в лимите, её можно удалить. */
   demo?: boolean;
   sessionsDone: number;
@@ -87,6 +89,18 @@ export const LINK_LABEL: Record<ClientLink, string> = {
 export function isPhone(contact: string): boolean {
   return /^[+\d][\d\s()\-]{4,}$/.test(contact.trim());
 }
+/**
+ * Личный чат в Telegram. Сначала ник подключённого аккаунта: клиент пришёл по
+ * ссылке, психолог его контакт руками не вписывал — и «Написать» вело в никуда.
+ * Если аккаунт не подключён, годится username из поля контакта; телефон в чат
+ * не превращается, для него ссылка своя.
+ */
+export function chatLink(c: Pick<Client, "tg" | "contact">, text = "Здравствуйте! Пишу из «Хроники»."): string | null {
+  const nick = c.tg?.trim() || (c.contact && !isPhone(c.contact) ? c.contact.trim() : "");
+  if (!nick) return null;
+  return `https://t.me/${nick.replace(/^@/, "")}?text=${encodeURIComponent(text)}`;
+}
+
 export function formatContact(contact: string): string {
   const c = contact.trim();
   if (!c) return c;
