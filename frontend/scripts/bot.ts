@@ -85,6 +85,37 @@ bot.command("start", async (ctx) => {
   );
 });
 
+// Бот отвечал только на /start. На любое другое сообщение он молчал — человек
+// писал в чат и решал, что бота нет. Разговаривать бот не умеет и не должен:
+// всё живое в мини-приложении, поэтому ответ везде один — подсказка и вход.
+const openKeyboard = () => new InlineKeyboard().webApp("Открыть приложение", appLink("/"));
+
+const HELP = [
+  "«Хроника» живёт в приложении — здесь я присылаю уведомления и открываю вход.",
+  "",
+  "🌿 «Открыть приложение» — записи, клиенты, заметки и расписание.",
+  "🔔 Напомню о встрече, о новой записи и о переносе — сообщением в этот чат.",
+  "💬 Вопрос живому человеку — @mmgorba.",
+].join("\n");
+
+bot.command(["help", "app"], async (ctx) => {
+  await ctx.reply(HELP, { reply_markup: openKeyboard() });
+});
+
+bot.on("message", async (ctx) => {
+  await ctx.reply(
+    "Я бот «Хроники»: сам не переписываюсь, но приложение открою.\n\nЕсли нужна подсказка — /help.",
+    { reply_markup: openKeyboard() },
+  );
+});
+
+// Ошибка в обработчике не должна ронять polling: без этого одно неудачное
+// сообщение уводило бота в тишину до перезапуска контейнера.
+bot.catch((error) => {
+  const cause = error.error;
+  console.error("bot error", cause instanceof Error ? cause.message : cause);
+});
+
 type Delivery = Awaited<ReturnType<typeof dueDeliveries>>[number];
 
 function dueDeliveries() {
@@ -275,6 +306,11 @@ async function main() {
   };
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
+  // Список команд в меню чата: без него у бота пустая кнопка «Меню».
+  await bot.api.setMyCommands([
+    { command: "start", description: "Открыть «Хронику»" },
+    { command: "help", description: "Что умеет бот" },
+  ]).catch((error) => console.error("setMyCommands", error));
   console.log("Telegram worker запущен: события расписания, напоминания клиента, итог недели специалиста, приветствие после верификации.");
   await bot.start();
 }
