@@ -7,7 +7,7 @@ import { ClientAvatar } from "@/components/client-avatar";
 import { Icon } from "@/components/icons";
 import { listClients } from "@/lib/clients";
 import { useQuery } from "@tanstack/react-query";
-import { activeMembers, moodTrend, trendDelta, type Group, type GroupMeeting, type GroupMood, type GroupPost } from "@/lib/groups";
+import { activeMembers, cycle, isOver, marked, moodTrend, nextMeeting, trendDelta, type Group, type GroupMeeting, type GroupMood, type GroupPost } from "@/lib/groups";
 import { tap } from "@/lib/haptics";
 
 export const EDGE = "var(--salmon-edge)";
@@ -85,6 +85,75 @@ export function MemberStack({ group, size = 30 }: { group: Group; size?: number 
           +{rest}
         </span>
       )}
+    </span>
+  );
+}
+
+/**
+ * Дата встречи капсулой: день недели, число крупно, месяц. Тот же приём, что
+ * у отрывного календаря, — взгляд цепляется за число, а не за строку текста.
+ */
+export function DateBadge({ iso, tone = "soft", size = 54 }: { iso: string; tone?: "soft" | "edge"; size?: number }) {
+  const d = new Date(iso);
+  const dow = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"][d.getDay()];
+  const month = d.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
+  const filled = tone === "edge";
+  return (
+    <span
+      className="keep-style flex shrink-0 flex-col items-center justify-center rounded-[15px] leading-none"
+      style={{ width: size, height: size, background: filled ? EDGE : SOFT, color: filled ? "#fff" : "var(--ink)" }}
+    >
+      <span className="text-[9.5px] font-black uppercase tracking-[.08em]" style={{ opacity: 0.72 }}>{dow}</span>
+      <span className="tnum font-tight text-[21px] font-black leading-none" style={{ marginTop: 2 }}>{d.getDate()}</span>
+      <span className="text-[9.5px] font-black lowercase" style={{ opacity: 0.72, marginTop: 2 }}>{month}</span>
+    </span>
+  );
+}
+
+/**
+ * Цикл группы полоской: сколько встреч позади, какая ближайшая, сколько
+ * впереди. Ведущий видит ход цикла одним взглядом, не считая строки в
+ * расписании. Янтарный сегмент — прошедшая встреча без отметок.
+ */
+export function CycleBar({ group, thick }: { group: Group; thick?: boolean }) {
+  const rows = cycle(group);
+  if (rows.length < 2) return null;
+  const next = nextMeeting(group);
+  return (
+    <span className="flex w-full items-center gap-[3px]" aria-hidden>
+      {rows.map((m) => {
+        const over = isOver(m);
+        const bg = over ? (marked(m) ? EDGE : "var(--amber-edge)") : m.id === next?.id ? SOFT : "var(--surface-2)";
+        return <span key={m.id} className="flex-1 rounded-full" style={{ height: thick ? 6 : 4, background: bg }} />;
+      })}
+    </span>
+  );
+}
+
+/**
+ * Как человек ходит: точка на каждую отмеченную встречу. Заливка — был,
+ * пустой кружок — пропустил. Последние шесть, свежие справа.
+ */
+export function PresenceDots({ group, memberId, limit = 6, delay = 0 }: { group: Group; memberId: number; limit?: number; delay?: number }) {
+  const rows = cycle(group)
+    .filter((m) => isOver(m) && marked(m))
+    .slice(-limit);
+  if (!rows.length) return null;
+  return (
+    <span className="flex items-center gap-[5px]" aria-hidden>
+      {rows.map((m, i) => {
+        const present = m.attendance.some((a) => a.memberId === memberId && a.present);
+        return (
+          <motion.span
+            key={m.id}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: delay + i * 0.04, type: "spring", stiffness: 520, damping: 24 }}
+            className="keep-style h-[9px] w-[9px] rounded-full"
+            style={present ? { background: EDGE } : { background: "#fff", boxShadow: `inset 0 0 0 2px ${SOFT}` }}
+          />
+        );
+      })}
     </span>
   );
 }
@@ -339,20 +408,24 @@ export function Feed({ posts, reach, onSend, onRemove, busy }: { posts: GroupPos
         {posts.map((p) => (
           <div
             key={p.id}
-            className="rounded-[15px] p-3"
+            className="flex items-start gap-2.5 rounded-[15px] p-3"
             style={p.kind === "post" ? { background: "#fff", border: `var(--bw) solid ${EDGE}` } : { background: "var(--surface-2)" }}
           >
-            <div className="flex items-start gap-2">
-              <Icon name={p.kind === "post" ? "megaphone" : "bell"} width={13} weight="bold" color={p.kind === "post" ? EDGE : "var(--muted-2)"} />
-              <p className="min-w-0 flex-1 text-[12.5px] font-bold leading-snug">{p.text}</p>
-              {p.kind === "post" && (
-                <button onClick={() => { tap(); onRemove(p.id); }} className="shrink-0 text-[11px] font-black text-[var(--muted-2)]" aria-label="Убрать объявление">×</button>
-              )}
-            </div>
-            <p className="mt-1.5 pl-[21px] text-[10.5px] font-bold text-[var(--muted-2)]">
-              {new Date(p.createdAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-              {p.reach > 0 && ` · ушло ${p.reach}`}
-            </p>
+            <span className="ico h-8 w-8 shrink-0 keep-style" style={{ background: p.kind === "post" ? SOFT : "#fff" }}>
+              <Icon name={p.kind === "post" ? "megaphone" : "bell"} width={14} weight="bold" color={p.kind === "post" ? EDGE : "var(--muted-2)"} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-start gap-2">
+                <p className="min-w-0 flex-1 text-[12.5px] font-bold leading-snug">{p.text}</p>
+                {p.kind === "post" && (
+                  <button onClick={() => { tap(); onRemove(p.id); }} className="shrink-0 text-[13px] font-black leading-none text-[var(--muted-2)]" aria-label="Убрать объявление">×</button>
+                )}
+              </span>
+              <p className="mt-1.5 text-[10.5px] font-bold text-[var(--muted-2)]">
+                {new Date(p.createdAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                {p.reach > 0 && ` · ушло ${p.reach}`}
+              </p>
+            </span>
           </div>
         ))}
       </div>
@@ -422,7 +495,7 @@ export function MoodTrend({ rows }: { rows: GroupMood[] }) {
 }
 
 /** Ломаная по неделям. Пропуски не соединяем: неделя без отметок — это дыра, а не ноль. */
-function Spark({ points, width, height, thick }: { points: (number | null)[]; width: number; height: number; thick?: boolean }) {
+export function Spark({ points, width, height, thick }: { points: (number | null)[]; width: number; height: number; thick?: boolean }) {
   const pad = 4;
   const stepX = points.length > 1 ? (width - pad * 2) / (points.length - 1) : 0;
   const y = (v: number) => pad + (height - pad * 2) * (1 - (v - 1) / 4);
@@ -446,7 +519,7 @@ function Spark({ points, width, height, thick }: { points: (number | null)[]; wi
 }
 
 /** Куда идёт настроение: вверх — шалфей, вниз — янтарь, ровно — серым. */
-function DeltaTag({ delta, small }: { delta: number; small?: boolean }) {
+export function DeltaTag({ delta, small }: { delta: number; small?: boolean }) {
   const up = delta > 0.05;
   const down = delta < -0.05;
   const color = up ? "var(--green-edge)" : down ? "var(--amber-edge)" : "var(--muted-2)";
@@ -462,8 +535,7 @@ function DeltaTag({ delta, small }: { delta: number; small?: boolean }) {
  * Посещаемость кольцом. Библиотек для графиков в проекте нет и заводить их
  * ради одного круга незачем: дуга рисуется одним `circle` с обводкой.
  */
-export function AttendanceDonut({ rate, size = 84 }: { rate: number; size?: number }) {
-  const stroke = 11;
+export function AttendanceDonut({ rate, size = 84, stroke = Math.max(7, Math.round(size * 0.13)) }: { rate: number; size?: number; stroke?: number }) {
   const r = (size - stroke) / 2;
   const len = 2 * Math.PI * r;
   return (
@@ -486,7 +558,7 @@ export function AttendanceDonut({ rate, size = 84 }: { rate: number; size?: numb
         />
       </svg>
       <span className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="tnum font-tight text-[20px] font-black leading-none">{rate}%</span>
+        <span className="tnum font-tight font-black leading-none" style={{ fontSize: Math.max(12, Math.round(size * 0.24)) }}>{rate}%</span>
       </span>
     </span>
   );

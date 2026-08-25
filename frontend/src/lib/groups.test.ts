@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { groupsOfClient, isFading, memberOfClient, memberStats, missStreak, type Group, type GroupMeeting } from "./groups";
+import { groupsOfClient, isFading, memberOfClient, memberStats, missStreak, untilLabel, type Group, type GroupMeeting } from "./groups";
 
 const HOUR = 3_600_000;
 const ago = (days: number) => new Date(Date.now() - days * 24 * HOUR).toISOString();
@@ -82,5 +82,28 @@ describe("группы клиента", () => {
 
   test("архивная группа в карточку не попадает", () => {
     expect(groupsOfClient([{ ...g, status: "archived" }], 77)).toEqual([]);
+  });
+});
+
+describe("подпись срочности", () => {
+  const now = new Date("2026-08-25T12:00:00");
+  const at = (days: number, hour = 19) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + days);
+    d.setHours(hour, 0, 0, 0);
+    return d.toISOString();
+  };
+
+  test("считает по календарным дням, а не по часам", () => {
+    expect(untilLabel(at(0, 23), now)).toBe("сегодня");
+    expect(untilLabel(at(1, 1), now)).toBe("завтра");
+    expect(untilLabel(at(3), now)).toBe("через 3 дня");
+    expect(untilLabel(at(5), now)).toBe("через 5 дней");
+  });
+
+  test("дальше недели считает неделями", () => {
+    expect(untilLabel(at(8), now)).toBe("через 1 неделю");
+    expect(untilLabel(at(21), now)).toBe("через 3 недели");
+    expect(untilLabel(at(35), now)).toBe("через 5 недель");
   });
 });

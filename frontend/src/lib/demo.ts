@@ -193,29 +193,40 @@ export function stopFreshDemo() {
 }
 
 // Демо-группа: дашборд модуля не должен встречать пустотой, как и раздел
-// клиентов с карточкой-примером. Состав берём из тех же демо-клиентов.
+// клиентов с карточкой-примером.
+const SEED_MEMBER_NAMES = ["Марина Соколова", "Дмитрий Орлов"];
+// Остальной состав — люди без карточки клиента: в группу ходят и те, кого
+// специалист не ведёт индивидуально, `clientId` у участника необязателен.
+const OUTSIDE_MEMBERS = ["Ольга Рыжова", "Павел Ким", "Настя Верещагина", "Кирилл Дорн"];
+
 function seedGroups(clients: Client[], now: string): Group[] {
-  const members: GroupMember[] = clients.slice(0, 2).map((c, i) => ({
-    id: 900 + i,
-    clientId: c.id,
-    name: c.name,
-    status: "active",
-    joinedAt: now,
-  }));
-  // Цикл из шести встреч по вторникам: две прошли и отмечены, остальные впереди.
-  // Без этого дашборд выглядит пустым и не показывает, ради чего модуль.
+  // Привязываем к карточкам только тех, кого демо завело само. Раньше брались
+  // первые два клиента подряд, и при досеве в уже пожившую базу в состав
+  // попадали клиенты владельца: в их карточках всплывал блок «Групповая
+  // работа», хотя в группу их никто не добавлял.
+  const linked = clients.filter((c) => SEED_MEMBER_NAMES.includes(c.name)).slice(0, 2);
+  const members: GroupMember[] = [
+    ...linked.map((c, i) => ({ id: 900 + i, clientId: c.id, name: c.name, status: "active" as const, joinedAt: now })),
+    ...OUTSIDE_MEMBERS.map((name, i) => ({ id: 902 + i, clientId: null, name, status: "active" as const, joinedAt: now })),
+  ];
+  // Цикл из восьми встреч по вторникам: три прошли и отмечены, остальные
+  // впереди. Без этого дашборд выглядит пустым и не показывает, ради чего
+  // модуль. Последний участник пропустил все три подряд — на нём видно ярлык
+  // «пропадает», ради которого посещаемость и считается.
   const start = new Date(now);
   start.setHours(19, 0, 0, 0);
-  const meetings: GroupMeeting[] = Array.from({ length: 6 }, (_, i) => {
-    const at = new Date(start.getTime() + (i - 2) * 7 * 86_400_000);
-    const past = i < 2;
+  const meetings: GroupMeeting[] = Array.from({ length: 8 }, (_, i) => {
+    const at = new Date(start.getTime() + (i - 3) * 7 * 86_400_000);
+    const past = i < 3;
     return {
       id: 910 + i,
       startsAt: at.toISOString(),
       durationMin: 90,
       status: past ? "done" : "planned",
       note: "",
-      attendance: past ? members.map((m, k) => ({ memberId: m.id, present: !(i === 1 && k === 1) })) : [],
+      attendance: past
+        ? members.map((m, k) => ({ memberId: m.id, present: k === members.length - 1 ? false : !(i === 1 && k === 1) }))
+        : [],
     };
   });
   const tasks: GroupTask[] = [
@@ -416,6 +427,14 @@ function load(): DB {
       // База, снятая до модуля «Группы»: раздел встречал пустотой, а ссылки на
       // демо-группу вели в никуда. Досеваем её один раз, при первой загрузке.
       if (!db.groups) db.groups = seedGroups(db.clients ?? [], new Date().toISOString());
+      // Старый состав демо-группы: два первых клиента базы, кем бы они ни
+      // были. Пересобираем её один раз — у клиентов владельца пропадёт чужой
+      // блок «Групповая работа» в карточке. Свои группы не трогаем.
+      const demoGroup = db.groups.find((g) => g.id === 901);
+      if (demoGroup && !demoGroup.members.some((m) => m.clientId === null)) {
+        const fresh = seedGroups(db.clients ?? [], new Date().toISOString())[0];
+        if (fresh) db.groups = db.groups.map((g) => (g.id === 901 ? fresh : g));
+      }
       for (const g of db.groups) {
         if (!g.meetings) g.meetings = [];
         if (!g.tasks) g.tasks = [];

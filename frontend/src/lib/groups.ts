@@ -149,6 +149,19 @@ export function whenLabel(iso: string, now = new Date()): string {
   return `${DAY[d.getDay()]}, ${date} · ${time}`;
 }
 
+/**
+ * Насколько скоро: «сегодня» / «завтра» / «через 3 дня». Рядом с датой это
+ * отвечает на вопрос, ради которого ведущий вообще открыл раздел.
+ */
+export function untilLabel(iso: string, now = new Date()): string {
+  const days = Math.round((+new Date(new Date(iso).toDateString()) - +new Date(now.toDateString())) / 86_400_000);
+  if (days <= 0) return "сегодня";
+  if (days === 1) return "завтра";
+  if (days < 7) return `через ${days} ${days % 10 === 1 && days % 100 !== 11 ? "день" : days % 10 >= 2 && days % 10 <= 4 ? "дня" : "дней"}`;
+  const weeks = Math.round(days / 7);
+  return `через ${weeks} ${weeks === 1 ? "неделю" : weeks < 5 ? "недели" : "недель"}`;
+}
+
 export const listGroups = () => apiFetch<Group[]>("/groups");
 export const getGroup = (id: number) => apiFetch<Group>(`/groups/${id}`);
 

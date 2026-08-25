@@ -12,9 +12,12 @@ import {
   AttendanceDonut,
   AttendanceForm,
   ClientPicker,
+  CycleBar,
+  DateBadge,
   EDGE,
   Feed,
   MemberStack,
+  PresenceDots,
   MoodTrend,
   MoveForm,
   PlanForm,
@@ -58,6 +61,7 @@ import {
   removeTask,
   seatsLeft,
   toggleTask,
+  untilLabel,
   updateGroup,
   whenLabel,
   type Group,
@@ -166,40 +170,63 @@ function GroupDetailInner() {
           {!g ? null : (
             <>
               {/* Сводка: всё, что нужно знать перед встречей, без прокрутки. */}
-              <div className="rounded-[19px] bg-white p-4" style={{ border: `var(--bw) solid ${EDGE}` }}>
-                <div className="flex items-center gap-3">
-                  {stats && stats.held > 0 ? <AttendanceDonut rate={stats.rate} size={62} /> : null}
+              <div className="overflow-hidden rounded-[19px] bg-white" style={{ border: `var(--bw) solid ${EDGE}` }}>
+                <div className="flex items-center gap-3 p-4">
+                  {next ? (
+                    <DateBadge iso={next.startsAt} size={58} tone="edge" />
+                  ) : (
+                    <span className="ico h-[58px] w-[58px] shrink-0 keep-style rounded-[15px]" style={{ background: "var(--surface-2)" }}>
+                      <Icon name="clock" width={21} weight="bold" color="var(--muted-2)" />
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <MemberStack group={g} size={28} />
-                      <span className="text-[11px] font-bold text-[var(--muted)]">
-                        {members.length} из {g.capacity}
-                        {seatsLeft(g) ? ` · свободно ${seatsLeft(g)}` : ""}
-                      </span>
-                    </div>
-                    {stats && stats.held > 0 && (
-                      <p className="mt-1.5 text-[11px] font-bold text-[var(--muted)]">
-                        посещаемость по {stats.held} встречам
-                      </p>
+                    {next ? (
+                      <>
+                        <p className="tnum font-tight text-[23px] font-black leading-none">
+                          {new Date(next.startsAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                        <p className="mt-1 text-[11px] font-bold text-[var(--muted)]">
+                          сессия {meetings.findIndex((m) => m.id === next.id) + 1} из {meetings.length} · {next.durationMin} мин ·{" "}
+                          {FORMAT_LABEL[meetFormat(g, next)].toLowerCase()}
+                        </p>
+                        {meetPlace(g, next) && (
+                          <p className="mt-0.5 truncate text-[11px] font-black" style={{ color: EDGE }}>{meetPlace(g, next)}</p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[14px] font-black leading-tight">Встречи не запланированы</p>
+                        <p className="mt-0.5 text-[11px] font-bold text-[var(--muted)]">Группа обычно ходит по одному дню недели — запланируйте цикл разом.</p>
+                      </>
                     )}
                   </div>
+                  {next && (
+                    <span className="keep-style shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-black" style={{ background: SOFT, color: EDGE }}>
+                      {untilLabel(next.startsAt)}
+                    </span>
+                  )}
                 </div>
 
-                <div className="mt-3 flex items-start gap-2 border-t pt-3" style={{ borderColor: "var(--edge-neutral)" }}>
-                  <Icon name="calendar" width={15} weight="bold" color={next ? EDGE : "var(--muted-2)"} />
-                  {next ? (
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-black leading-tight">{whenLabel(next.startsAt)}</span>
-                      <span className="block text-[10.5px] font-bold text-[var(--muted-2)]">
-                        сессия {meetings.findIndex((m) => m.id === next.id) + 1} из {meetings.length} · {next.durationMin} мин ·{" "}
-                        {FORMAT_LABEL[meetFormat(g, next)].toLowerCase()}
-                      </span>
-                      {meetPlace(g, next) && (
-                        <span className="mt-0.5 block text-[10.5px] font-bold" style={{ color: EDGE }}>{meetPlace(g, next)}</span>
-                      )}
-                    </span>
-                  ) : (
-                    <span className="min-w-0 flex-1 text-[12px] font-bold text-[var(--muted)]">Встречи не запланированы</span>
+                {meetings.length > 1 && (
+                  <div className="px-4 pb-3.5">
+                    <CycleBar group={g} thick />
+                    <p className="mt-1.5 text-[10.5px] font-bold text-[var(--muted-2)]">
+                      {past.length} из {meetings.length} встреч позади
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 border-t px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
+                  <MemberStack group={g} size={28} />
+                  <span className="min-w-0 flex-1 text-[11px] font-bold text-[var(--muted)]">
+                    {members.length} из {g.capacity}
+                    {seatsLeft(g) ? ` · свободно ${seatsLeft(g)}` : ""}
+                  </span>
+                  {stats && stats.held > 0 && (
+                    <>
+                      <span className="shrink-0 text-[10.5px] font-bold text-[var(--muted-2)]">посещаемость</span>
+                      <AttendanceDonut rate={stats.rate} size={44} />
+                    </>
                   )}
                 </div>
 
@@ -209,7 +236,7 @@ function GroupDetailInner() {
                     target="_blank"
                     rel="noreferrer"
                     onClick={() => tap()}
-                    className="mt-2 flex items-center gap-2 border-t pt-2.5 text-[12px] font-black"
+                    className="flex items-center gap-2 border-t px-4 py-2.5 text-[12px] font-black"
                     style={{ borderColor: "var(--edge-neutral)", color: EDGE }}
                   >
                     <Icon name="share" width={14} weight="bold" color={EDGE} />
@@ -331,15 +358,22 @@ function GroupDetailInner() {
                               tone: "danger",
                               run: () => remove.mutate(m.id),
                             })}
-                            className="flex items-center gap-2.5 rounded-[13px] bg-white p-2.5 text-left"
-                            style={{ border: "var(--bw) solid var(--edge-neutral)" }}
+                            className="flex items-center gap-2.5 rounded-[15px] bg-white p-2.5 text-left"
+                            style={{ border: `var(--bw) solid ${risky ? "var(--coral-edge)" : "var(--edge-neutral)"}` }}
                           >
-                            <ClientAvatar name={m.name} photo={m.photo} className="keep-style h-9 w-9 rounded-full text-[12px] font-black" style={{ background: SOFT, color: EDGE }} />
+                            <ClientAvatar name={m.name} photo={m.photo} className="keep-style h-10 w-10 rounded-full text-[12.5px] font-black" style={{ background: SOFT, color: EDGE }} />
                             <span className="min-w-0 flex-1">
-                              <span className="block text-[13px] font-black leading-tight">{m.name}</span>
-                              <span className="block text-[10.5px] font-bold" style={{ color: risky ? "var(--coral-edge)" : "var(--muted-2)" }}>
-                                {s.of ? `был на ${s.been} из ${s.of}` : "встреч ещё не было"}
-                                {risky ? " · пропадает" : ""}
+                              <span className="flex items-center gap-1.5">
+                                <span className="truncate text-[13px] font-black leading-tight">{m.name}</span>
+                                {risky && (
+                                  <span className="chip keep-style shrink-0" style={{ background: "var(--coral-soft)", color: "var(--coral-edge)" }}>пропадает</span>
+                                )}
+                              </span>
+                              <span className="mt-1 flex items-center gap-2">
+                                <PresenceDots group={g} memberId={m.id} limit={8} />
+                                <span className="text-[10.5px] font-bold" style={{ color: risky ? "var(--coral-edge)" : "var(--muted-2)" }}>
+                                  {s.of ? `был на ${s.been} из ${s.of}` : "встреч ещё не было"}
+                                </span>
                               </span>
                             </span>
                             <Icon name="close" width={13} weight="bold" color="var(--muted-2)" />
@@ -348,7 +382,7 @@ function GroupDetailInner() {
                       })}
                     </div>
                   ) : (
-                    <Empty text="Состав пуст — добавьте участников из своих клиентов." />
+                    <Empty icon="users" text="Состав пуст — добавьте участников из своих клиентов." />
                   )}
                 </>
               )}
@@ -387,7 +421,7 @@ function GroupDetailInner() {
                       })}
                     </div>
                   ) : (
-                    <Empty text="Заданий пока нет. Одно задание на всю группу — участники увидят его вместе с расписанием." />
+                    <Empty icon="check" text="Заданий пока нет. Одно задание на всю группу — участники увидят его вместе с расписанием." />
                   )}
                 </>
               )}
@@ -457,11 +491,14 @@ function GroupDetailInner() {
   );
 }
 
-function Empty({ text }: { text: string }) {
+function Empty({ text, icon = "calendar" }: { text: string; icon?: "calendar" | "users" | "check" }) {
   return (
-    <p className="rounded-[13px] bg-white p-4 text-center text-[12px] font-semibold leading-snug text-[var(--muted)]" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-      {text}
-    </p>
+    <div className="rounded-[17px] bg-white p-5 text-center" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
+      <span className="ico mx-auto h-11 w-11 keep-style" style={{ background: SOFT }}>
+        <Icon name={icon} width={20} weight="bold" color={EDGE} />
+      </span>
+      <p className="mx-auto mt-2.5 max-w-[280px] text-[12px] font-semibold leading-snug text-[var(--muted)]">{text}</p>
+    </div>
   );
 }
 
@@ -525,16 +562,28 @@ function MeetingRow({ group, meeting, onMark, onMove, onCancel }: { group: Group
   const total = activeMembers(group).length;
   const over = isOver(meeting);
   const done = marked(meeting);
-  const no = cycle(group).findIndex((m) => m.id === meeting.id) + 1;
+  const rows = cycle(group);
+  const no = rows.findIndex((m) => m.id === meeting.id) + 1;
+  const isNext = nextMeeting(group)?.id === meeting.id;
 
   return (
-    <div className="flex items-center gap-2.5 rounded-[13px] bg-white p-2.5" style={{ border: `var(--bw) solid ${over && !done ? "var(--amber-edge)" : "var(--edge-neutral)"}` }}>
+    <div
+      className="flex items-center gap-2.5 rounded-[15px] bg-white p-2.5"
+      style={{ border: `var(--bw) solid ${over && !done ? "var(--amber-edge)" : isNext ? EDGE : "var(--edge-neutral)"}` }}
+    >
+      <DateBadge iso={meeting.startsAt} size={44} tone={isNext ? "edge" : "soft"} />
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-black leading-tight">{whenLabel(meeting.startsAt)}</span>
-        <span className="block text-[10.5px] font-bold text-[var(--muted-2)]">
-          сессия {no} из {cycle(group).length} · {meeting.durationMin} мин · {FORMAT_LABEL[meetFormat(group, meeting)].toLowerCase()}
-          {done ? ` · пришли ${presentCount(meeting)} из ${total}` : ""}
+        <span className="tnum block text-[13px] font-black leading-tight">
+          {whenLabel(meeting.startsAt)}
         </span>
+        <span className="block text-[10.5px] font-bold text-[var(--muted-2)]">
+          сессия {no} из {rows.length} · {meeting.durationMin} мин · {FORMAT_LABEL[meetFormat(group, meeting)].toLowerCase()}
+        </span>
+        {done && (
+          <span className="keep-style mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: SOFT, color: EDGE }}>
+            пришли {presentCount(meeting)} из {total}
+          </span>
+        )}
       </span>
       {over ? (
         <button

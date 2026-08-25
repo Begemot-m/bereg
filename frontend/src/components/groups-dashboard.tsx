@@ -1,11 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
-import { AttendanceDonut, EDGE, MemberStack, Sheet, SOFT } from "@/components/groups-ui";
+import { AttendanceDonut, CycleBar, DateBadge, DeltaTag, EDGE, MemberStack, Sheet, SOFT, Spark } from "@/components/groups-ui";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import {
@@ -15,17 +15,23 @@ import {
   attendanceStats,
   createGroup,
   cycle,
+  groupMoods,
   isOver,
   listGroups,
   marked,
   meetingNo,
   meetFormat,
+  meetPlace,
+  moodTrend,
   nextMeeting,
   seatsLeft,
+  trendDelta,
+  untilLabel,
   whenLabel,
   type Group,
   type GroupKind,
 } from "@/lib/groups";
+import { plural } from "@/lib/daily";
 import { tap } from "@/lib/haptics";
 
 export function GroupsDashboard() {
@@ -46,25 +52,17 @@ export function GroupsDashboard() {
 
   const stats = attendanceStats(list);
 
+  // Дневники участников всех групп в одной линии: раньше динамика жила только
+  // в карточке группы, и понять «как идут дела» разом было негде.
+  const moods = useQueries({
+    queries: list.map((g) => ({ queryKey: ["group-mood", g.id], queryFn: () => groupMoods(g.id), staleTime: 60_000 })),
+  });
+  const moodRows = moods.flatMap((q) => q.data ?? []).flatMap((r) => r.rows);
+  const moodPoints = moodTrend(moodRows, 6);
+  const moodLast = [...moodPoints].reverse().find((p) => p.avg !== null)?.avg ?? null;
+
   return (
     <>
-      {stats.held > 0 && (
-        <Reveal y={8}>
-          <div className="mb-2.5 flex items-center gap-4 rounded-[19px] bg-white p-4" style={{ border: `var(--bw) solid ${EDGE}` }}>
-            <AttendanceDonut rate={stats.rate} />
-            <div className="min-w-0 flex-1">
-              <p className="font-tight text-[15px] font-black leading-tight">Посещаемость</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">по {stats.held} отмеченным встречам</p>
-              <div className="mt-2 flex flex-col gap-1">
-                <StatLine color={EDGE} label="пришли" value={stats.present} />
-                <StatLine color="var(--edge-neutral)" label="пропустили" value={stats.missed} />
-                {stats.ahead > 0 && <StatLine label="встреч впереди" value={stats.ahead} />}
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      )}
-
       {unmarked && (
         <Reveal y={8}>
           <Link
@@ -92,24 +90,86 @@ export function GroupsDashboard() {
           <Link
             href={`/groups/?id=${upcoming.g.id}`}
             onClick={() => tap()}
-            className="flex flex-col gap-2 rounded-[19px] bg-white p-4 transition-transform duration-200 active:scale-[.98]"
+            className="block overflow-hidden rounded-[19px] bg-white transition-transform duration-200 active:scale-[.98]"
             style={{ border: `var(--bw) solid ${EDGE}` }}
           >
-            <span className="flex items-center justify-between gap-2">
+            <span className="flex items-center justify-between gap-2 px-4 pt-3">
               <span className="chip keep-style" style={{ background: SOFT, color: EDGE }}>Ближайшая встреча</span>
-              <span className="text-[11px] font-bold text-[var(--muted-2)]">
+              <span className="keep-style rounded-full px-2.5 py-1 text-[11px] font-black" style={{ background: EDGE, color: "#fff" }}>
+                {untilLabel(upcoming.m.startsAt)}
+              </span>
+            </span>
+
+            <span className="mt-2.5 flex items-center gap-3 px-4">
+              <DateBadge iso={upcoming.m.startsAt} size={62} />
+              <span className="min-w-0 flex-1">
+                <span className="tnum block font-tight text-[24px] font-black leading-none">
+                  {new Date(upcoming.m.startsAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                <span className="mt-1 block truncate text-[13px] font-black leading-tight">{upcoming.g.title}</span>
+                <span className="mt-0.5 block truncate text-[11px] font-bold text-[var(--muted)]">
+                  {FORMAT_LABEL[meetFormat(upcoming.g, upcoming.m)].toLowerCase()} · {upcoming.m.durationMin} мин
+                  {meetPlace(upcoming.g, upcoming.m) ? ` · ${meetPlace(upcoming.g, upcoming.m)}` : ""}
+                </span>
+              </span>
+            </span>
+
+            <span className="mt-3 block px-4">
+              <CycleBar group={upcoming.g} thick />
+            </span>
+
+            <span className="mt-2.5 flex items-center gap-2 px-4 pb-3.5">
+              <MemberStack group={upcoming.g} size={28} />
+              <span className="min-w-0 flex-1 text-[11px] font-bold text-[var(--muted)]">
+                {activeMembers(upcoming.g).length} {plural(activeMembers(upcoming.g).length, "участник", "участника", "участников")}
+              </span>
+              <span className="shrink-0 text-[11px] font-black" style={{ color: EDGE }}>
                 сессия {meetingNo(upcoming.g, upcoming.m)} из {cycle(upcoming.g).length}
               </span>
             </span>
-            <span className="font-tight text-[22px] font-black leading-none">{whenLabel(upcoming.m.startsAt)}</span>
-            <span className="text-[13px] font-black">{upcoming.g.title}</span>
-            <span className="flex items-center gap-2">
-              <MemberStack group={upcoming.g} size={28} />
-              <span className="text-[11px] font-bold text-[var(--muted)]">
-                {activeMembers(upcoming.g).length} участников · {upcoming.m.durationMin} мин
-              </span>
-            </span>
           </Link>
+        </Reveal>
+      )}
+
+      {(stats.held > 0 || moodLast !== null) && (
+        <Reveal y={8}>
+          <div className="mt-2.5 rounded-[19px] bg-white p-4" style={{ border: `var(--bw) solid ${EDGE}` }}>
+            {stats.held > 0 && (
+              <div className="flex items-center gap-4">
+                <AttendanceDonut rate={stats.rate} size={76} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-tight text-[15px] font-black leading-tight">Посещаемость</p>
+                  <p className="mt-0.5 text-[11px] font-semibold text-[var(--muted)]">
+                    по {stats.held} отмеченным {plural(stats.held, "встрече", "встречам", "встречам")}
+                  </p>
+                  <div className="mt-2 flex flex-col gap-1">
+                    <StatLine color={EDGE} label="пришли" value={stats.present} />
+                    <StatLine color="var(--edge-neutral)" label="пропустили" value={stats.missed} />
+                    {stats.ahead > 0 && <StatLine label="встреч впереди" value={stats.ahead} />}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {moodLast !== null && (
+              <div className={stats.held > 0 ? "mt-3.5 border-t pt-3.5" : ""} style={stats.held > 0 ? { borderColor: "var(--edge-neutral)" } : undefined}>
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Состояние участников</p>
+                    <p className="mt-0.5">
+                      <span className="tnum font-tight text-[22px] font-black leading-none">{moodLast.toFixed(1)}</span>
+                      <span className="text-[12px] font-black text-[var(--muted-2)]"> из 5</span>
+                    </p>
+                  </div>
+                  <DeltaTag delta={trendDelta(moodPoints)} />
+                </div>
+                <Spark points={moodPoints.map((p) => p.avg)} width={252} height={44} thick />
+                <p className="mt-1 text-[10.5px] font-bold text-[var(--muted-2)]">
+                  Шесть недель · {moodRows.length} {plural(moodRows.length, "отметка", "отметки", "отметок")} из дневников
+                </p>
+              </div>
+            )}
+          </div>
         </Reveal>
       )}
 
@@ -152,31 +212,51 @@ function StatLine({ color, label, value }: { color?: string; label: string; valu
 function GroupRow({ group }: { group: Group }) {
   const next = nextMeeting(group);
   const left = seatsLeft(group);
+  const stats = attendanceStats([group]);
   return (
     <Link
       href={`/groups/?id=${group.id}`}
       onClick={() => tap()}
-      className="flex items-center gap-3 rounded-[17px] bg-white p-3 transition-transform duration-200 active:scale-[.98]"
+      className="block rounded-[17px] bg-white p-3 transition-transform duration-200 active:scale-[.98]"
       style={{ border: `var(--bw) solid ${EDGE}` }}
     >
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-1.5">
-          <span className="font-tight text-[15px] font-black leading-tight">{group.title}</span>
-          <span className="chip keep-style" style={{ background: SOFT, color: EDGE }}>{KIND_LABEL[group.kind]}</span>
-        </span>
-        <span className="mt-2 flex items-center gap-2">
-          <MemberStack group={group} size={26} />
-          <span className="text-[11px] font-bold text-[var(--muted)]">
-            {activeMembers(group).length} из {group.capacity}
-            {group.kind === "group" && left > 0 ? ` · свободно ${left}` : ""}
+      <span className="flex items-center gap-3">
+        {next ? (
+          <DateBadge iso={next.startsAt} size={50} />
+        ) : (
+          <span className="ico h-[50px] w-[50px] shrink-0 keep-style rounded-[15px]" style={{ background: "var(--surface-2)" }}>
+            <Icon name="clock" width={18} weight="bold" color="var(--muted-2)" />
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span className="font-tight text-[15px] font-black leading-tight">{group.title}</span>
+            <span className="chip keep-style" style={{ background: SOFT, color: EDGE }}>{KIND_LABEL[group.kind]}</span>
+          </span>
+          <span className="mt-1 flex items-center gap-1.5 text-[11px] font-bold" style={{ color: next ? "var(--ink)" : "var(--muted-2)" }}>
+            {next ? (
+              <>
+                <span className="tnum">{whenLabel(next.startsAt)}</span>
+                <span className="font-semibold text-[var(--muted)]">· {FORMAT_LABEL[meetFormat(group, next)].toLowerCase()}</span>
+              </>
+            ) : (
+              "встречи не запланированы"
+            )}
+          </span>
+          <span className="mt-1.5 flex items-center gap-2">
+            <MemberStack group={group} size={24} />
+            <span className="text-[10.5px] font-bold text-[var(--muted)]">
+              {activeMembers(group).length} из {group.capacity}
+              {group.kind === "group" && left > 0 ? ` · свободно ${left}` : ""}
+            </span>
           </span>
         </span>
-        <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold" style={{ color: next ? EDGE : "var(--muted-2)" }}>
-          <Icon name={next ? "calendar" : "clock"} width={12} weight="bold" color={next ? EDGE : "var(--muted-2)"} />
-          {next ? `${whenLabel(next.startsAt)} · ${FORMAT_LABEL[meetFormat(group, next)].toLowerCase()}` : "встречи не запланированы"}
-        </span>
+        {stats.held > 0 && <AttendanceDonut rate={stats.rate} size={38} />}
+        <ArrowGlyph size={13} />
       </span>
-      <ArrowGlyph size={13} />
+      <span className="mt-2.5 block">
+        <CycleBar group={group} />
+      </span>
     </Link>
   );
 }
