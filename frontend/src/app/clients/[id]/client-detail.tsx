@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { ClientGroups } from "@/components/client-groups";
 import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon } from "@/components/icons";
 import { EmotionChips, MoodStats, topEmotions } from "@/components/mood-stats";
@@ -297,6 +298,10 @@ export function ClientDetail() {
             </p>
           </div>
         )}
+
+        {/* Группы, в которых состоит клиент. Пусто — блока нет вовсе:
+            у большинства карточек групповой работы не будет. */}
+        <ClientGroups clientId={id} />
 
         <PsychologistHomeworkPreview items={homework} href={`/clients/homework?id=${id}`} />
 

@@ -2,11 +2,11 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { PolicySheet } from "@/components/policy-sheet";
 import { PrivacyNote } from "@/components/privacy-note";
 import { apiFetch } from "@/lib/api";
 import { APP_NAME, APP_NAME_ACC } from "@/lib/brand";
@@ -322,15 +322,18 @@ function Welcome({ firstName, onPick }: { firstName?: string; onPick: (role: Rol
 
       {/* Свитч: лавандовая плашка едет к выбранной половине */}
       <motion.div {...rise(0.48)} className="relative mt-5 grid grid-cols-2 rounded-full bg-white p-1" style={{ border: "var(--bw) solid var(--purple-edge)" }}>
+        {/* Плашка едет трансформом, а не «left»: анимация из 4px в 50% заставляла
+            motion мерить элемент на каждом кадре и дёргалась в вебвью. */}
         <motion.span
           aria-hidden
-          className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-[var(--purple-edge)]"
-          animate={{ left: index === 0 ? 4 : "50%" }}
+          className="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[var(--purple-edge)]"
+          animate={{ x: index === 0 ? "0%" : "100%" }}
           transition={{ type: "spring", stiffness: 340, damping: 32 }}
         />
         {ROLE_OPTIONS.map((item, k) => (
           <button
             key={item.role}
+            type="button"
             onClick={() => { select(); setIndex(k); }}
             className="relative z-[1] flex items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-black transition-colors duration-200"
             style={{ color: index === k ? "#fff" : "var(--purple-edge)" }}
@@ -406,20 +409,36 @@ type FinishProps = { agreed: boolean; saving: boolean; onAgree: () => void; onSt
 // Согласие даётся одной галочкой на последнем экране знакомства — общей для
 // обеих веток.
 function Consent({ agreed, onAgree }: { agreed: boolean; onAgree: () => void }) {
+  // Политика открывается листом поверх знакомства, а не ссылкой: пока
+  // знакомство не пройдено, app-shell рисует онбординг на любом маршруте, и
+  // переход на /policy возвращал этот же экран — кнопка выглядела мёртвой.
+  const [policy, setPolicy] = useState(false);
   return (
-    <button onClick={onAgree} aria-pressed={agreed} className="flex w-full items-start gap-2.5 rounded-[14px] bg-white/70 p-3 text-left">
-      <span
-        className="keep-style mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px]"
-        style={{ background: agreed ? "var(--purple-edge)" : "#fff", border: `var(--bw) solid ${agreed ? "var(--purple-edge)" : "var(--edge)"}` }}
-      >
-        {agreed && <Icon name="check" width={13} weight="bold" color="#fff" />}
-      </span>
-      <span className="text-[11.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.72)" }}>
-        Согласен на обработку персональных данных, включая записи о состоянии — дневник, заметки, колесо баланса.{" "}
-        <Link href="/policy" onClick={(event) => event.stopPropagation()} className="font-black underline" style={{ color: "var(--purple-edge)" }}>Политика</Link>
-        . Отозвать можно в кабинете.
-      </span>
-    </button>
+    <>
+      <button onClick={onAgree} aria-pressed={agreed} className="flex w-full items-start gap-2.5 rounded-[14px] bg-white/70 p-3 text-left">
+        <span
+          className="keep-style mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px]"
+          style={{ background: agreed ? "var(--purple-edge)" : "#fff", border: `var(--bw) solid ${agreed ? "var(--purple-edge)" : "var(--edge)"}` }}
+        >
+          {agreed && <Icon name="check" width={13} weight="bold" color="#fff" />}
+        </span>
+        <span className="text-[11.5px] font-semibold leading-snug" style={{ color: "rgba(32,28,24,.72)" }}>
+          Согласен на обработку персональных данных, включая записи о состоянии — дневник, заметки, колесо баланса.{" "}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(event) => { event.stopPropagation(); event.preventDefault(); tap(); setPolicy(true); }}
+            onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.stopPropagation(); event.preventDefault(); setPolicy(true); } }}
+            className="cursor-pointer font-black underline"
+            style={{ color: "var(--purple-edge)" }}
+          >
+            Политика
+          </span>
+          . Отозвать можно в кабинете.
+        </span>
+      </button>
+      <PolicySheet open={policy} onClose={() => setPolicy(false)} />
+    </>
   );
 }
 

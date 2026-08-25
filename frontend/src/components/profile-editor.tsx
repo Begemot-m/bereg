@@ -529,16 +529,21 @@ function RegionZoneFields({ draft, update }: { draft: PsyProfile; update: (patch
         <Input value={draft.location.region ?? ""} onChange={(event) => update({ location: { ...draft.location, region: event.target.value } })} placeholder="Москва · Россия" />
       </Field>
       <Field label="Часовой пояс" hint="По нему клиент понимает, когда у вас окна">
-        <select
-          value={zone}
-          onChange={(event) => { select(); update({ timezone: event.target.value }); }}
-          className="w-full appearance-none rounded-[13px] bg-white px-3 py-2.5 text-[13px] font-semibold outline-none stroke"
-        >
-          <option value="">Не указан</option>
-          {options.map((id) => <option key={id} value={id}>{zoneLabel(id)}</option>)}
-        </select>
+        {/* Стрелка отдельным слоем и без событий: список открывает сам select,
+            иначе тап по значку промахивался мимо поля. */}
+        <div className="relative">
+          <select
+            value={zone}
+            onChange={(event) => { select(); update({ timezone: event.target.value }); }}
+            className="w-full appearance-none rounded-[13px] bg-white py-2.5 pl-3 pr-9 text-[13px] font-semibold outline-none stroke"
+          >
+            <option value="">Не указан</option>
+            {options.map((id) => <option key={id} value={id}>{zoneLabel(id)}</option>)}
+          </select>
+          <span aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-[var(--muted-2)]">▾</span>
+        </div>
         {!zone && device && (
-          <button onClick={() => { select(); update({ timezone: device }); }} className="mt-2 text-[11px] font-black" style={{ color: "var(--tiffany-edge)" }}>
+          <button onClick={() => { select(); update({ timezone: device }); }} className="mt-2 inline-flex min-h-9 items-center text-[11px] font-black" style={{ color: "var(--tiffany-edge)" }}>
             Подставить пояс устройства — {zoneLabel(device)}
           </button>
         )}
@@ -874,13 +879,17 @@ function ProfilePhoto({ photo, name, size }: { photo: string | null; name: strin
   if (photo) return <div className={`${classes} shrink-0 overflow-hidden stroke`}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo} alt="" className="h-full w-full object-cover" /></div>;
   return <div className={`${classes} flex shrink-0 items-center justify-center bg-[var(--head-soft)] font-black stroke`}>{name.trim().charAt(0).toUpperCase() || "П"}</div>;
 }
+// Обёртка поля — именно div, а не label. В label активация форвардится на
+// первый вложенный контрол: тап по подписи «Кто вы» или в промежуток между
+// плашками включал «Психолог», а тап по подписи «Часовой пояс» открывал
+// системный список — кнопки нажимались сами по себе.
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <label className="block">
+    <div className="block">
       <span className="mb-1.5 block text-[12px] font-extrabold text-[var(--muted)]">{label}</span>
       {hint && <span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted-2)]">{hint}</span>}
       {children}
-    </label>
+    </div>
   );
 }
 

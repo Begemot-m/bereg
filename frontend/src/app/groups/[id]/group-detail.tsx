@@ -318,7 +318,9 @@ function GroupDetailInner() {
                       {members.map((m) => {
                         const s = memberStats(g, m.id);
                         // Три пропуска подряд — точка отсева, её и подсвечиваем.
-                        const risky = s.of >= 3 && s.been <= s.of - 3;
+                        // Именно подряд: раньше считалась сумма пропусков за всё
+                        // время, и ярлык загорался у того, кто ходит через раз.
+                        const risky = s.missed >= 3;
                         return (
                           <button
                             key={m.id}

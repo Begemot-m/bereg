@@ -103,8 +103,37 @@ export const presentCount = (m: GroupMeeting) => m.attendance.filter((a) => a.pr
 export function memberStats(g: Group, memberId: number) {
   const done = cycle(g).filter((m) => isOver(m) && marked(m));
   const been = done.filter((m) => m.attendance.some((a) => a.memberId === memberId && a.present)).length;
-  return { been, of: done.length };
+  return { been, of: done.length, missed: missStreak(g, memberId) };
 }
+
+/**
+ * Сколько последних отмеченных встреч человек пропустил подряд. Считаем именно
+ * подряд: три пропуска, размазанные по полугоду, — это жизнь, а три подряд —
+ * точка отсева, ради которой ярлык и нужен.
+ */
+export function missStreak(g: Group, memberId: number) {
+  const done = cycle(g).filter((m) => isOver(m) && marked(m));
+  let streak = 0;
+  for (let i = done.length - 1; i >= 0; i -= 1) {
+    const row = done[i].attendance.find((a) => a.memberId === memberId);
+    // Участника не было в списке отметок — он тогда ещё не состоял в группе.
+    if (!row) break;
+    if (row.present) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/** Три пропуска подряд — участник отваливается, и ведущему стоит это увидеть. */
+export const isFading = (g: Group, memberId: number) => missStreak(g, memberId) >= 3;
+
+/** Группы, в которых числится карточка клиента. */
+export const groupsOfClient = (groups: Group[], clientId: number) =>
+  groups.filter((g) => g.status === "active" && g.members.some((m) => m.clientId === clientId && m.status === "active"));
+
+/** Участник группы, отвечающий карточке клиента. */
+export const memberOfClient = (g: Group, clientId: number) =>
+  g.members.find((m) => m.clientId === clientId && m.status === "active") ?? null;
 
 const DAY = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 

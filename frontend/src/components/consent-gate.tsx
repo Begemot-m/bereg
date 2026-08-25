@@ -2,10 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/icons";
+import { PolicySheet } from "@/components/policy-sheet";
 import { apiFetch } from "@/lib/api";
 import { DEMO } from "@/lib/demo";
 import { success, tap } from "@/lib/haptics";
@@ -27,6 +27,7 @@ export function ConsentGate({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
   const [pd, setPd] = useState(false);
   const [health, setHealth] = useState(false);
+  const [policy, setPolicy] = useState(false);
   const [onboarded] = useOnboarded();
 
   const state = useQuery<ConsentState>({
@@ -96,11 +97,13 @@ export function ConsentGate({ children }: { children: React.ReactNode }) {
             />
           </div>
 
+          {/* Не ссылка, а лист: этот экран висит поверх приложения на любом
+              маршруте, и переход на /policy возвращал его же. */}
           <p className="t-cap mt-3">
             Подробности — в{" "}
-            <Link href="/policy" className="font-black underline" style={{ color: "var(--edge)" }}>
+            <button onClick={() => { tap(); setPolicy(true); }} className="font-black underline" style={{ color: "var(--edge)" }}>
               политике обработки данных
-            </Link>
+            </button>
             . Согласие можно отозвать в кабинете, там же выгрузить или удалить всё разом.
           </p>
 
@@ -114,6 +117,7 @@ export function ConsentGate({ children }: { children: React.ReactNode }) {
           {(!pd || !health) && (
             <p className="t-cap mt-2 text-center">Нужны оба согласия — второе о данных о состоянии обязано быть отдельным.</p>
           )}
+          <PolicySheet open={policy} onClose={() => setPolicy(false)} />
         </motion.div>
       </div>
     </div>
