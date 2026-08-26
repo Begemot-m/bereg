@@ -93,8 +93,15 @@ export const nextMeeting = (g: Group, now = Date.now()): GroupMeeting | null =>
 /** Номер встречи в цикле, считая с единицы. */
 export const meetingNo = (g: Group, meeting: GroupMeeting) => cycle(g).findIndex((m) => m.id === meeting.id) + 1;
 
-/** Встреча уже началась — значит её пора отмечать. */
-export const isOver = (m: GroupMeeting, now = Date.now()) => +new Date(m.startsAt) <= now;
+/**
+ * Время встречи вышло целиком — её пора отмечать. Считаем по концу, а не по
+ * началу: иначе ровно в свой час встреча уезжала из расписания в прошедшие и
+ * тут же просила «отметьте, кто был» — прямо посреди самой встречи.
+ */
+export const isOver = (m: GroupMeeting, now = Date.now()) => +new Date(m.startsAt) + m.durationMin * 60_000 <= now;
+
+/** Встреча идёт прямо сейчас. */
+export const isLive = (m: GroupMeeting, now = Date.now()) => +new Date(m.startsAt) <= now && !isOver(m, now);
 
 export const marked = (m: GroupMeeting) => m.attendance.length > 0;
 export const presentCount = (m: GroupMeeting) => m.attendance.filter((a) => a.present).length;

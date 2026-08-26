@@ -37,7 +37,7 @@ import {
   type Mood,
 } from "@/lib/clients";
 import { plural } from "@/lib/daily";
-import { createAppointment, listAppointments, updateAppointment } from "@/lib/appointments";
+import { createAppointment, isAhead, isRunning, listAppointments, updateAppointment } from "@/lib/appointments";
 import { success, tap } from "@/lib/haptics";
 import { inviteDeepLink } from "@/lib/invite";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
@@ -117,9 +117,11 @@ export function ClientDetail() {
   useEffect(() => { if (search.get("book") === "1") setBookOpen(true); }, [search]);
 
   // Ближайшая запись нужна и кнопке записи, и шапке — считаем до ранних возвратов.
+  // Идущая сессия остаётся ближайшей: считаем по концу встречи, а не по её
+  // началу — иначе в день сессии карточка пустела ровно в её час.
   const nextAppt = useMemo(
     () => appts
-      .filter((a) => a.status === "scheduled" && new Date(a.startsAt) > new Date())
+      .filter((a) => isAhead(a))
       .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0],
     [appts],
   );
@@ -573,7 +575,11 @@ function MeetingRow({ appt, onReschedule }: { appt: Meeting; onReschedule: (iso:
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--muted)]">
             <Icon name="clock" width={12} weight="bold" color="var(--muted)" />
-            {appt.durationMin} мин · {appt.status === "scheduled" ? "запланирована" : appt.status === "done" ? "проведена" : "отменена"} · {appt.format === "online" ? "онлайн" : "очно"}
+            {appt.durationMin} мин ·{" "}
+            {appt.status === "scheduled"
+              ? isRunning(appt) ? "идёт сейчас" : "запланирована"
+              : appt.status === "done" ? "проведена" : "отменена"}{" "}
+            · {appt.format === "online" ? "онлайн" : "очно"}
           </p>
         </div>
         {planned && <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: "var(--olive-edge)", border: "var(--bw) solid var(--olive-edge)", color: "#fff" }}>{open ? "Свернуть" : "Перенести"}</span>}

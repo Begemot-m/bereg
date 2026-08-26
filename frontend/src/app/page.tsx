@@ -19,7 +19,7 @@ import { PsyGuide } from "@/components/psy-guide";
 import { WorkStats } from "@/components/work-stats";
 
 import { Stagger, StaggerItem } from "@/components/motion";
-import { awaitsConfirm, confirmAppointment, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
+import { awaitsConfirm, confirmAppointment, hasEnded, isAhead, isRunning, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
 import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
@@ -57,8 +57,11 @@ function PsyHome() {
   const { data: appts = [] } = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const now = new Date();
   const todayKey = localDay(now);
+  // Идущая сейчас сессия остаётся ближайшей: считаем по концу встречи, а не по
+  // началу. Иначе ровно в её час запись пропадала с главной — и у специалиста,
+  // и у клиента, — будто встречи и не было.
   const upcoming = useMemo(
-    () => appts.filter((a) => a.status === "scheduled" && new Date(a.startsAt) > now).sort(byStart),
+    () => appts.filter((a) => isAhead(a)).sort(byStart),
     [appts, todayKey],
   );
   const next = upcoming[0];
@@ -128,7 +131,7 @@ function PersonHome({ guest }: { guest: boolean }) {
   const therapist = attached.active;
   const next = useMemo(
     () => bookings
-      .filter((b) => attached.list.includes(b.psyName) && new Date(b.startsAt) > new Date())
+      .filter((b) => attached.list.includes(b.psyName) && !hasEnded(b))
       .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0],
     [bookings, attached.list],
   );
@@ -283,9 +286,9 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
       <div className="flex items-center gap-3.5">
         <PsyAvatar name={booking.psyName} />
         <span className="min-w-0 flex-1">
-          <span className="t-micro block">Ближайшая сессия</span>
+          <span className="t-micro block">{isRunning(booking) ? "Сессия идёт" : "Ближайшая сессия"}</span>
           <span className="t-title mt-0.5 block truncate text-[var(--ink)]">{booking.psyName}</span>
-          <SessionWhen startsAt={booking.startsAt} date={date} format={formatLabel(booking.format)} />
+          <SessionWhen startsAt={booking.startsAt} durationMin={booking.durationMin} date={date} format={formatLabel(booking.format)} />
           <ManageRow />
         </span>
       </div>
@@ -294,15 +297,25 @@ function NextSession({ booking, therapist }: { booking?: MyBooking; therapist: s
 }
 
 // Дата — белой плашкой, статус («завтра», «сегодня») — средней лавандой.
-function SessionWhen({ startsAt, date, format }: { startsAt: string; date: Date; format: string }) {
-  const badge = whenBadge(startsAt);
+function SessionWhen({ startsAt, durationMin, date, format }: { startsAt: string; durationMin: number; date: Date; format: string }) {
+  // Пока встреча идёт, относительный день не нужен — важнее, что она вот
+  // прямо сейчас. Дальше — обычное «сегодня» / «завтра».
+  const live = isRunning({ startsAt, durationMin });
+  const badge = live ? "идёт сейчас" : whenBadge(startsAt);
   return (
     <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
       <span className="tnum flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[12.5px] font-black text-[var(--ink)]">
         <Icon name="calendar" width={12} weight="bold" color="var(--ink)" />
         {cap(dateTimeF.format(date))} · {format}
       </span>
-      {badge && <span className="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.04em]" style={{ background: "var(--purple)", color: "var(--purple-edge)" }}>{badge}</span>}
+      {badge && (
+        <span
+          className="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.04em]"
+          style={live ? { background: "var(--green-edge)", color: "#fff" } : { background: "var(--purple)", color: "var(--purple-edge)" }}
+        >
+          {badge}
+        </span>
+      )}
     </span>
   );
 }
@@ -411,9 +424,9 @@ function SessionFocus({ appointment }: { appointment?: Appointment }) {
           <ClientAvatar name={appointment.client.name} photo={appointment.client.photo} className="ico ico-white h-full w-full text-[32px] font-black" style={{ color: "var(--purple-edge)" }} />
         </span>
         <span className="relative min-w-0 flex-1">
-          <span className="t-micro block">Ближайшая сессия</span>
+          <span className="t-micro block">{isRunning(appointment) ? "Сессия идёт" : "Ближайшая сессия"}</span>
           <span className="t-title mt-0.5 block truncate text-[var(--ink)]">{appointment.client.name}</span>
-          <SessionWhen startsAt={appointment.startsAt} date={date} format={formatLabel(appointment.format)} />
+          <SessionWhen startsAt={appointment.startsAt} durationMin={appointment.durationMin} date={date} format={formatLabel(appointment.format)} />
           <ManageRow />
         </span>
       </div>

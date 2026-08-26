@@ -10,7 +10,11 @@ import { Disclosure, Textarea } from "@/components/ui";
 import { tap } from "@/lib/haptics";
 import type { NotesModuleState, ReflectionPatch, SessionReflection } from "@/lib/therapy";
 
-type Meeting = { id: number; startsAt: string; status?: string; psyName?: string };
+type Meeting = { id: number; startsAt: string; durationMin?: number; status?: string; psyName?: string };
+
+// Встреча считается прошедшей, когда её время вышло целиком: иначе чек-ин
+// «как прошло» выскакивал ровно в час начала, посреди самой сессии.
+const over = (m: Meeting, now = Date.now()) => +new Date(m.startsAt) + (m.durationMin ?? 50) * 60_000 <= now;
 import { zoneFormat } from "@/lib/zone";
 
 const sessionDate = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -56,16 +60,16 @@ export function ClientNotesDetail({ meetings, reflections, module, saving, onSav
 }) {
   const current = useMemo(() => {
     const active = meetings.filter((meeting) => meeting.status !== "cancelled");
-    const past = active.filter((meeting) => new Date(meeting.startsAt).getTime() < Date.now()).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+    const past = active.filter((meeting) => over(meeting)).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
     const awaitingCheckin = past.find((meeting) => !reflections.find((item) => item.appointmentId === meeting.id)?.feeling);
-    const next = active.filter((meeting) => new Date(meeting.startsAt).getTime() >= Date.now()).sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+    const next = active.filter((meeting) => !over(meeting)).sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
     return awaitingCheckin ?? next ?? past[0] ?? null;
   }, [meetings, reflections]);
   const reflection = current ? reflections.find((item) => item.appointmentId === current.id) : undefined;
   const [preparation, setPreparation] = useState("");
   const [takeaway, setTakeaway] = useState("");
   const [rating, setRating] = useState<number | null>(null);
-  const upcoming = current ? new Date(current.startsAt).getTime() >= Date.now() : false;
+  const upcoming = current ? !over(current) : false;
 
   useEffect(() => {
     setPreparation(reflection?.preparation ?? "");

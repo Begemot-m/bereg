@@ -170,23 +170,23 @@ export async function loadPsyRows(prisma: PrismaClient): Promise<PsyRow[]> {
            u."telegramId",
            (SELECT count(*) FROM "Appointment" a
              WHERE a."psychologistId" = u.id AND a.status = 'done'
-               AND a."startsAt" >= now() - interval '7 days')::int AS held,
+               AND a."startsAt" >= (now() AT TIME ZONE 'UTC') - interval '7 days')::int AS held,
            (SELECT count(DISTINCT a."clientId") FROM "Appointment" a
              WHERE a."psychologistId" = u.id AND a.status = 'done'
-               AND a."startsAt" >= now() - interval '7 days')::int AS "heldClients",
+               AND a."startsAt" >= (now() AT TIME ZONE 'UTC') - interval '7 days')::int AS "heldClients",
            (SELECT coalesce(sum(a."durationMin"), 0) FROM "Appointment" a
              WHERE a."psychologistId" = u.id AND a.status = 'done'
-               AND a."startsAt" >= now() - interval '7 days')::int AS minutes,
+               AND a."startsAt" >= (now() AT TIME ZONE 'UTC') - interval '7 days')::int AS minutes,
            (SELECT count(*) FROM "Appointment" a
              WHERE a."psychologistId" = u.id AND a.status = 'scheduled'
-               AND a."startsAt" >= now() AND a."startsAt" < now() + interval '7 days')::int AS ahead,
+               AND a."startsAt" >= (now() AT TIME ZONE 'UTC') AND a."startsAt" < (now() AT TIME ZONE 'UTC') + interval '7 days')::int AS ahead,
            (SELECT count(*) FROM "Client" c
              WHERE c."psychologistId" = u.id AND c.demo = false)::int AS clients,
            (SELECT count(*) FROM "Client" c
              WHERE c."psychologistId" = u.id AND c.demo = false
                AND NOT EXISTS (
                  SELECT 1 FROM "Appointment" a
-                  WHERE a."clientId" = c.id AND a.status = 'scheduled' AND a."startsAt" >= now()
+                  WHERE a."clientId" = c.id AND a.status = 'scheduled' AND a."startsAt" >= (now() AT TIME ZONE 'UTC')
                ))::int AS "clientsIdle",
            (SELECT max(v."createdAt") FROM "Visit" v WHERE v."userId" = u.id) AS "lastVisit",
            u."createdAt"

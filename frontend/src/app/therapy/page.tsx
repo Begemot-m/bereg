@@ -24,6 +24,7 @@ import { SessionCheckin } from "@/components/session-checkin";
 import { ClientSessionJourney } from "@/components/session-reflections";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, SkeletonCards } from "@/components/ui";
+import { hasEnded } from "@/lib/appointments";
 import { bookSlot, cancelMyBooking } from "@/lib/mybookings";
 import { getMonthAvailability, ymdLocal } from "@/lib/schedule";
 import { zoneFormat } from "@/lib/zone";
@@ -88,8 +89,10 @@ export default function TherapyPage() {
   });
   const therapists = useMyTherapists(bookingNames, ordered, (name) => dropBookings.mutate(name));
   const active = therapists.active;
-  const next = ordered.find((item) => item.psyName === active && new Date(item.startsAt) > new Date())
-    ?? ordered.find((item) => new Date(item.startsAt) > new Date()) ?? null;
+  // Идущая сессия остаётся ближайшей: пока время встречи не вышло целиком,
+  // она в расписании — иначе в её час клиент терял запись с экрана.
+  const next = ordered.find((item) => item.psyName === active && !hasEnded(item))
+    ?? ordered.find((item) => !hasEnded(item)) ?? null;
   const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
 
   // Пошаговый гайд при первом заходе в раздел.
@@ -315,7 +318,7 @@ function TherapistCard({ name, next, bookings, defaultOpen, onRemove }: { name: 
 
   // Мои записи к этому терапевту — ближайшая первой.
   const mine = useMemo(
-    () => bookings.filter((b) => b.psyName === name && new Date(b.startsAt) > new Date()).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+    () => bookings.filter((b) => b.psyName === name && !hasEnded(b)).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
     [bookings, name],
   );
   // Нет записей — календарь открываем на ближайшем дне со свободным окном.

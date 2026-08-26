@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { groupsOfClient, isFading, memberOfClient, memberStats, missStreak, untilLabel, type Group, type GroupMeeting } from "./groups";
+import { groupsOfClient, isFading, isLive, isOver, memberOfClient, memberStats, missStreak, nextMeeting, untilLabel, type Group, type GroupMeeting } from "./groups";
 
 const HOUR = 3_600_000;
 const ago = (days: number) => new Date(Date.now() - days * 24 * HOUR).toISOString();
@@ -105,5 +105,26 @@ describe("подпись срочности", () => {
     expect(untilLabel(at(8), now)).toBe("через 1 неделю");
     expect(untilLabel(at(21), now)).toBe("через 3 недели");
     expect(untilLabel(at(35), now)).toBe("через 5 недель");
+  });
+});
+
+describe("встреча во времени", () => {
+  const meeting = (startsAt: string): GroupMeeting => ({ id: 1, startsAt, durationMin: 90, status: "planned", note: "", attendance: [] });
+  const at = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
+
+  test("идущая встреча ещё не прошедшая", () => {
+    const live = meeting(at(-30));
+    expect(isOver(live)).toBe(false);
+    expect(isLive(live)).toBe(true);
+  });
+
+  test("прошедшей встреча становится после конца", () => {
+    expect(isOver(meeting(at(-91)))).toBe(true);
+    expect(isLive(meeting(at(-91)))).toBe(false);
+  });
+
+  test("идущая встреча остаётся ближайшей", () => {
+    const g = { ...group([true]), meetings: [meeting(at(-30))] };
+    expect(nextMeeting(g)?.id).toBe(1);
   });
 });

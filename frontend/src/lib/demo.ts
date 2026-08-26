@@ -664,8 +664,10 @@ function resolveClientLinks(db: DB) {
 
 function withStats(db: DB, c: Client) {
   const doneAppts = db.appts.filter((a) => a.clientId === c.id && a.status === "done");
+  // Ближайшая — та, чьё время ещё не вышло целиком: идущая сессия остаётся в
+  // списке клиентов, а не пропадает ровно в свой час.
   const next = db.appts
-    .filter((a) => a.clientId === c.id && a.status === "scheduled" && new Date(a.startsAt) > new Date())
+    .filter((a) => a.clientId === c.id && a.status === "scheduled" && +new Date(a.startsAt) + a.durationMin * 60_000 > Date.now())
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   const last = [...doneAppts].sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
   const hw = db.homework.filter((h) => h.clientId === c.id);
@@ -1404,7 +1406,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         if (booking && client?.notesModuleEnabled) {
           const entries = db.reflections[id] ?? [];
           const found = entries.find((item) => item.appointmentId === appointmentId);
-          const target: SessionReflection = found ?? { appointmentId, startsAt: booking.startsAt, status: new Date(booking.startsAt) < new Date() ? "done" : "scheduled", therapistName: booking.psyName, preparation: "", takeaway: "", feeling: null, updatedAt: new Date().toISOString() };
+          const ended = +new Date(booking.startsAt) + booking.durationMin * 60_000 <= Date.now();
+          const target: SessionReflection = found ?? { appointmentId, startsAt: booking.startsAt, status: ended ? "done" : "scheduled", therapistName: booking.psyName, preparation: "", takeaway: "", feeling: null, updatedAt: new Date().toISOString() };
           if (typeof input.preparation === "string") target.preparation = input.preparation.trim().slice(0, 2000);
           if (typeof input.takeaway === "string") target.takeaway = input.takeaway.trim().slice(0, 2000);
           if (input.feeling === null) target.feeling = null;

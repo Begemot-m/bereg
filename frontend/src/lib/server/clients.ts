@@ -19,6 +19,10 @@ export type ClientStats = {
 
 const EMPTY: ClientStats = { sessionsDone: 0, hoursDone: 0, nextAt: null, lastAt: null, hwTotal: 0, hwDone: 0 };
 
+// Дольше этого сессий не бывает: окно, за которое ещё имеет смысл проверять,
+// не идёт ли встреча прямо сейчас.
+const MAX_SESSION_MS = 6 * 60 * 60_000;
+
 export async function statsFor(clientIds: number[]): Promise<Map<number, ClientStats>> {
   const out = new Map<number, ClientStats>();
   if (clientIds.length === 0) return out;
@@ -32,10 +36,14 @@ export async function statsFor(clientIds: number[]): Promise<Map<number, ClientS
       _sum: { durationMin: true },
       _max: { startsAt: true },
     }),
-    prisma.appointment.groupBy({
-      by: ["clientId"],
-      where: { ...where, status: "scheduled", startsAt: { gt: new Date() } },
-      _min: { startsAt: true },
+    // Ближайшая встреча — та, чьё время ещё не вышло целиком. По `startsAt >
+    // now` идущая сессия пропадала из списка клиентов ровно в свой час, будто
+    // её и не было. Длительность в SQL не сложить через groupBy, поэтому
+    // берём короткое окно назад и отбираем по концу встречи в памяти.
+    prisma.appointment.findMany({
+      where: { ...where, status: "scheduled", startsAt: { gt: new Date(Date.now() - MAX_SESSION_MS) } },
+      select: { clientId: true, startsAt: true, durationMin: true },
+      orderBy: { startsAt: "asc" },
     }),
     prisma.homework.groupBy({ by: ["clientId"], where, _count: { _all: true } }),
     prisma.homework.groupBy({ by: ["clientId"], where: { ...where, status: "done" }, _count: { _all: true } }),
@@ -49,9 +57,12 @@ export async function statsFor(clientIds: number[]): Promise<Map<number, ClientS
     stats.hoursDone = Math.round(((row._sum.durationMin ?? 0) / 60) * 10) / 10;
     stats.lastAt = row._max.startsAt?.toISOString() ?? null;
   }
+  const nowMs = Date.now();
   for (const row of upcoming) {
+    if (+row.startsAt + row.durationMin * 60_000 <= nowMs) continue;
     const stats = out.get(row.clientId);
-    if (stats) stats.nextAt = row._min.startsAt?.toISOString() ?? null;
+    if (!stats || stats.nextAt) continue;
+    stats.nextAt = row.startsAt.toISOString();
   }
   for (const row of hwTotal) {
     const stats = out.get(row.clientId);

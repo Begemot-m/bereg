@@ -31,7 +31,13 @@ const pl = (n: number, one: string, few: string, many: string) => { const a = n 
 /** Встреча группы в календаре: занимает окно целиком, тап ведёт в карточку. */
 export type GroupSlot = { groupId: number; meetingId: number; title: string; kind: GroupKind; members: GroupMember[]; done: boolean; marked: boolean };
 
-export type Slot = { iso: string; hour: number; t: string; dur: number; fmt: ApptFormat; past: boolean; appt?: Appointment; group?: GroupSlot; removed: boolean };
+/**
+ * `past` — окно уже началось (в него больше не записывают), `over` — его время
+ * вышло целиком. Разводить их пришлось из-за состоявшихся сессий: по одному
+ * `past` встреча подписывалась «состоялась» ровно в свой час, ещё до того, как
+ * прошла.
+ */
+export type Slot = { iso: string; hour: number; t: string; dur: number; fmt: ApptFormat; past: boolean; over: boolean; appt?: Appointment; group?: GroupSlot; removed: boolean };
 
 // Окна дня собираются из графика + записей и встреч групп, которые в график не попали.
 export function useDayWindows() {
@@ -68,7 +74,8 @@ export function useDayWindows() {
       const iso = dt.toISOString(); const ov = overrides[iso];
       const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
       const grp = meetings.get(dt.getTime());
-      return { iso, hour: hh, t: s.t, dur: grp?.durationMin ?? appt?.durationMin ?? s.d, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, appt, group: grp, removed: !!ov?.removed };
+      const dur = grp?.durationMin ?? appt?.durationMin ?? s.d;
+      return { iso, hour: hh, t: s.t, dur, fmt: (ov?.fmt ?? s.fmt) as ApptFormat, past: dt.getTime() < now, over: dt.getTime() + dur * 60_000 <= now, appt, group: grp, removed: !!ov?.removed };
     });
     // Разовые окна: открыты на конкретную дату, в шаблоне недели их нет.
     const extra: Slot[] = Object.entries(overrides)
@@ -76,19 +83,20 @@ export function useDayWindows() {
       .map(([iso, ov]) => {
         const dt = new Date(iso);
         const appt = appts.find((a) => a.status !== "cancelled" && new Date(a.startsAt).getTime() === dt.getTime());
-        return { iso, hour: zoneHour(dt), t: timeF.format(dt), dur: appt?.durationMin ?? ov?.dur ?? work?.sessionMinutes ?? 50, fmt: (ov?.fmt ?? "online") as ApptFormat, past: dt.getTime() < Date.now(), appt, removed: false };
+        const dur = appt?.durationMin ?? ov?.dur ?? work?.sessionMinutes ?? 50;
+        return { iso, hour: zoneHour(dt), t: timeF.format(dt), dur, fmt: (ov?.fmt ?? "online") as ApptFormat, past: dt.getTime() < now, over: dt.getTime() + dur * 60_000 <= now, appt, removed: false };
       });
     const apptOnly: Slot[] = appts
       .filter((a) => a.status !== "cancelled" && sameZoneDay(new Date(a.startsAt), d)
         && !schedule.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime())
         && !extra.some((s) => new Date(s.iso).getTime() === new Date(a.startsAt).getTime()))
-      .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: a.durationMin, fmt: a.format, past: dt.getTime() < now, appt: a, removed: false }; });
+      .map((a) => { const dt = new Date(a.startsAt); return { iso: a.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: a.durationMin, fmt: a.format, past: dt.getTime() < now, over: dt.getTime() + a.durationMin * 60_000 <= now, appt: a, removed: false }; });
     // Встреча группы поставлена вне шаблона недели — в дне она всё равно видна:
     // окно занято, и специалист должен об этом узнать из календаря, а не из модуля.
     const taken = new Set([...schedule, ...extra, ...apptOnly].map((s) => new Date(s.iso).getTime()));
     const groupOnly: Slot[] = [...meetings.values()]
       .filter((m) => sameZoneDay(new Date(m.startsAt), d) && !taken.has(new Date(m.startsAt).getTime()))
-      .map((m) => { const dt = new Date(m.startsAt); return { iso: m.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: m.durationMin, fmt: "offline" as ApptFormat, past: dt.getTime() < now, group: m, removed: false }; });
+      .map((m) => { const dt = new Date(m.startsAt); return { iso: m.startsAt, hour: zoneHour(dt), t: timeF.format(dt), dur: m.durationMin, fmt: "offline" as ApptFormat, past: dt.getTime() < now, over: dt.getTime() + m.durationMin * 60_000 <= now, group: m, removed: false }; });
     return [...schedule, ...extra, ...apptOnly, ...groupOnly].sort((a, b) => a.iso.localeCompare(b.iso));
   };
 
@@ -117,7 +125,7 @@ export function DayAgenda({ date, today, busyOnly = false, badge }: { date: Date
   const slots = busyOnly ? visible.filter((s) => !!s.appt || !!s.group) : visible;
   const free = slots.filter((s) => !s.appt && !s.group && !s.past).length;
   const busy = slots.filter((s) => !!s.appt || !!s.group).length;
-  const held = slots.filter((s) => (!!s.appt || !!s.group) && s.past).length;
+  const held = slots.filter((s) => (!!s.appt || !!s.group) && s.over).length;
 
   return (
     <section>
@@ -186,7 +194,10 @@ function look(s: Slot): Look {
   // Занятое окно тоже в рамке — плитки дня выглядят одной сеткой.
   // Состоявшаяся встреча — зелёная, с галочкой в углу: она не «потухшая
   // запись», а сделанная работа, и в дне должна читаться именно так.
-  if (s.appt && s.past) return { bg: "var(--green-soft)", ring: "var(--green-edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
+  if (s.appt && s.over) return { bg: "var(--green-soft)", ring: "var(--green-edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
+  // Встреча идёт прямо сейчас — плотный тон раздела и обводка потолще: в дне
+  // сразу видно, что происходит в эту минуту.
+  if (s.appt && s.past) return { bg: "var(--head-soft)", ring: "var(--edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
   // Клиент записался сам — окно занято, но встреча ещё не подтверждена: янтарь,
   // чтобы в дне сразу читалось, где от специалиста ждут ответа.
   if (s.appt && awaitsConfirm(s.appt)) return { bg: "var(--amber-soft)", ring: "var(--amber-edge)", label: s.appt.client.name, labelColor: "var(--ink)" };
@@ -380,7 +391,7 @@ function GroupCell({ slot }: { slot: Slot }) {
   const shown = g.members.slice(0, 2);
   const rest = g.members.length - shown.length;
   // Прошедшая встреча без отметок — то самое «отметьте, кто был» с дашборда.
-  const needsMark = slot.past && !g.marked;
+  const needsMark = slot.over && !g.marked;
   return (
     <Link
       href={`/groups/?id=${g.groupId}`}
@@ -483,8 +494,10 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
               <span className="tnum text-[8.5px] font-black text-[var(--muted-2)]">{slot.dur}</span>
             </span>
             <span className="absolute right-1.5 top-1.5">
-              {slot.appt && slot.past
+              {slot.appt && slot.over
                 ? <Icon name="check" width={10} weight="bold" color="var(--green-edge)" />
+                : slot.appt && slot.past
+                  ? <Icon name="spark" width={10} weight="fill" color="var(--edge)" />
                 : slot.appt && awaitsConfirm(slot.appt)
                   ? <Icon name="clock" width={10} weight="bold" color="var(--amber-edge)" />
                   : <Icon name={slot.fmt === "online" ? "video" : "pin"} width={10} weight="fill" color="var(--muted-2)" />}
@@ -565,13 +578,21 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           <span className="min-w-0 break-words text-[19px] font-black leading-tight">{slot.appt.client.name}</span>
           <span className="ml-auto shrink-0"><FmtSwitch fmt={slot.appt.format} onToggle={() => setFmt.mutate(slot.appt!.format === "online" ? "offline" : "online")} /></span>
         </div>
-        {slot.past && (
+        {slot.over && (
           <div className="flex items-center gap-1.5 rounded-[11px] px-2.5 py-1.5" style={{ background: "var(--green-soft)" }}>
             <Icon name="check" width={12} weight="bold" color="var(--green-edge)" />
             <span className="text-[11.5px] font-black" style={{ color: "var(--green-edge)" }}>Сессия состоялась</span>
           </div>
         )}
-        {!slot.past && awaitsConfirm(slot.appt) && (
+        {/* Идёт прямо сейчас: до конца встречи она не «состоялась», но и
+            переносить её уже поздно — говорим об этом прямо. */}
+        {slot.past && !slot.over && (
+          <div className="flex items-center gap-1.5 rounded-[11px] px-2.5 py-1.5" style={{ background: "var(--head-soft)" }}>
+            <Icon name="clock" width={12} weight="bold" color="var(--edge)" />
+            <span className="text-[11.5px] font-black" style={{ color: "var(--edge)" }}>Сессия идёт сейчас</span>
+          </div>
+        )}
+        {!slot.over && awaitsConfirm(slot.appt) && (
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 rounded-[11px] px-2.5 py-2" style={{ background: "var(--amber-edge)" }}>
               <Icon name="clock" width={13} weight="bold" color="#fff" />
