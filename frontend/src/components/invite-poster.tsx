@@ -312,6 +312,104 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   }
 }
 
+/* --- Обложка приглашения: карточка специалиста над текстом сообщения --- */
+
+const CW = 1080;
+const CH = 720;
+
+/**
+ * Обложка к приглашению. Уходит картинкой над текстом: портрет, имя и подпись
+ * «Хроники» узнаются раньше, чем человек начнёт читать список окон, а голое
+ * сообщение со ссылкой в чате выглядит как спам.
+ */
+export async function coverJpeg(psy: PosterPsy): Promise<string | null> {
+  return drawCover(psy, false);
+}
+
+async function drawCover(psy: PosterPsy, retry: boolean): Promise<string | null> {
+  const canvas = document.createElement("canvas");
+  canvas.width = CW;
+  canvas.height = CH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const soft = css("--tiffany-soft", "#dceeeb");
+  const edge = css("--tiffany-edge", "#2f7d74");
+  const ink = css("--ink", "#221f1c");
+  const muted = css("--muted", "#7c7268");
+
+  ctx.fillStyle = soft;
+  ctx.fillRect(0, 0, CW, CH);
+
+  const r = 128;
+  const cx = CW / 2;
+  const cy = 190;
+  const img = psy.portrait ? await loadImage(asset(psy.portrait)).catch(() => null) : null;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  if (img) {
+    const scale = Math.max((r * 2) / img.width, (r * 2) / img.height);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+  } else {
+    ctx.fillStyle = edge;
+    ctx.font = head(900, 118);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(psy.name.charAt(0).toUpperCase() || "?", cx, cy);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+  }
+  ctx.restore();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = ink;
+  ctx.font = head(900, 58);
+  ctx.fillText(fit(ctx, psy.name, CW - 160), cx, 410);
+
+  ctx.fillStyle = edge;
+  ctx.font = head(800, 32);
+  ctx.fillText(fit(ctx, psy.specialistTypes?.length ? psy.specialistTypes.join(" · ") : "Психолог", CW - 160), cx, 462);
+
+  const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
+  if (sub) {
+    ctx.fillStyle = muted;
+    ctx.font = body(600, 28);
+    ctx.fillText(fit(ctx, sub, CW - 160), cx, 508);
+  }
+
+  const barH = 112;
+  const barY = CH - 64 - barH;
+  ctx.fillStyle = ink;
+  roundRect(ctx, 64, barY, CW - 128, barH, 42);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.font = head(900, 34);
+  ctx.fillText("Запись на сессию", cx, barY + 50);
+  ctx.fillStyle = soft;
+  ctx.font = body(600, 26);
+  ctx.fillText(`${APP_NAME} · ${APP_SITE}`, cx, barY + 88);
+  ctx.textAlign = "left";
+
+  try {
+    return canvas.toDataURL("image/jpeg", 0.9);
+  } catch {
+    // Портрет с чужого домена испортил холст — рисуем с буквой вместо снимка.
+    if (retry) return null;
+    return drawCover({ ...psy, portrait: undefined }, true);
+  }
+}
+
 /** Обрезает строку многоточием, чтобы она влезла в отведённую ширину. */
 function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
   if (ctx.measureText(text).width <= max) return text;

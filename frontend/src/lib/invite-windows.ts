@@ -49,16 +49,16 @@ const SPAN_WORD: Record<Span, string> = { week: "на ближайшую нед�
  * со ссылкой и отправляется как есть.
  */
 export function inviteMessage(name: string, days: FreeDay[], span: Span): string {
-  const hi = name ? `Здравствуйте! Это ${name}.` : "Здравствуйте!";
-  const call = "Чтобы ознакомиться со всем расписанием и записаться на удобное время, перейдите на платформу:";
+  const hi = name ? `👋 Здравствуйте! Это ${name}.` : "👋 Здравствуйте!";
+  const call = "🔗 Чтобы ознакомиться со всем расписанием и записаться на удобное время, перейдите на платформу:";
   if (!days.length) {
-    return `${hi}\n\nБлижайшие свободные окна для записи на сессии появятся в расписании.\n${call}`;
+    return `${hi}\n\n🗓 Ближайшие свободные окна для записи на сессии появятся в расписании.\n${call}`;
   }
   const lines = days.map((d) => `• ${d.label} — ${d.times.join(", ")}`);
   return [
     hi,
     "",
-    span === "next" ? "Свободные окна на следующей неделе:" : "Ближайшие свободные окна для записи на сессии:",
+    span === "next" ? "🗓 Свободные окна на следующей неделе:" : "🗓 Ближайшие свободные окна для записи на сессии:",
     ...lines,
     "",
     call,
@@ -106,9 +106,10 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
 
 
 /**
- * Готовит сообщение с кнопкой и отдаёт его id для `shareMessage`. В демо и на
- * старых клиентах роут отвечает ошибкой — приглашение уходит ссылкой, как
- * раньше.
+ * Готовит сообщение с кнопкой и отдаёт его id для `shareMessage`. `photo` —
+ * обложка data-URL'ом: сервер зальёт её в Telegram и приложит к сообщению
+ * картинкой. В демо и на старых клиентах роут отвечает ошибкой — приглашение
+ * уходит ссылкой, как раньше.
  */
-export const prepareInviteMessage = (text: string, link: string, button = "Записаться на сессию") =>
-  apiFetch<{ id: string }>("/invite/prepared", { method: "POST", body: JSON.stringify({ text, link, button }) });
+export const prepareInviteMessage = (text: string, link: string, photo?: string | null, button = "Записаться на сессию") =>
+  apiFetch<{ id: string }>("/invite/prepared", { method: "POST", body: JSON.stringify({ text, link, button, photo: photo || undefined }) });

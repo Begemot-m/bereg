@@ -4,11 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon, type IconName } from "@/components/icons";
-import { WindowsPoster, posterPng, sharePoster } from "@/components/invite-poster";
+import { WindowsPoster, coverJpeg, posterPng, sharePoster } from "@/components/invite-poster";
 import { InviteShare } from "@/components/invite-share";
 import { profileCompletionPercent } from "@/components/profile-editor";
 import { bookingInviteUrl } from "@/components/session-invite";
@@ -88,6 +88,22 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   const cardLink = bookingInviteUrl(me?.id);
   const message = inviteMessage(psy?.name ?? "", days, span);
 
+  // Обложка к сообщению — карточка специалиста. Рисуется заранее, как только
+  // открыли приглашение: специалист видит в окне ровно то, что уйдёт в чат, а
+  // отправка не ждёт холста.
+  const [cover, setCover] = useState<string | null>(null);
+  const portrait = psy?.portrait ?? "";
+  const name = psy?.name ?? "";
+  useEffect(() => {
+    if (view !== "schedule" || !name) return;
+    let alive = true;
+    void coverJpeg({ name, portrait, method: psy?.method, specialistTypes: psy?.specialistTypes, years: psy?.years })
+      .then((url) => { if (alive) setCover(url); })
+      .catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, name, portrait]);
+
   const posterName = () => `raspisanie-${span === "week" ? "blizhayshie" : "sled-nedelya"}.jpg`;
 
   /**
@@ -138,7 +154,8 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
     tap();
     setSending(true);
     try {
-      const prepared = await prepareInviteMessage(message, cardLink);
+      const shot = cover ?? (psy ? await coverJpeg(psy).catch(() => null) : null);
+      const prepared = await prepareInviteMessage(message, cardLink, shot);
       if (prepared?.id && (await shareTelegramMessage(prepared.id))) { success(); return; }
     } catch {
       /* нет prepared-сообщений — уходим ссылкой */
@@ -228,7 +245,9 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
           {view === "schedule" && (
             <>
               <SpanSwitch span={span} onSpan={pickSpan} />
-              <div className="card p-3.5">
+              <div className="card overflow-hidden p-3.5">
+                {/* То же, что увидит клиент: обложка картинкой, под ней текст. */}
+                {cover && <img src={cover} alt="Обложка приглашения" className="mb-3 w-full rounded-[13px]" />}
                 <p className="t-sub whitespace-pre-line leading-relaxed" style={{ color: "var(--ink)" }}>{message}</p>
                 <p className="t-cap mt-2 break-all" style={{ color: "var(--tiffany-edge)" }}>{cardLink}</p>
               </div>
