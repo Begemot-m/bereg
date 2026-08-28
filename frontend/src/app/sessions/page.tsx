@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { MonthCalendar } from "@/components/calendar";
 import { ArrowGlyph, PageHead } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { ClientInviteSheet } from "@/components/client-invite";
 import { ClientPicker } from "@/components/day-slots";
 import { SCHEDULE_HELP, SESSIONS_FULL_HELP } from "@/components/help-deck";
 
@@ -91,6 +92,10 @@ function PsySessions() {
   // Календарь — не вкладка, а разворот верхней плашки вместо ленты дат.
   const [calOpen, setCalOpen] = useState(false);
   const [help, setHelp] = useState(false);
+  // Приглашение на запись открывается прямо из шапки: расписание собрано здесь
+  // же, и «поделиться им» — продолжение того, что специалист только что
+  // расставил, а не отдельный поход в кабинет.
+  const [invite, setInvite] = useState(false);
   const [scheduleHelp, setScheduleHelp] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
@@ -175,9 +180,20 @@ function PsySessions() {
         icon="calendar"
         sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : undefined) : "Неделя целиком"}
         right={
-          <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
-            <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как это работает?
-          </button>
+          <span className="flex shrink-0 items-center gap-1">
+            <button
+              onClick={() => { tap(); setInvite(true); }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
+              style={{ border: "var(--bw) solid var(--tiffany-edge)" }}
+              aria-label="Поделиться расписанием"
+              title="Поделиться расписанием"
+            >
+              <Icon name="share" width={15} weight="fill" color="var(--tiffany-edge)" />
+            </button>
+            <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
+              <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как это работает?
+            </button>
+          </span>
         }
       >
         {/* Календарь занимает шапку целиком, лента дат сворачивается. */}
@@ -269,6 +285,7 @@ function PsySessions() {
         {/* Кнопка в шапке показывает то же самое, что человек видел при первом
             заходе: график, а следом работу с расписанием. Раньше она открывала
             только вторую половину, и вернуться к настройке графика было некуда. */}
+        <AnimatePresence>{invite && <ClientInviteSheet onClose={() => setInvite(false)} start="schedule" />}</AnimatePresence>
         {help && <HelpDeck title="Как это работает" pages={SESSIONS_FULL_HELP} onClose={() => setHelp(false)} />}
         {scheduleHelp && <HelpDeck title="Как настроить расписание" pages={SCHEDULE_HELP} onClose={() => setScheduleHelp(false)} />}
         {/* Первый визит: сразу инструкция, а не окно-заглушка перед ней —

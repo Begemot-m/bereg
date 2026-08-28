@@ -14,10 +14,15 @@ import { addDays, zoneDay, zoneFormat } from "@/lib/zone";
  * помещается и не убеждает.
  */
 
-export type Span = "week" | "month";
+/**
+ * Охват афиши. `week` — ближайшие семь дней от сегодняшнего, `next` — целиком
+ * следующая календарная неделя (её просят, когда текущая уже забита или идёт
+ * к концу), `month` — месяц вперёд.
+ */
+export type Span = "week" | "next" | "month";
 
-const HORIZON: Record<Span, number> = { week: 7, month: 30 };
-const MAX_DAYS: Record<Span, number> = { week: 5, month: 8 };
+const HORIZON: Record<Span, number> = { week: 7, next: 14, month: 30 };
+const MAX_DAYS: Record<Span, number> = { week: 5, next: 5, month: 8 };
 const MAX_TIMES = 5;
 
 const dayF = zoneFormat({ weekday: "short", day: "numeric", month: "long" });
@@ -29,7 +34,7 @@ export type FreeDay = { ymd: string; label: string; times: string[]; more: numbe
 /** Ссылка на афишу окон: метку `win_<id>` разбирает StartRoute. */
 export const windowsInviteUrl = (psyId?: number | null) => botStartLink(`win_${psyId || OWN_PROFILE_ID}`);
 
-const SPAN_WORD: Record<Span, string> = { week: "на ближайшую неделю", month: "на ближайший месяц" };
+const SPAN_WORD: Record<Span, string> = { week: "на ближайшую неделю", next: "на следующую неделю", month: "на ближайший месяц" };
 
 /**
  * Готовое сообщение клиенту: приветствие, свободные окна списком и просьба
@@ -38,17 +43,18 @@ const SPAN_WORD: Record<Span, string> = { week: "на ближайшую нед�
  */
 export function inviteMessage(name: string, days: FreeDay[], span: Span): string {
   const hi = name ? `Здравствуйте! Это ${name}.` : "Здравствуйте!";
+  const call = "Чтобы выбрать удобное время и записаться, перейдите на платформу:";
   if (!days.length) {
-    return `${hi}\n\nЗаписаться ко мне на встречу можно по ссылке — там видно моё свободное время, выберите удобное:`;
+    return `${hi}\n\nБлижайшие свободные окна для записи появятся в расписании.\n${call}`;
   }
   const lines = days.map((d) => `• ${d.label} — ${d.times.join(", ")}${d.more ? ` и ещё ${d.more}` : ""}`);
   return [
     hi,
     "",
-    `Вот моё свободное время ${SPAN_WORD[span]}:`,
+    `Ближайшие свободные окна для записи ${SPAN_WORD[span]}:`,
     ...lines,
     "",
-    "Выберите удобное время по ссылке — запись займёт полминуты, и встреча сразу окажется у нас обоих в календаре:",
+    call,
   ].join("\n");
 }
 
@@ -59,9 +65,13 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
   });
 
   const today = ymdLocal(new Date());
-  const until = addDays(today, HORIZON[span]);
+  // Следующая неделя считается от ближайшего понедельника: «следующая» для
+  // человека — это календарная неделя, а не «через семь дней».
+  const shift = span === "next" ? (8 - (zoneDay(today).getDay() || 7)) % 7 || 7 : 0;
+  const from = addDays(today, shift);
+  const until = span === "next" ? addDays(from, 6) : addDays(today, HORIZON[span]);
   const days = Object.keys(avail ?? {})
-    .filter((d) => d >= today && d <= until && avail?.[d] === "free")
+    .filter((d) => d >= from && d <= until && avail?.[d] === "free")
     .sort()
     .slice(0, MAX_DAYS[span]);
 

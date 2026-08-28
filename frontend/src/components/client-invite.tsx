@@ -63,11 +63,11 @@ export function ClientInviteBanner() {
  * увидит клиент. Ниже два пути: готовый текст со свободными окнами или та же
  * афиша картинкой для сторис.
  */
-export function ClientInviteSheet({ onClose }: { onClose: () => void }) {
+export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => void; start?: View }) {
   const { data: me } = useMe();
   const profile = useProfile();
   const { data: work } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours, enabled: Boolean(profile) });
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>(start);
   const [span, setSpan] = useState<Span>("week");
   const [saving, setSaving] = useState(false);
 
@@ -217,14 +217,14 @@ function Choice({ icon, title, sub, onClick }: { icon: IconName; title: string; 
 function SpanSwitch({ span, onSpan }: { span: Span; onSpan: (span: Span) => void }) {
   return (
     <div className="flex gap-1.5">
-      {(["week", "month"] as Span[]).map((value) => (
+      {(["week", "next", "month"] as Span[]).map((value) => (
         <button
           key={value}
           onClick={() => { select(); onSpan(value); }}
           className={`flex-1 rounded-full py-2 text-[12px] font-black ${span === value ? "text-white" : ""}`}
           style={span === value ? { background: "var(--tiffany-edge)" } : { background: "var(--head-soft)", color: "var(--tiffany-edge)" }}
         >
-          {value === "week" ? "На неделю" : "На месяц"}
+          {value === "week" ? "На неделю" : value === "next" ? "Следующая" : "На месяц"}
         </button>
       ))}
     </div>

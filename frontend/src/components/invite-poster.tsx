@@ -33,7 +33,7 @@ export type PosterPsy = {
 
 const isInlineImage = (src: string) => /^(data:|blob:)/i.test(src);
 
-const SPAN_LABEL: Record<Span, string> = { week: "на неделю", month: "на месяц" };
+const SPAN_LABEL: Record<Span, string> = { week: "на неделю", next: "на следующую неделю", month: "на месяц" };
 
 const yearsWord = (n: number) => {
   const last = n % 100 > 10 && n % 100 < 20 ? 0 : n % 10;
