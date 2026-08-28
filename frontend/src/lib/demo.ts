@@ -1761,5 +1761,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     return delay({ ok: true } as T);
   }
 
+  // Сообщение с кнопкой готовит боевой бот — в демо его не собрать. Отвечаем
+  // отказом, и приглашение уходит обычной ссылкой.
+  if (clean === "/invite/prepared") throw new Error("API 501: prepared messages недоступны в демо");
+
   throw new Error(`Demo mock: не покрыт роут ${method} ${clean}`);
 }

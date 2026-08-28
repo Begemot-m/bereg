@@ -8,7 +8,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon, type IconName } from "@/components/icons";
-import { WindowsPoster, downloadPng, posterPng } from "@/components/invite-poster";
+import { WindowsPoster, posterPng, sharePoster } from "@/components/invite-poster";
 import { InviteShare } from "@/components/invite-share";
 import { profileCompletionPercent } from "@/components/profile-editor";
 import { bookingInviteUrl } from "@/components/session-invite";
@@ -17,11 +17,13 @@ import { APP_NAME } from "@/lib/brand";
 import { OWN_PROFILE_ID, profileToCatalogPsy } from "@/lib/catalog";
 import { DEMO } from "@/lib/demo";
 import { success, select, tap } from "@/lib/haptics";
-import { inviteMessage, useFreeWindows, windowsInviteUrl, type Span } from "@/lib/invite-windows";
+import { inviteShareLink } from "@/lib/invite";
+import { inviteMessage, prepareInviteMessage, useFreeWindows, windowsInviteUrl, type Span } from "@/lib/invite-windows";
 import { useMe } from "@/lib/me";
 import { formatMoney } from "@/lib/money";
 import { useProfile } from "@/lib/profile";
 import { getWorkHours } from "@/lib/schedule";
+import { shareTelegramMessage } from "@/lib/telegram";
 
 const CARD_TEXT = `Моя визитка в «${APP_NAME}»: тут обо мне, о работе и запись на встречу`;
 
@@ -70,6 +72,10 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   const [view, setView] = useState<View>(start);
   const [span, setSpan] = useState<Span>("week");
   const [saving, setSaving] = useState(false);
+  // Готовая афиша живёт прямо в окне: её видно, её можно отправить ещё раз или
+  // сохранить долгим нажатием — в Telegram это единственный надёжный путь.
+  const [shot, setShot] = useState<{ url: string; note: string } | null>(null);
+  const [sending, setSending] = useState(false);
 
   const windowsFor = DEMO ? OWN_PROFILE_ID : me?.id ?? null;
   const { days } = useFreeWindows(windowsFor, span);
@@ -80,17 +86,50 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   const cardLink = bookingInviteUrl(me?.id);
   const message = inviteMessage(psy?.name ?? "", days, span);
 
-  const savePoster = async (type: "image/png" | "image/jpeg" = "image/png") => {
+  const NOTE: Record<string, string> = {
+    shared: "Картинка ушла в выбранный чат.",
+    saved: "Картинка сохранена в загрузки.",
+    shown: "Нажмите на картинку и удерживайте, чтобы сохранить или переслать.",
+  };
+
+  const makePoster = async () => {
     if (!psy) return;
     tap();
     setSaving(true);
     try {
-      const shot = await posterPng(psy, days, span, windowsLink, type);
-      const ext = type === "image/jpeg" ? "jpg" : "png";
-      if (shot) { downloadPng(shot, `raspisanie-${span === "week" ? "blizhayshie" : "sled-nedelya"}.${ext}`); success(); }
+      const url = await posterPng(psy, days, span, windowsLink, "image/jpeg");
+      if (!url) return;
+      const name = `raspisanie-${span === "week" ? "blizhayshie" : "sled-nedelya"}.jpg`;
+      setShot({ url, note: "" });
+      const how = await sharePoster(url, name);
+      setShot({ url, note: NOTE[how] });
+      success();
     } finally {
       setSaving(false);
     }
+  };
+
+  // Картинка собрана заново под другой охват — старую показывать нельзя.
+  const pickSpan = (value: Span) => { setSpan(value); setShot(null); };
+
+  /**
+   * Отправка приглашения. Сначала пробуем сообщение с настоящей кнопкой:
+   * получателю остаётся один тап, а не «найди ссылку в тексте и нажми». Если
+   * клиент старый или роут недоступен (демо), открываем обычный лист Telegram
+   * со ссылкой — как раньше.
+   */
+  const send = async () => {
+    tap();
+    setSending(true);
+    try {
+      const prepared = await prepareInviteMessage(message, windowsLink);
+      if (prepared?.id && (await shareTelegramMessage(prepared.id))) { success(); return; }
+    } catch {
+      /* нет prepared-сообщений — уходим ссылкой */
+    } finally {
+      setSending(false);
+    }
+    window.open(inviteShareLink(windowsLink, message), "_blank", "noopener");
   };
 
   if (typeof document === "undefined") return null;
@@ -172,15 +211,19 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
 
           {view === "schedule" && (
             <>
-              <SpanSwitch span={span} onSpan={setSpan} />
+              <SpanSwitch span={span} onSpan={pickSpan} />
               <div className="card p-3.5">
                 <p className="t-sub whitespace-pre-line leading-relaxed" style={{ color: "var(--ink)" }}>{message}</p>
                 <p className="t-cap mt-2 break-all" style={{ color: "var(--tiffany-edge)" }}>{windowsLink}</p>
               </div>
-              <InviteShare link={windowsLink} text={message} />
-              <button onClick={() => void savePoster("image/jpeg")} disabled={!psy || saving} className="btn btn-white w-full py-2.5 disabled:opacity-50">
-                <Icon name="image" width={15} weight="bold" color="var(--tiffany-edge)" /> {saving ? "Рисуем…" : "Скачать расписание картинкой"}
+              <button onClick={() => void send()} disabled={sending} className="btn w-full py-3 text-[14px] disabled:opacity-50">
+                <Icon name="telegram" width={16} weight="fill" color="#fff" /> {sending ? "Готовим…" : "Отправить приглашение"}
               </button>
+              <InviteShare link={windowsLink} text={message} />
+              <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn btn-white w-full py-2.5 disabled:opacity-50">
+                <Icon name="image" width={15} weight="bold" color="var(--tiffany-edge)" /> {saving ? "Рисуем…" : shot ? "Собрать заново" : "Расписание картинкой"}
+              </button>
+              {shot && <PosterShot url={shot.url} note={shot.note} />}
               <p className="t-cap">
                 {days.length
                   ? "«Ближайшие» — отсчёт с дня отправки, семь дней вперёд. Окна берутся из графика в момент отправки, клиент выберет время прямо в приложении."
@@ -192,9 +235,10 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
           {view === "poster" && (
             <>
               {psy ? <WindowsPoster psy={psy} days={days} span={span} onSpan={setSpan} /> : <div className="card p-4"><p className="t-sub">Заполните имя в анкете, чтобы собрать афишу</p></div>}
-              <button onClick={() => void savePoster("image/jpeg")} disabled={!psy || saving} className="btn w-full py-3 text-[14px] disabled:opacity-50">
-                <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : "Сохранить картинкой JPG"}
+              <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn w-full py-3 text-[14px] disabled:opacity-50">
+                <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : shot ? "Собрать заново" : "Собрать картинку JPG"}
               </button>
+              {shot && <PosterShot url={shot.url} note={shot.note} />}
               <InviteShare link={windowsLink} text={inviteMessage(psy?.name ?? "", days, span)} />
             </>
           )}
@@ -202,6 +246,19 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
       </motion.div>
     </motion.div>,
     document.body,
+  );
+}
+
+/**
+ * Готовая афиша на экране. Показываем её саму, а не сообщение «сохранено»:
+ * в Telegram картинку забирают долгим нажатием, и человек должен её видеть.
+ */
+function PosterShot({ url, note }: { url: string; note: string }) {
+  return (
+    <div className="card overflow-hidden p-2">
+      <img src={url} alt="Расписание свободных окон" className="w-full rounded-[13px]" />
+      {note && <p className="t-cap mt-2 px-1 text-center">{note}</p>}
+    </div>
   );
 }
 

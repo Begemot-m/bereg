@@ -17,6 +17,8 @@ type TelegramWebApp = {
   onEvent?: (event: string, cb: (payload?: unknown) => void) => void;
   offEvent?: (event: string, cb: (payload?: unknown) => void) => void;
   platform?: string;
+  isVersionAtLeast?: (version: string) => boolean;
+  shareMessage?: (preparedMessageId: string, cb?: (sent: boolean) => void) => void;
 };
 
 // Клиенты Telegram, работающие на компьютере. Список закрытый, а не «всё, что
@@ -140,4 +142,27 @@ export function onHomeScreenAdded(cb: () => void): () => void {
   if (!wa?.onEvent) return () => {};
   wa.onEvent("homeScreenAdded", cb);
   return () => wa.offEvent?.("homeScreenAdded", cb);
+}
+
+
+/**
+ * Отправка готового сообщения с кнопкой в чат, выбранный человеком.
+ * `shareMessage` есть с Bot API 8.0; на старых клиентах вернёт false, и вызов
+ * должен откатиться на обычную ссылку.
+ */
+export function shareTelegramMessage(preparedId: string): Promise<boolean> {
+  const wa = getTelegramWebApp();
+  const share = wa?.shareMessage;
+  if (!wa || !share || !wa.isVersionAtLeast?.("8.0")) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (sent: boolean) => { if (!done) { done = true; resolve(sent); } };
+    try {
+      share.call(wa, preparedId, finish);
+      // Часть клиентов колбэк не зовёт вовсе — не держим кнопку заблокированной.
+      setTimeout(() => finish(true), 8000);
+    } catch {
+      finish(false);
+    }
+  });
 }

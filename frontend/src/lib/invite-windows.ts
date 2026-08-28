@@ -2,6 +2,7 @@
 
 import { useQueries, useQuery } from "@tanstack/react-query";
 
+import { apiFetch } from "@/lib/api";
 import { botStartLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
@@ -46,13 +47,13 @@ export function inviteMessage(name: string, days: FreeDay[], span: Span): string
   const hi = name ? `Здравствуйте! Это ${name}.` : "Здравствуйте!";
   const call = "Чтобы выбрать удобное время и записаться, перейдите на платформу:";
   if (!days.length) {
-    return `${hi}\n\nБлижайшие свободные окна для записи появятся в расписании.\n${call}`;
+    return `${hi}\n\nБлижайшие свободные окна для записи на сессии появятся в расписании.\n${call}`;
   }
   const lines = days.map((d) => `• ${d.label} — ${d.times.join(", ")}${d.more ? ` и ещё ${d.more}` : ""}`);
   return [
     hi,
     "",
-    `Ближайшие свободные окна для записи ${SPAN_WORD[span]}:`,
+    "Ближайшие свободные окна для записи на сессии:",
     ...lines,
     "",
     call,
@@ -98,3 +99,12 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
     total: result.reduce((sum, d) => sum + d.times.length + d.more, 0),
   };
 }
+
+
+/**
+ * Готовит сообщение с кнопкой и отдаёт его id для `shareMessage`. В демо и на
+ * старых клиентах роут отвечает ошибкой — приглашение уходит ссылкой, как
+ * раньше.
+ */
+export const prepareInviteMessage = (text: string, link: string, button = "Записаться на сессию") =>
+  apiFetch<{ id: string }>("/invite/prepared", { method: "POST", body: JSON.stringify({ text, link, button }) });

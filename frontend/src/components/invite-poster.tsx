@@ -297,3 +297,33 @@ export function downloadPng(dataUrl: string, name: string) {
   a.click();
   a.remove();
 }
+
+/**
+ * Отдать готовую афишу человеку. Внутри Telegram ссылка с `download` не
+ * работает вовсе — WebView её проглатывает, и кнопка выглядела сломанной.
+ * Поэтому сначала пробуем системный лист «Поделиться» с самим файлом (там
+ * Telegram стоит первым пунктом), и только если его нет — сохраняем файлом.
+ *
+ * Возвращает, что удалось сделать: по этому виду экран объясняет, куда делась
+ * картинка.
+ */
+export async function sharePoster(dataUrl: string, name: string): Promise<"shared" | "saved" | "shown"> {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+    const nav = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+    if (typeof navigator.share === "function" && nav.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file] });
+      return "shared";
+    }
+  } catch {
+    // Отмена в системном листе — не ошибка: картинка осталась на экране.
+    return "shown";
+  }
+  try {
+    downloadPng(dataUrl, name);
+    return "saved";
+  } catch {
+    return "shown";
+  }
+}
