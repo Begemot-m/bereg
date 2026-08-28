@@ -43,6 +43,7 @@ const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 const dayShort = zoneFormat({ day: "numeric", month: "short" });
 const weekdayF = zoneFormat({ weekday: "long" });
 const SCHEDULE_SETUP_KEY = "bereg:schedule-setup-seen:v1";
+const SESSIONS_HELP_KEY = "bereg:sessions-help-hint:v1";
 
 export default function SessionsPage() {
   const [role, , roleReady] = useRole();
@@ -101,6 +102,11 @@ function PsySessions() {
   const [quickAdd, setQuickAdd] = useState(false);
   const [scheduleFirstVisit, setScheduleFirstVisit] = useState(false);
   const [scheduleReady, setScheduleReady] = useState(false);
+  // Подсказка «Как это работает» уехала из шапки вниз страницы: наверху её
+  // место занял «Пригласить». Закрыли — больше не показываем, флаг в браузере.
+  const [helpHintOpen, setHelpHintOpen] = useState(false);
+  useEffect(() => { setHelpHintOpen(!localStorage.getItem(SESSIONS_HELP_KEY)); }, []);
+  const hideHelpHint = () => { tap(); localStorage.setItem(SESSIONS_HELP_KEY, "1"); setHelpHintOpen(false); };
 
   const appointmentsQuery = useQuery({ queryKey: ["appointments"], queryFn: () => listAppointments() });
   const availabilityQuery = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability() });
@@ -180,20 +186,15 @@ function PsySessions() {
         icon="calendar"
         sub={calOpen ? (selDay ? dateHeader(selDay) : "Выберите день") : view === "soon" ? (selDay ? dateHeader(selDay) : undefined) : "Неделя целиком"}
         right={
-          <span className="flex shrink-0 items-center gap-1">
-            <button
-              onClick={() => { tap(); setInvite(true); }}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
-              style={{ border: "var(--bw) solid var(--tiffany-edge)" }}
-              aria-label="Поделиться расписанием"
-              title="Поделиться расписанием"
-            >
-              <Icon name="share" width={15} weight="fill" color="var(--tiffany-edge)" />
-            </button>
-            <button onClick={() => { tap(); setHelp(true); }} className="btn btn-ghost h-9 shrink-0 px-1 text-[11.5px]" style={{ color: "var(--ink)" }}>
-              <Icon name="question" width={14} weight="bold" color="var(--ink)" /> Как это работает?
-            </button>
-          </span>
+          <button
+            onClick={() => { tap(); setInvite(true); }}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-black"
+            style={{ border: "var(--bw) solid var(--tiffany-edge)", color: "var(--tiffany-edge)" }}
+            aria-label="Пригласить клиента"
+            title="Пригласить клиента"
+          >
+            <Icon name="share" width={14} weight="fill" color="var(--tiffany-edge)" /> Пригласить
+          </button>
         }
       >
         {/* Календарь занимает шапку целиком, лента дат сворачивается. */}
@@ -331,6 +332,25 @@ function PsySessions() {
           </div>
         )}
 
+        {helpHintOpen && (
+          <div
+            className="chunk mt-5 flex items-center gap-3 px-3 py-2.5"
+            style={{ background: "var(--purple-soft)", borderColor: "var(--purple)" }}
+          >
+            <span className="ico h-9 w-9 shrink-0 rounded-[12px]" style={{ background: "var(--purple-edge)" }}>
+              <Icon name="question" width={17} weight="bold" color="#fff" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-black leading-tight">Как это работает</span>
+              <span className="t-cap block">График, окна и запись клиента — по шагам</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5">
+              <button type="button" aria-label="Больше не показывать" onClick={hideHelpHint} className="x-close h-6 w-6 rounded-full bg-white text-[12px]">✕</button>
+              <button type="button" onClick={() => { tap(); setHelp(true); }} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black" style={{ color: "var(--purple-edge)" }}>Открыть</button>
+            </span>
+          </div>
+        )}
+
       </div>
     </div>
   );
@@ -442,13 +462,12 @@ function BulkItem({ onClick, children }: { onClick: () => void; children: React.
 }
 
 // dayPicked — сверху выбран день, и «Ближайшие» показывают его, а не ленту
-// вперёд. Особое состояние помечено заливкой в тон раздела. Ни у кнопок, ни у
-// самой полосы обводки нет: белая пилюля со `stroke` лежала на бумаге светлым
-// прямоугольником и читалась как рамка вокруг переключателя.
+// вперёд. Особое состояние помечено заливкой в тон раздела. Рамка одна — у
+// самой полосы: у кнопок внутри обводки нет, иначе контур садится в контур.
 function Segmented({ value, dayPicked, onChange }: { value: View; dayPicked: boolean; onChange: (v: View) => void }) {
   const opts: { v: View; label: string }[] = [{ v: "soon", label: "Ближайшие" }, { v: "week", label: "Неделя" }];
   return (
-    <div data-tour="views" className="mb-4 flex gap-1 rounded-full p-1">
+    <div data-tour="views" className="mb-4 flex gap-1 rounded-full p-1" style={{ border: "var(--bw) solid var(--edge)" }}>
       {opts.map((o) => {
         const outlined = o.v === "soon" && dayPicked && value === "soon";
         const style: React.CSSProperties = outlined

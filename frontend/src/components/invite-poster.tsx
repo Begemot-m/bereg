@@ -106,7 +106,6 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
               ) : (
                 <span key={time} className="chip tnum" style={{ background: "var(--tiffany-soft)" }}>{time}</span>
               ))}
-              {day.more > 0 && <span className="t-cap self-center">+{day.more}</span>}
             </div>
           </div>
         ))}
@@ -239,12 +238,29 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
   if (sub) ctx.fillText(fit(ctx, sub, textW), tx, py + 202);
 
-  // Дни с окнами
+  // Дни с окнами. Времена переносятся на следующую строку, а карточка растёт
+  // под них: день на афише показывается целиком, без «+3» в углу.
   let y = headTop + headH + 44;
   const cardW = W - PAD * 2;
-  const footerTop = H - PAD - 240;
+  const footerH = 180;
+  const footerTop = H - PAD - footerH;
+  const chipH = 48;
+  const gap = 12;
+  const innerW = cardW - 72;
   for (const day of days) {
-    const cardH = 156;
+    ctx.font = head(800, 30);
+    const rows: { time: string; w: number }[][] = [];
+    let row: { time: string; w: number }[] = [];
+    let rowW = 0;
+    for (const time of day.times) {
+      const w = ctx.measureText(time).width + 44;
+      if (row.length && rowW + w > innerW) { rows.push(row); row = []; rowW = 0; }
+      row.push({ time, w });
+      rowW += w + gap;
+    }
+    if (row.length) rows.push(row);
+
+    const cardH = 84 + rows.length * chipH + (rows.length - 1) * gap + 24;
     if (y + cardH > footerTop - 24) break;
     ctx.fillStyle = "#fff";
     roundRect(ctx, PAD, y, cardW, cardH, 36);
@@ -254,24 +270,19 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
     ctx.font = head(900, 32);
     ctx.fillText(day.label, PAD + 36, y + 56);
 
-    let cx = PAD + 36;
-    const cy = y + 84;
     ctx.font = head(800, 30);
-    for (const time of day.times) {
-      const w = ctx.measureText(time).width + 44;
-      if (cx + w > PAD + cardW - 36) break;
-      ctx.fillStyle = soft;
-      roundRect(ctx, cx, cy, w, 48, 24);
-      ctx.fill();
-      ctx.fillStyle = edge;
-      ctx.fillText(time, cx + 22, cy + 33);
-      cx += w + 12;
-    }
-    if (day.more > 0) {
-      ctx.fillStyle = muted;
-      ctx.font = body(600, 26);
-      ctx.fillText(`+${day.more}`, cx + 4, cy + 33);
-    }
+    rows.forEach((line, ri) => {
+      let cx = PAD + 36;
+      const cy = y + 84 + ri * (chipH + gap);
+      for (const chip of line) {
+        ctx.fillStyle = soft;
+        roundRect(ctx, cx, cy, chip.w, chipH, 24);
+        ctx.fill();
+        ctx.fillStyle = edge;
+        ctx.fillText(chip.time, cx + 22, cy + 33);
+        cx += chip.w + gap;
+      }
+    });
     y += cardH + 16;
   }
 
@@ -281,20 +292,15 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
     ctx.fillText("Окна открываются — напишите, подберём время", PAD + 8, y + 40);
   }
 
-  // Подвал: куда идти
+  // Подвал. Ссылку убрали: картинку пересылают, по адресу в ней всё равно никто
+  // не переходит руками — она подписывает, что показано выше.
   ctx.fillStyle = ink;
-  roundRect(ctx, PAD, footerTop, cardW, 240, 44);
+  roundRect(ctx, PAD, footerTop, cardW, footerH, 44);
   ctx.fill();
   ctx.fillStyle = "#fff";
-  ctx.font = head(900, 44);
+  ctx.font = head(900, 48);
   ctx.textAlign = "center";
-  ctx.fillText("Записаться на встречу", W / 2, footerTop + 88);
-  ctx.font = body(600, 30);
-  ctx.fillStyle = soft;
-  ctx.fillText(fit(ctx, link.replace(/^https?:\/\//, ""), cardW - 80), W / 2, footerTop + 142);
-  ctx.font = head(800, 26);
-  ctx.fillStyle = muted;
-  ctx.fillText(`Онлайн-запись в «${APP_NAME}»`, W / 2, footerTop + 196);
+  ctx.fillText(fit(ctx, "Свободные окна для записи", cardW - 80), W / 2, footerTop + footerH / 2 + 16);
   ctx.textAlign = "left";
 
   try {

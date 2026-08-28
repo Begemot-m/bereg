@@ -18,7 +18,7 @@ import { OWN_PROFILE_ID, profileToCatalogPsy } from "@/lib/catalog";
 import { DEMO } from "@/lib/demo";
 import { success, select, tap } from "@/lib/haptics";
 import { inviteShareLink } from "@/lib/invite";
-import { inviteMessage, prepareInviteMessage, useFreeWindows, windowsInviteUrl, type Span } from "@/lib/invite-windows";
+import { inviteMessage, prepareInviteMessage, useFreeWindows, type Span } from "@/lib/invite-windows";
 import { useMe } from "@/lib/me";
 import { formatMoney } from "@/lib/money";
 import { useProfile } from "@/lib/profile";
@@ -82,7 +82,9 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   const psy = profile ? profileToCatalogPsy(profile, work) : null;
   const filled = profileCompletionPercent(profile) > 0;
 
-  const windowsLink = windowsInviteUrl(me?.id);
+  // Кнопка в приглашении ведёт на страницу специалиста целиком, а не на
+  // миниатюру расписания: в тексте и так есть ближайшие три дня, а всё
+  // остальное — расписание, анкета, цена — живёт на его странице.
   const cardLink = bookingInviteUrl(me?.id);
   const message = inviteMessage(psy?.name ?? "", days, span);
 
@@ -99,7 +101,7 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
     tap();
     setSaving(true);
     try {
-      const url = await posterPng(psy, days, span, windowsLink, "image/jpeg");
+      const url = await posterPng(psy, days, span, cardLink, "image/jpeg");
       setShot(url
         ? { url, note: "Готово. Отправьте картинку кнопкой ниже или сохраните долгим нажатием." }
         : { url: "", note: "Картинку собрать не вышло — отправьте приглашение текстом." });
@@ -136,14 +138,14 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
     tap();
     setSending(true);
     try {
-      const prepared = await prepareInviteMessage(message, windowsLink);
+      const prepared = await prepareInviteMessage(message, cardLink);
       if (prepared?.id && (await shareTelegramMessage(prepared.id))) { success(); return; }
     } catch {
       /* нет prepared-сообщений — уходим ссылкой */
     } finally {
       setSending(false);
     }
-    window.open(inviteShareLink(windowsLink, message), "_blank", "noopener");
+    window.open(inviteShareLink(cardLink, message), "_blank", "noopener");
   };
 
   if (typeof document === "undefined") return null;
@@ -228,7 +230,7 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
               <SpanSwitch span={span} onSpan={pickSpan} />
               <div className="card p-3.5">
                 <p className="t-sub whitespace-pre-line leading-relaxed" style={{ color: "var(--ink)" }}>{message}</p>
-                <p className="t-cap mt-2 break-all" style={{ color: "var(--tiffany-edge)" }}>{windowsLink}</p>
+                <p className="t-cap mt-2 break-all" style={{ color: "var(--tiffany-edge)" }}>{cardLink}</p>
               </div>
               <button onClick={() => void send()} disabled={sending} className="btn w-full py-3 text-[14px] disabled:opacity-50">
                 <Icon name="telegram" width={16} weight="fill" color="#fff" /> {sending ? "Готовим…" : "Отправить приглашение"}
@@ -252,7 +254,7 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
               <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn w-full py-3 text-[14px] disabled:opacity-50">
                 <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : "Собрать картинку"}
               </button>
-              <InviteShare link={windowsLink} text={inviteMessage(psy?.name ?? "", days, span)} />
+              <InviteShare link={cardLink} text={inviteMessage(psy?.name ?? "", days, span)} />
             </>
           )}
         </div>

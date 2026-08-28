@@ -24,14 +24,15 @@ import { addDays, zoneDay, zoneFormat } from "@/lib/zone";
 export type Span = "week" | "next";
 
 const HORIZON: Record<Span, number> = { week: 7, next: 14 };
-const MAX_DAYS: Record<Span, number> = { week: 5, next: 5 };
-const MAX_TIMES = 5;
+// Три дня — и в тексте, и на афише. Длинный список никто не дочитывает, а всё
+// расписание целиком человек всё равно смотрит на странице специалиста.
+const MAX_DAYS: Record<Span, number> = { week: 3, next: 3 };
 
 const dayF = zoneFormat({ weekday: "short", day: "numeric", month: "long" });
 const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export type FreeDay = { ymd: string; label: string; times: string[]; more: number };
+export type FreeDay = { ymd: string; label: string; times: string[] };
 
 /**
  * Ссылка на афишу окон. `startapp` открывает мини-приложение сразу на экране
@@ -49,11 +50,11 @@ const SPAN_WORD: Record<Span, string> = { week: "на ближайшую нед�
  */
 export function inviteMessage(name: string, days: FreeDay[], span: Span): string {
   const hi = name ? `Здравствуйте! Это ${name}.` : "Здравствуйте!";
-  const call = "Чтобы выбрать удобное время и записаться, перейдите на платформу:";
+  const call = "Чтобы ознакомиться со всем расписанием и записаться на удобное время, перейдите на платформу:";
   if (!days.length) {
     return `${hi}\n\nБлижайшие свободные окна для записи на сессии появятся в расписании.\n${call}`;
   }
-  const lines = days.map((d) => `• ${d.label} — ${d.times.join(", ")}${d.more ? ` и ещё ${d.more}` : ""}`);
+  const lines = days.map((d) => `• ${d.label} — ${d.times.join(", ")}`);
   return [
     hi,
     "",
@@ -91,8 +92,7 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
       return {
         ymd,
         label: cap(dayF.format(zoneDay(ymd))),
-        times: free.slice(0, MAX_TIMES).map((s) => timeF.format(new Date(s.start))),
-        more: Math.max(0, free.length - MAX_TIMES),
+        times: free.map((s) => timeF.format(new Date(s.start))),
       };
     })
     .filter((d) => d.times.length > 0);
@@ -100,7 +100,7 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
   return {
     days: result,
     loading: daysLoading || slots.some((q) => q.isLoading),
-    total: result.reduce((sum, d) => sum + d.times.length + d.more, 0),
+    total: result.reduce((sum, d) => sum + d.times.length, 0),
   };
 }
 
