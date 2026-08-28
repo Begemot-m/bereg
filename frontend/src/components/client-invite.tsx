@@ -12,6 +12,7 @@ import { WindowsPoster, coverJpeg, posterPng, sharePoster } from "@/components/i
 import { InviteShare } from "@/components/invite-share";
 import { profileCompletionPercent } from "@/components/profile-editor";
 import { bookingInviteUrl } from "@/components/session-invite";
+import { serverMessage } from "@/lib/api";
 import { asset } from "@/lib/asset";
 import { APP_NAME } from "@/lib/brand";
 import { OWN_PROFILE_ID, profileToCatalogPsy } from "@/lib/catalog";
@@ -22,7 +23,9 @@ import { inviteMessage, prepareInviteMessage, useFreeWindows, type Span } from "
 import { useMe } from "@/lib/me";
 import { formatMoney } from "@/lib/money";
 import { useProfile } from "@/lib/profile";
+import { listClients } from "@/lib/clients";
 import { getWorkHours } from "@/lib/schedule";
+import { FREE_CLIENT_LIMIT, getSubscription, isPro } from "@/lib/subscription";
 import { shareTelegramMessage } from "@/lib/telegram";
 
 const CARD_TEXT = `Моя визитка в «${APP_NAME}»: тут обо мне, о работе и запись на встречу`;
@@ -81,6 +84,17 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   const { days } = useFreeWindows(windowsFor, span);
   const psy = profile ? profileToCatalogPsy(profile, work) : null;
   const filled = profileCompletionPercent(profile) > 0;
+
+  // Два условия, при которых приглашение не сработает у получателя, и честнее
+  // сказать об этом до отправки, а не после его перехода по ссылке.
+  const { data: subscription } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => listClients() });
+  const seatsUsed = clients.filter((client) => !client.demo).length;
+  // Сервер отбил отправку лимитом — считаем мест нет, даже если в списке
+  // карточек их выходило меньше (заявки из каталога он не учитывает).
+  const [blocked, setBlocked] = useState(false);
+  const noSeats = blocked || (!isPro(subscription) && seatsUsed >= FREE_CLIENT_LIMIT);
+  const unverified = Boolean(psy) && !psy?.verified;
 
   // Кнопка в приглашении ведёт на страницу специалиста целиком, а не на
   // миниатюру расписания: в тексте и так есть ближайшие три дня, а всё
@@ -149,6 +163,9 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
    * получателю остаётся один тап, а не «найди ссылку в тексте и нажми». Если
    * клиент старый или роут недоступен (демо), открываем обычный лист Telegram
    * со ссылкой — как раньше.
+   *
+   * Отказ по лимиту — исключение: ссылкой в обход его отправлять нельзя, иначе
+   * получатель упрётся в тот же отказ, только уже перейдя по ней.
    */
   const send = async () => {
     tap();
@@ -157,7 +174,8 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
       const shot = cover ?? (psy ? await coverJpeg(psy).catch(() => null) : null);
       const prepared = await prepareInviteMessage(message, cardLink, shot);
       if (prepared?.id && (await shareTelegramMessage(prepared.id))) { success(); return; }
-    } catch {
+    } catch (e) {
+      if (serverMessage(e) === "not_accepting") { setSending(false); setBlocked(true); return; }
       /* нет prepared-сообщений — уходим ссылкой */
     } finally {
       setSending(false);
@@ -217,6 +235,9 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
               <CardPreview psy={psy} />
               <InviteShare link={cardLink} text={CARD_TEXT} />
 
+              {noSeats && <SeatsBlock used={seatsUsed} onLeave={onClose} />}
+              {unverified && <VerifyBlock onLeave={onClose} />}
+
               {!filled && (
                 <div className="card p-3.5">
                   <p className="t-head">Анкета пока пустая</p>
@@ -229,13 +250,15 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
                 <Choice
                   icon="calendar"
                   title="Отправить приглашение с расписанием"
-                  sub="Готовый текст со свободными окнами и ссылкой"
+                  sub={noSeats ? "Недоступно: бесплатные места заняты" : "Готовый текст со свободными окнами и ссылкой"}
+                  disabled={noSeats}
                   onClick={() => { tap(); setView("schedule"); }}
                 />
                 <Choice
                   icon="image"
                   title="Сформировать расписание картинкой"
-                  sub="Афиша для сторис — ссылка внутри остаётся живой"
+                  sub={noSeats ? "Недоступно: бесплатные места заняты" : "Афиша для сторис — ссылка внутри остаётся живой"}
+                  disabled={noSeats}
                   onClick={() => { tap(); setView("poster"); }}
                 />
               </div>
@@ -245,13 +268,15 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
           {view === "schedule" && (
             <>
               <SpanSwitch span={span} onSpan={pickSpan} />
+              {noSeats && <SeatsBlock used={seatsUsed} onLeave={onClose} />}
+              {unverified && <VerifyBlock onLeave={onClose} />}
               <div className="card overflow-hidden p-3.5">
                 {/* То же, что увидит клиент: обложка картинкой, под ней текст. */}
                 {cover && <img src={cover} alt="Обложка приглашения" className="mb-3 w-full rounded-[13px]" />}
                 <p className="t-sub whitespace-pre-line leading-relaxed" style={{ color: "var(--ink)" }}>{message}</p>
                 <p className="t-cap mt-2 break-all" style={{ color: "var(--tiffany-edge)" }}>{cardLink}</p>
               </div>
-              <button onClick={() => void send()} disabled={sending} className="btn w-full py-3 text-[14px] disabled:opacity-50">
+              <button onClick={() => void send()} disabled={sending || noSeats} className="btn w-full py-3 text-[14px] disabled:opacity-50">
                 <Icon name="telegram" width={16} weight="fill" color="#fff" /> {sending ? "Готовим…" : "Отправить приглашение"}
               </button>
               <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn btn-white w-full py-2.5 disabled:opacity-50">
@@ -331,9 +356,9 @@ function PosterShot({ url, note, onSend }: { url: string; note: string; onSend: 
   );
 }
 
-function Choice({ icon, title, sub, onClick }: { icon: IconName; title: string; sub: string; onClick: () => void }) {
+function Choice({ icon, title, sub, onClick, disabled }: { icon: IconName; title: string; sub: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button onClick={onClick} className="card flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99]">
+    <button onClick={onClick} disabled={disabled} className="card flex w-full items-center gap-3 p-3.5 text-left transition-transform active:scale-[0.99] disabled:opacity-50">
       <span className="ico ico-white h-11 w-11 shrink-0" style={{ background: "var(--tiffany-edge)" }}><Icon name={icon} width={20} weight="fill" color="#fff" /></span>
       <span className="min-w-0 flex-1">
         <span className="t-head block leading-tight">{title}</span>
@@ -341,6 +366,40 @@ function Choice({ icon, title, sub, onClick }: { icon: IconName; title: string; 
       </span>
       <span className="t-cap shrink-0" style={{ color: "var(--edge)" }}>›</span>
     </button>
+  );
+}
+
+/**
+ * Мест больше нет. Отправлять приглашение бессмысленно: получатель перейдёт по
+ * ссылке и упрётся в отказ — а виноватым будет выглядеть он.
+ */
+function SeatsBlock({ used, onLeave }: { used: number; onLeave: () => void }) {
+  return (
+    <div className="card p-3.5" style={{ background: "var(--head-soft)" }}>
+      <p className="t-head">Бесплатные места заняты</p>
+      <p className="t-sub mt-1">
+        Занято {used} из {FREE_CLIENT_LIMIT}. Новый человек по ссылке подключиться не сможет — освободите карточку или
+        подключите PRO, там клиентов без лимита.
+      </p>
+      <Link href="/cabinet" onClick={() => { tap(); onLeave(); }} className="btn mt-3 w-full">Подключить PRO</Link>
+    </div>
+  );
+}
+
+/**
+ * Анкета не прошла проверку. Личную ссылку это не ломает, а вот открытая запись
+ * идёт через каталог, и там показывают только подтверждённые анкеты.
+ */
+function VerifyBlock({ onLeave }: { onLeave: () => void }) {
+  return (
+    <div className="card p-3.5" style={{ background: "var(--head-soft)" }}>
+      <p className="t-head">Анкета ещё не подтверждена</p>
+      <p className="t-sub mt-1">
+        Открытое приглашение на сессии ведёт на вашу карточку в каталоге, а туда попадают только проверенные анкеты.
+        Пошлите её на верификацию — после неё ссылка заработает для всех.
+      </p>
+      <Link href="/cabinet" onClick={() => { tap(); onLeave(); }} className="btn btn-white mt-3 w-full">Отправить на проверку</Link>
+    </div>
   );
 }
 

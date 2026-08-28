@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
+import { acceptingNewClients } from "@/lib/server/access";
 import { AuthError, requireUser } from "@/lib/server/session";
 import { env } from "@/lib/server/env";
 import { InvalidBody, invalidBodyResponse, parseBody } from "@/lib/server/validate";
@@ -67,6 +68,17 @@ async function uploadCover(dataUrl: string, chatId: string): Promise<string | nu
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
+    // Звать некуда — не готовим и приглашение: иначе человек перейдёт по ссылке,
+    // подключение отобьётся лимитом, и виноватым окажется он. Держать эту дверь
+    // только в интерфейсе нельзя — сообщение собирает сервер.
+    const seats = await acceptingNewClients(user.id);
+    if (!seats.accepting) {
+      return NextResponse.json({
+        error: "not_accepting",
+        message: `Заняты все бесплатные карточки: их ${seats.limit}. Подключите PRO, чтобы приглашать новых клиентов.`,
+      }, { status: 402 });
+    }
+
     const { text, link, button, photo } = await parseBody(req, schema);
 
     const chatId = String(user.telegramId);
