@@ -3,7 +3,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import { botStartLink } from "@/lib/brand";
+import { botDeepLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
 import { addDays, zoneDay, zoneFormat } from "@/lib/zone";
@@ -33,8 +33,12 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export type FreeDay = { ymd: string; label: string; times: string[]; more: number };
 
-/** Ссылка на афишу окон: метку `win_<id>` разбирает StartRoute. */
-export const windowsInviteUrl = (psyId?: number | null) => botStartLink(`win_${psyId || OWN_PROFILE_ID}`);
+/**
+ * Ссылка на афишу окон. `startapp` открывает мини-приложение сразу на экране
+ * специалиста: человек нажимает кнопку в сообщении и оказывается на записи, без
+ * чата с ботом и без «Start». Метку `win_<id>` разбирает StartRoute.
+ */
+export const windowsInviteUrl = (psyId?: number | null) => botDeepLink(`win_${psyId || OWN_PROFILE_ID}`);
 
 const SPAN_WORD: Record<Span, string> = { week: "на ближайшую неделю", next: "на следующую неделю" };
 
@@ -53,7 +57,7 @@ export function inviteMessage(name: string, days: FreeDay[], span: Span): string
   return [
     hi,
     "",
-    "Ближайшие свободные окна для записи на сессии:",
+    span === "next" ? "Свободные окна на следующей неделе:" : "Ближайшие свободные окна для записи на сессии:",
     ...lines,
     "",
     call,

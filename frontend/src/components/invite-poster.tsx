@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { Icon } from "@/components/icons";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, APP_SITE } from "@/lib/brand";
 import { asset } from "@/lib/asset";
 import { formatMoney, type Currency } from "@/lib/money";
 import { select } from "@/lib/haptics";
@@ -33,7 +33,7 @@ export type PosterPsy = {
 
 const isInlineImage = (src: string) => /^(data:|blob:)/i.test(src);
 
-const SPAN_LABEL: Record<Span, string> = { week: "на неделю", next: "на следующую неделю" };
+const SPAN_LABEL: Record<Span, string> = { week: "на ближайшие дни", next: "на следующую неделю" };
 
 const yearsWord = (n: number) => {
   const last = n % 100 > 10 && n % 100 < 20 ? 0 : n % 10;
@@ -86,7 +86,7 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
               className={`flex-1 rounded-full py-1.5 text-[11.5px] font-black ${span === value ? "text-white" : ""}`}
               style={span === value ? { background: "var(--tiffany-edge)" } : { background: "#fff", color: "var(--tiffany-edge)" }}
             >
-              {value === "week" ? "Ближайшие" : "Следующая неделя"}
+              {value === "week" ? "Ближайшие дни" : "Следующая неделя"}
             </button>
           ))}
         </div>
@@ -175,8 +175,19 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   ctx.fillStyle = soft;
   ctx.fillRect(0, 0, W, H);
 
+  // Заголовок афиши: название платформы и адрес. Картинку пересылают дальше
+  // без всякого текста, и она обязана сама говорить, откуда она.
+  ctx.textAlign = "center";
+  ctx.font = head(900, 46);
+  ctx.fillStyle = ink;
+  ctx.fillText(APP_NAME, W / 2, PAD + 46);
+  ctx.font = body(700, 30);
+  ctx.fillStyle = edge;
+  ctx.fillText(APP_SITE, W / 2, PAD + 92);
+  ctx.textAlign = "left";
+
   // Шапка: портрет и имя
-  const headTop = PAD + 40;
+  const headTop = PAD + 120;
   const headH = 300;
   ctx.fillStyle = "#fff";
   roundRect(ctx, PAD, headTop, W - PAD * 2, headH, 44);

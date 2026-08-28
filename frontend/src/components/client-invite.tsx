@@ -76,7 +76,6 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   // сохранить долгим нажатием — в Telegram это единственный надёжный путь.
   const [shot, setShot] = useState<{ url: string; note: string } | null>(null);
   const [sending, setSending] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const windowsFor = DEMO ? OWN_PROFILE_ID : me?.id ?? null;
   const { days } = useFreeWindows(windowsFor, span);
@@ -126,18 +125,6 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
 
   // Картинка собрана заново под другой охват — старую показывать нельзя.
   const pickSpan = (value: Span) => { setSpan(value); setShot(null); };
-
-  const copyMessage = async () => {
-    tap();
-    try {
-      await navigator.clipboard.writeText(`${message}\n${windowsLink}`);
-      success();
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      /* буфер недоступен — остаётся кнопка отправки */
-    }
-  };
 
   /**
    * Отправка приглашения. Сначала пробуем сообщение с настоящей кнопкой:
@@ -246,16 +233,14 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
               <button onClick={() => void send()} disabled={sending} className="btn w-full py-3 text-[14px] disabled:opacity-50">
                 <Icon name="telegram" width={16} weight="fill" color="#fff" /> {sending ? "Готовим…" : "Отправить приглашение"}
               </button>
-              <button onClick={() => void copyMessage()} className="btn btn-white w-full py-2.5">
-                {copied ? "Скопировано" : "Скопировать текст со ссылкой"}
-              </button>
               <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn btn-white w-full py-2.5 disabled:opacity-50">
                 <Icon name="image" width={15} weight="bold" color="var(--tiffany-edge)" /> {saving ? "Рисуем…" : shot ? "Собрать заново" : "Расписание картинкой"}
               </button>
-              {shot && <PosterShot url={shot.url} note={shot.note} onSend={() => void sendPoster()} />}
               <p className="t-cap">
                 {days.length
-                  ? "«Ближайшие» — отсчёт с дня отправки, семь дней вперёд. Окна берутся из графика в момент отправки, клиент выберет время прямо в приложении."
+                  ? span === "next"
+                    ? "Следующая неделя целиком, с понедельника. Окна берутся из графика в момент отправки."
+                    : "Отсчёт идёт с сегодняшнего дня, семь дней вперёд. Окна берутся из графика в момент отправки."
                   : "Свободных окон в графике пока нет — клиент откроет ссылку и увидит время, как только оно появится."}
               </p>
             </>
@@ -265,14 +250,44 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
             <>
               {psy ? <WindowsPoster psy={psy} days={days} span={span} onSpan={setSpan} /> : <div className="card p-4"><p className="t-sub">Заполните имя в анкете, чтобы собрать афишу</p></div>}
               <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn w-full py-3 text-[14px] disabled:opacity-50">
-                <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : shot ? "Собрать заново" : "Собрать картинку JPG"}
+                <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : "Собрать картинку"}
               </button>
-              {shot && <PosterShot url={shot.url} note={shot.note} onSend={() => void sendPoster()} />}
               <InviteShare link={windowsLink} text={inviteMessage(psy?.name ?? "", days, span)} />
             </>
           )}
         </div>
       </motion.div>
+
+      {/* Готовая афиша — отдельным окном поверх: внутри списка она занимала
+          весь экран, и свободные окна переставали помещаться в блок. */}
+      <AnimatePresence>
+        {shot && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            onClick={(e) => { e.stopPropagation(); setShot(null); }}
+            className="fixed inset-0 z-[110] flex items-center justify-center overscroll-contain bg-[rgba(32,28,24,.62)] p-4"
+          >
+            <motion.div
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 18, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-[86dvh] w-full max-w-sm overflow-y-auto rounded-[var(--r-block)] p-4"
+              style={{ background: "var(--surface)" }}
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="t-head">Расписание картинкой</p>
+                <button onClick={() => { tap(); setShot(null); }} className="x-close h-8 w-8 rounded-full bg-white text-[15px]" aria-label="Закрыть">✕</button>
+              </div>
+              <PosterShot url={shot.url} note={shot.note} onSend={() => void sendPoster()} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>,
     document.body,
   );
@@ -318,7 +333,7 @@ function SpanSwitch({ span, onSpan }: { span: Span; onSpan: (span: Span) => void
           className={`flex-1 rounded-full py-2 text-[12px] font-black ${span === value ? "text-white" : ""}`}
           style={span === value ? { background: "var(--tiffany-edge)" } : { background: "var(--head-soft)", color: "var(--tiffany-edge)" }}
         >
-          {value === "week" ? "Ближайшие" : "Следующая неделя"}
+          {value === "week" ? "Ближайшие дни" : "Следующая неделя"}
         </button>
       ))}
     </div>

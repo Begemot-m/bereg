@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/icons";
-import { APP_NAME, botStartLink } from "@/lib/brand";
+import { APP_NAME, botDeepLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
@@ -23,7 +23,7 @@ const MSG_KEY = "bereg_invite_message";
  * окнами. Обычный https-адрес открылся бы в браузере, мимо приложения.
  */
 export function bookingInviteUrl(psyId?: number): string {
-  return botStartLink(`book_${psyId || OWN_PROFILE_ID}`);
+  return botDeepLink(`book_${psyId || OWN_PROFILE_ID}`);
 }
 
 // Кнопка живёт в шапке «Сессий»: позвать клиента — обычное действие раздела,
