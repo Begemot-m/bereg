@@ -92,9 +92,13 @@ export async function saveWorkHours(userId: number, patch: Partial<WorkHoursDTO>
 export async function resolveScheduleOwner(viewerId: number, psyParam: string | null): Promise<number | null> {
   const id = Number(psyParam);
   if (!psyParam || !Number.isInteger(id) || id <= 0 || id === viewerId) return viewerId;
-  // Приглашённый клиент видит окна и до верификации: иначе он открывает анкету
-  // специалиста, который его позвал, и получает пустой календарь.
-  return (await canWorkWithPsy(viewerId, id)) ? id : null;
+  // Свободные окна — не тайна: их видит всякий, кто открыл анкету специалиста.
+  // Раньше расписание требовало связи или подтверждённой анкеты, и человек,
+  // пришедший по ссылке-приглашению, попадал на карточку с пустым календарём —
+  // связи-то ещё нет. Право записаться это не даёт: её проверяет запись.
+  if (await canWorkWithPsy(viewerId, id)) return id;
+  const psy = await prisma.psyProfile.findUnique({ where: { userId: id }, select: { userId: true } });
+  return psy ? id : null;
 }
 
 /** Правки окон в виде, в котором их ждёт клиент: ключ — ISO начала окна. */

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { PolicySheet } from "@/components/policy-sheet";
 import { apiFetch } from "@/lib/api";
+import { bookingEntryPsy } from "@/lib/booking-entry";
 import { DEMO } from "@/lib/demo";
 import { success, tap } from "@/lib/haptics";
 import { markOnboardedFromServer, useOnboarded } from "@/lib/profile";
@@ -49,6 +50,10 @@ export function ConsentGate({ children }: { children: React.ReactNode }) {
   const granted = state.data?.granted;
   useEffect(() => {
     if (DEMO || onboarded !== false) return;
+    // Пришёл по ссылке на запись и только что подписал согласие окном поверх
+    // карточки — знакомство у него ещё впереди, отметку не ставим: иначе
+    // предложение познакомиться с приложением уже не всплывёт.
+    if (bookingEntryPsy() !== null) return;
     if (granted?.pd?.current && granted?.health?.current) markOnboardedFromServer();
   }, [granted, onboarded]);
 

@@ -19,10 +19,15 @@ const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.Ro
 const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => m.WebLanding));
 // Экран приглашения видят только те, кто пришёл по ссылке специалиста.
 const InviteWelcome = dynamic(() => import("@/components/invite-welcome").then((m) => m.InviteWelcome));
+// Согласие и предложение знакомства нужны одному приходу из десяти — по ссылке
+// на запись. В бандле каждого экрана им делать нечего.
+const BookingConsent = dynamic(() => import("@/components/booking-entry").then((m) => m.BookingConsent));
+const OnboardingOffer = dynamic(() => import("@/components/booking-entry").then((m) => m.OnboardingOffer));
 import { serverMessage } from "@/lib/api";
 import { APP_NAME } from "@/lib/brand";
 import { joinClientCard } from "@/lib/clients";
 import { joinGroup } from "@/lib/groups";
+import { bookingEntryPsy, clearBookingEntry, markBookingEntry } from "@/lib/booking-entry";
 import { acceptPsyInvite, readInvitePayload, type InviteKind } from "@/lib/invite";
 import { select } from "@/lib/haptics";
 import { iconLoop } from "@/lib/icon-motion";
@@ -183,6 +188,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Пришли по ссылке на запись: знакомство всё равно обязательно, но роль
   // спрашивать незачем — человека позвали как клиента.
   const [entryRole, setEntryRole] = useState<Role | null>(null);
+  // Ссылка на запись к конкретному специалисту. Такой приход идёт особым
+  // порядком: карточка с окнами → согласие → знакомство, когда человек пойдёт
+  // дальше. Метку кладём и в sessionStorage — её читает экран согласия.
+  const [bookingPsy, setBookingPsy] = useState<number | null>(null);
+  const [bookingReady, setBookingReady] = useState(false);
+  const [offerOnboarding, setOfferOnboarding] = useState(false);
+  const [offerShown, setOfferShown] = useState(false);
+  useEffect(() => { setBookingPsy(bookingEntryPsy()); }, []);
   const items = NAV[role];
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
@@ -190,6 +203,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Посещаемость: раздел отмечается на каждом переходе, не чаще раза в пять
   // минут на раздел. Сводку читает админка.
   useEffect(() => { trackSection(pathname); }, [pathname]);
+
+  // Ушёл с карточки специалиста в любой другой раздел — самое время предложить
+  // знакомство: запись уже позади, а приложение он ещё не видел. Один раз за
+  // сеанс: назойливое окно на каждом переходе хуже, чем ни одного.
+  useEffect(() => {
+    if (bookingPsy === null || onboarded !== false || !bookingReady || offerShown) return;
+    if (pathname.startsWith("/catalog")) return;
+    setOfferOnboarding(true);
+    setOfferShown(true);
+  }, [pathname, bookingPsy, onboarded, bookingReady, offerShown]);
 
   // Приглашение принимается, как только появилась сессия: до этого метку
   // некуда предъявить. Раньше она просто лежала в sessionStorage, карточка у
@@ -269,7 +292,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     const enter = (psy: string | null, href?: string) => {
       setRole("client");
       setFastEntry(true);
-      if (psy) setEntryRole("client");
+      if (psy) {
+        setEntryRole("client");
+        const id = Number(psy);
+        if (Number.isInteger(id) && id > 0) { markBookingEntry(id); setBookingPsy(id); }
+      }
       const to = href ?? (psy ? `/catalog?psy=${encodeURIComponent(psy)}&book=1` : null);
       if (to && navRef.current.pathname !== to.split("?")[0]) router.replace(to);
     };
@@ -435,7 +462,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   // данных, без которого пользоваться платформой нельзя. Быстрый вход по ссылке
   // на запись больше мимо не проносит — он только пускает посмотреть окна тому,
   // кто ещё не вошёл в аккаунт.
-  if (!onboarded && (authState === "authed" || !fastEntry)) {
+  //
+  // Исключение — приход по ссылке на запись: человека позвали к конкретному
+  // специалисту, и стена из семи слайдов перед его карточкой стоит клиента.
+  // Согласие он даёт окном поверх карточки, знакомство ему предложат, когда он
+  // уйдёт с неё в любой другой раздел.
+  const bookingFlow = bookingPsy !== null && !onboarded;
+  if (!onboarded && !bookingFlow && (authState === "authed" || !fastEntry)) {
     return <Onboarding startRole={invite ? "client" : entryRole ?? undefined} />;
   }
 
@@ -444,6 +477,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Обучение с прожекторной подсветкой — поверх всего, по запуску из баннера */}
       {tourActive && <RoomTour role={role} onDone={() => setTourActive(false)} />}
       {inviteNote && <InviteNote kind={inviteNote} onClose={() => setInviteNote(null)} />}
+      {/* Пришли по ссылке на запись: согласие поверх карточки, потом — приглашение
+          познакомиться с приложением, когда человек уйдёт с неё дальше. */}
+      {bookingPsy !== null && authState === "authed" && !bookingReady && (
+        <BookingConsent
+          psyId={bookingPsy}
+          onDone={() => { setBookingReady(true); setRole("client"); qc.invalidateQueries(); }}
+        />
+      )}
+      {offerOnboarding && (
+        <OnboardingOffer
+          onStart={() => { clearBookingEntry(); setOfferOnboarding(false); setBookingPsy(null); }}
+          onLater={() => setOfferOnboarding(false)}
+        />
+      )}
       {/* Десктоп: сайдбар */}
       <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>

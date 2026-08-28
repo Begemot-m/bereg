@@ -97,7 +97,7 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   useEffect(() => {
     if (view !== "schedule" || !name) return;
     let alive = true;
-    void coverJpeg({ name, portrait, method: psy?.method, specialistTypes: psy?.specialistTypes, years: psy?.years })
+    void coverJpeg({ name, portrait, specialistTypes: psy?.specialistTypes })
       .then((url) => { if (alive) setCover(url); })
       .catch(() => {});
     return () => { alive = false; };

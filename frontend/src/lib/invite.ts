@@ -48,3 +48,7 @@ export const getInvitePreview = (token: string) =>
 /** Принять общую ссылку: карточка у специалиста заводится этим вызовом. */
 export const acceptPsyInvite = (token: string) =>
   apiFetch<{ ok: boolean; clientId: number }>("/invite/accept", { method: "POST", body: JSON.stringify({ token }) });
+
+/** То же подключение по ссылке на запись, где вместо кода — открытый id. */
+export const connectPsy = (psyId: number) =>
+  apiFetch<{ ok: boolean; clientId: number }>("/invite/accept", { method: "POST", body: JSON.stringify({ psyId }) });

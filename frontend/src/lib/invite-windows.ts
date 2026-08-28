@@ -49,7 +49,7 @@ const SPAN_WORD: Record<Span, string> = { week: "на ближайшую нед�
  * со ссылкой и отправляется как есть.
  */
 export function inviteMessage(name: string, days: FreeDay[], span: Span): string {
-  const hi = name ? `👋 Здравствуйте! Это ${name}.` : "👋 Здравствуйте!";
+  const hi = name ? `Здравствуйте! Это ${name}.` : "Здравствуйте!";
   const call = "🔗 Чтобы ознакомиться со всем расписанием и записаться на удобное время, перейдите на платформу:";
   if (!days.length) {
     return `${hi}\n\n🗓 Ближайшие свободные окна для записи на сессии появятся в расписании.\n${call}`;

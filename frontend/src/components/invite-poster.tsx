@@ -336,7 +336,6 @@ async function drawCover(psy: PosterPsy, retry: boolean): Promise<string | null>
   const soft = css("--tiffany-soft", "#dceeeb");
   const edge = css("--tiffany-edge", "#2f7d74");
   const ink = css("--ink", "#221f1c");
-  const muted = css("--muted", "#7c7268");
 
   ctx.fillStyle = soft;
   ctx.fillRect(0, 0, CW, CH);
@@ -372,21 +371,16 @@ async function drawCover(psy: PosterPsy, retry: boolean): Promise<string | null>
   ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
   ctx.stroke();
 
+  // На обложке только имя и специализация: подход и стаж читаются в анкете, а
+  // здесь удлиняли карточку и спорили с портретом за внимание.
   ctx.textAlign = "center";
   ctx.fillStyle = ink;
   ctx.font = head(900, 58);
-  ctx.fillText(fit(ctx, psy.name, CW - 160), cx, 410);
+  ctx.fillText(fit(ctx, psy.name, CW - 160), cx, 424);
 
   ctx.fillStyle = edge;
   ctx.font = head(800, 32);
-  ctx.fillText(fit(ctx, psy.specialistTypes?.length ? psy.specialistTypes.join(" · ") : "Психолог", CW - 160), cx, 462);
-
-  const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
-  if (sub) {
-    ctx.fillStyle = muted;
-    ctx.font = body(600, 28);
-    ctx.fillText(fit(ctx, sub, CW - 160), cx, 508);
-  }
+  ctx.fillText(fit(ctx, psy.specialistTypes?.length ? psy.specialistTypes.join(" · ") : "Психолог", CW - 160), cx, 478);
 
   const barH = 112;
   const barY = CH - 64 - barH;

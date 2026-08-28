@@ -24,9 +24,16 @@ export async function POST(req: NextRequest) {
     if (stop) return stop;
 
     const user = await requireUser(req);
-    const body = await parseBody(req, z.object({ token: z.string().min(1).max(2000) }));
+    // psyId — то же подключение, но по открытому id из ссылки на запись
+    // (`book_<id>`): подписанного кода в ней нет, а человек, нажавший «согласен»
+    // на карточке специалиста, должен получить его в «Терапии» так же, как по
+    // именному приглашению. Ссылка и без того публичная, скрывать в ней нечего.
+    const body = await parseBody(req, z.object({
+      token: z.string().min(1).max(2000).optional(),
+      psyId: z.number().int().positive().optional(),
+    }));
 
-    const psychologistId = await readInviteCode("psy", body.token);
+    const psychologistId = body.token ? await readInviteCode("psy", body.token) : body.psyId ?? null;
     if (!psychologistId) return NextResponse.json({ error: "Приглашение недействительно" }, { status: 400 });
     // Специалист открыл собственную ссылку — обычно чтобы проверить, как она
     // выглядит. Ни карточки, ни связи: приложение по этому коду вернёт его в
