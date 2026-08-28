@@ -61,6 +61,16 @@ describe("догоняющие сообщения", () => {
     expect(pickNudges([old], MONDAY_NOON, TZ)).toHaveLength(0);
   });
 
+  test("тому, кто в приложении бывает, про первого клиента не пишем", () => {
+    const here = row({ clients: 0, createdAt: new Date("2026-08-14T09:00:00Z"), lastVisit: new Date("2026-08-16T09:00:00Z") });
+    expect(pickNudges([here], MONDAY_NOON, TZ)).toHaveLength(0);
+  });
+
+  test("зов за первым клиентом уходит один раз, а не каждую неделю", () => {
+    const gone = row({ clients: 0, createdAt: new Date("2026-08-14T09:00:00Z"), lastVisit: null });
+    expect(pickNudges([gone], MONDAY_NOON, TZ)[0].periodKey).toBe("once");
+  });
+
   test("ночью не пишем", () => {
     const gone = row({ clientsIdle: 2, lastVisit: new Date("2026-08-05T08:00:00Z") });
     expect(pickNudges([gone], MONDAY_NIGHT, TZ)).toHaveLength(0);

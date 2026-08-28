@@ -144,15 +144,19 @@ export function pickNudges(rows: PsyRow[], now: Date, timeZone: string): Planned
       continue;
     }
 
-    // Завёл анкету и пропал, не дойдя до первого клиента. Зовём первый месяц:
-    // дальше это уже не подсказка, а надоедание.
+    // Завёл анкету и пропал, не дойдя до первого клиента. Зовём один раз и
+    // только того, кто действительно пропал: раньше письмо уходило каждую
+    // неделю первого месяца — в том числе тому, кто сидит в приложении прямо
+    // сейчас и просто ещё не завёл карточку. Постоянный `periodKey` держит
+    // ровно одну отправку на человека: ключ «получатель + вид + период»
+    // уникален.
     const ageDays = (now.getTime() - row.createdAt.getTime()) / DAY;
-    if (row.clients === 0 && ageDays >= 2 && ageDays <= 30) {
+    if (row.clients === 0 && ageDays >= 2 && ageDays <= 30 && idleDays >= 7) {
       out.push({
         recipientId: row.userId,
         telegramId: row.telegramId,
         kind: "no_client",
-        periodKey: key,
+        periodKey: "once",
         text: "В «Хронике» пока нет ни одного вашего клиента.\nПригласите первого ссылкой — записи, задания и настроение окажутся в одном месте.",
         button: "Пригласить клиента",
         path: "/clients",

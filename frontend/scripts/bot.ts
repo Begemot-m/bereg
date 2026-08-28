@@ -196,12 +196,19 @@ function messageFor(delivery: Delivery): { text: string; keyboard: InlineKeyboar
 // Прошедшая встреча закрывается сама — тем же правилом, что и в приложении
 // (lib/server/appointments.ts). Здесь это нужно для тех, кто в приложение не
 // заходит: от статуса зависят статистика, счётчики каталога и старт триала.
+//
+// Сравнение идёт с `now() AT TIME ZONE 'UTC'`, а не с голым `now()`: колонка —
+// `timestamp(3)` без зоны, Prisma пишет в неё UTC, а голый `now()` — это
+// `timestamptz`, и Postgres приводил колонку к зоне сессии. На сервере с
+// ненулевым TimeZone бот закрывал встречу на несколько часов раньше срока — она
+// уезжала из расписания у обеих сторон в свой же день. В приложении это
+// починили 26 августа, у бота осталась своя копия запроса.
 async function settlePastAppointments() {
   await prisma.$executeRaw`
     UPDATE "Appointment"
     SET "status" = 'done'
     WHERE "status" = 'scheduled'
-      AND "startsAt" + ("durationMin" * INTERVAL '1 minute') < now()`;
+      AND "startsAt" + ("durationMin" * INTERVAL '1 minute') < (now() AT TIME ZONE 'UTC')`;
 }
 
 let delivering = false;
