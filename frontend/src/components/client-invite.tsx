@@ -76,6 +76,7 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   // сохранить долгим нажатием — в Telegram это единственный надёжный путь.
   const [shot, setShot] = useState<{ url: string; note: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const windowsFor = DEMO ? OWN_PROFILE_ID : me?.id ?? null;
   const { days } = useFreeWindows(windowsFor, span);
@@ -86,31 +87,57 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   const cardLink = bookingInviteUrl(me?.id);
   const message = inviteMessage(psy?.name ?? "", days, span);
 
-  const NOTE: Record<string, string> = {
-    shared: "Картинка ушла в выбранный чат.",
-    saved: "Картинка сохранена в загрузки.",
-    shown: "Нажмите на картинку и удерживайте, чтобы сохранить или переслать.",
-  };
+  const posterName = () => `raspisanie-${span === "week" ? "blizhayshie" : "sled-nedelya"}.jpg`;
 
+  /**
+   * Собрать картинку. Отправку отсюда не запускаем: системный лист «Поделиться»
+   * требует свежего нажатия, а к концу отрисовки оно уже «протухло» — из-за
+   * этого кнопка и выглядела сломанной. Сначала показываем готовую афишу,
+   * отправляет её отдельная кнопка под ней.
+   */
   const makePoster = async () => {
     if (!psy) return;
     tap();
     setSaving(true);
     try {
       const url = await posterPng(psy, days, span, windowsLink, "image/jpeg");
-      if (!url) return;
-      const name = `raspisanie-${span === "week" ? "blizhayshie" : "sled-nedelya"}.jpg`;
-      setShot({ url, note: "" });
-      const how = await sharePoster(url, name);
-      setShot({ url, note: NOTE[how] });
-      success();
+      setShot(url
+        ? { url, note: "Готово. Отправьте картинку кнопкой ниже или сохраните долгим нажатием." }
+        : { url: "", note: "Картинку собрать не вышло — отправьте приглашение текстом." });
+      if (url) success();
+    } catch {
+      setShot({ url: "", note: "Картинку собрать не вышло — отправьте приглашение текстом." });
     } finally {
       setSaving(false);
     }
   };
 
+  const sendPoster = async () => {
+    if (!shot?.url) return;
+    tap();
+    const how = await sharePoster(shot.url, posterName());
+    setShot({
+      url: shot.url,
+      note: how === "shared" ? "Картинка ушла в выбранный чат."
+        : how === "saved" ? "Картинка сохранена в загрузки."
+        : "Нажмите на картинку и удерживайте, чтобы сохранить или переслать.",
+    });
+  };
+
   // Картинка собрана заново под другой охват — старую показывать нельзя.
   const pickSpan = (value: Span) => { setSpan(value); setShot(null); };
+
+  const copyMessage = async () => {
+    tap();
+    try {
+      await navigator.clipboard.writeText(`${message}\n${windowsLink}`);
+      success();
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* буфер недоступен — остаётся кнопка отправки */
+    }
+  };
 
   /**
    * Отправка приглашения. Сначала пробуем сообщение с настоящей кнопкой:
@@ -219,11 +246,13 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
               <button onClick={() => void send()} disabled={sending} className="btn w-full py-3 text-[14px] disabled:opacity-50">
                 <Icon name="telegram" width={16} weight="fill" color="#fff" /> {sending ? "Готовим…" : "Отправить приглашение"}
               </button>
-              <InviteShare link={windowsLink} text={message} />
+              <button onClick={() => void copyMessage()} className="btn btn-white w-full py-2.5">
+                {copied ? "Скопировано" : "Скопировать текст со ссылкой"}
+              </button>
               <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn btn-white w-full py-2.5 disabled:opacity-50">
                 <Icon name="image" width={15} weight="bold" color="var(--tiffany-edge)" /> {saving ? "Рисуем…" : shot ? "Собрать заново" : "Расписание картинкой"}
               </button>
-              {shot && <PosterShot url={shot.url} note={shot.note} />}
+              {shot && <PosterShot url={shot.url} note={shot.note} onSend={() => void sendPoster()} />}
               <p className="t-cap">
                 {days.length
                   ? "«Ближайшие» — отсчёт с дня отправки, семь дней вперёд. Окна берутся из графика в момент отправки, клиент выберет время прямо в приложении."
@@ -238,7 +267,7 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
               <button onClick={() => void makePoster()} disabled={!psy || saving} className="btn w-full py-3 text-[14px] disabled:opacity-50">
                 <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : shot ? "Собрать заново" : "Собрать картинку JPG"}
               </button>
-              {shot && <PosterShot url={shot.url} note={shot.note} />}
+              {shot && <PosterShot url={shot.url} note={shot.note} onSend={() => void sendPoster()} />}
               <InviteShare link={windowsLink} text={inviteMessage(psy?.name ?? "", days, span)} />
             </>
           )}
@@ -253,10 +282,14 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
  * Готовая афиша на экране. Показываем её саму, а не сообщение «сохранено»:
  * в Telegram картинку забирают долгим нажатием, и человек должен её видеть.
  */
-function PosterShot({ url, note }: { url: string; note: string }) {
+function PosterShot({ url, note, onSend }: { url: string; note: string; onSend: () => void }) {
+  if (!url) return <div className="card p-3.5"><p className="t-cap text-center">{note}</p></div>;
   return (
     <div className="card overflow-hidden p-2">
       <img src={url} alt="Расписание свободных окон" className="w-full rounded-[13px]" />
+      <button onClick={onSend} className="btn btn-accent mt-2 w-full py-2.5">
+        <Icon name="telegram" width={15} weight="fill" color="#fff" /> Отправить картинку
+      </button>
       {note && <p className="t-cap mt-2 px-1 text-center">{note}</p>}
     </div>
   );

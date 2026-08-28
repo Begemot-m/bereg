@@ -18,9 +18,9 @@ export const PROD_URL = "https://chronika.space/";
 
 // Мини-приложение живёт в боте, поэтому приглашения ведут не на сайт, а в
 // Telegram: startapp открывает приложение сразу и передаёт метку страницы.
-// Боевой бот — @chronikaspace_bot; @murpsybot остался витриной демо, чтобы
-// ссылки из демо-сборки не приводили живых людей в продакшен.
-export const BOT_NAME = process.env.NEXT_PUBLIC_DEMO === "1" ? "murpsybot" : "chronikaspace_bot";
+// Бот один и тот же везде, включая демо: приглашение из демо-сборки отправляют
+// настоящему человеку, и вести его в витрину @murpsybot значит потерять клиента.
+export const BOT_NAME = "chronikaspace_bot";
 
 /** Ссылка, открывающая мини-приложение на нужном экране. */
 export function botDeepLink(payload: string): string {

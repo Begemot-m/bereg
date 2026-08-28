@@ -157,6 +157,10 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
  * он весит втрое меньше PNG, а фон афиши сплошной — терять на нём нечего.
  */
 export async function posterPng(psy: PosterPsy, days: FreeDay[], span: Span, link: string, type: "image/png" | "image/jpeg" = "image/png"): Promise<string | null> {
+  return drawPoster(psy, days, span, link, type, false);
+}
+
+async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: string, type: "image/png" | "image/jpeg", retry: boolean): Promise<string | null> {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -182,7 +186,11 @@ export async function posterPng(psy: PosterPsy, days: FreeDay[], span: Span, lin
   const portraitH = 224;
   const px = PAD + 40;
   const py = headTop + (headH - portraitH) / 2;
-  const img = psy.portrait ? await loadImage(asset(psy.portrait)) : null;
+  // Портрет — единственное место, где афиша зависит от внешнего файла: он
+  // может не загрузиться, прийти без CORS-заголовков и «испачкать» холст, и
+  // тогда toDataURL бросит SecurityError. Поэтому неудача здесь — не повод
+  // остаться без картинки: рисуем букву вместо снимка.
+  const img = psy.portrait ? await loadImage(asset(psy.portrait)).catch(() => null) : null;
   ctx.save();
   roundRect(ctx, px, py, portraitW, portraitH, 28);
   ctx.clip();
@@ -278,7 +286,13 @@ export async function posterPng(psy: PosterPsy, days: FreeDay[], span: Span, lin
   ctx.fillText(`Онлайн-запись в «${APP_NAME}»`, W / 2, footerTop + 196);
   ctx.textAlign = "left";
 
-  return type === "image/jpeg" ? canvas.toDataURL(type, 0.92) : canvas.toDataURL(type);
+  try {
+    return type === "image/jpeg" ? canvas.toDataURL(type, 0.92) : canvas.toDataURL(type);
+  } catch {
+    // Холст испорчен снимком с чужого домена — перерисовываем без него.
+    if (retry) return null;
+    return drawPoster({ ...psy, portrait: undefined }, days, span, link, type, true);
+  }
 }
 
 /** Обрезает строку многоточием, чтобы она влезла в отведённую ширину. */
