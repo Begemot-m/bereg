@@ -20,7 +20,7 @@ function group(rows: (boolean | null)[], ahead = 0): Group {
   }
   return {
     id: 1, title: "Опоры", kind: "group", capacity: 8, note: "", about: "",
-    format: "offline", place: "", resourceUrl: "", remind24h: true, remind2h: true,
+    format: "offline", place: "", resourceUrl: "", avatar: "", rules: "", price: "", remind24h: true, remind2h: true,
     status: "active", createdAt: ago(60),
     members: [
       { id: 1, clientId: 77, name: "Аня", status: "active" },

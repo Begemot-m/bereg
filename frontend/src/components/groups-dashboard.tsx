@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
-import { AttendanceDonut, CycleBar, DateBadge, DeltaTag, EDGE, MemberStack, Sheet, SOFT, Spark } from "@/components/groups-ui";
+import { AttendanceDonut, CycleBar, DateBadge, DeltaTag, EDGE, GroupAvatar, MemberStack, Sheet, SOFT, Spark } from "@/components/groups-ui";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/motion";
 import {
@@ -230,6 +230,7 @@ function GroupRow({ group }: { group: Group }) {
         )}
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-1.5">
+            <GroupAvatar avatar={group.avatar} size={20} radius={7} />
             <span className="font-tight text-[15px] font-black leading-tight">{group.title}</span>
             <span className="chip keep-style" style={{ background: SOFT, color: EDGE }}>{KIND_LABEL[group.kind]}</span>
           </span>

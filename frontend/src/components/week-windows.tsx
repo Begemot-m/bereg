@@ -13,6 +13,7 @@ import { ConfirmDone } from "@/components/confirm-done";
 import { ConfirmProPaywall, isNeedsPro } from "@/components/confirm-pro";
 import { ClientPicker } from "@/components/day-slots";
 import { FmtSwitch } from "@/components/fmt-switch";
+import { GroupAvatar } from "@/components/groups-ui";
 import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { awaitsConfirm, confirmAppointment, createAppointment, listAppointments, updateAppointment, type Appointment, type ApptFormat } from "@/lib/appointments";
@@ -29,7 +30,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pl = (n: number, one: string, few: string, many: string) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
 
 /** Встреча группы в календаре: занимает окно целиком, тап ведёт в карточку. */
-export type GroupSlot = { groupId: number; meetingId: number; title: string; kind: GroupKind; members: GroupMember[]; done: boolean; marked: boolean };
+export type GroupSlot = { groupId: number; meetingId: number; title: string; kind: GroupKind; avatar: string; members: GroupMember[]; done: boolean; marked: boolean };
 
 /**
  * `past` — окно уже началось (в него больше не записывают), `over` — его время
@@ -55,7 +56,7 @@ export function useDayWindows() {
       for (const m of g.meetings) {
         if (m.status === "cancelled") continue;
         out.set(new Date(m.startsAt).getTime(), {
-          groupId: g.id, meetingId: m.id, title: g.title, kind: g.kind,
+          groupId: g.id, meetingId: m.id, title: g.title, kind: g.kind, avatar: g.avatar,
           members: activeMembers(g), done: m.status === "done", marked: m.attendance.length > 0,
           startsAt: m.startsAt, durationMin: m.durationMin,
         });
@@ -410,6 +411,9 @@ function GroupCell({ slot }: { slot: Slot }) {
             ? <Icon name="check" width={10} weight="bold" color="var(--green-edge)" />
             : <Icon name="users" width={10} weight="fill" color="var(--salmon-edge)" />}
       </span>
+      {g.avatar ? (
+        <GroupAvatar avatar={g.avatar} size={22} radius={8} />
+      ) : (
       <span className="flex shrink-0 items-center -space-x-2">
         {shown.map((m) => (
           <ClientAvatar
@@ -426,6 +430,7 @@ function GroupCell({ slot }: { slot: Slot }) {
           </span>
         )}
       </span>
+      )}
       <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
         <span className="tnum text-[13.5px] font-black leading-none">{slot.t}</span>
         <span className="block w-full break-words text-[9.5px] font-bold leading-[1.05]" style={{ color: st.labelColor }}>{st.label}</span>

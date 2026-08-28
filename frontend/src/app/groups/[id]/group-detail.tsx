@@ -4,18 +4,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { PageHead } from "@/components/blocks";
+import { ArrowGlyph, PageHead } from "@/components/blocks";
 import { ModuleSoon, findModule } from "@/components/pro-modules";
 import { ClientAvatar } from "@/components/client-avatar";
 import { useConfirmAsk } from "@/components/confirm-ask";
 import {
   AttendanceDonut,
   AttendanceForm,
+  AvatarPicker,
   ClientPicker,
   CycleBar,
   DateBadge,
   EDGE,
   Feed,
+  GroupAvatar,
   MemberStack,
   PresenceDots,
   MoodTrend,
@@ -30,7 +32,6 @@ import {
 import { Icon } from "@/components/icons";
 import { InviteShare } from "@/components/invite-share";
 import { Reveal } from "@/components/motion";
-import { Disclosure } from "@/components/ui";
 import {
   FORMAT_LABEL,
   KIND_LABEL,
@@ -43,6 +44,7 @@ import {
   cycle,
   deleteGroup,
   deleteMeeting,
+  editTask,
   getGroup,
   groupInviteToken,
   groupMoods,
@@ -67,14 +69,19 @@ import {
   type Group,
   type GroupMeeting,
   type GroupPatch,
+  type GroupTask,
   type MeetFormat,
 } from "@/lib/groups";
 import { tap } from "@/lib/haptics";
 import { inviteDeepLink } from "@/lib/invite";
+import { LINK_META, normalizeLinkUrl, type LinkKind } from "@/lib/profile";
+import { zoneFormat } from "@/lib/zone";
 
-type Tab = "meetings" | "feed" | "members" | "tasks";
+type Tab = "meetings" | "feed" | "members" | "tasks" | "info";
 
 const MOD = findModule("groups");
+
+const taskDate = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 // Карточку группы закрывает тот же флаг, что и раздел: иначе внутрь ведёт
 // прямая ссылка на конкретную группу. Обёртка отдельная, чтобы хуки самой
@@ -109,7 +116,6 @@ function GroupDetailInner() {
   const [markOpen, setMarkOpen] = useState(false);
   const [moving, setMoving] = useState<GroupMeeting | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
-  const [settings, setSettings] = useState(false);
 
   const group = useQuery({ queryKey: ["group", id], queryFn: () => getGroup(id), enabled: Number.isFinite(id) });
   const g = group.data;
@@ -148,6 +154,7 @@ function GroupDetailInner() {
     onSuccess: refresh,
   });
   const dropTask = useMutation({ mutationFn: (taskId: number) => removeTask(id, taskId), onSuccess: refresh });
+  const saveTask = useMutation({ mutationFn: (t: { taskId: number; text: string }) => editTask(id, t.taskId, t.text), onSuccess: refresh });
 
   const members = g ? activeMembers(g) : [];
   const meetings = g ? cycle(g) : [];
@@ -155,6 +162,7 @@ function GroupDetailInner() {
   const past = meetings.filter((m) => isOver(m)).reverse();
   const future = meetings.filter((m) => !isOver(m));
   const openTasks = g ? g.tasks.filter((t) => t.status === "open") : [];
+  const doneTasks = g ? g.tasks.filter((t) => t.status === "done") : [];
   const stats = g ? attendanceStats([g]) : null;
 
   return (
@@ -171,6 +179,17 @@ function GroupDetailInner() {
             <>
               {/* Сводка: всё, что нужно знать перед встречей, без прокрутки. */}
               <div className="overflow-hidden rounded-[19px] bg-white" style={{ border: `var(--bw) solid ${EDGE}` }}>
+                <div className="flex items-center gap-3 border-b px-4 py-3" style={{ borderColor: "var(--edge-neutral)" }}>
+                  <GroupAvatar avatar={g.avatar} size={40} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] font-black leading-tight">{g.title}</span>
+                    <span className="block text-[10.5px] font-bold text-[var(--muted-2)]">
+                      {KIND_LABEL[g.kind]}
+                      {g.price ? ` · ${g.price}` : ""}
+                    </span>
+                  </span>
+                </div>
+
                 <div className="flex items-center gap-3 p-4">
                   {next ? (
                     <DateBadge iso={next.startsAt} size={58} tone="edge" />
@@ -245,10 +264,16 @@ function GroupDetailInner() {
                 )}
               </div>
 
-              {g.about && (
+              {(g.about || g.rules) && (
                 <div className="mt-2.5 rounded-[17px] p-3.5" style={{ background: SOFT }}>
                   <p className="text-[11px] font-black uppercase tracking-[.06em]" style={{ color: EDGE }}>Для участников</p>
-                  <p className="mt-1 whitespace-pre-line text-[12.5px] font-semibold leading-snug">{g.about}</p>
+                  {g.about && <p className="mt-1 whitespace-pre-line text-[12.5px] font-semibold leading-snug">{g.about}</p>}
+                  {g.rules && (
+                    <>
+                      <p className="mt-2.5 text-[11px] font-black uppercase tracking-[.06em]" style={{ color: EDGE }}>Правила</p>
+                      <p className="mt-1 whitespace-pre-line text-[12.5px] font-semibold leading-snug">{g.rules}</p>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -261,6 +286,7 @@ function GroupDetailInner() {
                     { id: "feed", label: "Лента" },
                     { id: "members", label: "Состав", badge: members.length },
                     { id: "tasks", label: "Задания", badge: openTasks.length },
+                    { id: "info", label: "Общая информация" },
                   ]}
                 />
               </div>
@@ -388,67 +414,65 @@ function GroupDetailInner() {
               )}
 
               {tab === "tasks" && (
-                <>
-                  <p className="mb-2 mt-4 text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Задания группе</p>
-                  <TaskComposer onAdd={(text) => newTask.mutate(text)} busy={newTask.isPending} />
-                  {g.tasks.length ? (
-                    <div className="mt-2 flex flex-col gap-1.5">
-                      {g.tasks.map((t) => {
-                        const done = t.status === "done";
-                        return (
-                          <div key={t.id} className="flex items-start gap-2.5 rounded-[13px] bg-white p-2.5" style={{ border: "var(--bw) solid var(--edge-neutral)" }}>
-                            <button
-                              onClick={() => { tap(); flipTask.mutate({ taskId: t.id, status: done ? "open" : "done" }); }}
-                              className="ico mt-0.5 h-6 w-6 shrink-0 keep-style"
-                              style={{ background: done ? EDGE : "var(--surface-2)" }}
-                              aria-label={done ? "Вернуть в работу" : "Отметить выполненным"}
-                            >
-                              {done && <Icon name="check" width={12} weight="bold" color="#fff" />}
-                            </button>
-                            <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-snug" style={done ? { opacity: 0.5, textDecoration: "line-through" } : undefined}>
-                              {t.text}
-                            </span>
-                            <button
-                              onClick={() => ask({ title: "Удалить задание?", note: t.text, confirm: "Удалить", tone: "danger", run: () => dropTask.mutate(t.id) })}
-                              className="ico h-7 w-7 shrink-0 keep-style"
-                              style={{ background: "var(--surface-2)" }}
-                              aria-label="Удалить задание"
-                            >
-                              <Icon name="close" width={11} weight="bold" color="var(--muted)" />
-                            </button>
-                          </div>
-                        );
-                      })}
+                <div className="mt-4 space-y-4">
+                  {/* Тот же порядок, что в заданиях клиента: сверху отправка,
+                      ниже активные, историю показываем только когда она есть. */}
+                  <section className="card-soft p-3">
+                    <div className="card-plain p-3">
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="ico h-9 w-9 shrink-0 keep-style" style={{ background: SOFT }}>
+                          <Icon name="note" width={17} weight="bold" color={EDGE} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="t-head">Новое задание</p>
+                          <p className="t-cap">Уйдёт всем участникам разом и встанет в ленту</p>
+                        </div>
+                      </div>
+                      <TaskComposer onAdd={(text) => newTask.mutate(text)} busy={newTask.isPending} />
                     </div>
-                  ) : (
-                    <Empty icon="check" text="Заданий пока нет. Одно задание на всю группу — участники увидят его вместе с расписанием." />
+                  </section>
+
+                  <TaskSection
+                    title="Активные"
+                    items={openTasks}
+                    empty="Активных заданий нет. Одно задание на всю группу — участники увидят его вместе с расписанием."
+                    onToggle={(t) => flipTask.mutate({ taskId: t.id, status: "done" })}
+                    onSave={(taskId, text) => saveTask.mutate({ taskId, text })}
+                    onDelete={(t) => ask({ title: "Удалить задание?", note: t.text, confirm: "Удалить", tone: "danger", run: () => dropTask.mutate(t.id) })}
+                    busy={saveTask.isPending}
+                  />
+
+                  {doneTasks.length > 0 && (
+                    <TaskSection
+                      title="История"
+                      items={doneTasks}
+                      onToggle={(t) => flipTask.mutate({ taskId: t.id, status: "open" })}
+                      onSave={(taskId, text) => saveTask.mutate({ taskId, text })}
+                      onDelete={(t) => ask({ title: "Удалить задание?", note: t.text, confirm: "Удалить", tone: "danger", run: () => dropTask.mutate(t.id) })}
+                      busy={saveTask.isPending}
+                    />
                   )}
-                </>
+                </div>
               )}
 
-              {/* Настройки открываются редко — держим их свёрнутыми внизу. */}
-              <button
-                onClick={() => { tap(); setSettings((v) => !v); }}
-                aria-expanded={settings}
-                className="mt-6 inline-flex min-h-9 items-center gap-1.5 text-[12px] font-black"
-                style={{ color: "var(--muted)" }}
-              >
-                <Icon name="gear" width={14} weight="bold" color="var(--muted)" /> {settings ? "Свернуть" : "О группе и настройки"}
-              </button>
-              <Disclosure open={settings}>
-                <GroupSettings
-                  group={g}
-                  busy={save.isPending}
-                  onSave={(patch) => save.mutate(patch)}
-                  onDelete={() => ask({
-                    title: "Удалить группу?",
-                    note: `«${g.title}» исчезнет вместе с составом, расписанием и заданиями. Карточки клиентов останутся на месте.`,
-                    confirm: "Удалить",
-                    tone: "danger",
-                    run: () => drop.mutate(),
-                  })}
-                />
-              </Disclosure>
+              {tab === "info" && (
+                <div className="mt-4">
+                  <GroupInfo
+                    group={g}
+                    busy={save.isPending}
+                    onSave={(patch) => save.mutate(patch)}
+                    onPlan={() => setPlanning(true)}
+                    onDelete={() => ask({
+                      title: "Удалить группу?",
+                      note: `«${g.title}» исчезнет вместе с составом, расписанием и заданиями. Карточки клиентов останутся на месте.`,
+                      confirm: "Удалить",
+                      tone: "danger",
+                      run: () => drop.mutate(),
+                    })}
+                  />
+                </div>
+              )}
+
             </>
           )}
         </div>
@@ -536,24 +560,106 @@ function GroupInvite({ group }: { group: Group }) {
 function TaskComposer({ onAdd, busy }: { onAdd: (text: string) => void; busy?: boolean }) {
   const [text, setText] = useState("");
   return (
-    <div className="flex items-end gap-2">
+    <>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={2}
-        placeholder="Что сделать до следующей встречи"
-        className="tf min-h-[52px] flex-1 resize-none"
+        rows={3}
+        placeholder="Например: дневник тревоги — 3 записи до следующей встречи"
+        className="tf w-full resize-none"
         maxLength={2000}
       />
       <button
         onClick={() => { tap(); onAdd(text.trim()); setText(""); }}
         disabled={!text.trim() || busy}
-        className="ico h-11 w-11 shrink-0 keep-style disabled:opacity-45"
-        style={{ background: EDGE }}
-        aria-label="Добавить задание"
+        className="btn mt-2 w-full py-2 disabled:opacity-45"
       >
-        <Icon name="plus" width={19} weight="bold" color="#fff" />
+        Отправить <ArrowGlyph />
       </button>
+    </>
+  );
+}
+
+/** Секция заданий — та же раскладка, что у домашки в карточке клиента. */
+function TaskSection({
+  title,
+  items,
+  empty,
+  onToggle,
+  onSave,
+  onDelete,
+  busy,
+}: {
+  title: string;
+  items: GroupTask[];
+  empty?: string;
+  onToggle: (t: GroupTask) => void;
+  onSave: (taskId: number, text: string) => void;
+  onDelete: (t: GroupTask) => void;
+  busy?: boolean;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="t-head">{title}</h2>
+        <span className="chip keep-style" style={{ background: SOFT, color: EDGE }}>{items.length}</span>
+      </div>
+      <div className="space-y-2">
+        {items.length ? (
+          items.map((t) => <TaskRow key={t.id} task={t} onToggle={() => onToggle(t)} onSave={(text) => onSave(t.id, text)} onDelete={() => onDelete(t)} busy={busy} />)
+        ) : (
+          <div className="card-soft p-4"><p className="t-cap">{empty}</p></div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TaskRow({ task, onToggle, onSave, onDelete, busy }: { task: GroupTask; onToggle: () => void; onSave: (text: string) => void; onDelete: () => void; busy?: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(task.text);
+  const done = task.status === "done";
+
+  if (editing) {
+    return (
+      <div className="card p-3">
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} autoFocus className="tf w-full resize-none" maxLength={2000} />
+        <div className="mt-2 flex gap-2">
+          <button
+            disabled={!text.trim() || busy}
+            onClick={() => { tap(); onSave(text.trim()); setEditing(false); }}
+            className="btn flex-1 py-2 disabled:opacity-45"
+          >
+            Сохранить
+          </button>
+          <button onClick={() => { setEditing(false); setText(task.text); }} className="btn btn-white px-3 py-2">Отмена</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card p-3">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 h-9 w-1.5 shrink-0 rounded-full" style={{ background: EDGE }} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="t-head">Задание группе</p>
+            <span className="chip keep-style" style={{ background: SOFT, color: EDGE }}>{done ? "Выполнено" : "Активное"}</span>
+          </div>
+          <p className="t-body mt-1" style={done ? { opacity: 0.6 } : undefined}>{task.text}</p>
+          <p className="t-cap mt-2">{taskDate.format(new Date(task.createdAt))}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button onClick={() => { tap(); onToggle(); }} className="btn flex-1 py-2">
+          {done ? "Вернуть в работу" : "Отметить выполненным"}
+        </button>
+        <button onClick={() => { tap(); setEditing(true); }} className="btn btn-white px-3 py-2">Изменить</button>
+        <button onClick={() => { tap(); onDelete(); }} className="btn btn-white px-3 py-2" aria-label="Удалить задание">
+          <Icon name="close" width={12} weight="bold" color="var(--muted)" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -607,33 +713,42 @@ function MeetingRow({ group, meeting, onMark, onMove, onCancel }: { group: Group
   );
 }
 
-function GroupSettings({ group, onSave, onDelete, busy }: { group: Group; onSave: (patch: GroupPatch) => void; onDelete: () => void; busy?: boolean }) {
+/**
+ * Общая информация — всё, что описывает группу: как она выглядит, где и когда
+ * встречается, по каким правилам и за сколько. Раньше это пряталось под
+ * раскрытием «О группе и настройки» внизу карточки, и половину блоков никто не
+ * находил.
+ */
+function GroupInfo({ group, onSave, onPlan, onDelete, busy }: { group: Group; onSave: (patch: GroupPatch) => void; onPlan: () => void; onDelete: () => void; busy?: boolean }) {
   const [title, setTitle] = useState(group.title);
   const [capacity, setCapacity] = useState(group.capacity);
   const [format, setFormat] = useState<MeetFormat>(group.format);
   const [place, setPlace] = useState(group.place);
   const [about, setAbout] = useState(group.about);
+  const [rules, setRules] = useState(group.rules);
+  const [price, setPrice] = useState(group.price);
   const [note, setNote] = useState(group.note);
+  const [linkKind, setLinkKind] = useState<LinkKind>(() => linkKindOf(group.resourceUrl));
   const [url, setUrl] = useState(group.resourceUrl);
 
   const min = Math.max(2, activeMembers(group).length);
+  const rhythm = meetingRhythm(group);
+  const normalizedUrl = url.trim() ? (normalizeLinkUrl(linkKind, url.trim()) ?? url.trim()) : "";
   const dirty =
     title.trim() !== group.title ||
     capacity !== group.capacity ||
     format !== group.format ||
     place !== group.place ||
     about !== group.about ||
+    rules !== group.rules ||
+    price.trim() !== group.price ||
     note !== group.note ||
-    url !== group.resourceUrl;
+    normalizedUrl !== group.resourceUrl;
 
   return (
-    <div className="mt-2 flex flex-col gap-2.5">
-      <Block title="Общая информация">
-        <label className="block">
-          <Label>Название</Label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className="tf mt-1 w-full" maxLength={120} />
-        </label>
-
+    <div className="flex flex-col gap-2.5">
+      <Block title="Название">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className="tf w-full" maxLength={120} />
         {group.kind === "group" && (
           <div className="mt-3 flex items-center justify-between gap-3">
             <span className="min-w-0">
@@ -653,7 +768,46 @@ function GroupSettings({ group, onSave, onDelete, busy }: { group: Group; onSave
         )}
       </Block>
 
-      <Block title="Формат встреч">
+      {/* Миниатюра сохраняется сразу: выбор иконки — не текст, ждать кнопку
+          «Сохранить» после каждого тапа незачем. */}
+      <Block title="Миниатюра группы">
+        <AvatarPicker value={group.avatar} onChange={(v) => onSave({ avatar: v })} />
+      </Block>
+
+      <Block title="Описание для участников">
+        <textarea
+          value={about}
+          onChange={(e) => setAbout(e.target.value)}
+          rows={3}
+          placeholder="О чём группа, для кого она, что взять с собой"
+          className="tf w-full resize-none"
+          maxLength={4000}
+        />
+        <div className="mt-3">
+          <Label>Ссылка на внешний ресурс</Label>
+        </div>
+        <div className="mt-1 flex items-center gap-2">
+          <select
+            value={linkKind}
+            onChange={(e) => setLinkKind(e.target.value as LinkKind)}
+            className="shrink-0 rounded-[11px] bg-white px-2 py-2.5 text-[12px] font-black stroke outline-none"
+          >
+            {(Object.keys(LINK_META) as LinkKind[]).map((k) => <option key={k} value={k}>{LINK_META[k].label}</option>)}
+          </select>
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={linkKind === "site" ? "site.ru" : "@nickname"}
+            className="tf w-full"
+            maxLength={500}
+          />
+        </div>
+        <p className="mt-1.5 text-[10px] font-semibold leading-snug text-[var(--muted-2)]">
+          Для соцсетей достаточно ника через собаку, для сайта — адреса вида site.ru. «https://» дописывать не нужно.
+        </p>
+      </Block>
+
+      <Block title="Адрес или ссылка">
         <div className="grid grid-cols-2 gap-2">
           {(["offline", "online"] as MeetFormat[]).map((f) => (
             <button
@@ -678,19 +832,44 @@ function GroupSettings({ group, onSave, onDelete, busy }: { group: Group; onSave
         </label>
       </Block>
 
-      <Block title="Информация для участников">
+      <Block title="Правила">
         <textarea
-          value={about}
-          onChange={(e) => setAbout(e.target.value)}
-          rows={3}
-          placeholder="Правила круга, о чём группа, что взять с собой"
+          value={rules}
+          onChange={(e) => setRules(e.target.value)}
+          rows={4}
+          placeholder="Приходим вовремя. Говорим от себя. Всё, что звучит в кругу, остаётся в кругу."
           className="tf w-full resize-none"
           maxLength={4000}
         />
-        <label className="mt-3 block">
-          <Label>Внешний ресурс</Label>
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="сайт, канал или чат группы" className="tf mt-1 w-full" maxLength={500} />
-        </label>
+        <p className="mt-1.5 text-[10px] font-semibold leading-snug text-[var(--muted-2)]">Правила видят участники — при смене им уйдёт сообщение.</p>
+      </Block>
+
+      <Block title="Стоимость">
+        <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="2500 ₽ за встречу" className="tf w-full" maxLength={200} />
+      </Block>
+
+      <Block title="График встреч">
+        <div className="flex items-center gap-3">
+          <span className="ico h-10 w-10 shrink-0 keep-style" style={{ background: SOFT }}>
+            <Icon name="calendar" width={18} weight="bold" color={EDGE} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-black leading-tight">{rhythm.title}</span>
+            <span className="block text-[10.5px] font-bold text-[var(--muted-2)]">{rhythm.sub}</span>
+          </span>
+        </div>
+        <button onClick={() => { tap(); onPlan(); }} className="btn mt-3 w-full py-2.5">
+          {rhythm.planned ? "Добавить встречи" : "Составить график"}
+        </button>
+        <p className="mt-1.5 text-[10px] font-semibold leading-snug text-[var(--muted-2)]">
+          Время берётся из ваших свободных окон — встречи группы встают в расписание рядом с индивидуальными.
+        </p>
+      </Block>
+
+      <Block title="Напоминания участникам">
+        <Toggle on={group.remind24h} onChange={(v) => onSave({ remind24h: v })} label="За сутки до встречи" hint="приходит вечером накануне" />
+        <span className="block h-px" style={{ background: "var(--edge-neutral)" }} />
+        <Toggle on={group.remind2h} onChange={(v) => onSave({ remind2h: v })} label="За два часа" hint="чтобы успели выехать" />
       </Block>
 
       <Block title="Заметка ведущего">
@@ -704,14 +883,8 @@ function GroupSettings({ group, onSave, onDelete, busy }: { group: Group; onSave
         />
       </Block>
 
-      <Block title="Напоминания участникам">
-        <Toggle on={group.remind24h} onChange={(v) => onSave({ remind24h: v })} label="За сутки до встречи" hint="приходит вечером накануне" />
-        <span className="block h-px" style={{ background: "var(--edge-neutral)" }} />
-        <Toggle on={group.remind2h} onChange={(v) => onSave({ remind2h: v })} label="За два часа" hint="чтобы успели выехать" />
-      </Block>
-
       <button
-        onClick={() => { tap(); onSave({ title: title.trim(), capacity, format, place: place.trim(), about, note, resourceUrl: url.trim() }); }}
+        onClick={() => { tap(); onSave({ title: title.trim(), capacity, format, place: place.trim(), about, rules, price: price.trim(), note, resourceUrl: normalizedUrl }); }}
         disabled={!dirty || !title.trim() || busy}
         className="btn w-full py-3"
       >
@@ -722,6 +895,32 @@ function GroupSettings({ group, onSave, onDelete, busy }: { group: Group; onSave
       </button>
     </div>
   );
+}
+
+/** Тип ссылки по самому адресу — чтобы селектор открывался на том, что уже введено. */
+function linkKindOf(url: string): LinkKind {
+  const low = url.toLowerCase();
+  if (low.includes("t.me") || low.startsWith("@")) return "telegram";
+  if (low.includes("vk.com")) return "vk";
+  if (low.includes("youtube") || low.includes("youtu.be")) return "youtube";
+  if (low.includes("instagram")) return "instagram";
+  return "site";
+}
+
+/** Ритм цикла человеческим языком: «по вторникам в 19:00, впереди 4 из 8». */
+function meetingRhythm(group: Group): { title: string; sub: string; planned: boolean } {
+  const rows = cycle(group);
+  if (!rows.length) return { title: "График не составлен", sub: "Группа обычно ходит по одному дню недели — задайте цикл разом", planned: false };
+  const ahead = rows.filter((m) => !isOver(m));
+  const sample = ahead[0] ?? rows[rows.length - 1];
+  const at = new Date(sample.startsAt);
+  const day = ["воскресеньям", "понедельникам", "вторникам", "средам", "четвергам", "пятницам", "субботам"][at.getDay()];
+  const time = at.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return {
+    title: `По ${day} в ${time}`,
+    sub: ahead.length ? `впереди ${ahead.length} из ${rows.length} · ${sample.durationMin} мин` : `цикл из ${rows.length} встреч завершён`,
+    planned: true,
+  };
 }
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {

@@ -108,6 +108,12 @@ model Group {
   place          String   @default("")
   /// Внешний ресурс группы: сайт, канал, чат.
   resourceUrl    String   @default("")
+  /// Миниатюра группы: id готовой иконки (`ico:leaf`) или data-URL картинки.
+  avatar         String   @default("") @db.Text
+  /// Правила круга — участники видят их в общей информации.
+  rules          String   @default("") @db.Text
+  /// Стоимость участия свободным текстом: «2000 ₽ за встречу».
+  price          String   @default("")
   /// Напоминания участникам перед встречей.
   remind24h      Boolean  @default(true)
   remind2h       Boolean  @default(true)

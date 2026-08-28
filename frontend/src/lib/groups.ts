@@ -60,6 +60,12 @@ export type Group = {
   format: MeetFormat;
   place: string;
   resourceUrl: string;
+  /** Миниатюра: `ico:<id>` из готового набора или data-URL загруженной картинки. */
+  avatar: string;
+  /** Правила круга — их видят участники. */
+  rules: string;
+  /** Стоимость участия свободным текстом. */
+  price: string;
   remind24h: boolean;
   remind2h: boolean;
   status: "active" | "archived";
@@ -175,7 +181,7 @@ export const getGroup = (id: number) => apiFetch<Group>(`/groups/${id}`);
 export const createGroup = (input: { title: string; kind: GroupKind; capacity?: number }) =>
   apiFetch<Group>("/groups", { method: "POST", body: JSON.stringify(input) });
 
-export type GroupPatch = Partial<Pick<Group, "title" | "capacity" | "note" | "about" | "format" | "place" | "resourceUrl" | "remind24h" | "remind2h" | "status">>;
+export type GroupPatch = Partial<Pick<Group, "title" | "capacity" | "note" | "about" | "format" | "place" | "resourceUrl" | "avatar" | "rules" | "price" | "remind24h" | "remind2h" | "status">>;
 
 export const updateGroup = (id: number, patch: GroupPatch) =>
   apiFetch<Group>(`/groups/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
@@ -223,6 +229,10 @@ export const addTask = (id: number, input: { text: string; dueAt?: string | null
 
 export const toggleTask = (id: number, taskId: number, status: GroupTask["status"]) =>
   apiFetch<Group>(`/groups/${id}/tasks?taskId=${taskId}`, { method: "PATCH", body: JSON.stringify({ status }) });
+
+/** Правка текста задания — как у домашки клиента. */
+export const editTask = (id: number, taskId: number, text: string) =>
+  apiFetch<Group>(`/groups/${id}/tasks?taskId=${taskId}`, { method: "PATCH", body: JSON.stringify({ text }) });
 
 export const removeTask = (id: number, taskId: number) =>
   apiFetch<Group>(`/groups/${id}/tasks?taskId=${taskId}`, { method: "DELETE" });

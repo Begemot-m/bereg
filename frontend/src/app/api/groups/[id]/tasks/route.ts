@@ -15,7 +15,7 @@ const newTaskSchema = z.object({
   dueAt: z.string().datetime({ offset: true }).nullish(),
 });
 
-const patchSchema = z.object({ status: z.enum(["open", "done"]) });
+const patchSchema = z.object({ status: z.enum(["open", "done"]).optional(), text: z.string().trim().min(1).max(2000).optional() });
 
 async function owned(groupId: number, psychologistId: number) {
   const group = await prisma.group.findUnique({ where: { id: groupId } });
@@ -63,8 +63,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const taskId = Number(new URL(req.url).searchParams.get("taskId"));
-    const { status } = await parseBody(req, patchSchema);
-    await prisma.groupTask.updateMany({ where: { id: taskId, groupId: group.id }, data: { status } });
+    const patch = await parseBody(req, patchSchema);
+    await prisma.groupTask.updateMany({ where: { id: taskId, groupId: group.id }, data: patch });
     return NextResponse.json(await full(group.id));
   } catch (e) {
     if (e instanceof InvalidBody) return invalidBodyResponse(e);

@@ -25,6 +25,9 @@ const patchSchema = z.object({
   format: z.enum(["online", "offline"]).optional(),
   place: z.string().trim().max(300).optional(),
   resourceUrl: z.string().trim().max(500).optional(),
+  avatar: z.string().max(400_000).optional(),
+  rules: z.string().max(4000).optional(),
+  price: z.string().trim().max(200).optional(),
   remind24h: z.boolean().optional(),
   remind2h: z.boolean().optional(),
   status: z.enum(["active", "archived"]).optional(),
@@ -67,6 +70,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (patch.place !== undefined && patch.place !== group.place && patch.place) await announce(group.id, "event", `Место встреч: ${patch.place}`);
     if (patch.format !== undefined && patch.format !== group.format) await announce(group.id, "event", `Формат встреч: ${patch.format === "online" ? "онлайн" : "очно"}`);
     if (patch.about !== undefined && patch.about !== group.about) await announce(group.id, "event", "Ведущий обновил описание группы");
+    if (patch.rules !== undefined && patch.rules !== group.rules) await announce(group.id, "event", "Ведущий обновил правила группы");
+    if (patch.price !== undefined && patch.price !== group.price && patch.price) await announce(group.id, "event", `Стоимость участия: ${patch.price}`);
     return NextResponse.json(await prisma.group.findUnique({ where: { id: group.id }, include: MEMBERS_INCLUDE }));
   } catch (e) {
     if (e instanceof InvalidBody) return invalidBodyResponse(e);

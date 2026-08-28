@@ -4,11 +4,13 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ClientAvatar } from "@/components/client-avatar";
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
+import { SlotPicker } from "@/components/slot-picker";
 import { listClients } from "@/lib/clients";
 import { useQuery } from "@tanstack/react-query";
 import { activeMembers, cycle, isOver, marked, moodTrend, nextMeeting, trendDelta, type Group, type GroupMeeting, type GroupMood, type GroupPost } from "@/lib/groups";
 import { tap } from "@/lib/haptics";
+import { compressImage } from "@/lib/image";
 
 export const EDGE = "var(--salmon-edge)";
 export const SOFT = "var(--salmon-soft)";
@@ -250,29 +252,41 @@ export function AttendanceForm({ group, meeting, onSave, busy }: { group: Group;
 }
 
 /**
- * Планирование встреч. Одно и то же окно закрывает оба случая: разовая встреча
- * и цикл — группы почти всегда ходят по одному дню недели.
+ * Планирование встреч. Время выбирается ровно так же, как запись клиента в
+ * «Сессиях»: тот же календарь и те же свободные окна специалиста — группа
+ * встаёт в его расписание наравне с индивидуальной встречей. Дальше остаётся
+ * решить, сколько недель подряд группа ходит: цикл — обычное дело.
  */
 export function PlanForm({ onPlan, busy }: { onPlan: (input: { startsAt: string; durationMin: number; repeatWeeks: number }) => void; busy?: boolean }) {
-  const [date, setDate] = useState(() => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10));
-  const [time, setTime] = useState("19:00");
-  const [dur, setDur] = useState(90);
+  const [picked, setPicked] = useState<{ iso: string; dur: number } | null>(null);
   const [weeks, setWeeks] = useState(8);
 
-  const when = new Date(`${date}T${time}`);
+  if (!picked) {
+    return (
+      <>
+        <p className="mb-1.5 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Свободное окно</p>
+        <SlotPicker variant="calendar" showAvail onPick={(iso) => setPicked({ iso, dur: 90 })} />
+      </>
+    );
+  }
+
+  const when = new Date(picked.iso);
   const dayName = ["воскресеньям", "понедельникам", "вторникам", "средам", "четвергам", "пятницам", "субботам"][when.getDay()] ?? "";
+  const whenText = when.toLocaleString("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2">
-        <label className="block">
-          <span className="text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Дата</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="tf mt-1 w-full" />
-        </label>
-        <label className="block">
-          <span className="text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Время</span>
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="tf mt-1 w-full" />
-        </label>
+      <div className="flex items-center gap-2.5 rounded-[15px] p-3" style={{ background: SOFT }}>
+        <span className="ico h-10 w-10 shrink-0 keep-style" style={{ background: "#fff" }}>
+          <Icon name="calendar" width={18} weight="bold" color={EDGE} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-black leading-tight">{whenText}</span>
+          <span className="block text-[10.5px] font-bold text-[var(--muted)]">окно свободно в вашем расписании</span>
+        </span>
+        <button onClick={() => { tap(); setPicked(null); }} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-black" style={{ color: EDGE }}>
+          Изменить
+        </button>
       </div>
 
       <p className="mb-1 mt-3 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Длительность</p>
@@ -280,9 +294,9 @@ export function PlanForm({ onPlan, busy }: { onPlan: (input: { startsAt: string;
         {[50, 60, 90, 120].map((d) => (
           <button
             key={d}
-            onClick={() => { tap(); setDur(d); }}
+            onClick={() => { tap(); setPicked({ ...picked, dur: d }); }}
             className="rounded-[12px] py-2 text-[12px] font-black"
-            style={dur === d ? { background: EDGE, color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--edge-neutral)" }}
+            style={picked.dur === d ? { background: EDGE, color: "#fff" } : { background: "#fff", border: "var(--bw) solid var(--edge-neutral)" }}
           >
             {d} мин
           </button>
@@ -310,8 +324,8 @@ export function PlanForm({ onPlan, busy }: { onPlan: (input: { startsAt: string;
       </div>
 
       <button
-        onClick={() => { tap(); onPlan({ startsAt: when.toISOString(), durationMin: dur, repeatWeeks: weeks }); }}
-        disabled={busy || Number.isNaN(+when)}
+        onClick={() => { tap(); onPlan({ startsAt: picked.iso, durationMin: picked.dur, repeatWeeks: weeks }); }}
+        disabled={busy}
         className="btn mt-3 w-full py-3"
       >
         {weeks > 1 ? `Запланировать ${weeks} встреч` : "Запланировать встречу"}
@@ -325,24 +339,40 @@ export function PlanForm({ onPlan, busy }: { onPlan: (input: { startsAt: string;
  * скольким участникам об этом уйдёт сообщение.
  */
 export function MoveForm({ meeting, reach, onMove, busy }: { meeting: GroupMeeting; reach: number; onMove: (input: { startsAt: string; durationMin: number }) => void; busy?: boolean }) {
-  const at = new Date(meeting.startsAt);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const [date, setDate] = useState(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`);
-  const [time, setTime] = useState(`${pad(at.getHours())}:${pad(at.getMinutes())}`);
+  const [picked, setPicked] = useState<string | null>(null);
   const [dur, setDur] = useState(meeting.durationMin);
-  const when = new Date(`${date}T${time}`);
+
+  if (!picked) {
+    return (
+      <>
+        <p className="mb-1.5 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Куда переносим</p>
+        <SlotPicker
+          variant="calendar"
+          showAvail
+          bookedStart={meeting.startsAt}
+          bookedLabel="сейчас"
+          onPick={(iso) => setPicked(iso)}
+        />
+      </>
+    );
+  }
+
+  const when = new Date(picked);
+  const whenText = when.toLocaleString("ru-RU", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2">
-        <label className="block">
-          <span className="text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Дата</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="tf mt-1 w-full" />
-        </label>
-        <label className="block">
-          <span className="text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Время</span>
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="tf mt-1 w-full" />
-        </label>
+      <div className="flex items-center gap-2.5 rounded-[15px] p-3" style={{ background: SOFT }}>
+        <span className="ico h-10 w-10 shrink-0 keep-style" style={{ background: "#fff" }}>
+          <Icon name="calendar" width={18} weight="bold" color={EDGE} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-black leading-tight">{whenText}</span>
+          <span className="block text-[10.5px] font-bold text-[var(--muted)]">окно свободно в вашем расписании</span>
+        </span>
+        <button onClick={() => { tap(); setPicked(null); }} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-black" style={{ color: EDGE }}>
+          Изменить
+        </button>
       </div>
 
       <p className="mb-1 mt-3 text-[11px] font-black uppercase tracking-[.06em] text-[var(--muted)]">Длительность</p>
@@ -361,7 +391,7 @@ export function MoveForm({ meeting, reach, onMove, busy }: { meeting: GroupMeeti
 
       <Reach n={reach} what="Новое время уйдёт" />
 
-      <button onClick={() => { tap(); onMove({ startsAt: when.toISOString(), durationMin: dur }); }} disabled={busy || Number.isNaN(+when)} className="btn mt-3 w-full py-3">
+      <button onClick={() => { tap(); onMove({ startsAt: picked, durationMin: dur }); }} disabled={busy} className="btn mt-3 w-full py-3">
         Перенести встречу
       </button>
     </>
@@ -586,14 +616,16 @@ export function Toggle({ on, onChange, label, hint }: { on: boolean; onChange: (
 /** Вкладки карточки группы. */
 export function Tabs<T extends string>({ value, items, onChange }: { value: T; items: { id: T; label: string; badge?: number }[]; onChange: (v: T) => void }) {
   return (
-    <div className="flex gap-1 rounded-[14px] p-1" style={{ background: "var(--surface-2)" }}>
+    // Пять разделов в строку уже не помещаются: полоса едет вбок, как в
+    // остальных лентах приложения, а до четырёх — по-прежнему во всю ширину.
+    <div className={`no-scrollbar flex gap-1 rounded-[14px] p-1 ${items.length > 4 ? "overflow-x-auto" : ""}`} style={{ background: "var(--surface-2)" }}>
       {items.map((t) => {
         const on = t.id === value;
         return (
           <button
             key={t.id}
             onClick={() => { tap(); onChange(t.id); }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-black transition-colors"
+            className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[11px] py-2 text-[12.5px] font-black transition-colors ${items.length > 4 ? "shrink-0 px-3" : "flex-1"}`}
             style={on ? { background: "#fff", color: "var(--ink)" } : { color: "var(--muted)" }}
           >
             {t.label}
@@ -606,5 +638,83 @@ export function Tabs<T extends string>({ value, items, onChange }: { value: T; i
         );
       })}
     </div>
+  );
+}
+
+
+/**
+ * Миниатюра группы. Три состояния: готовая иконка из набора (`ico:<name>`),
+ * загруженная картинка (data-URL) и пусто — тогда рисуем людей, как раньше.
+ */
+export const AVATAR_ICONS: IconName[] = ["users", "heart", "spark", "clover", "waves", "balance", "compass", "star", "sun", "moon", "steps", "chalkboard"];
+
+export function GroupAvatar({ avatar, size = 44, radius }: { avatar: string; size?: number; radius?: number }) {
+  const r = radius ?? Math.round(size * 0.32);
+  if (avatar && !avatar.startsWith("ico:")) {
+    return <img src={avatar} alt="" className="keep-style shrink-0 object-cover" style={{ width: size, height: size, borderRadius: r, border: `var(--bw) solid ${EDGE}` }} />;
+  }
+  const name = (avatar.startsWith("ico:") ? avatar.slice(4) : "users") as IconName;
+  return (
+    <span className="keep-style flex shrink-0 items-center justify-center" style={{ width: size, height: size, borderRadius: r, background: SOFT, border: `var(--bw) solid ${EDGE}` }}>
+      <Icon name={name} width={Math.round(size * 0.46)} weight="bold" color={EDGE} />
+    </span>
+  );
+}
+
+/**
+ * Выбор миниатюры: готовые иконки под рукой, своя картинка — по кнопке.
+ * Загруженный кадр ужимается до 256 px, иначе он поедет в базу мегабайтом.
+ */
+export function AvatarPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [loading, setLoading] = useState(false);
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    setLoading(true);
+    try {
+      onChange(await compressImage(file, { maxSide: 256, targetBytes: 60_000 }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <GroupAvatar avatar={value} size={56} />
+        <span className="min-w-0 flex-1 text-[11px] font-semibold leading-snug text-[var(--muted)]">
+          Так группа выглядит в списке, в календаре и у участников.
+        </span>
+        {value && (
+          <button onClick={() => { tap(); onChange(""); }} className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+            Сбросить
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-6 gap-1.5">
+        {AVATAR_ICONS.map((name) => {
+          const id = `ico:${name}`;
+          const on = value === id;
+          return (
+            <button
+              key={name}
+              onClick={() => { tap(); onChange(id); }}
+              aria-label={name}
+              className="flex aspect-square items-center justify-center rounded-[12px]"
+              style={on ? { background: EDGE } : { background: "var(--surface-2)" }}
+            >
+              <Icon name={name} width={18} weight="bold" color={on ? "#fff" : "var(--muted)"} />
+            </button>
+          );
+        })}
+      </div>
+
+      <label className="mt-2 flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-[13px] text-[12px] font-black" style={{ background: SOFT, color: EDGE }}>
+        <Icon name="image" width={15} weight="bold" color={EDGE} />
+        {loading ? "Готовим картинку…" : "Загрузить свою картинку"}
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => void upload(e.target.files?.[0])} />
+      </label>
+    </>
   );
 }

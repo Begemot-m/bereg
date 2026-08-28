@@ -68,7 +68,7 @@ type MeetFormat = "online" | "offline";
 type GroupMeeting = { id: number; startsAt: string; durationMin: number; status: "planned" | "done" | "cancelled"; note: string; format?: MeetFormat | null; place?: string | null; attendance: { memberId: number; present: boolean }[] };
 type GroupTask = { id: number; text: string; dueAt: string | null; status: "open" | "done"; createdAt: string };
 type GroupPost = { id: number; kind: "post" | "event"; text: string; createdAt: string; reach: number };
-type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; about: string; format: MeetFormat; place: string; resourceUrl: string; remind24h: boolean; remind2h: boolean; status: "active" | "archived"; createdAt: string; members: GroupMember[]; meetings: GroupMeeting[]; tasks: GroupTask[]; posts: GroupPost[] };
+type Group = { id: number; title: string; kind: GroupKind; capacity: number; note: string; about: string; format: MeetFormat; place: string; resourceUrl: string; avatar: string; rules: string; price: string; remind24h: boolean; remind2h: boolean; status: "active" | "archived"; createdAt: string; members: GroupMember[]; meetings: GroupMeeting[]; tasks: GroupTask[]; posts: GroupPost[] };
 type Homework = { id: number; clientId: number; text: string; status: HwStatus; sentAt: string };
 type Mood = { date: string; mood: number; emotions?: string[] }; // 1..5 + отмеченные состояния
 type SessionReflection = { appointmentId: number; startsAt: string; status: string; therapistName: string; preparation: string; takeaway: string; feeling: number | null; updatedAt: string };
@@ -248,6 +248,9 @@ function seedGroups(clients: Client[], now: string): Group[] {
     format: "offline",
     place: "Малый Козихинский пер., 7, кабинет 3",
     resourceUrl: "",
+    avatar: "ico:clover",
+    rules: "Приходим вовремя. Говорим от себя, а не про других. Всё, что звучит в кругу, остаётся в кругу. Пропуск предупреждаем заранее — место за вами.",
+    price: "2500 ₽ за встречу",
     remind24h: true,
     remind2h: true,
     status: "active",
@@ -440,6 +443,7 @@ function load(): DB {
         if (!g.tasks) g.tasks = [];
         if (!g.posts) g.posts = [];
         if (g.about === undefined) { g.about = ""; g.format = "offline"; g.place = ""; g.resourceUrl = ""; g.remind24h = true; g.remind2h = true; }
+      if (g.avatar === undefined) { g.avatar = ""; g.rules = ""; g.price = ""; }
       }
       if (!db.myBookings) db.myBookings = s.myBookings;
       if (!db.moods) db.moods = s.moods;
@@ -1069,6 +1073,9 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         format: "offline",
         place: "",
         resourceUrl: "",
+        avatar: "",
+        rules: "",
+        price: "",
         remind24h: true,
         remind2h: true,
         createdAt: new Date().toISOString(),
@@ -1151,6 +1158,15 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
         if (g.place) announce(db, g, "event", `Место встреч: ${g.place}`);
       }
       if (body.resourceUrl !== undefined) g.resourceUrl = String(body.resourceUrl);
+      if (body.avatar !== undefined) g.avatar = String(body.avatar);
+      if (body.rules !== undefined && String(body.rules) !== g.rules) {
+        g.rules = String(body.rules);
+        announce(db, g, "event", "Ведущий обновил правила группы");
+      }
+      if (body.price !== undefined && String(body.price) !== g.price) {
+        g.price = String(body.price);
+        if (g.price) announce(db, g, "event", `Стоимость участия: ${g.price}`);
+      }
       if (body.remind24h !== undefined) g.remind24h = Boolean(body.remind24h);
       if (body.remind2h !== undefined) g.remind2h = Boolean(body.remind2h);
       if (body.status !== undefined) g.status = body.status as Group["status"];
@@ -1184,7 +1200,8 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     const task = g.tasks.find((t) => t.id === Number(q.get("taskId")));
     if (!task) throw new Error("API 404");
     if (method === "PATCH") {
-      task.status = body.status as GroupTask["status"];
+      if (body.status !== undefined) task.status = body.status as GroupTask["status"];
+      if (body.text !== undefined) task.text = String(body.text);
       save(db);
       return delay(withMemberPhotos(g) as T);
     }
