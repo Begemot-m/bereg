@@ -15,14 +15,15 @@ import { addDays, zoneDay, zoneFormat } from "@/lib/zone";
  */
 
 /**
- * Охват афиши. `week` — ближайшие семь дней от сегодняшнего, `next` — целиком
- * следующая календарная неделя (её просят, когда текущая уже забита или идёт
- * к концу), `month` — месяц вперёд.
+ * Охват афиши. `week` — ближайшие семь дней от дня отправки, `next` — целиком
+ * следующая календарная неделя: её просят, когда текущая уже забита или идёт к
+ * концу. Месяц убрали — на афише он не читался, а окна за три недели вперёд
+ * всё равно успевали разойтись.
  */
-export type Span = "week" | "next" | "month";
+export type Span = "week" | "next";
 
-const HORIZON: Record<Span, number> = { week: 7, next: 14, month: 30 };
-const MAX_DAYS: Record<Span, number> = { week: 5, next: 5, month: 8 };
+const HORIZON: Record<Span, number> = { week: 7, next: 14 };
+const MAX_DAYS: Record<Span, number> = { week: 5, next: 5 };
 const MAX_TIMES = 5;
 
 const dayF = zoneFormat({ weekday: "short", day: "numeric", month: "long" });
@@ -34,7 +35,7 @@ export type FreeDay = { ymd: string; label: string; times: string[]; more: numbe
 /** Ссылка на афишу окон: метку `win_<id>` разбирает StartRoute. */
 export const windowsInviteUrl = (psyId?: number | null) => botStartLink(`win_${psyId || OWN_PROFILE_ID}`);
 
-const SPAN_WORD: Record<Span, string> = { week: "на ближайшую неделю", next: "на следующую неделю", month: "на ближайший месяц" };
+const SPAN_WORD: Record<Span, string> = { week: "на ближайшую неделю", next: "на следующую неделю" };
 
 /**
  * Готовое сообщение клиенту: приветствие, свободные окна списком и просьба

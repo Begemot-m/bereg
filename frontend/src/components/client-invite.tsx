@@ -80,13 +80,14 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
   const cardLink = bookingInviteUrl(me?.id);
   const message = inviteMessage(psy?.name ?? "", days, span);
 
-  const savePoster = async () => {
+  const savePoster = async (type: "image/png" | "image/jpeg" = "image/png") => {
     if (!psy) return;
     tap();
     setSaving(true);
     try {
-      const png = await posterPng(psy, days, span, windowsLink);
-      if (png) { downloadPng(png, `okna-${span === "week" ? "nedelya" : "mesyac"}.png`); success(); }
+      const shot = await posterPng(psy, days, span, windowsLink, type);
+      const ext = type === "image/jpeg" ? "jpg" : "png";
+      if (shot) { downloadPng(shot, `raspisanie-${span === "week" ? "blizhayshie" : "sled-nedelya"}.${ext}`); success(); }
     } finally {
       setSaving(false);
     }
@@ -127,11 +128,11 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
             <>
               <button onClick={() => { tap(); setView("home"); }} className="t-cap relative font-black" style={{ color: "var(--tiffany-edge)" }}>← Назад</button>
               <h3 className="font-tight relative mt-1 pr-10 text-[19px] font-black leading-tight">
-                {view === "schedule" ? "Приглашение с расписанием" : "Расписание картинкой"}
+                {view === "schedule" ? "Пригласить клиента на запись" : "Расписание картинкой"}
               </h3>
               <p className="t-sub relative mt-1.5">
                 {view === "schedule"
-                  ? "Текст уже собран по вашему графику — остаётся отправить."
+                  ? "Направьте ссылку, чтобы пользователь записался на платформе."
                   : "Вертикальная афиша 1080×1920: под сторис и пересылку в чат."}
               </p>
             </>
@@ -177,9 +178,12 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
                 <p className="t-cap mt-2 break-all" style={{ color: "var(--tiffany-edge)" }}>{windowsLink}</p>
               </div>
               <InviteShare link={windowsLink} text={message} />
+              <button onClick={() => void savePoster("image/jpeg")} disabled={!psy || saving} className="btn btn-white w-full py-2.5 disabled:opacity-50">
+                <Icon name="image" width={15} weight="bold" color="var(--tiffany-edge)" /> {saving ? "Рисуем…" : "Скачать расписание картинкой"}
+              </button>
               <p className="t-cap">
                 {days.length
-                  ? "Окна берутся из вашего графика в момент отправки. Клиент выберет время прямо в приложении."
+                  ? "«Ближайшие» — отсчёт с дня отправки, семь дней вперёд. Окна берутся из графика в момент отправки, клиент выберет время прямо в приложении."
                   : "Свободных окон в графике пока нет — клиент откроет ссылку и увидит время, как только оно появится."}
               </p>
             </>
@@ -188,8 +192,8 @@ export function ClientInviteSheet({ onClose, start = "home" }: { onClose: () => 
           {view === "poster" && (
             <>
               {psy ? <WindowsPoster psy={psy} days={days} span={span} onSpan={setSpan} /> : <div className="card p-4"><p className="t-sub">Заполните имя в анкете, чтобы собрать афишу</p></div>}
-              <button onClick={() => void savePoster()} disabled={!psy || saving} className="btn w-full py-3 text-[14px] disabled:opacity-50">
-                <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : "Сохранить картинкой"}
+              <button onClick={() => void savePoster("image/jpeg")} disabled={!psy || saving} className="btn w-full py-3 text-[14px] disabled:opacity-50">
+                <Icon name="image" width={16} weight="bold" color="#fff" /> {saving ? "Рисуем…" : "Сохранить картинкой JPG"}
               </button>
               <InviteShare link={windowsLink} text={inviteMessage(psy?.name ?? "", days, span)} />
             </>
@@ -217,14 +221,14 @@ function Choice({ icon, title, sub, onClick }: { icon: IconName; title: string; 
 function SpanSwitch({ span, onSpan }: { span: Span; onSpan: (span: Span) => void }) {
   return (
     <div className="flex gap-1.5">
-      {(["week", "next", "month"] as Span[]).map((value) => (
+      {(["week", "next"] as Span[]).map((value) => (
         <button
           key={value}
           onClick={() => { select(); onSpan(value); }}
           className={`flex-1 rounded-full py-2 text-[12px] font-black ${span === value ? "text-white" : ""}`}
           style={span === value ? { background: "var(--tiffany-edge)" } : { background: "var(--head-soft)", color: "var(--tiffany-edge)" }}
         >
-          {value === "week" ? "На неделю" : value === "next" ? "Следующая" : "На месяц"}
+          {value === "week" ? "Ближайшие" : "Следующая неделя"}
         </button>
       ))}
     </div>

@@ -33,7 +33,7 @@ export type PosterPsy = {
 
 const isInlineImage = (src: string) => /^(data:|blob:)/i.test(src);
 
-const SPAN_LABEL: Record<Span, string> = { week: "на неделю", next: "на следующую неделю", month: "на месяц" };
+const SPAN_LABEL: Record<Span, string> = { week: "на неделю", next: "на следующую неделю" };
 
 const yearsWord = (n: number) => {
   const last = n % 100 > 10 && n % 100 < 20 ? 0 : n % 10;
@@ -79,14 +79,14 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
 
       {onSpan && (
         <div className="mt-3 flex gap-1.5">
-          {(["week", "month"] as Span[]).map((value) => (
+          {(["week", "next"] as Span[]).map((value) => (
             <button
               key={value}
               onClick={() => { select(); onSpan(value); }}
               className={`flex-1 rounded-full py-1.5 text-[11.5px] font-black ${span === value ? "text-white" : ""}`}
               style={span === value ? { background: "var(--tiffany-edge)" } : { background: "#fff", color: "var(--tiffany-edge)" }}
             >
-              {value === "week" ? "Неделя" : "Месяц"}
+              {value === "week" ? "Ближайшие" : "Следующая неделя"}
             </button>
           ))}
         </div>
@@ -152,8 +152,11 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-/** Рисует афишу 1080×1920 и отдаёт её как data-URL. */
-export async function posterPng(psy: PosterPsy, days: FreeDay[], span: Span, link: string): Promise<string | null> {
+/**
+ * Рисует афишу 1080×1920 и отдаёт её как data-URL. JPEG нужен для пересылки:
+ * он весит втрое меньше PNG, а фон афиши сплошной — терять на нём нечего.
+ */
+export async function posterPng(psy: PosterPsy, days: FreeDay[], span: Span, link: string, type: "image/png" | "image/jpeg" = "image/png"): Promise<string | null> {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -275,7 +278,7 @@ export async function posterPng(psy: PosterPsy, days: FreeDay[], span: Span, lin
   ctx.fillText(`Онлайн-запись в «${APP_NAME}»`, W / 2, footerTop + 196);
   ctx.textAlign = "left";
 
-  return canvas.toDataURL("image/png");
+  return type === "image/jpeg" ? canvas.toDataURL(type, 0.92) : canvas.toDataURL(type);
 }
 
 /** Обрезает строку многоточием, чтобы она влезла в отведённую ширину. */
