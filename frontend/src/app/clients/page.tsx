@@ -10,15 +10,15 @@ import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
 import { PageHead } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
-import { ContactPicker } from "@/components/contact-picker";
 import { CLIENTS_HELP, HelpDeck } from "@/components/help-deck";
 import { InviteShare } from "@/components/invite-share";
+import { bookingInviteUrl } from "@/components/session-invite";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonCards } from "@/components/ui";
 import { chatLink, createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
-import { getPsyInviteToken, inviteDeepLink } from "@/lib/invite";
+import { useMe } from "@/lib/me";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
 
@@ -457,20 +457,12 @@ function plural(n: number) {
   return "";
 }
 
-// Три способа завести клиента, и порядок здесь — по частоте, а не по «важности
-// данных». Обычное дело — просто добавить человека, с которым уже работаешь:
-// контакт из Telegram даёт лицо, имя и ник, и ничего ни от кого не требует.
-// Приглашение ссылкой — второй шаг, для тех, кому нужна общая карточка с
-// настроением и заданиями; его же можно отправить позже из самой карточки.
-// Ручной ввод остаётся для тех, кого в Telegram нет.
+// Два действия, оба на виду: завести карточку руками или отправить ссылку на
+// свою страницу. Ссылка ведёт не на экран «вас приглашают», а сразу в анкету
+// специалиста с окнами записи — там человек и подключается.
 function AddClientMenu({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: () => void }) {
-  const [manual, setManual] = useState(false);
-  const [byLink, setByLink] = useState(false);
-  useEffect(() => { if (!open) { setManual(false); setByLink(false); } }, [open]);
-
-  // Ссылка одна на всех клиентов, поэтому и запрос один — на весь сеанс.
-  const { data: invite } = useQuery({ queryKey: ["psy-invite"], queryFn: getPsyInviteToken, staleTime: Infinity, enabled: open, retry: false });
-  const link = invite ? inviteDeepLink("psy", invite.token) : "";
+  const { data: me } = useMe();
+  const link = bookingInviteUrl(me?.id);
 
   const fullName = [first, last].filter(Boolean).join(" ");
   const setFullName = (value: string) => {
@@ -482,34 +474,18 @@ function AddClientMenu({ open, first, last, contact, setFirst, setLast, setConta
   return (
     <Disclosure open={open} autoScroll={false}>
       <div className="card mb-4 space-y-2.5 p-3.5">
-        <ContactPicker />
+        {/* Поля сразу открыты: карточка заводится, пока человек не забыл имя. */}
+        <form onSubmit={(e) => { e.preventDefault(); onCreate(); }} className="space-y-2">
+          <Input className="[caret-color:var(--ink)]" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Имя и фамилия" enterKeyHint="next" autoComplete="off" />
+          <Input className="[caret-color:var(--ink)]" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Телефон или Telegram" enterKeyHint="done" autoComplete="off" />
+          <button type="submit" disabled={pending || !first.trim()} className="btn w-full py-2.5 disabled:opacity-50">
+            <Icon name="plus" width={15} weight="bold" color="#fff" /> Завести карточку
+          </button>
+        </form>
 
         <div className="card-plain p-3">
-          <button onClick={() => { tap(); setByLink((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={byLink}>
-            <span className="ico h-8 w-8 shrink-0"><Icon name="link" width={15} weight="bold" color="var(--edge)" /></span>
-            <span className="min-w-0 flex-1 text-[13px] font-black leading-none">Пригласить ссылкой</span>
-            <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{byLink ? "↑" : "↓"}</span>
-          </button>
-          <Disclosure open={byLink} autoScroll={false}>
-            <div className="mt-2.5"><InviteShare link={link} /></div>
-          </Disclosure>
-        </div>
-
-        <div className="card-plain p-3">
-          <button onClick={() => { tap(); setManual((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={manual}>
-            <span className="ico h-8 w-8 shrink-0"><Icon name="user" width={15} weight="bold" color="var(--edge)" /></span>
-            <span className="min-w-0 flex-1 text-[13px] font-black leading-none">Ручной ввод</span>
-            <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{manual ? "↑" : "↓"}</span>
-          </button>
-          <Disclosure open={manual} autoScroll={false}>
-            <form onSubmit={(e) => { e.preventDefault(); onCreate(); }} className="mt-2.5 space-y-2">
-              <Input className="[caret-color:var(--ink)]" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Имя и фамилия" enterKeyHint="next" />
-              <Input className="[caret-color:var(--ink)]" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Телефон или Telegram" enterKeyHint="done" />
-              <button type="submit" disabled={pending || !first.trim()} className="btn w-full py-2.5">
-                <Icon name="plus" width={15} weight="bold" color="#fff" /> Создать карточку
-              </button>
-            </form>
-          </Disclosure>
+          <p className="text-[13px] font-black leading-none">Ссылка на вашу страницу</p>
+          <div className="mt-2.5"><InviteShare link={link} /></div>
         </div>
       </div>
     </Disclosure>
