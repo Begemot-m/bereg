@@ -111,10 +111,10 @@ function CatalogCardLink({ profile, onFill }: { profile: PsyProfile | null; onFi
   return (
     <button
       onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
-      className="inline-flex items-center gap-1 text-[12px] font-bold"
-      style={{ color: started ? "var(--edge)" : "var(--muted)" }}
+      className="btn btn-white h-auto gap-1 px-2.5 py-1.5 text-[11.5px]"
+      style={{ color: started ? "var(--ink)" : "var(--muted)" }}
     >
-      <Icon name={started ? "compass" : "edit"} width={12} weight="bold" color="currentColor" />
+      <Icon name={started ? "compass" : "edit"} width={13} weight="bold" color="var(--edge)" />
       {started ? "Моя анкета в каталоге" : "Анкета не заполнена — заполнить"}
     </button>
   );
@@ -140,7 +140,7 @@ function ShareProfileClip() {
       title="Скопировать ссылку на анкету"
       aria-label="Скопировать ссылку на анкету"
       className="inline-flex items-center gap-1 text-[12px] font-bold"
-      style={{ color: copied ? "var(--green-edge)" : "var(--muted)" }}
+      style={{ color: copied ? "var(--green-edge)" : "var(--tiffany-edge)" }}
     >
       <Icon name={copied ? "check" : "paperclip"} width={12} weight="bold" color="currentColor" />
       {copied ? "Скопировано" : "Ссылка"}
