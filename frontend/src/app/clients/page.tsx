@@ -3,20 +3,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDeferredValue, useEffect, useState } from "react";
 
 import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
 import { PageHead } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
-import { ContactPickNote, useContactPick } from "@/components/contact-picker";
+import { ContactPicker } from "@/components/contact-picker";
 import { CLIENTS_HELP, HelpDeck } from "@/components/help-deck";
+import { InviteShare } from "@/components/invite-share";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
-import { Input, SkeletonCards } from "@/components/ui";
-import { addClientByUsername, chatLink, createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
+import { Disclosure, Input, SkeletonCards } from "@/components/ui";
+import { chatLink, createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
+import { getPsyInviteToken, inviteDeepLink } from "@/lib/invite";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
 
@@ -82,10 +84,13 @@ export default function ClientsPage() {
 
 function ClientsList() {
   const qc = useQueryClient();
+  const router = useRouter();
   const [filter, setFilter] = useState<ClientStatus | "all">("all");
   const [search, setSearch] = useState("");
-  const field = useRef<HTMLInputElement>(null);
-  const pick = useContactPick();
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
+  const [contact, setContact] = useState("");
+  const [open, setOpen] = useState(false);
   const [help, setHelp] = useState(false);
   const [firstVisit, setFirstVisit] = useState(false);
 
@@ -93,11 +98,11 @@ function ClientsList() {
     setFirstVisit(window.localStorage.getItem(CLIENTS_HELP_KEY) !== "1");
   }, []);
 
-  // Прочитал до конца — ставим курсор в поле: следующий шаг ровно там.
-  const closeFirstVisit = (focusField: boolean) => {
+  // Прочитал до конца — сразу открываем меню плюсика: следующий шаг ровно там.
+  const closeFirstVisit = (openMenu: boolean) => {
     window.localStorage.setItem(CLIENTS_HELP_KEY, "1");
     setFirstVisit(false);
-    if (focusField) setTimeout(() => field.current?.focus(), 60);
+    if (openMenu) setOpen(true);
   };
 
   const { data: clients = [], isLoading, isError, refetch } = useQuery({
@@ -110,26 +115,15 @@ function ClientsList() {
   const { data: sub } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
   const pro = isPro(sub);
   const atCap = !pro && clients.length >= FREE_CLIENT_LIMIT;
-  // Одно поле на поиск и на добавление. Ник — карточка с именем и фото из
-  // Telegram, всё остальное — карточка по имени. Ни фамилии, ни телефона при
-  // заведении не спрашиваем: контакт дописывается в самой карточке.
-  const typed = search.trim().replace(/\s+/g, " ");
-  const isNick = /^@[A-Za-z0-9_]{3,32}$/.test(typed);
   const add = useMutation({
-    mutationFn: (value: string) => (value.startsWith("@") ? addClientByUsername(value) : createClient(value, "")),
-    onSuccess: () => {
+    mutationFn: () => createClient(`${first.trim()} ${last.trim()}`.trim(), contact.trim()),
+    onSuccess: (c) => {
       success();
-      setSearch("");
-      field.current?.focus();
+      setFirst(""); setLast(""); setOpen(false);
       qc.invalidateQueries({ queryKey: ["clients"] });
+      router.push(`/clients/?id=${c.id}`);
     },
   });
-  const submit = () => {
-    if (!typed || add.isPending) return;
-    if (atCap) { setPaywall(true); return; }
-    tap();
-    add.mutate(typed);
-  };
 
   // Фильтрация — отложенным значением: набор в поле не ждёт перерисовки списка.
   const q = useDeferredValue(search).trim().toLowerCase();
@@ -174,51 +168,41 @@ function ClientsList() {
       <div className="sheet">
       <Reveal delay={0.04}>
         <div className="mb-3 flex items-center gap-2">
-          <div className="relative flex-1" data-tour="add-client">
+          <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)]">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <circle cx="11" cy="11" r="6.5" /><path d="m20 20-3.8-3.8" />
               </svg>
             </span>
-            <Input
-              inputRef={field}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
-              placeholder="Найти или добавить"
-              enterKeyHint="done"
-              className="!pl-9"
-            />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по имени" className="!pl-9" />
           </div>
           <motion.button
-            onClick={() => { tap(); if (atCap) { setPaywall(true); return; } pick.start(); }}
+            onClick={() => { tap(); if (atCap) { setPaywall(true); return; } setOpen((v) => !v); }}
             whileTap={{ scale: 0.85 }}
             whileHover={{ scale: 1.06 }}
+            animate={{ rotate: open ? 45 : 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 14 }}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]"
-            style={{ background: "var(--edge)" }}
-            aria-label="Добавить из контактов Telegram"
+            style={{ background: open ? "var(--ink)" : "var(--edge)" }}
+            data-tour="add-client"
+            aria-label="Добавить клиента"
+            aria-expanded={open}
           >
-            <Icon name="telegram" width={20} weight="fill" color="#fff" />
+            <Icon name="plus" width={22} weight="bold" color="#fff" />
           </motion.button>
         </div>
 
-        {/* Набранное имя — сразу карточка. Ник Telegram отличаем по «собаке»:
-            по нему сервер подтянет имя и аватарку. */}
-        {typed && (
-          <button
-            onClick={submit}
-            disabled={add.isPending}
-            className="card-plain mb-3 flex w-full items-center gap-2 p-3 text-left disabled:opacity-50"
-          >
-            <span className="ico h-8 w-8 shrink-0"><Icon name={isNick ? "telegram" : "plus"} width={15} weight="bold" color="var(--edge)" /></span>
-            <span className="min-w-0 flex-1 truncate text-[13px] font-black leading-none">
-              {add.isPending ? "Заводим карточку…" : `Добавить ${typed}`}
-            </span>
-          </button>
-        )}
-        {add.isError && <p className="mb-3 text-[11.5px] font-bold" style={{ color: "var(--salmon-edge)" }}>Не получилось завести карточку. Попробуйте ещё раз.</p>}
-        <ContactPickNote waiting={pick.waiting} failed={pick.failed} />
+        <AddClientMenu
+          open={open}
+          first={first}
+          last={last}
+          setFirst={setFirst}
+          setLast={setLast}
+          contact={contact}
+          setContact={setContact}
+          pending={add.isPending}
+          onCreate={() => { if (!first.trim()) return; add.mutate(); }}
+        />
 
         <ModulesTeaser />
 
@@ -267,8 +251,11 @@ function ClientsList() {
         // упирался в это и уходил. Теперь тут прямое предложение первого шага.
         <div className="card-soft p-5 text-center">
           <p className="t-head">Здесь появятся ваши клиенты</p>
-          <p className="t-sub mx-auto mt-1 max-w-[320px]">Имя в поле выше — и карточка готова.</p>
-          <button onClick={() => { tap(); field.current?.focus(); }} className="btn mt-4">Добавить клиента</button>
+          <p className="t-sub mx-auto mt-1 max-w-[320px]">
+            Пришлите человеку ссылку — он подключится сам, и вы увидите его записи, настроение и задания.
+            Или заведите карточку вручную и ведите её без приглашения.
+          </p>
+          <button onClick={() => { tap(); setOpen(true); }} className="btn mt-4">Пригласить клиента</button>
         </div>
       ) : list.length === 0 ? (
         <p className="t-sub px-1">{search ? "Никого не нашли по этому имени." : "Нет клиентов в этом фильтре."}</p>
@@ -468,5 +455,64 @@ function plural(n: number) {
   if (d === 1 && dd !== 11) return "а";
   if (d >= 2 && d <= 4 && (dd < 10 || dd >= 20)) return "и";
   return "";
+}
+
+// Три способа завести клиента, и порядок здесь — по частоте, а не по «важности
+// данных». Обычное дело — просто добавить человека, с которым уже работаешь:
+// контакт из Telegram даёт лицо, имя и ник, и ничего ни от кого не требует.
+// Приглашение ссылкой — второй шаг, для тех, кому нужна общая карточка с
+// настроением и заданиями; его же можно отправить позже из самой карточки.
+// Ручной ввод остаётся для тех, кого в Telegram нет.
+function AddClientMenu({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: () => void }) {
+  const [manual, setManual] = useState(false);
+  const [byLink, setByLink] = useState(false);
+  useEffect(() => { if (!open) { setManual(false); setByLink(false); } }, [open]);
+
+  // Ссылка одна на всех клиентов, поэтому и запрос один — на весь сеанс.
+  const { data: invite } = useQuery({ queryKey: ["psy-invite"], queryFn: getPsyInviteToken, staleTime: Infinity, enabled: open, retry: false });
+  const link = invite ? inviteDeepLink("psy", invite.token) : "";
+
+  const fullName = [first, last].filter(Boolean).join(" ");
+  const setFullName = (value: string) => {
+    const [nextFirst = "", ...rest] = value.split(/\s+/);
+    setFirst(nextFirst);
+    setLast(rest.join(" "));
+  };
+
+  return (
+    <Disclosure open={open} autoScroll={false}>
+      <div className="card mb-4 space-y-2.5 p-3.5">
+        <ContactPicker />
+
+        <div className="card-plain p-3">
+          <button onClick={() => { tap(); setByLink((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={byLink}>
+            <span className="ico h-8 w-8 shrink-0"><Icon name="link" width={15} weight="bold" color="var(--edge)" /></span>
+            <span className="min-w-0 flex-1 text-[13px] font-black leading-none">Пригласить ссылкой</span>
+            <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{byLink ? "↑" : "↓"}</span>
+          </button>
+          <Disclosure open={byLink} autoScroll={false}>
+            <div className="mt-2.5"><InviteShare link={link} /></div>
+          </Disclosure>
+        </div>
+
+        <div className="card-plain p-3">
+          <button onClick={() => { tap(); setManual((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={manual}>
+            <span className="ico h-8 w-8 shrink-0"><Icon name="user" width={15} weight="bold" color="var(--edge)" /></span>
+            <span className="min-w-0 flex-1 text-[13px] font-black leading-none">Ручной ввод</span>
+            <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{manual ? "↑" : "↓"}</span>
+          </button>
+          <Disclosure open={manual} autoScroll={false}>
+            <form onSubmit={(e) => { e.preventDefault(); onCreate(); }} className="mt-2.5 space-y-2">
+              <Input className="[caret-color:var(--ink)]" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Имя и фамилия" enterKeyHint="next" />
+              <Input className="[caret-color:var(--ink)]" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Телефон или Telegram" enterKeyHint="done" />
+              <button type="submit" disabled={pending || !first.trim()} className="btn w-full py-2.5">
+                <Icon name="plus" width={15} weight="bold" color="#fff" /> Создать карточку
+              </button>
+            </form>
+          </Disclosure>
+        </div>
+      </div>
+    </Disclosure>
+  );
 }
 

@@ -69,10 +69,6 @@ export const getClient = (id: number) => apiFetch<Client>(`/clients/${id}`);
 export const createClient = (name: string, contact: string) =>
   apiFetch<Client>("/clients", { method: "POST", body: JSON.stringify({ name, contact }) });
 
-/** Карточка по нику в Telegram: имя и аватарку подтягивает сервер. */
-export const addClientByUsername = (username: string) =>
-  apiFetch<Client>("/clients/contacts", { method: "POST", body: JSON.stringify({ username: username.replace(/^@/, "") }) });
-
 /** Просит бота прислать в чат нативный выбор контактов. */
 export const requestContactPick = () =>
   apiFetch<{ ok: boolean }>("/clients/pick", { method: "POST", body: "{}" });

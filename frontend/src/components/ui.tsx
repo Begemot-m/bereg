@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type MouseEvent, type ReactNode, type Ref, type TextareaHTMLAttributes } from "react";
+import { useEffect, useRef, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type MouseEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
 
 import { ArrowGlyph } from "@/components/blocks";
 import { tap } from "@/lib/haptics";
@@ -39,11 +39,10 @@ function centerOnFocus(el: HTMLElement) {
   setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
 }
 
-export function Input({ inputRef, ...props }: InputHTMLAttributes<HTMLInputElement> & { inputRef?: Ref<HTMLInputElement> }) {
+export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      ref={inputRef}
       onFocus={(e) => { centerOnFocus(e.currentTarget); props.onFocus?.(e); }}
       className={`w-full bg-white px-3.5 py-2.5 text-sm font-semibold text-[var(--ink)] outline-none placeholder:font-normal placeholder:text-[var(--muted-2)] ${props.className ?? ""}`}
       style={{ border: "var(--bw) solid var(--stroke)", borderRadius: "var(--r-sm)", scrollMarginBlock: "96px", ...(props.style ?? {}) }}
