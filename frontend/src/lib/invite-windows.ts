@@ -24,9 +24,11 @@ import { addDays, zoneDay, zoneFormat } from "@/lib/zone";
 export type Span = "week" | "next";
 
 const HORIZON: Record<Span, number> = { week: 7, next: 14 };
-// Три дня — и в тексте, и на афише. Длинный список никто не дочитывает, а всё
-// расписание целиком человек всё равно смотрит на странице специалиста.
-const MAX_DAYS: Record<Span, number> = { week: 3, next: 3 };
+// Считаем всю неделю: столько дней с окнами и показывает афиша. В тексте
+// сообщения из них остаются первые три — длинный список в переписке никто не
+// дочитывает, а всё расписание человек смотрит на странице специалиста.
+const MAX_DAYS = 7;
+export const TEXT_DAYS = 3;
 
 const dayF = zoneFormat({ weekday: "short", day: "numeric", month: "long" });
 const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
@@ -54,7 +56,7 @@ export function inviteMessage(name: string, days: FreeDay[], span: Span): string
   if (!days.length) {
     return `${hi}\n\n🗓 Ближайшие свободные окна для записи на сессии появятся в расписании.\n${call}`;
   }
-  const lines = days.map((d) => `• ${d.label} — ${d.times.join(", ")}`);
+  const lines = days.slice(0, TEXT_DAYS).map((d) => `• ${d.label} — ${d.times.join(", ")}`);
   return [
     hi,
     "",
@@ -80,7 +82,7 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
   const days = Object.keys(avail ?? {})
     .filter((d) => d >= from && d <= until && avail?.[d] === "free")
     .sort()
-    .slice(0, MAX_DAYS[span]);
+    .slice(0, MAX_DAYS);
 
   const slots = useQueries({
     queries: days.map((d) => ({ queryKey: ["slots", d, psyId ?? null], queryFn: () => getSlots(d, psyId) })),

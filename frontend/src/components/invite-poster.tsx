@@ -238,53 +238,91 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
   if (sub) ctx.fillText(fit(ctx, sub, textW), tx, py + 202);
 
-  // Дни с окнами. Времена переносятся на следующую строку, а карточка растёт
-  // под них: день на афише показывается целиком, без «+3» в углу.
+  // Дни с окнами. День занимает одну строку: слева дата, справа времена — так
+  // на афишу помещается вся неделя, а не три дня. Если времена одного дня не
+  // влезают, лишние сворачиваются в чип «+N»: неделя целиком важнее.
   let y = headTop + headH + 44;
   const cardW = W - PAD * 2;
   const footerH = 180;
   const footerTop = H - PAD - footerH;
+  const bottom = footerTop - 24;
   const chipH = 48;
   const gap = 12;
-  const innerW = cardW - 72;
-  for (const day of days) {
-    ctx.font = head(800, 30);
-    const rows: { time: string; w: number }[][] = [];
-    let row: { time: string; w: number }[] = [];
+  const padIn = 24;
+  const labelW = 300;
+  const chipsX = PAD + 36 + labelW;
+  const chipsW = cardW - 72 - labelW;
+
+  ctx.font = head(800, 30);
+  const chipW = (text: string) => ctx.measureText(text).width + 44;
+
+  /** Времена дня, разложенные по строкам, не длиннее maxRows. */
+  const layoutDay = (times: string[], maxRows: number) => {
+    const rows: { text: string; w: number }[][] = [];
+    let row: { text: string; w: number }[] = [];
     let rowW = 0;
-    for (const time of day.times) {
-      const w = ctx.measureText(time).width + 44;
-      if (row.length && rowW + w > innerW) { rows.push(row); row = []; rowW = 0; }
-      row.push({ time, w });
+    let i = 0;
+    for (; i < times.length; i++) {
+      const w = chipW(times[i]);
+      if (row.length && rowW + w > chipsW) {
+        if (rows.length + 1 >= maxRows) break;
+        rows.push(row); row = []; rowW = 0;
+      }
+      row.push({ text: times[i], w });
       rowW += w + gap;
     }
+    const hidden = times.length - i;
+    if (hidden > 0) {
+      const tag = { text: `+${hidden}`, w: chipW(`+${hidden}`) };
+      while (row.length && rowW + tag.w > chipsW) { rowW -= (row.pop()?.w ?? 0) + gap; }
+      row.push(tag);
+    }
     if (row.length) rows.push(row);
+    return rows;
+  };
 
-    const cardH = 84 + rows.length * chipH + (rows.length - 1) * gap + 24;
-    if (y + cardH > footerTop - 24) break;
+  const cardHeight = (rows: number) => padIn * 2 + rows * chipH + (rows - 1) * gap;
+
+  // Раскладка на всю неделю: начинаем с трёх строк на день и ужимаем самый
+  // высокий день, пока афиша не влезет. Ужимается тот, у кого окон больше
+  // всех, а не все подряд — у остальных времена остаются на виду.
+  const plan = days.map((d) => layoutDay(d.times, 3));
+  const total = () => plan.reduce((sum, rows) => sum + cardHeight(rows.length) + 16, 0);
+  while (y + total() > bottom) {
+    let idx = -1;
+    let tallest = 1;
+    plan.forEach((rows, i) => { if (rows.length > tallest) { tallest = rows.length; idx = i; } });
+    if (idx < 0) break;
+    plan[idx] = layoutDay(days[idx].times, tallest - 1);
+  }
+
+  days.forEach((day, di) => {
+    const rows = plan[di];
+    const cardH = cardHeight(rows.length);
+    if (y + cardH > bottom) return;
     ctx.fillStyle = "#fff";
     roundRect(ctx, PAD, y, cardW, cardH, 36);
     ctx.fill();
 
     ctx.fillStyle = ink;
-    ctx.font = head(900, 32);
-    ctx.fillText(day.label, PAD + 36, y + 56);
+    ctx.font = head(900, 30);
+    ctx.fillText(fit(ctx, day.label, labelW - 16), PAD + 36, y + cardH / 2 + 11);
 
     ctx.font = head(800, 30);
     rows.forEach((line, ri) => {
-      let cx = PAD + 36;
-      const cy = y + 84 + ri * (chipH + gap);
+      let cx = chipsX;
+      const cy = y + padIn + ri * (chipH + gap);
       for (const chip of line) {
         ctx.fillStyle = soft;
         roundRect(ctx, cx, cy, chip.w, chipH, 24);
         ctx.fill();
         ctx.fillStyle = edge;
-        ctx.fillText(chip.time, cx + 22, cy + 33);
+        ctx.fillText(chip.text, cx + 22, cy + 33);
         cx += chip.w + gap;
       }
     });
     y += cardH + 16;
-  }
+  });
 
   if (days.length === 0) {
     ctx.fillStyle = muted;
