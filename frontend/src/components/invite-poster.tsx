@@ -56,32 +56,32 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
 
   return (
     <div className="overflow-hidden rounded-[22px] p-4" style={{ background: "var(--tiffany-soft)" }}>
-      {/* Шапка одним тёмным блоком: подпись «Хроники», портрет и зов «свободные
-          окна для записи» — тем же порядком, что на картинке для отправки. */}
-      <div className="rounded-[18px] p-3.5" style={{ background: "var(--ink)" }}>
+      {/* Шапка светлым блоком: подпись «Хроники», портрет и имя — тем же
+          порядком, что на картинке для отправки. */}
+      <div className="rounded-[18px] bg-white p-3.5">
         <div className="mb-3 flex items-center gap-2">
-          <Image src={asset("/icon-512.png")} alt="" width={22} height={22} className="rounded-[7px]" />
-          <span className="text-[14px] font-black text-white">{APP_NAME}</span>
-          <span className="ml-auto text-[11px] font-bold" style={{ color: "var(--tiffany-soft)" }}>{APP_SITE}</span>
+          <Image src={asset("/icon-512.png")} alt="" width={26} height={26} className="rounded-[8px]" />
+          <span className="min-w-0">
+            <span className="block text-[14px] font-black leading-none">{APP_NAME}</span>
+            <span className="t-cap mt-0.5 block leading-none">платформа психологической помощи</span>
+          </span>
+          <span className="ml-auto shrink-0 text-[11px] font-bold" style={{ color: "var(--tiffany-edge)" }}>{APP_SITE}</span>
         </div>
-        <p className="mb-2.5 text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--tiffany-soft)" }}>
-          Свободные окна для записи {SPAN_LABEL[span]}
-        </p>
         <div className="flex items-center gap-3">
           {portrait ? (
-            <div className="relative h-[104px] w-[92px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "#fff" }}>
+            <div className="relative h-[104px] w-[92px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "var(--tiffany-soft)" }}>
               <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="92px" className="object-cover" unoptimized={isInlineImage(portrait)} />
             </div>
           ) : (
-            <span className="ico ico-white h-[92px] w-[92px] shrink-0 rounded-[16px]"><Icon name="user" width={38} weight="fill" color="var(--tiffany-edge)" /></span>
+            <span className="ico h-[92px] w-[92px] shrink-0 rounded-[16px]" style={{ background: "var(--tiffany-soft)" }}><Icon name="user" width={38} weight="fill" color="var(--tiffany-edge)" /></span>
           )}
           <div className="min-w-0 flex-1">
-            <p className="t-title flex items-center gap-1.5 leading-tight text-white">
+            <p className="t-title flex items-center gap-1.5 leading-tight">
               <span className="truncate">{psy.name}</span>
               {psy.verified && <Icon name="seal" width={17} weight="fill" color="var(--green)" className="shrink-0" />}
             </p>
-            <p className="mt-0.5 text-[11.5px] font-black" style={{ color: "var(--tiffany-soft)" }}>{role}</p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold" style={{ color: "rgba(255,255,255,.62)" }}>
+            <p className="mt-0.5 text-[11.5px] font-black" style={{ color: "var(--tiffany-edge)" }}>{role}</p>
+            <p className="t-cap mt-0.5 truncate">
               {[psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ")}
             </p>
           </div>
@@ -103,7 +103,11 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
         </div>
       )}
 
-      <div className="mt-3 space-y-1.5">
+      <p className="mt-3 px-1 text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--tiffany-edge)" }}>
+        Свободные окна для записи {SPAN_LABEL[span]}
+      </p>
+
+      <div className="mt-2 space-y-1.5">
         {days.length === 0 ? (
           <div className="card-nested p-3.5 text-center">
             <p className="t-sub">Свободных окон {SPAN_LABEL[span]} нет</p>
@@ -185,43 +189,41 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   ctx.fillStyle = soft;
   ctx.fillRect(0, 0, W, H);
 
-  // Шапка одним графитовым блоком: логотип с названием платформы, портрет,
-  // имя и строка «Свободные окна для записи». Раньше это было разбросано —
-  // подпись сверху, портрет в белой карточке, а зов в чёрном подвале внизу.
+  // Шапка одним светлым блоком: логотип, «Хроника — платформа психологической
+  // помощи», портрет и имя. Зов «свободные окна» стоит ниже, прямо над днями.
   const headTop = PAD;
   const headH = 440;
-  ctx.fillStyle = ink;
+  ctx.fillStyle = "#fff";
   roundRect(ctx, PAD, headTop, W - PAD * 2, headH, 48);
   ctx.fill();
 
   const logo = await loadImage(asset("/icon-512.png")).catch(() => null);
-  const logoSize = 56;
-  const brandY = headTop + 44;
+  const logoSize = 72;
+  const brandY = headTop + 40;
   if (logo) {
     ctx.save();
-    roundRect(ctx, PAD + 40, brandY, logoSize, logoSize, 16);
+    roundRect(ctx, PAD + 40, brandY, logoSize, logoSize, 20);
     ctx.clip();
     ctx.drawImage(logo, PAD + 40, brandY, logoSize, logoSize);
     ctx.restore();
   }
-  ctx.fillStyle = "#fff";
-  ctx.font = head(900, 38);
-  ctx.fillText(APP_NAME, PAD + 40 + (logo ? logoSize + 20 : 0), brandY + 42);
+  const brandX = PAD + 40 + (logo ? logoSize + 22 : 0);
+  ctx.fillStyle = ink;
+  ctx.font = head(900, 40);
+  ctx.fillText(APP_NAME, brandX, brandY + 34);
+  ctx.fillStyle = muted;
+  ctx.font = body(600, 25);
+  ctx.fillText(fit(ctx, "платформа психологической помощи", W - PAD - 40 - brandX), brandX, brandY + 68);
   ctx.textAlign = "right";
-  ctx.font = body(700, 26);
-  ctx.fillStyle = soft;
-  ctx.fillText(APP_SITE, W - PAD - 40, brandY + 40);
+  ctx.font = body(700, 25);
+  ctx.fillStyle = edge;
+  ctx.fillText(APP_SITE, W - PAD - 40, brandY + 46);
   ctx.textAlign = "left";
-
-  // Зов вынесен на всю ширину шапки: рядом с именем он не помещался и обрезался.
-  ctx.fillStyle = soft;
-  ctx.font = head(900, 28);
-  ctx.fillText(`СВОБОДНЫЕ ОКНА ДЛЯ ЗАПИСИ ${SPAN_LABEL[span].toUpperCase()}`, PAD + 40, brandY + logoSize + 46);
 
   const portraitW = 200;
   const portraitH = 224;
   const px = PAD + 40;
-  const py = brandY + logoSize + 72;
+  const py = brandY + logoSize + 56;
   // Портрет — единственное место, где афиша зависит от внешнего файла: он
   // может не загрузиться, прийти без CORS-заголовков и «испачкать» холст, и
   // тогда toDataURL бросит SecurityError. Поэтому неудача здесь — не повод
@@ -250,13 +252,13 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
 
   const tx = px + portraitW + 36;
   const textW = W - PAD - 40 - tx;
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = ink;
   ctx.font = head(900, 52);
   ctx.fillText(fit(ctx, psy.name, textW), tx, py + 78);
-  ctx.fillStyle = soft;
+  ctx.fillStyle = edge;
   ctx.font = head(800, 30);
   ctx.fillText(fit(ctx, psy.specialistTypes?.length ? psy.specialistTypes.join(" · ") : "Психолог", textW), tx, py + 126);
-  ctx.fillStyle = "rgba(255,255,255,.62)";
+  ctx.fillStyle = muted;
   ctx.font = body(600, 28);
   const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
   if (sub) ctx.fillText(fit(ctx, sub, textW), tx, py + 172);
@@ -264,7 +266,12 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   // Дни с окнами. День — одна карточка: слева дата, справа времена. На афишу
   // должны попасть все окна всех дней, поэтому вёрстка не режет список, а
   // подбирает масштаб: берём самый крупный, при котором неделя влезает целиком.
-  const top = headTop + headH + 32;
+  // Зов стоит здесь, прямо над днями: он подписывает список, а не шапку.
+  ctx.fillStyle = edge;
+  ctx.font = head(900, 28);
+  ctx.fillText(`СВОБОДНЫЕ ОКНА ДЛЯ ЗАПИСИ ${SPAN_LABEL[span].toUpperCase()}`, PAD + 12, headTop + headH + 62);
+
+  const top = headTop + headH + 90;
   const cardW = W - PAD * 2;
   // Подвала больше нет: «свободные окна для записи» сказано в шапке, а место
   // внизу отдано самим окнам.
