@@ -109,7 +109,7 @@ function CatalogCardLink({ profile, onFill }: { profile: PsyProfile | null; onFi
   const router = useRouter();
   const started = profileCompletionPercent(profile) > 0;
   return (
-    <span className="mt-1 flex items-center gap-1.5">
+    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
       <button
         onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
         className="inline-flex items-center gap-1 text-[12px] font-bold"
@@ -141,11 +141,15 @@ function ShareProfileClip() {
       onClick={() => void copy()}
       title="Скопировать ссылку на анкету"
       aria-label="Скопировать ссылку на анкету"
-      className="inline-flex h-6 items-center gap-1 rounded-full px-1.5 text-[11px] font-black"
-      style={{ background: copied ? "var(--green-soft)" : "var(--alt-soft)", color: copied ? "var(--green-edge)" : "var(--muted)" }}
+      className="inline-flex h-[26px] shrink-0 items-center gap-1 rounded-full px-2 text-[11px] font-black"
+      style={{
+        background: copied ? "var(--green-soft)" : "var(--alt-soft)",
+        color: copied ? "var(--green-edge)" : "var(--edge)",
+        border: `var(--bw) solid ${copied ? "var(--green-edge)" : "var(--edge)"}`,
+      }}
     >
       <Icon name={copied ? "check" : "paperclip"} width={12} weight="bold" color="currentColor" />
-      {copied && "Ссылка скопирована"}
+      {copied ? "Скопировано" : "Поделиться"}
     </button>
   );
 }

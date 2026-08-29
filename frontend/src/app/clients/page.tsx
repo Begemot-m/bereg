@@ -202,7 +202,6 @@ function ClientsList() {
           setContact={setContact}
           pending={add.isPending}
           onCreate={() => { if (!first.trim()) return; add.mutate(); }}
-          onAdded={(id) => { setOpen(false); router.push(`/clients/?id=${id}`); }}
         />
 
         <ModulesTeaser />
@@ -464,7 +463,7 @@ function plural(n: number) {
 // Приглашение ссылкой — второй шаг, для тех, кому нужна общая карточка с
 // настроением и заданиями; его же можно отправить позже из самой карточки.
 // Ручной ввод остаётся для тех, кого в Telegram нет.
-function AddClientMenu({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate, onAdded }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: () => void; onAdded: (id: number) => void }) {
+function AddClientMenu({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: () => void }) {
   const [manual, setManual] = useState(false);
   const [byLink, setByLink] = useState(false);
   useEffect(() => { if (!open) { setManual(false); setByLink(false); } }, [open]);
@@ -483,7 +482,7 @@ function AddClientMenu({ open, first, last, contact, setFirst, setLast, setConta
   return (
     <Disclosure open={open} autoScroll={false}>
       <div className="card mb-4 space-y-2.5 p-3.5">
-        <ContactPicker onAdded={onAdded} />
+        <ContactPicker />
 
         <div className="card-plain p-3">
           <button onClick={() => { tap(); setByLink((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={byLink}>

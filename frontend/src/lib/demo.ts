@@ -294,20 +294,6 @@ function freshSeed(): DB {
   };
 }
 
-// Контакты Telegram для демо. В бою этот список рисует сам Telegram: читать
-// контакты приложению не дают, выбор идёт нативной кнопкой в чате бота.
-// Аватарки — те же портреты из каталога, своих лиц у демо нет.
-const DEMO_CONTACTS: { name: string; username: string; photo: string | null }[] = [
-  { name: "Ирина Ковалёва", username: "irina_kov", photo: "/catalog/irina.webp" },
-  { name: "Сергей Панов", username: "spanov", photo: "/catalog/sergey.webp" },
-  { name: "Алиса Демидова", username: "alice_d", photo: null },
-  { name: "Пётр Величко", username: "pvelichko", photo: null },
-  { name: "Ольга Нестерова", username: "olganest", photo: null },
-  { name: "Тимур Салихов", username: "tsalikhov", photo: null },
-  { name: "Женя Бортник", username: "zhenya_b", photo: null },
-  { name: "Катерина Лис", username: "kat_lis", photo: null },
-];
-
 function seed(): DB {
   if (isFreshDemo()) return freshSeed();
   const now = new Date().toISOString();
@@ -1009,42 +995,12 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     save(db);
     return delay(withStats(db, c) as T);
   }
-  // Контакты Telegram. В бою их отдаёт сам Telegram нативным выбором в чате
-  // бота — приложению список контактов не доступен, читать его неоткуда.
-  // В демо показываем этот же выбор своим списком, чтобы путь был проходим.
-  if (clean === "/clients/contacts" && method === "GET") {
-    const taken = new Set(db.clients.map((c) => (c.tg ?? c.contact ?? "").replace(/^@/, "").toLowerCase()));
-    return delay(DEMO_CONTACTS.filter((c) => !taken.has(c.username.toLowerCase())) as T);
-  }
-  if (clean === "/clients/contacts" && method === "POST") {
+  // Выбор контактов живёт в самом Telegram: приложению список контактов не
+  // отдают, и в демо его подделывать нечем — бот кладёт в чат кнопку выбора.
+  // Мок отвечает «ок», чтобы кнопка вела себя как в бою и открывала чат.
+  if (clean === "/clients/pick" && method === "POST") {
     if (!demoApproved()) throw new Error(`API 403: ${APPROVED_ONLY}`);
-    if (!demoAccepting(db)) {
-      throw new Error(`API 402: {"error":"limit_reached","message":"На бесплатном тарифе доступно ${FREE_CLIENT_LIMIT} клиента. Подключите PRO, чтобы вести больше."}`);
-    }
-    const nick = String(body.username ?? "").trim().replace(/^@/, "").replace(/^https?:\/\/t\.me\//, "");
-    const known = DEMO_CONTACTS.find((c) => c.username.toLowerCase() === nick.toLowerCase());
-    const already = db.clients.find((c) => (c.tg ?? "").toLowerCase() === nick.toLowerCase());
-    if (already) return delay({ ...withStats(db, already), found: true } as T);
-    const now = new Date().toISOString();
-    const c: Client = {
-      id: ++db.seq,
-      name: known?.name ?? nick,
-      contact: `@${nick}`,
-      note: "",
-      status: "new",
-      link: "none",
-      invitedAt: null,
-      photo: known?.photo ?? null,
-      tg: nick,
-      notesModuleEnabled: false,
-      notesModuleShared: true,
-      notesModulePsychologist: false,
-      createdAt: now,
-      updatedAt: now,
-    };
-    db.clients.push(c);
-    save(db);
-    return delay({ ...withStats(db, c), found: Boolean(known) } as T);
+    return delay({ ok: true } as T);
   }
   // Клиент прикрепил специалиста в разделе «Терапия» — у психолога появляется
   // карточка. В бою это делает роут /my/therapists, здесь роли живут в одном

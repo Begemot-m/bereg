@@ -69,18 +69,6 @@ export const getClient = (id: number) => apiFetch<Client>(`/clients/${id}`);
 export const createClient = (name: string, contact: string) =>
   apiFetch<Client>("/clients", { method: "POST", body: JSON.stringify({ name, contact }) });
 
-/** Контакт Telegram в списке выбора. Живёт только в демо: в бою людей выбирают
- *  нативным списком в чате бота, приложению контакты Telegram не отдаёт. */
-export type TgContact = { name: string; username: string; photo: string | null };
-export const listTgContacts = () => apiFetch<TgContact[]>("/clients/contacts");
-
-/**
- * Карточка по нику Telegram: имя и аватарка подтягиваются сами, аккаунт
- * клиента при этом не подключается — вести карточку можно и без него.
- */
-export const addClientByNick = (username: string) =>
-  apiFetch<Client & { found: boolean }>("/clients/contacts", { method: "POST", body: JSON.stringify({ username }) });
-
 /** Просит бота прислать в чат нативный выбор контактов. */
 export const requestContactPick = () =>
   apiFetch<{ ok: boolean }>("/clients/pick", { method: "POST", body: "{}" });
