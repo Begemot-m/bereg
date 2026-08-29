@@ -238,90 +238,88 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
   if (sub) ctx.fillText(fit(ctx, sub, textW), tx, py + 202);
 
-  // Дни с окнами. День занимает одну строку: слева дата, справа времена — так
-  // на афишу помещается вся неделя, а не три дня. Если времена одного дня не
-  // влезают, лишние сворачиваются в чип «+N»: неделя целиком важнее.
-  let y = headTop + headH + 44;
+  // Дни с окнами. День — одна карточка: слева дата, справа времена. На афишу
+  // должны попасть все окна всех дней, поэтому вёрстка не режет список, а
+  // подбирает масштаб: берём самый крупный, при котором неделя влезает целиком.
+  const top = headTop + headH + 44;
   const cardW = W - PAD * 2;
   const footerH = 180;
   const footerTop = H - PAD - footerH;
   const bottom = footerTop - 24;
-  const chipH = 48;
-  const gap = 12;
-  const padIn = 24;
-  const labelW = 300;
-  const chipsX = PAD + 36 + labelW;
-  const chipsW = cardW - 72 - labelW;
 
-  ctx.font = head(800, 30);
-  const chipW = (text: string) => ctx.measureText(text).width + 44;
+  type Chip = { text: string; w: number };
+  type DayPlan = { rows: Chip[][]; height: number };
 
-  /** Времена дня, разложенные по строкам, не длиннее maxRows. */
-  const layoutDay = (times: string[], maxRows: number) => {
-    const rows: { text: string; w: number }[][] = [];
-    let row: { text: string; w: number }[] = [];
-    let rowW = 0;
-    let i = 0;
-    for (; i < times.length; i++) {
-      const w = chipW(times[i]);
-      if (row.length && rowW + w > chipsW) {
-        if (rows.length + 1 >= maxRows) break;
-        rows.push(row); row = []; rowW = 0;
+  // Метрики при масштабе s. Ниже 0,52 не опускаемся: время должно читаться с
+  // телефона, а не превращаться в узор.
+  const metrics = (s: number) => ({
+    chipH: Math.round(48 * s),
+    chipFont: Math.round(30 * s),
+    chipPad: Math.round(44 * s),
+    labelFont: Math.round(30 * s),
+    labelW: Math.round(300 * s),
+    gap: Math.round(12 * s),
+    padIn: Math.round(24 * s),
+    between: Math.round(16 * s),
+    radius: Math.round(36 * s),
+  });
+
+  const planAt = (s: number) => {
+    const m = metrics(s);
+    const chipsW = cardW - 72 - m.labelW;
+    ctx.font = head(800, m.chipFont);
+    const plans: DayPlan[] = days.map((day) => {
+      const rows: Chip[][] = [];
+      let row: Chip[] = [];
+      let rowW = 0;
+      for (const time of day.times) {
+        const w = ctx.measureText(time).width + m.chipPad;
+        if (row.length && rowW + w > chipsW) { rows.push(row); row = []; rowW = 0; }
+        row.push({ text: time, w });
+        rowW += w + m.gap;
       }
-      row.push({ text: times[i], w });
-      rowW += w + gap;
-    }
-    const hidden = times.length - i;
-    if (hidden > 0) {
-      const tag = { text: `+${hidden}`, w: chipW(`+${hidden}`) };
-      while (row.length && rowW + tag.w > chipsW) { rowW -= (row.pop()?.w ?? 0) + gap; }
-      row.push(tag);
-    }
-    if (row.length) rows.push(row);
-    return rows;
+      if (row.length) rows.push(row);
+      const height = m.padIn * 2 + rows.length * m.chipH + Math.max(0, rows.length - 1) * m.gap;
+      return { rows, height };
+    });
+    const total = plans.reduce((sum, p) => sum + p.height + m.between, 0);
+    return { m, plans, fits: top + total <= bottom };
   };
 
-  const cardHeight = (rows: number) => padIn * 2 + rows * chipH + (rows - 1) * gap;
-
-  // Раскладка на всю неделю: начинаем с трёх строк на день и ужимаем самый
-  // высокий день, пока афиша не влезет. Ужимается тот, у кого окон больше
-  // всех, а не все подряд — у остальных времена остаются на виду.
-  const plan = days.map((d) => layoutDay(d.times, 3));
-  const total = () => plan.reduce((sum, rows) => sum + cardHeight(rows.length) + 16, 0);
-  while (y + total() > bottom) {
-    let idx = -1;
-    let tallest = 1;
-    plan.forEach((rows, i) => { if (rows.length > tallest) { tallest = rows.length; idx = i; } });
-    if (idx < 0) break;
-    plan[idx] = layoutDay(days[idx].times, tallest - 1);
+  let layout = planAt(1);
+  for (const s of [0.92, 0.84, 0.76, 0.68, 0.6, 0.52]) {
+    if (layout.fits) break;
+    layout = planAt(s);
   }
+  const { m, plans } = layout;
+  const chipsX = PAD + 36 + m.labelW;
 
+  let y = top;
   days.forEach((day, di) => {
-    const rows = plan[di];
-    const cardH = cardHeight(rows.length);
-    if (y + cardH > bottom) return;
+    const { rows, height } = plans[di];
+    if (y + height > bottom) return;
     ctx.fillStyle = "#fff";
-    roundRect(ctx, PAD, y, cardW, cardH, 36);
+    roundRect(ctx, PAD, y, cardW, height, m.radius);
     ctx.fill();
 
     ctx.fillStyle = ink;
-    ctx.font = head(900, 30);
-    ctx.fillText(fit(ctx, day.label, labelW - 16), PAD + 36, y + cardH / 2 + 11);
+    ctx.font = head(900, m.labelFont);
+    ctx.fillText(fit(ctx, day.label, m.labelW - 16), PAD + 36, y + height / 2 + m.labelFont * 0.36);
 
-    ctx.font = head(800, 30);
+    ctx.font = head(800, m.chipFont);
     rows.forEach((line, ri) => {
       let cx = chipsX;
-      const cy = y + padIn + ri * (chipH + gap);
+      const cy = y + m.padIn + ri * (m.chipH + m.gap);
       for (const chip of line) {
         ctx.fillStyle = soft;
-        roundRect(ctx, cx, cy, chip.w, chipH, 24);
+        roundRect(ctx, cx, cy, chip.w, m.chipH, m.chipH / 2);
         ctx.fill();
         ctx.fillStyle = edge;
-        ctx.fillText(chip.text, cx + 22, cy + 33);
-        cx += chip.w + gap;
+        ctx.fillText(chip.text, cx + m.chipPad / 2, cy + m.chipH / 2 + m.chipFont * 0.35);
+        cx += chip.w + m.gap;
       }
     });
-    y += cardH + 16;
+    y += height + m.between;
   });
 
   if (days.length === 0) {

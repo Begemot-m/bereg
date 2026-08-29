@@ -23,10 +23,19 @@ import { addDays, zoneDay, zoneFormat } from "@/lib/zone";
  */
 export type Span = "week" | "next";
 
-const HORIZON: Record<Span, number> = { week: 7, next: 14 };
-// Считаем всю неделю: столько дней с окнами и показывает афиша. В тексте
-// сообщения из них остаются первые три — длинный список в переписке никто не
-// дочитывает, а всё расписание человек смотрит на странице специалиста.
+// «Ближайшие» — это ближайшие дни, куда реально можно записаться, а не
+// ближайшие семь суток календаря. Правило графика «записаться не позже чем за
+// N дней» закрывает ближние дни, поэтому заглядываем дальше и берём первые дни
+// со свободными окнами. Окна считает тот же роут `/slots?psy=`, что и запись,
+// — что показано на афише, то и доступно клиенту.
+const HORIZON: Record<Span, number> = { week: 21, next: 14 };
+// Сколько дней проверяем окнами: с запасом, потому что день из месячной
+// доступности может оказаться пустым — все окна разобрали или их закрыло
+// правило записи.
+const PROBE = 10;
+// Столько дней показывает афиша. В тексте сообщения из них остаются первые
+// три: длинный список в переписке никто не дочитывает, а всё расписание
+// человек смотрит на странице специалиста.
 const MAX_DAYS = 7;
 export const TEXT_DAYS = 3;
 
@@ -82,7 +91,7 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
   const days = Object.keys(avail ?? {})
     .filter((d) => d >= from && d <= until && avail?.[d] === "free")
     .sort()
-    .slice(0, MAX_DAYS);
+    .slice(0, PROBE);
 
   const slots = useQueries({
     queries: days.map((d) => ({ queryKey: ["slots", d, psyId ?? null], queryFn: () => getSlots(d, psyId) })),
@@ -97,7 +106,8 @@ export function useFreeWindows(psyId: number | null | undefined, span: Span) {
         times: free.map((s) => timeF.format(new Date(s.start))),
       };
     })
-    .filter((d) => d.times.length > 0);
+    .filter((d) => d.times.length > 0)
+    .slice(0, MAX_DAYS);
 
   return {
     days: result,
