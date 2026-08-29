@@ -2,9 +2,10 @@
 // Бот не хранит расписание у себя: каждую доставку ставят в очередь API-роуты.
 
 import { PrismaClient } from "@prisma/client";
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, type Context } from "grammy";
+import type { ReplyKeyboardMarkup } from "grammy/types";
 
-import { addContactClients } from "../src/lib/server/contacts";
+import { addContactClients, type AddContactsResult } from "../src/lib/server/contacts";
 import { EVENT_NUDGES, claimNudge, loadPendingNudges, loadPsyRows, pickNudges } from "../src/lib/server/nudges";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -38,6 +39,19 @@ const INVITE_PAYLOAD = /^(?:psy|inv)_[A-Za-z0-9_-]{1,60}$/;
 // Остальные метки-ссылки: запись к специалисту и приглашение друга.
 const LINK_PAYLOAD = /^(?:book|ref)_[A-Za-z0-9_-]{1,60}$/;
 
+// Выбор контактов. Текст и клавиатура те же, что кладёт роут `/api/clients/pick`:
+// нативный список контактов Telegram открывает только эта кнопка, изнутри
+// мини-приложения контакты не прочитать.
+const PICK_TEXT = "Нажмите «Выбрать из контактов» — Telegram покажет ваш список. Отметьте, кого добавить, и я заведу на каждого карточку клиента.";
+const PICK_KEYBOARD: ReplyKeyboardMarkup = {
+  keyboard: [[{
+    text: "Выбрать из контактов",
+    request_users: { request_id: 1, user_is_bot: false, max_quantity: 10, request_name: true, request_username: true, request_photo: true },
+  }]],
+  resize_keyboard: true,
+  one_time_keyboard: true,
+};
+
 bot.command("start", async (ctx) => {
   const from = ctx.from;
   if (from) {
@@ -46,6 +60,14 @@ bot.command("start", async (ctx) => {
       create: { telegramId: BigInt(from.id), username: from.username ?? null, firstName: from.first_name ?? null },
       update: { username: from.username ?? null, firstName: from.first_name ?? null },
     });
+  }
+
+  // Специалист пришёл за выбором контактов. Обычно клавиатуру кладёт роут
+  // `/api/clients/pick` ещё до перехода, но ссылка с меткой должна работать и
+  // сама по себе: её можно дать где угодно, и путь не должен обрываться.
+  if ((ctx.match ?? "").trim() === "pick") {
+    await ctx.reply(PICK_TEXT, { reply_markup: PICK_KEYBOARD });
+    return;
   }
 
   // Пришли по приглашению специалиста. Обычная приветственная кнопка ведёт на
@@ -127,6 +149,11 @@ bot.on("message:users_shared", async (ctx) => {
     })),
   );
 
+  await replyAdded(ctx, result);
+});
+
+/** Ответ на добавленные карточки — одинаковый для обоих путей. */
+async function replyAdded(ctx: Context, result: AddContactsResult) {
   if (!result.approved) {
     await ctx.reply("Карточки заводит специалист с пройденной проверкой. Загляните в приложение — подскажу, чего не хватает.", { reply_markup: openKeyboard() });
     return;
@@ -137,7 +164,7 @@ bot.on("message:users_shared", async (ctx) => {
   }
 
   const names = result.added.map((c) => c.name).join(", ");
-  const created = result.added.filter((c) => c.created).length;
+  const created = result.added.some((c) => c.created);
   const one = result.added.length === 1;
   await ctx.reply(
     [
@@ -152,7 +179,41 @@ bot.on("message:users_shared", async (ctx) => {
         : new InlineKeyboard().webApp("Открыть клиентов", appLink("/clients")),
     },
   );
+}
+
+// Второй путь к той же карточке: контакт, пересланный боту из Telegram
+// (скрепка → «Контакт»). Так удобнее, когда человека добавляют по одному,
+// прямо из переписки с ним.
+bot.on("message:contact", async (ctx) => {
+  const contact = ctx.message.contact;
+  const psy = await prisma.user.findUnique({ where: { telegramId: BigInt(ctx.from.id) }, select: { id: true } });
+  if (!psy) {
+    await ctx.reply("Сначала откройте приложение — там заводятся карточки.", { reply_markup: openKeyboard() });
+    return;
+  }
+
+  const result = await addContactClients(psy.id, [{
+    userId: contact.user_id ?? null,
+    name: [contact.first_name, contact.last_name].filter(Boolean).join(" ") || "Клиент",
+    // В пересланном контакте ника нет — только телефон. Он и станет контактом
+    // карточки, если аккаунт вообще не в Telegram.
+    phone: contact.phone_number ?? null,
+    photoId: contact.user_id ? await avatarOf(contact.user_id) : null,
+  }]);
+
+  await replyAdded(ctx, result);
 });
+
+/** Аватарка человека, если он не закрыл её настройками приватности. */
+async function avatarOf(userId: number): Promise<string | null> {
+  try {
+    const photos = await bot.api.getUserProfilePhotos(userId, { limit: 1 });
+    const first = photos.photos[0];
+    return first?.length ? first[first.length - 1].file_id : null;
+  } catch {
+    return null;
+  }
+}
 
 bot.on("message", async (ctx) => {
   await ctx.reply(

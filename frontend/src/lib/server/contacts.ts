@@ -17,6 +17,8 @@ export type TgContact = {
   userId?: number | null;
   name: string;
   username?: string | null;
+  /** Телефон из пересланного контакта: у выбранного в списке его не бывает. */
+  phone?: string | null;
   /** file_id аватарки: сам файл отдаёт `/api/clients/photo/<id>`. */
   photoId?: string | null;
 };
@@ -80,8 +82,9 @@ export async function addContactClients(psychologistId: number, contacts: TgCont
         psychologistId,
         name,
         // Ник виден в карточке как контакт: «Написать» работает сразу, до
-        // всякого подключения — ради этого выбор контакта и затевался.
-        contact: username ? `@${username}` : null,
+        // всякого подключения — ради этого выбор контакта и затевался. У
+        // пересланного контакта ника нет, зато есть телефон.
+        contact: username ? `@${username}` : contact.phone?.trim() || null,
         tgUserId,
         tgUsername: username,
         tgPhotoId: contact.photoId ?? null,

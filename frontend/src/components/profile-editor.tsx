@@ -87,6 +87,7 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
             : <button onClick={openEditor} className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="edit" width={12} weight="bold" color="currentColor" /> Редактировать профиль</button>}
         </div>
       </div>
+      {professional && profileCompletionPercent(profile) > 0 && <ShareProfileClip />}
       {roleControl}
       {professional && <VerificationPrompt />}
       {professional && <ProfileProgress profile={profile} onContinue={openEditor} />}
@@ -102,28 +103,27 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
 }
 
 // Ссылка на свою карточку в каталоге — вместо прежней «Редактировать профиль».
-// Рядом скрепка: она кладёт в буфер голую ссылку на анкету, без сопроводительного
-// текста — её вставляют куда угодно, от переписки до шапки блога. Развёрнутое
-// приглашение с расписанием и картинкой живёт отдельно, в «Пригласить клиента».
 function CatalogCardLink({ profile, onFill }: { profile: PsyProfile | null; onFill: () => void }) {
   const router = useRouter();
   const started = profileCompletionPercent(profile) > 0;
   return (
-    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-      <button
-        onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
-        className="inline-flex items-center gap-1 text-[12px] font-bold"
-        style={{ color: started ? "var(--edge)" : "var(--muted)" }}
-      >
-        <Icon name={started ? "compass" : "edit"} width={12} weight="bold" color="currentColor" />
-        {started ? "Моя анкета в каталоге" : "Анкета не заполнена — заполнить"}
-      </button>
-      {started && <ShareProfileClip />}
-    </span>
+    <button
+      onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
+      className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold"
+      style={{ color: started ? "var(--edge)" : "var(--muted)" }}
+    >
+      <Icon name={started ? "compass" : "edit"} width={12} weight="bold" color="currentColor" />
+      {started ? "Моя анкета в каталоге" : "Анкета не заполнена — заполнить"}
+    </button>
   );
 }
 
-/** Скрепка «Поделиться профилем»: один тап — ссылка в буфере. */
+/**
+ * Скрепка под шапкой: один тап — голая ссылка на анкету в буфере, без
+ * сопроводительного текста. Её вставляют куда угодно, от переписки до шапки
+ * блога. Развёрнутое приглашение с расписанием и обложкой живёт отдельно, в
+ * «Пригласить клиента».
+ */
 function ShareProfileClip() {
   const { data: me } = useMe();
   const [copied, setCopied] = useState(false);
@@ -141,15 +141,11 @@ function ShareProfileClip() {
       onClick={() => void copy()}
       title="Скопировать ссылку на анкету"
       aria-label="Скопировать ссылку на анкету"
-      className="inline-flex h-[26px] shrink-0 items-center gap-1 rounded-full px-2 text-[11px] font-black"
-      style={{
-        background: copied ? "var(--green-soft)" : "var(--alt-soft)",
-        color: copied ? "var(--green-edge)" : "var(--edge)",
-        border: `var(--bw) solid ${copied ? "var(--green-edge)" : "var(--edge)"}`,
-      }}
+      className="btn btn-white mt-3 h-auto w-full justify-center py-2 text-[12px]"
+      style={copied ? { color: "var(--green-edge)" } : undefined}
     >
-      <Icon name={copied ? "check" : "paperclip"} width={12} weight="bold" color="currentColor" />
-      {copied ? "Скопировано" : "Поделиться"}
+      <Icon name={copied ? "check" : "paperclip"} width={13} weight="bold" color="currentColor" />
+      {copied ? "Ссылка скопирована" : "Ссылка на анкету"}
     </button>
   );
 }
