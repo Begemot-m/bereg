@@ -487,10 +487,7 @@ function AddClientMenu({ open, first, last, contact, setFirst, setLast, setConta
         <div className="card-plain p-3">
           <button onClick={() => { tap(); setByLink((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={byLink}>
             <span className="ico h-8 w-8 shrink-0"><Icon name="link" width={15} weight="bold" color="var(--edge)" /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-black leading-none">Пригласить ссылкой</span>
-              <span className="t-cap mt-1.5 block leading-snug">Клиент подключит свой профиль — настроение, задания и записи будут общими</span>
-            </span>
+            <span className="min-w-0 flex-1 text-[13px] font-black leading-none">Пригласить ссылкой</span>
             <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{byLink ? "↑" : "↓"}</span>
           </button>
           <Disclosure open={byLink} autoScroll={false}>
@@ -501,10 +498,7 @@ function AddClientMenu({ open, first, last, contact, setFirst, setLast, setConta
         <div className="card-plain p-3">
           <button onClick={() => { tap(); setManual((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={manual}>
             <span className="ico h-8 w-8 shrink-0"><Icon name="user" width={15} weight="bold" color="var(--edge)" /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-black leading-none">Ручной ввод</span>
-              <span className="t-cap mt-1.5 block leading-snug">Нажмите, чтобы заполнить самостоятельно</span>
-            </span>
+            <span className="min-w-0 flex-1 text-[13px] font-black leading-none">Ручной ввод</span>
             <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{manual ? "↑" : "↓"}</span>
           </button>
           <Disclosure open={manual} autoScroll={false}>

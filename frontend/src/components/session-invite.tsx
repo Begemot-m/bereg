@@ -9,6 +9,8 @@ import { APP_NAME, botDeepLink } from "@/lib/brand";
 import { OWN_PROFILE_ID } from "@/lib/catalog";
 import { success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
+import { getPsyProfile } from "@/lib/profile";
+import { nameSlug } from "@/lib/translit";
 import { getMonthAvailability, getSlots, ymdLocal } from "@/lib/schedule";
 import { zoneDay, zoneFormat } from "@/lib/zone";
 
@@ -22,8 +24,9 @@ const MSG_KEY = "bereg_invite_message";
  * и отдаёт метку в start_param — по ней StartRoute сразу показывает анкету с
  * окнами. Обычный https-адрес открылся бы в браузере, мимо приложения.
  */
-export function bookingInviteUrl(psyId?: number): string {
-  return botDeepLink(`book_${psyId || OWN_PROFILE_ID}`);
+export function bookingInviteUrl(psyId?: number, name?: string | null): string {
+  const slug = nameSlug(name ?? getPsyProfile()?.name);
+  return botDeepLink(`book_${slug ? `${slug}-` : ""}${psyId || OWN_PROFILE_ID}`);
 }
 
 // Кнопка живёт в шапке «Сессий»: позвать клиента — обычное действие раздела,

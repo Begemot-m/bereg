@@ -18,8 +18,9 @@ export function startParam(): string | null {
 
 /** Адрес экрана по метке из ссылки, если она нам знакома. */
 export function target(payload: string): string | null {
-  // book_<id> — приглашение специалиста на запись.
-  const book = /^book_(\d+)$/.exec(payload);
+  // book_<имя-латиницей>-<id> — приглашение специалиста на запись. Слаг с
+  // именем нужен только человеку, который видит ссылку; адрес решает хвост.
+  const book = /^book_(?:[a-z][a-z-]*-)?(\d+)$/.exec(payload);
   if (book) return `/catalog?psy=${book[1]}&book=1`;
   // win_<id> — афиша свободных окон того же специалиста.
   const windows = /^win_(\d+)$/.exec(payload);

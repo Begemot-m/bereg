@@ -83,11 +83,13 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
               как карточка выглядит в каталоге. Пустую анкету показывать
               нечего — тогда кнопка честно зовёт её заполнить. */}
           {professional
-            ? <CatalogCardLink profile={profile} onFill={openEditor} />
+            ? <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <CatalogCardLink profile={profile} onFill={openEditor} />
+                {profileCompletionPercent(profile) > 0 && <ShareProfileClip />}
+              </div>
             : <button onClick={openEditor} className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)]"><Icon name="edit" width={12} weight="bold" color="currentColor" /> Редактировать профиль</button>}
         </div>
       </div>
-      {professional && profileCompletionPercent(profile) > 0 && <ShareProfileClip />}
       {roleControl}
       {professional && <VerificationPrompt />}
       {professional && <ProfileProgress profile={profile} onContinue={openEditor} />}
@@ -109,7 +111,7 @@ function CatalogCardLink({ profile, onFill }: { profile: PsyProfile | null; onFi
   return (
     <button
       onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
-      className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold"
+      className="inline-flex items-center gap-1 text-[12px] font-bold"
       style={{ color: started ? "var(--edge)" : "var(--muted)" }}
     >
       <Icon name={started ? "compass" : "edit"} width={12} weight="bold" color="currentColor" />
@@ -118,12 +120,8 @@ function CatalogCardLink({ profile, onFill }: { profile: PsyProfile | null; onFi
   );
 }
 
-/**
- * Скрепка под шапкой: один тап — голая ссылка на анкету в буфере, без
- * сопроводительного текста. Её вставляют куда угодно, от переписки до шапки
- * блога. Развёрнутое приглашение с расписанием и обложкой живёт отдельно, в
- * «Пригласить клиента».
- */
+// Строкой рядом с «Моей анкетой», а не кнопкой во всю ширину: тап кладёт в
+// буфер голую ссылку на анкету, без сопроводительного текста.
 function ShareProfileClip() {
   const { data: me } = useMe();
   const [copied, setCopied] = useState(false);
@@ -141,11 +139,11 @@ function ShareProfileClip() {
       onClick={() => void copy()}
       title="Скопировать ссылку на анкету"
       aria-label="Скопировать ссылку на анкету"
-      className="btn btn-white mt-3 h-auto w-full justify-center py-2 text-[12px]"
-      style={copied ? { color: "var(--green-edge)" } : undefined}
+      className="inline-flex items-center gap-1 text-[12px] font-bold"
+      style={{ color: copied ? "var(--green-edge)" : "var(--muted)" }}
     >
-      <Icon name={copied ? "check" : "paperclip"} width={13} weight="bold" color="currentColor" />
-      {copied ? "Ссылка скопирована" : "Ссылка на анкету"}
+      <Icon name={copied ? "check" : "paperclip"} width={12} weight="bold" color="currentColor" />
+      {copied ? "Скопировано" : "Ссылка"}
     </button>
   );
 }
