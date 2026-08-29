@@ -56,24 +56,35 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
 
   return (
     <div className="overflow-hidden rounded-[22px] p-4" style={{ background: "var(--tiffany-soft)" }}>
-      <div className="flex items-center gap-3">
-        {portrait ? (
-          <div className="relative h-[104px] w-[92px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "#fff" }}>
-            <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="92px" className="object-cover" unoptimized={isInlineImage(portrait)} />
+      {/* Шапка одним тёмным блоком: подпись «Хроники», портрет и зов «свободные
+          окна для записи» — тем же порядком, что на картинке для отправки. */}
+      <div className="rounded-[18px] p-3.5" style={{ background: "var(--ink)" }}>
+        <div className="mb-3 flex items-center gap-2">
+          <Image src={asset("/icon-512.png")} alt="" width={22} height={22} className="rounded-[7px]" />
+          <span className="text-[14px] font-black text-white">{APP_NAME}</span>
+          <span className="ml-auto text-[11px] font-bold" style={{ color: "var(--tiffany-soft)" }}>{APP_SITE}</span>
+        </div>
+        <p className="mb-2.5 text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--tiffany-soft)" }}>
+          Свободные окна для записи {SPAN_LABEL[span]}
+        </p>
+        <div className="flex items-center gap-3">
+          {portrait ? (
+            <div className="relative h-[104px] w-[92px] shrink-0 overflow-hidden rounded-[16px]" style={{ background: "#fff" }}>
+              <Image src={portrait} alt={`Портрет: ${psy.name}`} fill sizes="92px" className="object-cover" unoptimized={isInlineImage(portrait)} />
+            </div>
+          ) : (
+            <span className="ico ico-white h-[92px] w-[92px] shrink-0 rounded-[16px]"><Icon name="user" width={38} weight="fill" color="var(--tiffany-edge)" /></span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="t-title flex items-center gap-1.5 leading-tight text-white">
+              <span className="truncate">{psy.name}</span>
+              {psy.verified && <Icon name="seal" width={17} weight="fill" color="var(--green)" className="shrink-0" />}
+            </p>
+            <p className="mt-0.5 text-[11.5px] font-black" style={{ color: "var(--tiffany-soft)" }}>{role}</p>
+            <p className="mt-0.5 truncate text-[11px] font-semibold" style={{ color: "rgba(255,255,255,.62)" }}>
+              {[psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ")}
+            </p>
           </div>
-        ) : (
-          <span className="ico ico-white h-[92px] w-[92px] shrink-0 rounded-[16px]"><Icon name="user" width={38} weight="fill" color="var(--tiffany-edge)" /></span>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="t-micro">Свободное время {SPAN_LABEL[span]}</p>
-          <p className="t-title mt-0.5 flex items-center gap-1.5 leading-tight">
-            <span className="truncate">{psy.name}</span>
-            {psy.verified && <Icon name="seal" width={17} weight="fill" color="var(--green)" className="shrink-0" />}
-          </p>
-          <p className="mt-0.5 text-[11.5px] font-black" style={{ color: "var(--tiffany-edge)" }}>{role}</p>
-          <p className="t-cap mt-0.5 truncate">
-            {[psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ")}
-          </p>
         </div>
       </div>
 
@@ -174,28 +185,43 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   ctx.fillStyle = soft;
   ctx.fillRect(0, 0, W, H);
 
-  // Заголовок афиши: название платформы и адрес. Картинку пересылают дальше
-  // без всякого текста, и она обязана сама говорить, откуда она.
-  ctx.textAlign = "center";
-  ctx.font = head(900, 46);
+  // Шапка одним графитовым блоком: логотип с названием платформы, портрет,
+  // имя и строка «Свободные окна для записи». Раньше это было разбросано —
+  // подпись сверху, портрет в белой карточке, а зов в чёрном подвале внизу.
+  const headTop = PAD;
+  const headH = 440;
   ctx.fillStyle = ink;
-  ctx.fillText(APP_NAME, W / 2, PAD + 46);
-  ctx.font = body(700, 30);
-  ctx.fillStyle = edge;
-  ctx.fillText(APP_SITE, W / 2, PAD + 92);
+  roundRect(ctx, PAD, headTop, W - PAD * 2, headH, 48);
+  ctx.fill();
+
+  const logo = await loadImage(asset("/icon-512.png")).catch(() => null);
+  const logoSize = 56;
+  const brandY = headTop + 44;
+  if (logo) {
+    ctx.save();
+    roundRect(ctx, PAD + 40, brandY, logoSize, logoSize, 16);
+    ctx.clip();
+    ctx.drawImage(logo, PAD + 40, brandY, logoSize, logoSize);
+    ctx.restore();
+  }
+  ctx.fillStyle = "#fff";
+  ctx.font = head(900, 38);
+  ctx.fillText(APP_NAME, PAD + 40 + (logo ? logoSize + 20 : 0), brandY + 42);
+  ctx.textAlign = "right";
+  ctx.font = body(700, 26);
+  ctx.fillStyle = soft;
+  ctx.fillText(APP_SITE, W - PAD - 40, brandY + 40);
   ctx.textAlign = "left";
 
-  // Шапка: портрет и имя
-  const headTop = PAD + 120;
-  const headH = 300;
-  ctx.fillStyle = "#fff";
-  roundRect(ctx, PAD, headTop, W - PAD * 2, headH, 44);
-  ctx.fill();
+  // Зов вынесен на всю ширину шапки: рядом с именем он не помещался и обрезался.
+  ctx.fillStyle = soft;
+  ctx.font = head(900, 28);
+  ctx.fillText(`СВОБОДНЫЕ ОКНА ДЛЯ ЗАПИСИ ${SPAN_LABEL[span].toUpperCase()}`, PAD + 40, brandY + logoSize + 46);
 
   const portraitW = 200;
   const portraitH = 224;
   const px = PAD + 40;
-  const py = headTop + (headH - portraitH) / 2;
+  const py = brandY + logoSize + 72;
   // Портрет — единственное место, где афиша зависит от внешнего файла: он
   // может не загрузиться, прийти без CORS-заголовков и «испачкать» холст, и
   // тогда toDataURL бросит SecurityError. Поэтому неудача здесь — не повод
@@ -224,28 +250,25 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
 
   const tx = px + portraitW + 36;
   const textW = W - PAD - 40 - tx;
-  ctx.fillStyle = muted;
-  ctx.font = head(900, 26);
-  ctx.fillText(`СВОБОДНОЕ ВРЕМЯ ${SPAN_LABEL[span].toUpperCase()}`, tx, py + 40);
-  ctx.fillStyle = ink;
+  ctx.fillStyle = "#fff";
   ctx.font = head(900, 52);
-  ctx.fillText(fit(ctx, psy.name, textW), tx, py + 108);
-  ctx.fillStyle = edge;
+  ctx.fillText(fit(ctx, psy.name, textW), tx, py + 78);
+  ctx.fillStyle = soft;
   ctx.font = head(800, 30);
-  ctx.fillText(fit(ctx, psy.specialistTypes?.length ? psy.specialistTypes.join(" · ") : "Психолог", textW), tx, py + 156);
-  ctx.fillStyle = muted;
+  ctx.fillText(fit(ctx, psy.specialistTypes?.length ? psy.specialistTypes.join(" · ") : "Психолог", textW), tx, py + 126);
+  ctx.fillStyle = "rgba(255,255,255,.62)";
   ctx.font = body(600, 28);
   const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
-  if (sub) ctx.fillText(fit(ctx, sub, textW), tx, py + 202);
+  if (sub) ctx.fillText(fit(ctx, sub, textW), tx, py + 172);
 
   // Дни с окнами. День — одна карточка: слева дата, справа времена. На афишу
   // должны попасть все окна всех дней, поэтому вёрстка не режет список, а
   // подбирает масштаб: берём самый крупный, при котором неделя влезает целиком.
-  const top = headTop + headH + 44;
+  const top = headTop + headH + 32;
   const cardW = W - PAD * 2;
-  const footerH = 180;
-  const footerTop = H - PAD - footerH;
-  const bottom = footerTop - 24;
+  // Подвала больше нет: «свободные окна для записи» сказано в шапке, а место
+  // внизу отдано самим окнам.
+  const bottom = H - PAD;
 
   type Chip = { text: string; w: number };
   type DayPlan = { rows: Chip[][]; height: number };
@@ -327,17 +350,6 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
     ctx.font = body(600, 32);
     ctx.fillText("Окна открываются — напишите, подберём время", PAD + 8, y + 40);
   }
-
-  // Подвал. Ссылку убрали: картинку пересылают, по адресу в ней всё равно никто
-  // не переходит руками — она подписывает, что показано выше.
-  ctx.fillStyle = ink;
-  roundRect(ctx, PAD, footerTop, cardW, footerH, 44);
-  ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.font = head(900, 48);
-  ctx.textAlign = "center";
-  ctx.fillText(fit(ctx, "Свободные окна для записи", cardW - 80), W / 2, footerTop + footerH / 2 + 16);
-  ctx.textAlign = "left";
 
   try {
     return type === "image/jpeg" ? canvas.toDataURL(type, 0.92) : canvas.toDataURL(type);
