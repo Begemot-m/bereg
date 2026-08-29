@@ -35,11 +35,6 @@ const isInlineImage = (src: string) => /^(data:|blob:)/i.test(src);
 
 const SPAN_LABEL: Record<Span, string> = { week: "на ближайшие дни", next: "на следующую неделю" };
 
-const yearsWord = (n: number) => {
-  const last = n % 100 > 10 && n % 100 < 20 ? 0 : n % 10;
-  return last === 1 ? "год" : last >= 2 && last <= 4 ? "года" : "лет";
-};
-
 const formatLine = (psy: PosterPsy) =>
   psy.format === "offline" ? `очно${psy.city ? `, ${psy.city}` : ""}` : psy.format === "both" ? `онлайн и очно${psy.city ? `, ${psy.city}` : ""}` : "онлайн";
 
@@ -60,7 +55,6 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
           порядком, что на картинке для отправки. */}
       <div className="rounded-[18px] bg-white p-3.5">
         <div className="mb-3 flex items-center gap-2">
-          <Image src={asset("/icon-512.png")} alt="" width={26} height={26} className="rounded-[8px]" />
           <span className="min-w-0">
             <span className="block text-[14px] font-black leading-none">{APP_NAME}</span>
             <span className="t-cap mt-0.5 block leading-none">платформа психологической помощи</span>
@@ -81,9 +75,7 @@ export function WindowsPoster({ psy, days, span, onSpan, onPick, footer }: {
               {psy.verified && <Icon name="seal" width={17} weight="fill" color="var(--green)" className="shrink-0" />}
             </p>
             <p className="mt-0.5 text-[11.5px] font-black" style={{ color: "var(--tiffany-edge)" }}>{role}</p>
-            <p className="t-cap mt-0.5 truncate">
-              {[psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ")}
-            </p>
+            <p className="t-cap mt-0.5 truncate">{psy.method}</p>
           </div>
         </div>
       </div>
@@ -197,17 +189,10 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   roundRect(ctx, PAD, headTop, W - PAD * 2, headH, 48);
   ctx.fill();
 
-  const logo = await loadImage(asset("/icon-512.png")).catch(() => null);
-  const logoSize = 72;
+  // Знак — типографикой, без иконки: рядом с портретом картинка рябила.
+  const brandH = 72;
   const brandY = headTop + 40;
-  if (logo) {
-    ctx.save();
-    roundRect(ctx, PAD + 40, brandY, logoSize, logoSize, 20);
-    ctx.clip();
-    ctx.drawImage(logo, PAD + 40, brandY, logoSize, logoSize);
-    ctx.restore();
-  }
-  const brandX = PAD + 40 + (logo ? logoSize + 22 : 0);
+  const brandX = PAD + 40;
   ctx.fillStyle = ink;
   ctx.font = head(900, 40);
   ctx.fillText(APP_NAME, brandX, brandY + 34);
@@ -223,7 +208,7 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   const portraitW = 200;
   const portraitH = 224;
   const px = PAD + 40;
-  const py = brandY + logoSize + 56;
+  const py = brandY + brandH + 56;
   // Портрет — единственное место, где афиша зависит от внешнего файла: он
   // может не загрузиться, прийти без CORS-заголовков и «испачкать» холст, и
   // тогда toDataURL бросит SecurityError. Поэтому неудача здесь — не повод
@@ -260,8 +245,7 @@ async function drawPoster(psy: PosterPsy, days: FreeDay[], span: Span, link: str
   ctx.fillText(fit(ctx, psy.specialistTypes?.length ? psy.specialistTypes.join(" · ") : "Психолог", textW), tx, py + 126);
   ctx.fillStyle = muted;
   ctx.font = body(600, 28);
-  const sub = [psy.method, psy.years ? `${psy.years} ${yearsWord(psy.years)} практики` : ""].filter(Boolean).join(" · ");
-  if (sub) ctx.fillText(fit(ctx, sub, textW), tx, py + 172);
+  if (psy.method) ctx.fillText(fit(ctx, psy.method, textW), tx, py + 172);
 
   // Дни с окнами. День — одна карточка: слева дата, справа времена. На афишу
   // должны попасть все окна всех дней, поэтому вёрстка не режет список, а
