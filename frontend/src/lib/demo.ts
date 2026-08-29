@@ -808,6 +808,14 @@ const delay = <T>(v: T): Promise<T> => new Promise((r) => setTimeout(() => r(v),
 // Тот же гейт, что на сервере (lib/server/access.ts): пока анкета не одобрена,
 // клиентов брать нельзя. Статус читаем напрямую из localStorage — импорт из
 // psy-verification.ts замкнул бы круг, там demo.ts уже импортируется.
+// Кого «выбирают» в контактах в демо: настоящего списка контактов в прототипе
+// взять неоткуда.
+const DEMO_CONTACTS = [
+  { name: "Ирина Соколова", nick: "@irina_s" },
+  { name: "Павел Дорохов", nick: "@pdorokhov" },
+  { name: "Настя Ким", nick: "@nastya_kim" },
+];
+
 const APPROVED_ONLY = JSON.stringify({
   error: "not_approved",
   message: "Принимать клиентов можно после подтверждения анкеты. Заявка на верификацию — в кабинете.",
@@ -995,11 +1003,63 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
     save(db);
     return delay(withStats(db, c) as T);
   }
+  // Карточка по нику. В бою имя и аватарку отдаёт getChat, в демо к Telegram
+  // ходить нечем — заводим карточку с ником вместо имени, как в бою при
+  // неизвестном нике.
+  if (clean === "/clients/contacts" && method === "POST") {
+    if (!demoApproved()) throw new Error(`API 403: ${APPROVED_ONLY}`);
+    if (!demoAccepting(db)) {
+      throw new Error(`API 402: {"error":"limit_reached","message":"На бесплатном тарифе доступно ${FREE_CLIENT_LIMIT} клиента. Подключите PRO, чтобы вести больше."}`);
+    }
+    const nick = String(body.username ?? "").replace(/^@/, "").trim();
+    const already = db.clients.find((c) => c.contact === `@${nick}`);
+    if (already) return delay(withStats(db, already) as T);
+    const now = new Date().toISOString();
+    const c: Client = {
+      id: ++db.seq,
+      name: nick,
+      contact: `@${nick}`,
+      note: "",
+      status: "new",
+      link: "none",
+      invitedAt: null,
+      notesModuleEnabled: false,
+      notesModuleShared: true,
+      notesModulePsychologist: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.clients.push(c);
+    save(db);
+    return delay(withStats(db, c) as T);
+  }
   // Выбор контактов живёт в самом Telegram: приложению список контактов не
   // отдают, и в демо его подделывать нечем — бот кладёт в чат кнопку выбора.
   // Мок отвечает «ок», чтобы кнопка вела себя как в бою и открывала чат.
   if (clean === "/clients/pick" && method === "POST") {
     if (!demoApproved()) throw new Error(`API 403: ${APPROVED_ONLY}`);
+    // В бою карточки заводит бот по ответу Telegram. В демо подделываем сам
+    // выбор — иначе плюсик в прототипе не показывает ничего.
+    const now = new Date().toISOString();
+    for (const contact of DEMO_CONTACTS) {
+      if (!demoAccepting(db)) break;
+      if (db.clients.some((c) => c.contact === contact.nick)) continue;
+      db.clients.push({
+        id: ++db.seq,
+        name: contact.name,
+        contact: contact.nick,
+        note: "",
+        status: "new",
+        link: "none",
+        invitedAt: null,
+        notesModuleEnabled: false,
+        notesModuleShared: true,
+        notesModulePsychologist: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    save(db);
     return delay({ ok: true } as T);
   }
   // Клиент прикрепил специалиста в разделе «Терапия» — у психолога появляется
