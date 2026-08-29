@@ -18,6 +18,8 @@ import { deviceTimezone, TIMEZONES, zoneLabel } from "@/lib/timezones";
 import { displayName, displayPhoto, getPsyProfile, hasRestrictedLink, INSTAGRAM_NOTE, normalizeLinkUrl, savePsyProfile, tgUsername, topTopicsOf, useProfile, LINK_META, SPECIALIST_TYPES, STYLE_OPTIONS, type LinkKind, type PsyProfile } from "@/lib/profile";
 import { EMPTY_RULES, normalizeRules, publicRules, RULE_PRESETS, rulesFilled, type RuleId } from "@/lib/profile-rules";
 import { helpsLine } from "@/lib/morph";
+import { bookingInviteUrl } from "@/components/session-invite";
+import { useMe } from "@/lib/me";
 
 const DRAFT_KEY = "bereg_psy_profile_draft_v2";
 const tgLink = (handle: string) => `https://t.me/${handle.replace(/^@/, "")}`;
@@ -100,17 +102,50 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
 }
 
 // Ссылка на свою карточку в каталоге — вместо прежней «Редактировать профиль».
+// Рядом скрепка: она кладёт в буфер голую ссылку на анкету, без сопроводительного
+// текста — её вставляют куда угодно, от переписки до шапки блога. Развёрнутое
+// приглашение с расписанием и картинкой живёт отдельно, в «Пригласить клиента».
 function CatalogCardLink({ profile, onFill }: { profile: PsyProfile | null; onFill: () => void }) {
   const router = useRouter();
   const started = profileCompletionPercent(profile) > 0;
   return (
+    <span className="mt-1 flex items-center gap-1.5">
+      <button
+        onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
+        className="inline-flex items-center gap-1 text-[12px] font-bold"
+        style={{ color: started ? "var(--edge)" : "var(--muted)" }}
+      >
+        <Icon name={started ? "compass" : "edit"} width={12} weight="bold" color="currentColor" />
+        {started ? "Моя анкета в каталоге" : "Анкета не заполнена — заполнить"}
+      </button>
+      {started && <ShareProfileClip />}
+    </span>
+  );
+}
+
+/** Скрепка «Поделиться профилем»: один тап — ссылка в буфере. */
+function ShareProfileClip() {
+  const { data: me } = useMe();
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    tap();
+    try {
+      await navigator.clipboard.writeText(bookingInviteUrl(me?.id));
+      success();
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch { /* буфер недоступен — молча, кнопка просто не отзовётся */ }
+  };
+  return (
     <button
-      onClick={() => { tap(); if (started) router.push(`/catalog?psy=${OWN_PROFILE_ID}&from=cabinet`); else onFill(); }}
-      className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold"
-      style={{ color: started ? "var(--edge)" : "var(--muted)" }}
+      onClick={() => void copy()}
+      title="Скопировать ссылку на анкету"
+      aria-label="Скопировать ссылку на анкету"
+      className="inline-flex h-6 items-center gap-1 rounded-full px-1.5 text-[11px] font-black"
+      style={{ background: copied ? "var(--green-soft)" : "var(--alt-soft)", color: copied ? "var(--green-edge)" : "var(--muted)" }}
     >
-      <Icon name={started ? "compass" : "edit"} width={12} weight="bold" color="currentColor" />
-      {started ? "Моя анкета в каталоге" : "Анкета не заполнена — заполнить"}
+      <Icon name={copied ? "check" : "paperclip"} width={12} weight="bold" color="currentColor" />
+      {copied && "Ссылка скопирована"}
     </button>
   );
 }

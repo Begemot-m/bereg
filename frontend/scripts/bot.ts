@@ -4,6 +4,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Bot, InlineKeyboard } from "grammy";
 
+import { addContactClients } from "../src/lib/server/contacts";
 import { EVENT_NUDGES, claimNudge, loadPendingNudges, loadPsyRows, pickNudges } from "../src/lib/server/nudges";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -100,6 +101,57 @@ const HELP = [
 
 bot.command(["help", "app"], async (ctx) => {
   await ctx.reply(HELP, { reply_markup: openKeyboard() });
+});
+
+// Выбор контактов для новых карточек. Приложение просит роут `/clients/pick`
+// прислать сюда кнопку `request_users` — читать контакты изнутри мини-приложения
+// Telegram не даёт, и это единственный нативный выбор. Ответ приходит одним
+// сообщением со списком людей: имя, ник и аватарка уже внутри.
+bot.on("message:users_shared", async (ctx) => {
+  const shared = ctx.message.users_shared.users;
+  const psy = await prisma.user.findUnique({ where: { telegramId: BigInt(ctx.from.id) }, select: { id: true } });
+  if (!psy) {
+    await ctx.reply("Сначала откройте приложение — там заводятся карточки.", { reply_markup: { remove_keyboard: true } });
+    return;
+  }
+
+  const result = await addContactClients(
+    psy.id,
+    shared.map((u) => ({
+      userId: u.user_id,
+      name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Клиент",
+      username: u.username ?? null,
+      // Аватарок несколько размеров, берём самый крупный: карточка показывает
+      // лицо и на обложке клиента, не только в списке.
+      photoId: u.photo?.length ? u.photo[u.photo.length - 1].file_id : null,
+    })),
+  );
+
+  if (!result.approved) {
+    await ctx.reply("Карточки заводит специалист с пройденной проверкой. Загляните в приложение — подскажу, чего не хватает.", { reply_markup: openKeyboard() });
+    return;
+  }
+  if (!result.added.length) {
+    await ctx.reply("Не получилось добавить: на бесплатном тарифе места закончились.", { reply_markup: openKeyboard() });
+    return;
+  }
+
+  const names = result.added.map((c) => c.name).join(", ");
+  const created = result.added.filter((c) => c.created).length;
+  const one = result.added.length === 1;
+  await ctx.reply(
+    [
+      created ? `Готово: ${one ? "карточка заведена" : "карточки заведены"} — ${names}.` : `${one ? "Карточка уже была" : "Карточки уже были"} — обновил данные: ${names}.`,
+      "",
+      "Профиль клиента не подключён: истории и настроения пока не будет. Захотите вести карточку вместе — пригласите его из самой карточки.",
+      result.limited ? "\nЧасть контактов не поместилась: на бесплатном тарифе места закончились." : "",
+    ].join("\n").trim(),
+    {
+      reply_markup: one
+        ? new InlineKeyboard().webApp("Открыть карточку", appLink(`/clients?id=${result.added[0].id}`))
+        : new InlineKeyboard().webApp("Открыть клиентов", appLink("/clients")),
+    },
+  );
 });
 
 bot.on("message", async (ctx) => {

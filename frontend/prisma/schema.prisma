@@ -463,6 +463,15 @@ model Client {
   /// карточку подписал психолог. Карточка предлагает заменить; «оставить своё»
   /// очищает поле, поэтому вычислить его на лету нельзя — нужно состояние.
   joinedName              String?
+  /// Карточка заведена выбором контакта в Telegram. Аккаунт человека при этом
+  /// не подключён (`link: none`): это визитка, чтобы специалист видел лицо и
+  /// мог написать в один тап. Если тот же человек позже войдёт по
+  /// приглашению — карточка свяжется с ним по `tgUserId`.
+  tgUserId   BigInt?
+  tgUsername String?
+  /// file_id аватарки в Telegram. Сам файл не храним: отдаём через
+  /// `/api/clients/photo/<id>` — иначе base64 разносило бы список клиентов.
+  tgPhotoId  String?
   /// Модуль заметок: клиент может вести лично или делиться со специалистом.
   notesModuleEnabled      Boolean   @default(false)
   notesModuleShared       Boolean   @default(true)
@@ -477,6 +486,7 @@ model Client {
 
   @@index([psychologistId])
   @@index([userId])
+  @@index([tgUserId])
   groupMemberships GroupMember[] @relation("ClientGroups")
 }
 

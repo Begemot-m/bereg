@@ -54,6 +54,8 @@ import {
   Waves,
   Footprints,
   Megaphone,
+  Paperclip,
+  LinkSimple,
   TrendUp,
   TrendDown,
   Minus,
@@ -118,12 +120,16 @@ export type IconName =
   | "steps"
   | "device"
   | "megaphone"
+  | "paperclip"
+  | "link"
   | "trend-up"
   | "trend-down"
   | "trend-flat";
 
 const MAP: Record<IconName, PhIcon> = {
   megaphone: Megaphone,
+  paperclip: Paperclip,
+  link: LinkSimple,
   "trend-up": TrendUp,
   "trend-down": TrendDown,
   "trend-flat": Minus,

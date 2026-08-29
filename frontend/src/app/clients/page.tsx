@@ -10,6 +10,7 @@ import { ClientDetail } from "@/app/clients/[id]/client-detail";
 
 import { PageHead } from "@/components/blocks";
 import { ClientAvatar } from "@/components/client-avatar";
+import { ContactPicker } from "@/components/contact-picker";
 import { CLIENTS_HELP, HelpDeck } from "@/components/help-deck";
 import { InviteShare } from "@/components/invite-share";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
@@ -201,6 +202,7 @@ function ClientsList() {
           setContact={setContact}
           pending={add.isPending}
           onCreate={() => { if (!first.trim()) return; add.mutate(); }}
+          onAdded={(id) => { setOpen(false); router.push(`/clients/?id=${id}`); }}
         />
 
         <ModulesTeaser />
@@ -456,13 +458,16 @@ function plural(n: number) {
   return "";
 }
 
-// Быстрое добавление: имя + фамилия → создаём карточку и открываем её.
-// Два способа завести клиента, и оба видны сразу: по ссылке человек приходит
-// сам и появляется в списке подключённым, вручную — карточку ведёт психолог,
-// а пригласить её владельца можно позже из самой карточки.
-function AddClientMenu({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: () => void }) {
+// Три способа завести клиента, и порядок здесь — по частоте, а не по «важности
+// данных». Обычное дело — просто добавить человека, с которым уже работаешь:
+// контакт из Telegram даёт лицо, имя и ник, и ничего ни от кого не требует.
+// Приглашение ссылкой — второй шаг, для тех, кому нужна общая карточка с
+// настроением и заданиями; его же можно отправить позже из самой карточки.
+// Ручной ввод остаётся для тех, кого в Telegram нет.
+function AddClientMenu({ open, first, last, contact, setFirst, setLast, setContact, pending, onCreate, onAdded }: { open: boolean; first: string; last: string; contact: string; setFirst: (v: string) => void; setLast: (v: string) => void; setContact: (v: string) => void; pending: boolean; onCreate: () => void; onAdded: (id: number) => void }) {
   const [manual, setManual] = useState(false);
-  useEffect(() => { if (!open) setManual(false); }, [open]);
+  const [byLink, setByLink] = useState(false);
+  useEffect(() => { if (!open) { setManual(false); setByLink(false); } }, [open]);
 
   // Ссылка одна на всех клиентов, поэтому и запрос один — на весь сеанс.
   const { data: invite } = useQuery({ queryKey: ["psy-invite"], queryFn: getPsyInviteToken, staleTime: Infinity, enabled: open, retry: false });
@@ -478,15 +483,20 @@ function AddClientMenu({ open, first, last, contact, setFirst, setLast, setConta
   return (
     <Disclosure open={open} autoScroll={false}>
       <div className="card mb-4 space-y-2.5 p-3.5">
+        <ContactPicker onAdded={onAdded} />
+
         <div className="card-plain p-3">
-          <div className="flex items-center gap-2">
-            <span className="ico ico-accent h-8 w-8"><Icon name="telegram" width={15} weight="fill" color="#fff" /></span>
-            <p className="text-[13px] font-black leading-none">Пригласить клиента</p>
-          </div>
-          <p className="t-cap mt-1.5 leading-snug">
-            Клиент откроет приложение по ссылке и сам появится в этом списке — уже подключённым, вместе с настроением, заданиями и записями. Заполнять ничего не нужно.
-          </p>
-          <div className="mt-2.5"><InviteShare link={link} /></div>
+          <button onClick={() => { tap(); setByLink((v) => !v); }} className="flex w-full items-center gap-2 text-left" aria-expanded={byLink}>
+            <span className="ico h-8 w-8 shrink-0"><Icon name="link" width={15} weight="bold" color="var(--edge)" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-black leading-none">Пригласить ссылкой</span>
+              <span className="t-cap mt-1.5 block leading-snug">Клиент подключит свой профиль — настроение, задания и записи будут общими</span>
+            </span>
+            <span className="shrink-0 text-[13px] font-black text-[var(--muted)]">{byLink ? "↑" : "↓"}</span>
+          </button>
+          <Disclosure open={byLink} autoScroll={false}>
+            <div className="mt-2.5"><InviteShare link={link} /></div>
+          </Disclosure>
         </div>
 
         <div className="card-plain p-3">

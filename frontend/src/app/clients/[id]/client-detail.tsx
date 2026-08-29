@@ -178,8 +178,14 @@ export function ClientDetail() {
                   <Icon name="check" width={11} weight="bold" color="var(--green-edge)" /> Профиль подключён
                 </span>
               ) : (
-                // Клиент ещё не подключился — карточку целиком ведёт психолог,
-                // и полезнее кнопка правки, чем надпись о том, чего нет.
+                // Карточку ведёт психолог. Состояние подключения названо прямо:
+                // человек мог прийти из контактов Telegram, где лицо и имя есть,
+                // и без подписи карточка выглядела бы синхронизированной.
+                <>
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-black" style={{ background: "var(--alt-soft)", color: "var(--muted)" }}>
+                  <Icon name={client.link === "invited" ? "clock" : "user"} width={11} weight="bold" color="var(--muted)" />
+                  {client.link === "invited" ? "Приглашение отправлено" : "Не подключён"}
+                </span>
                 <button
                   onClick={() => { tap(); setEditOpen((v) => !v); setConnectOpen(false); setBookOpen(false); }}
                   aria-expanded={editOpen}
@@ -188,6 +194,7 @@ export function ClientDetail() {
                 >
                   <Icon name="edit" width={11} weight="bold" color="var(--alt-edge)" /> Редактировать
                 </button>
+                </>
               )}
             </div>
             {/* Клиент синхронизировался под своим именем — предлагаем заменить подпись карточки */}
@@ -225,7 +232,7 @@ export function ClientDetail() {
             <span className="min-w-0 flex-1 text-[11.5px] font-black leading-snug">
               {client.link === "invited"
                 ? "Приглашение отправлено — открыть, чтобы отправить ещё раз"
-                : "Подключить клиента к платформе, чтобы он мог пользоваться карточкой"}
+                : "Пригласить в приложение — по желанию: тогда настроение, задания и записи будут общими"}
             </span>
             <ArrowGlyph size={14} className="shrink-0" />
           </button>

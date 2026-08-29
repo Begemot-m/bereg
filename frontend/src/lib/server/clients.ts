@@ -6,6 +6,9 @@
 // Считаем группировками, а не выборкой записей: у практикующего психолога их за
 // год тысячи, и тянуть всё в память ради шести чисел незачем.
 
+import { createHmac } from "node:crypto";
+
+import { env } from "@/lib/server/env";
 import { prisma } from "@/lib/server/prisma";
 
 export type ClientStats = {
@@ -78,8 +81,14 @@ export async function statsFor(clientIds: number[]): Promise<Map<number, ClientS
 /** Что подмешать к выборке карточки, чтобы отдать аватарку и ник подключённого клиента. */
 export const PHOTO_INCLUDE = { user: { select: { photoUrl: true, username: true } } } as const;
 
-type MaybeUser = { user?: { photoUrl: string | null; username?: string | null } | null };
-type Photo<T> = Omit<T, "user"> & { photo: string | null; tg: string | null };
+type MaybeUser = {
+  user?: { photoUrl: string | null; username?: string | null } | null;
+  id?: number;
+  tgUserId?: bigint | null;
+  tgUsername?: string | null;
+  tgPhotoId?: string | null;
+};
+type Photo<T> = Omit<T, "user" | "tgUserId" | "tgUsername" | "tgPhotoId"> & { photo: string | null; tg: string | null };
 
 /**
  * Фото клиента берётся из его аккаунта: карточку заводит психолог, а аватарка
@@ -92,22 +101,38 @@ type Photo<T> = Omit<T, "user"> & { photo: string | null; tg: string | null };
  * пришедшего по ссылке, кнопка вела в никуда.
  */
 export function withPhoto<T extends object>(row: T): Photo<T> {
-  const { user, ...rest } = row as T & MaybeUser;
+  const { user, tgUserId, tgUsername, tgPhotoId, ...rest } = row as T & MaybeUser;
   // У демо-карточки аккаунта нет и быть не может, а буква вместо лица делает
   // её похожей на недозаполненную настоящую. Отдаём портрет из public.
   const demo = (row as { demo?: boolean }).demo === true;
+  // Карточка, заведённая выбором контакта: лицо и ник есть, аккаунта нет.
+  // Аватарка идёт ссылкой на прокси — file_id наружу не отдаём, а base64
+  // в списке из сотни карточек весил бы мегабайты. `tgUserId` тоже остаётся
+  // внутри: это BigInt, JSON его не сериализует.
+  const id = (row as { id?: number }).id;
+  const contactPhoto = tgPhotoId && id ? `/api/clients/photo/${id}?s=${photoSig(id, tgPhotoId)}` : null;
   return {
     ...rest,
-    photo: user?.photoUrl ?? (demo ? DEMO_CLIENT_PHOTO : null),
-    tg: user?.username ?? null,
+    photo: user?.photoUrl ?? contactPhoto ?? (demo ? DEMO_CLIENT_PHOTO : null),
+    tg: user?.username ?? tgUsername ?? null,
   } as Photo<T>;
+}
+
+/**
+ * Подпись ссылки на аватарку контакта. Картинку тянет `<img>`, а заголовок
+ * авторизации туда не подставить — поэтому доступ даёт подпись, а не сессия:
+ * узнать её может только тот, кому сервер отдал карточку. Меняется вместе с
+ * `file_id`, и старый адрес перестаёт работать сам.
+ */
+export function photoSig(id: number, fileId: string): string {
+  return createHmac("sha256", env.jwtSecret).update(`photo:${id}:${fileId}`).digest("base64url").slice(0, 12);
 }
 
 /** Портрет демо-карточки — файл из public, аккаунта за ним нет. */
 export const DEMO_CLIENT_PHOTO = "/demo-client.webp";
 
 /** Клиент внутри записи — те же поля плюс аватарка. */
-export const APPT_CLIENT_SELECT = { id: true, name: true, demo: true, user: { select: { photoUrl: true } } } as const;
+export const APPT_CLIENT_SELECT = { id: true, name: true, demo: true, tgPhotoId: true, user: { select: { photoUrl: true } } } as const;
 
 export function apptWithPhoto<T extends { client: object }>(row: T): Omit<T, "client"> & { client: Photo<T["client"]> } {
   return { ...row, client: withPhoto(row.client) };
