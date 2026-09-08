@@ -60,6 +60,7 @@ model User {
   appointments       Appointment[]
   subscription       Subscription?
   sessions           Session[]
+  loginCodes         LoginCode[]
   consents           Consent[]
   auditEntries       AuditLog[]
   workHours          WorkHours?
@@ -691,4 +692,30 @@ model Payment {
 
   @@index([paidAt])
   @@index([psychologistId, paidAt])
+}
+
+/// Вход с компьютера по QR-коду: сайт показывает код, человек подтверждает его
+/// в Telegram. Строка живёт минуты и одноразовая — по ней выдаётся ровно одна
+/// сессия.
+model LoginCode {
+  id         String    @id @default(uuid())
+  /// sha256 кода из ссылки. В базе не лежит то, что было показано на экране:
+  /// украденный дамп не даёт войти.
+  codeHash   String    @unique
+  /// pending | approved | used | rejected
+  status     String    @default("pending")
+  /// Кто подтвердил. До подтверждения пусто — код ничей.
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int?
+  /// Откуда просят вход. Показываем в Telegram, чтобы человек понимал, что
+  /// именно он подтверждает, и мог отказаться, если это не он.
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  approvedAt DateTime?
+  usedAt     DateTime?
+
+  @@index([expiresAt])
+  @@index([userId, createdAt])
 }

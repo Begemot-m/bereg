@@ -1772,6 +1772,10 @@ export async function mockFetch<T>(path: string, init: RequestInit = {}): Promis
 
   // Сообщение с кнопкой готовит боевой бот — в демо его не собрать. Отвечаем
   // отказом, и приглашение уходит обычной ссылкой.
+  // Вход по QR держит боевой бот и общая база — в статичном демо ни того, ни
+  // другого нет. Форма честно предложит почту с демо-кодом.
+  if (clean.startsWith("/auth/qr")) throw new Error("API 501: вход по QR-коду работает только на боевом сервере");
+
   if (clean === "/invite/prepared") throw new Error("API 501: prepared messages недоступны в демо");
 
   throw new Error(`Demo mock: не покрыт роут ${method} ${clean}`);

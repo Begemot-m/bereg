@@ -7,6 +7,7 @@ import type { ReplyKeyboardMarkup } from "grammy/types";
 
 import { addContactClients, type AddContactsResult } from "../src/lib/server/contacts";
 import { EVENT_NUDGES, claimNudge, loadPendingNudges, loadPsyRows, pickNudges } from "../src/lib/server/nudges";
+import { CODE_TTL_MS, codeState, describeClient, hashCode, readPayload } from "../src/lib/server/login-codes";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) throw new Error("TELEGRAM_BOT_TOKEN not set");
@@ -70,6 +71,40 @@ bot.command("start", async (ctx) => {
     return;
   }
 
+  // Вход с компьютера. Сканирование QR само по себе ничего не открывает:
+  // человек должен увидеть, откуда просят вход, и нажать кнопку. Иначе чужой
+  // QR («отсканируйте, чтобы получить скидку») отдавал бы чужую сессию.
+  const loginCode = readPayload((ctx.match ?? "").trim());
+  if (loginCode) {
+    const row = await prisma.loginCode.findUnique({ where: { codeHash: hashCode(loginCode) } });
+    const state = codeState(row);
+    if (!row || state.state === "unknown" || state.state === "expired") {
+      await ctx.reply("Запрос на вход устарел — обновите страницу и покажите новый QR-код.");
+      return;
+    }
+    if (state.state !== "pending") {
+      await ctx.reply("Этот запрос уже закрыт. Если войти не удалось, обновите QR-код на сайте.");
+      return;
+    }
+
+    await ctx.reply(
+      [
+        "🔐 Запрос на вход в «Хронику» с компьютера.",
+        "",
+        describeClient(row.userAgent, row.ip),
+        "",
+        "Если это вы — подтвердите. Если нет, просто откажите: без подтверждения вход не произойдёт.",
+        `Запрос действует ${Math.round(CODE_TTL_MS / 60000)} мин.`,
+      ].join("\n"),
+      {
+        reply_markup: new InlineKeyboard()
+          .text("Это я, войти", `login:ok:${loginCode}`)
+          .text("Не я", `login:no:${loginCode}`),
+      },
+    );
+    return;
+  }
+
   // Пришли по приглашению специалиста. Обычная приветственная кнопка ведёт на
   // главную и метку теряет — человек оказывался в приложении сам по себе, без
   // экрана «вас пригласили» и без привязки к специалисту.
@@ -129,6 +164,43 @@ bot.command(["help", "app"], async (ctx) => {
 // прислать сюда кнопку `request_users` — читать контакты изнутри мини-приложения
 // Telegram не даёт, и это единственный нативный выбор. Ответ приходит одним
 // сообщением со списком людей: имя, ник и аватарка уже внутри.
+/**
+ * Ответ на кнопки запроса входа. Код привязывается к пользователю только здесь:
+ * до нажатия он ничей, поэтому украденная ссылка сама по себе бесполезна.
+ */
+bot.callbackQuery(/^login:(ok|no):([A-Za-z0-9]{16,40})$/, async (ctx) => {
+  const [, action, code] = ctx.match as unknown as string[];
+  const from = ctx.from;
+  const row = await prisma.loginCode.findUnique({ where: { codeHash: hashCode(code) } });
+  const state = codeState(row);
+
+  if (!row || state.state !== "pending") {
+    await ctx.answerCallbackQuery({ text: "Запрос уже закрыт или устарел", show_alert: true });
+    await ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(() => {});
+    return;
+  }
+
+  if (action === "no") {
+    await prisma.loginCode.update({ where: { id: row.id }, data: { status: "rejected" } });
+    await ctx.answerCallbackQuery({ text: "Вход отклонён" });
+    await ctx.editMessageText("🚫 Вход отклонён. Если это были не вы — всё в порядке, в аккаунт никто не вошёл.");
+    return;
+  }
+
+  const user = await prisma.user.findUnique({ where: { telegramId: BigInt(from?.id ?? 0) } });
+  if (!user || user.deletedAt || user.blockedAt) {
+    await ctx.answerCallbackQuery({ text: "Аккаунт недоступен", show_alert: true });
+    return;
+  }
+
+  await prisma.loginCode.update({
+    where: { id: row.id },
+    data: { status: "approved", userId: user.id, approvedAt: new Date() },
+  });
+  await ctx.answerCallbackQuery({ text: "Готово, входим" });
+  await ctx.editMessageText("✅ Вход подтверждён. Вернитесь к компьютеру — страница откроется сама.");
+});
+
 bot.on("message:users_shared", async (ctx) => {
   const shared = ctx.message.users_shared.users;
   const psy = await prisma.user.findUnique({ where: { telegramId: BigInt(ctx.from.id) }, select: { id: true } });

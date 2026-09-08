@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/icons";
 import { isEmail } from "@/lib/account";
-import { loginWithEmail, requestEmailCode } from "@/lib/api";
+import { loginWithEmail, qrLoginStatus, requestEmailCode, startQrLogin, type QrState } from "@/lib/api";
 import { APP_NAME, BOT_NAME, botDeepLink } from "@/lib/brand";
 import { DEMO, DEMO_EMAIL_CODE, leaveDemoWebGuest } from "@/lib/demo";
 
-type Step = "email" | "code";
+type Step = "qr" | "email" | "code";
 
 /**
  * Вход с компьютера. Почта — второй ключ к тому же аккаунту: сервер не заводит
@@ -18,17 +18,69 @@ type Step = "email" | "code";
  * — ответ одинаковый и для знакомой почты, и для чужой.
  */
 export function WebLogin({ onClose }: { onClose: () => void }) {
-  const [step, setStep] = useState<Step>("email");
+  // Telegram — главный вход: аккаунт живёт там, и подтверждение занимает один
+  // тап. Почта остаётся вторым ключом к той же учётной записи.
+  const [step, setStep] = useState<Step>(DEMO ? "email" : "qr");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [again, setAgain] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
+  const [qr, setQr] = useState<{ image: string; link: string; code: string } | null>(null);
+  const [qrState, setQrState] = useState<QrState>("pending");
+  const [left, setLeft] = useState(0);
 
   useEffect(() => {
     if (step === "code") codeRef.current?.focus();
   }, [step]);
+
+  // Код живёт две минуты, поэтому весь цикл — выдача, рисование, опрос — висит
+  // на одном эффекте: ушли с вкладки QR или закрыли окно — опрос прекращается.
+  useEffect(() => {
+    if (step !== "qr" || DEMO) return;
+    let alive = true;
+    let poll: ReturnType<typeof setInterval> | undefined;
+    let tick: ReturnType<typeof setInterval> | undefined;
+
+    void (async () => {
+      try {
+        const started = await startQrLogin();
+        const image = await (await import("qrcode")).default.toDataURL(started.link, {
+          width: 520,
+          margin: 1,
+          color: { dark: "#221f1c", light: "#ffffff" },
+        });
+        if (!alive) return;
+        setQr({ image, link: started.link, code: started.code });
+        setQrState("pending");
+        setError("");
+
+        const deadline = new Date(started.expiresAt).getTime();
+        setLeft(Math.max(0, Math.round((deadline - Date.now()) / 1000)));
+        tick = setInterval(() => setLeft(Math.max(0, Math.round((deadline - Date.now()) / 1000))), 1000);
+
+        poll = setInterval(() => {
+          void qrLoginStatus(started.code).then((state) => {
+            if (!alive) return;
+            setQrState(state);
+            if (state === "approved") {
+              // Сессия уже в куках — поднимаем приложение обычным путём.
+              window.location.replace(window.location.pathname);
+            }
+            if (state !== "pending") {
+              clearInterval(poll);
+              clearInterval(tick);
+            }
+          });
+        }, 2000);
+      } catch (e) {
+        if (alive) setError(e instanceof Error ? e.message : String(e));
+      }
+    })();
+
+    return () => { alive = false; clearInterval(poll); clearInterval(tick); };
+  }, [step, again]);
 
   // Повторную отправку прячем на минуту: сервер всё равно ограничивает частоту,
   // и упереться в его отказ хуже, чем подождать с понятным счётчиком.
@@ -89,15 +141,57 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
         </div>
 
         <h2 className="font-tight mt-4 text-[24px] font-black leading-tight">
-          {step === "email" ? "Вход по почте" : "Код из письма"}
+          {step === "qr" ? "Вход через Telegram" : step === "email" ? "Вход по почте" : "Код из письма"}
         </h2>
         <p className="t-sub mt-1.5">
-          {step === "email"
-            ? `Работает та почта, которую вы привязали в ${APP_NAME} внутри Telegram: кабинет → «Почта для входа».`
-            : `Отправили шестизначный код на ${email.trim()}. Письмо приходит за минуту, иногда попадает в «Промоакции».`}
+          {step === "qr"
+            ? "Наведите камеру телефона на код — откроется чат с ботом. Подтвердите вход кнопкой, и страница откроется сама."
+            : step === "email"
+              ? `Работает та почта, которую вы привязали в ${APP_NAME} внутри Telegram: кабинет → «Почта для входа».`
+              : `Отправили шестизначный код на ${email.trim()}. Письмо приходит за минуту, иногда попадает в «Промоакции».`}
         </p>
 
-        {step === "email" ? (
+        {step === "qr" ? (
+          <>
+            <div className="mt-5 flex flex-col items-center">
+              <div className="relative flex h-[240px] w-[240px] items-center justify-center rounded-[20px] bg-white p-3 stroke">
+                {qr ? (
+                  <img src={qr.image} alt="QR-код для входа" className="h-full w-full" />
+                ) : (
+                  <span className="t-cap">{error ? "Код не выдался" : "Готовим код…"}</span>
+                )}
+                {(qrState === "rejected" || qrState === "expired" || qrState === "used" || left === 0) && qr && (
+                  <button
+                    onClick={() => setAgain((v) => v + 1)}
+                    className="absolute inset-3 flex flex-col items-center justify-center gap-2 rounded-[15px] text-[13px] font-black"
+                    style={{ background: "rgba(255,255,255,.93)" }}
+                  >
+                    <Icon name="swap" width={20} weight="bold" color="var(--accent)" />
+                    {qrState === "rejected" ? "Вход отклонён. Показать новый код" : "Код устарел. Показать новый"}
+                  </button>
+                )}
+              </div>
+              <p className="t-cap mt-3 text-center">
+                {qrState === "approved"
+                  ? "Подтверждено, открываем…"
+                  : left > 0
+                    ? `Код действует ещё ${left} с`
+                    : "Обновите код, чтобы войти"}
+              </p>
+            </div>
+
+            {/* С телефона камеру на собственный экран не навести — там та же
+                ссылка открывается нажатием. */}
+            {qr && (
+              <a href={qr.link} target="_blank" rel="noreferrer" className="btn btn-white mt-3 w-full py-3">
+                <Icon name="telegram" width={16} weight="fill" color="var(--accent)" /> Открыть Telegram на этом устройстве
+              </a>
+            )}
+            <button onClick={() => { setStep("email"); setError(""); }} className="mt-3 w-full py-2 text-[13px] font-bold text-[var(--muted)]">
+              Войти по почте
+            </button>
+          </>
+        ) : step === "email" ? (
           <>
             <input
               type="email"
@@ -115,6 +209,11 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
             <button onClick={() => void sendCode()} disabled={!isEmail(email) || busy} className="btn btn-accent mt-3 w-full py-3.5">
               {busy ? "Отправляем…" : "Получить код"}
             </button>
+            {!DEMO && (
+              <button onClick={() => { setStep("qr"); setError(""); }} className="mt-3 w-full py-2 text-[13px] font-bold text-[var(--muted)]">
+                Войти через Telegram
+              </button>
+            )}
           </>
         ) : (
           <>

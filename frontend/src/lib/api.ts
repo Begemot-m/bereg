@@ -136,6 +136,31 @@ export const requestEmailCode = (email: string) => authPost("/auth/email/request
 /** Проверка кода: сервер ставит куки сессии, дальше приложение открывается само. */
 export const loginWithEmail = (email: string, code: string) => authPost("/auth/email/verify", { email, code });
 
+export type QrStart = { code: string; link: string; expiresAt: string };
+/** Состояние запроса на вход: ждём, подтвердили, отказали, протух. */
+export type QrState = "pending" | "approved" | "rejected" | "expired" | "used" | "unknown";
+
+/**
+ * Вход по QR-коду. `start` выдаёт одноразовый код и ссылку в бота, `status`
+ * спрашивает, чем дело кончилось: при подтверждении сервер тем же ответом
+ * ставит куки сессии.
+ *
+ * Оба вызова идут мимо `apiFetch`: он подставляет данные Telegram, а здесь
+ * человек как раз ещё никто.
+ */
+export async function startQrLogin(): Promise<QrStart> {
+  const res = await fetch(`${API_URL}/auth/qr/start`, { method: "POST" });
+  if (!res.ok) throw new LoginError(res.status >= 500 ? "offline" : "rejected", "Не удалось создать код входа", `${res.status}`);
+  return (await res.json()) as QrStart;
+}
+
+export async function qrLoginStatus(code: string): Promise<QrState> {
+  const res = await fetch(`${API_URL}/auth/qr/status?code=${encodeURIComponent(code)}`, { cache: "no-store" });
+  if (!res.ok) return "pending";
+  const data = (await res.json()) as { state?: QrState };
+  return data.state ?? "pending";
+}
+
 /**
  * Выход из браузера. Сессию гасит сервер, куки снимает он же. В демо сервера
  * нет — там достаточно вернуть человека в гости, чтобы снова показался лендинг.

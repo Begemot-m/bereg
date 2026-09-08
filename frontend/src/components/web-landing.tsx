@@ -25,6 +25,7 @@ import {
 
 import { Icon, type IconName } from "@/components/icons";
 import { asset } from "@/lib/asset";
+import { WebLogin } from "@/components/web-login";
 import { APP_NAME, BOT_NAME, CENTER, CENTER_URL, TAGLINE, botDeepLink } from "@/lib/brand";
 import { FAQ_ITEMS } from "@/lib/seo";
 
@@ -204,6 +205,9 @@ export function WebLanding() {
 
 function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  // Вход живёт на лендинге, а не отдельной страницей: у сайта одна дверь, и она
+  // должна быть видна с первого экрана.
+  const [login, setLogin] = useState(false);
   // Позиция скролла в motion value: иначе параллакс перерисовывал бы страницу
   // на каждом кадре колеса.
   const scrollY = useMotionValue(0);
@@ -221,7 +225,7 @@ function LandingPage() {
           setScrolled((was) => (was === top > 16 ? was : top > 16));
         }}
       >
-        <Nav scrolled={scrolled} />
+        <Nav scrolled={scrolled} onLogin={() => setLogin(true)} />
 
         <main>
           <Hero scrollY={scrollY} />
@@ -238,6 +242,7 @@ function LandingPage() {
 
         <Footer />
       </div>
+      {login && <WebLogin onClose={() => setLogin(false)} />}
     </ScrollBox.Provider>
   );
 }
@@ -306,7 +311,7 @@ const FOOT_LINK =
 
 /* ─────────────────────────── шапка ─────────────────────────── */
 
-function Nav({ scrolled }: { scrolled: boolean }) {
+function Nav({ scrolled, onLogin }: { scrolled: boolean; onLogin: () => void }) {
   return (
     <header
       className="sticky top-0 z-40 transition-all duration-300"
@@ -328,6 +333,13 @@ function Nav({ scrolled }: { scrolled: boolean }) {
         </nav>
 
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={onLogin}
+            className="rounded-full px-4 py-2 text-[14px] font-bold transition-opacity hover:opacity-70"
+            style={{ border: "1px solid var(--hairline)" }}
+          >
+            Войти
+          </button>
           <TelegramButton />
         </div>
       </div>

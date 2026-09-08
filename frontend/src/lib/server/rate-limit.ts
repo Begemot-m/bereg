@@ -34,6 +34,7 @@ export const LIMITS = {
   otp: { limit: 5, windowMs: 15 * 60_000 },   // код на почту: 5 за 15 минут
   write: { limit: 60, windowMs: 60_000 },     // обычные изменения
   public: { limit: 20, windowMs: 60_000 },    // формы без авторизации
+  poll: { limit: 90, windowMs: 60_000 },      // опрос статуса: сайт спрашивает раз в 2 секунды
 } satisfies Record<string, Limit>;
 
 /**
