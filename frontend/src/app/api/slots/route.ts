@@ -1,28 +1,36 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getOverrides, getWorkHours, resolveScheduleOwner, slotsFor, takenTimes } from "@/lib/server/schedule";
-import { AuthError, requireUser } from "@/lib/server/session";
+import { LIMITS, limited } from "@/lib/server/rate-limit";
+import { getOverrides, getWorkHours, publicScheduleOwner, resolveScheduleOwner, slotsFor, takenTimes } from "@/lib/server/schedule";
+import { AuthError, optionalUser } from "@/lib/server/session";
 import { addDays, zonedDayStart } from "@/lib/server/zone";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireUser(req);
+    const user = await optionalUser(req);
     const params = new URL(req.url).searchParams;
     const date = params.get("date");
     if (!date) return NextResponse.json({ error: "date required" }, { status: 422 });
 
     // psy=<id> — окна специалиста, к которому записывается клиент.
     const psy = params.get("psy");
-    const owner = await resolveScheduleOwner(user.id, psy);
+    // Гость смотрит окна конкретного специалиста и только их: своего
+    // расписания у него нет, поэтому запрос без `psy` остаётся закрытым.
+    if (!user && !psy) return NextResponse.json({ error: "missing token" }, { status: 401 });
+    if (!user) {
+      const stop = limited(req, "slots", LIMITS.browse);
+      if (stop) return stop;
+    }
+    const owner = user ? await resolveScheduleOwner(user.id, psy) : await publicScheduleOwner(psy);
     if (!owner) return NextResponse.json({ error: "Psychologist not found" }, { status: 404 });
     // Правило «записываться не позже чем за N дней» действует везде, где окна
     // показаны как окна для записи, — в том числе когда специалист открывает
     // собственную анкету в каталоге. Иначе в анкете видны ближние окна,
     // которых клиент не увидит. Своё расписание в «Сессиях» идёт без `psy` —
     // там психолог по-прежнему видит и ближние окна, чтобы записать сам.
-    const asClient = Boolean(psy) || owner !== user.id;
+    const asClient = !user || Boolean(psy) || owner !== user.id;
 
     // Окна считаются на один день — читаем сутки вокруг него, а не всю
     // историю записей и корректировок. Сутки берём по зоне платформы: в

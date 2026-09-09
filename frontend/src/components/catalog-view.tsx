@@ -68,6 +68,7 @@ import { FREE_CLIENT_LIMIT, getSubscription } from "@/lib/subscription";
 import { listClients } from "@/lib/clients";
 import { attachTherapist, isAttached } from "@/lib/therapists";
 import { psyPath } from "@/lib/psy-url";
+import { hasBooking, rememberBooking, takeBooking } from "@/lib/booking-intent";
 
 // Анкеты демо-каталога своих правил не заполняют — показываем базовые.
 const DEFAULT_PUBLIC_RULES = publicRules(undefined);
@@ -545,6 +546,8 @@ function BookingMini({ psy, tone, onDone }: { psy: Psy; tone: { bg: string; soft
   // Приём закрыт — блок записи затенён и не раскрывается. Формулировка одна на
   // всё приложение и ничего не говорит о тарифе специалиста.
   const closed = psy.accepting === false;
+  // Вернулись из входа ради конкретного окна — блок записи встречает раскрытым.
+  useEffect(() => { if (hasBooking(psy.id)) setOpen(true); }, [psy.id]);
   const { data: avail } = useQuery({ queryKey: ["month-avail", psy.id], queryFn: () => getMonthAvailability(psy.id) });
   const nearest = useMemo(() => {
     if (!avail) return null;
@@ -1009,29 +1012,41 @@ function BookFlow({ psy, onDone }: { psy: Psy; onDone: () => void }) {
   // входе в каталог: он уже выбрал специалиста, и войти теперь есть зачем.
   const { state: authState } = useAuth();
   const [login, setLogin] = useState(false);
-  if (authState === "anon") {
-    return (
-      <div className="card p-4 text-center">
-        <p className="t-head">Запись — после входа</p>
-        <p className="t-sub mx-auto mt-1 max-w-[320px]">Подтверждение и напоминания придут в Telegram, поэтому встреча заводится на аккаунт.</p>
-        <button onClick={() => { tap(); setLogin(true); }} className="btn btn-accent mt-3 px-5 py-2.5">Войти и записаться</button>
-        {login && <WebLogin onClose={() => setLogin(false)} />}
-      </div>
-    );
-  }
   const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psy, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
+
+  const confirm = useCallback((iso: string, format: "online" | "offline") => ask({
+    title: "Записаться на встречу?",
+    when: `${dayLongF.format(new Date(iso)).replace(/^./, (c) => c.toUpperCase())} в ${timeF.format(new Date(iso))}`,
+    note: `${psy.name.split(" ")[0]} получит запрос и подтвердит встречу — ответ придёт уведомлением.`,
+    confirm: "Записаться",
+    tone: "green",
+    icon: "check",
+    run: () => book.mutate({ iso, format }),
+  }), [ask, book, psy.name]);
+
+  // Вошли ради этого окна — доводим запись до конца сами. Вход перезагружает
+  // страницу, поэтому окно ждёт в sessionStorage, а не в состоянии.
+  useEffect(() => {
+    if (authState !== "authed") return;
+    const want = takeBooking(psy.id);
+    if (want) confirm(want.iso, want.format);
+  }, [authState, psy.id, confirm]);
+
   if (done) return <BookedNext psy={psy} at={done.at} format={done.format} onDone={onDone} />;
+
+  // Гость видит те же окна, что и вошедший: расписание — витрина, прятать его
+  // до входа значит продавать вслепую. Вход просим на самой записи: встреча
+  // заводится на аккаунт, туда же идут подтверждение и напоминания.
+  const guest = authState === "anon";
   return <>
     <p className="t-micro mb-2">День и окно</p>
-    <SlotPicker psyId={psy.id} psyTimezone={psy.timezone} variant="calendar" showAvail onPick={(iso, format) => ask({
-      title: "Записаться на встречу?",
-      when: `${dayLongF.format(new Date(iso)).replace(/^./, (c) => c.toUpperCase())} в ${timeF.format(new Date(iso))}`,
-      note: `${psy.name.split(" ")[0]} получит запрос и подтвердит встречу — ответ придёт уведомлением.`,
-      confirm: "Записаться",
-      tone: "green",
-      icon: "check",
-      run: () => book.mutate({ iso, format }),
-    })} />
+    <SlotPicker psyId={psy.id} psyTimezone={psy.timezone} variant="calendar" showAvail onPick={(iso, format) => {
+      if (!guest) { confirm(iso, format); return; }
+      rememberBooking({ psyId: psy.id, iso, format });
+      setLogin(true);
+    }} />
+    {guest && <p className="t-sub mt-2">Запись — на аккаунт Telegram: туда придут подтверждение и напоминания.</p>}
+    {login && <WebLogin onClose={() => setLogin(false)} />}
     {askNode}
   </>;
 }

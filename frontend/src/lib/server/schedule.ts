@@ -101,6 +101,18 @@ export async function resolveScheduleOwner(viewerId: number, psyParam: string | 
   return psy ? id : null;
 }
 
+/**
+ * Чьё расписание показываем гостю. Анкета в каталоге открыта без входа, и
+ * свободные окна — часть витрины: без времени она ничего не говорит. Наружу
+ * при этом уходит только время и «занято/свободно» — ни имён, ни причин.
+ */
+export async function publicScheduleOwner(psyParam: string | null): Promise<number | null> {
+  const id = Number(psyParam);
+  if (!psyParam || !Number.isInteger(id) || id <= 0) return null;
+  const psy = await prisma.psyProfile.findUnique({ where: { userId: id }, select: { userId: true } });
+  return psy ? id : null;
+}
+
 /** Правки окон в виде, в котором их ждёт клиент: ключ — ISO начала окна. */
 /** Окно, за пределами которого данные расписания экрану не нужны. */
 export type Range = { from: Date; to: Date };

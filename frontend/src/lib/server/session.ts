@@ -51,3 +51,17 @@ export async function requireUser(req: NextRequest) {
   if (user.blockedAt) throw new AuthError("blocked");
   return user;
 }
+
+/**
+ * Пользователь запроса на публичном экране: гость — это `null`, а не 401.
+ * Нужен там, где страница открыта всем, но вошедшему показывает больше:
+ * каталог с окнами специалиста видит любой, записывается — только аккаунт.
+ */
+export async function optionalUser(req: NextRequest) {
+  try {
+    return await requireUser(req);
+  } catch (e) {
+    if (e instanceof AuthError) return null;
+    throw e;
+  }
+}
