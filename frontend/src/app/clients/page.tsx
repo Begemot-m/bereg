@@ -141,7 +141,10 @@ function ClientsList() {
   useEffect(() => { setPage(1); }, [filter, q]);
 
   return (
-    <div>
+    // data-wide — оболочка даёт широкую колонку под сетку карточек. Поиск,
+    // фильтры и счётчик тарифа держатся читаемой ширины и прижаты влево:
+    // растянутая на монитор строка поиска выглядит пустой.
+    <div data-wide>
       {/* Приглашение переехало в меню плюсика: в шапке оно спорило с заголовком,
           а по смыслу это один из двух способов завести клиента. */}
       <PageHead
@@ -166,7 +169,7 @@ function ClientsList() {
       )}
 
       <div className="sheet">
-      <Reveal delay={0.04}>
+      <Reveal delay={0.04} className="xl:max-w-3xl">
         <div className="mb-3 flex items-center gap-2">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)]">
@@ -243,13 +246,13 @@ function ClientsList() {
       </Reveal>
 
       {isError ? (
-        <div className="card-soft p-5 text-center"><p className="t-head">Не удалось загрузить клиентов</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void refetch()} className="btn mt-4">Повторить</button></div>
+        <div className="card-soft p-5 text-center xl:max-w-3xl"><p className="t-head">Не удалось загрузить клиентов</p><p className="t-sub mt-1">Проверьте соединение и попробуйте ещё раз.</p><button onClick={() => void refetch()} className="btn mt-4">Повторить</button></div>
       ) : isLoading ? (
         <SkeletonCards count={3} />
       ) : clients.length === 0 ? (
         // Пустой раздел раньше отвечал «Нет клиентов в этом фильтре» — новичок
         // упирался в это и уходил. Теперь тут прямое предложение первого шага.
-        <div className="card-soft p-5 text-center">
+        <div className="card-soft p-5 text-center xl:max-w-3xl">
           <p className="t-head">Здесь появятся ваши клиенты</p>
           <p className="t-sub mx-auto mt-1 max-w-[320px]">
             Пришлите человеку ссылку — он подключится сам, и вы увидите его записи, настроение и задания.
@@ -261,7 +264,7 @@ function ClientsList() {
         <p className="t-sub px-1">{search ? "Никого не нашли по этому имени." : "Нет клиентов в этом фильтре."}</p>
       ) : (
         <>
-          <Stagger className="space-y-3">
+          <Stagger className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {shown.map((c: Client, i) => <StaggerItem key={c.id}><div data-tour={i === 0 ? "client-card" : undefined}><ClientCard client={c} /></div></StaggerItem>)}
           </Stagger>
           {pages > 1 && <Pager page={current} pages={pages} total={list.length} onChange={setPage} />}

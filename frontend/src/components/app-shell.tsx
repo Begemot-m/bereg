@@ -574,9 +574,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Контент — единственная прокручиваемая область (отступы под чёлку и меню) */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {/* Ширина колонки — по разделу. Рабочие экраны читаются в одну
-              колонку (строка длиннее 75 знаков утомляет), а каталог — витрина:
-              ему нужна сетка, и в 768 px она встаёт в один столбец. */}
-          <div className={`mx-auto w-full ${isPublicCatalog(pathname) ? "max-w-6xl" : "max-w-3xl"} px-4 pb-[104px] pt-[var(--top-pad)] @md:px-9 @md:pb-16 @md:pt-9`}>{children}</div>
+              колонку (строка длиннее 75 знаков утомляет), витрины со сеткой
+              карточек просят широкую сами: ставят `data-wide` на свой корень.
+              Решать это здесь по адресу нельзя — «Клиенты» и «Группы» держат
+              список и карточку на одном пути, а `useSearchParams` в оболочке
+              из layout ломает статический экспорт. */}
+          <div className="app-col mx-auto w-full px-4 pb-[104px] pt-[var(--top-pad)] @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
         </div>
 
         {/* Мобайл: нижние табы — плашка с обводкой; вокруг неё прозрачно (без заливки-полосы) */}

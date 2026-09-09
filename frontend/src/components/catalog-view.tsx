@@ -213,13 +213,14 @@ export function CatalogView({ psyId, book = false }: { psyId?: number; book?: bo
   const viewAll = () => { localStorage.setItem(SEEN_KEY, "1"); setSurveyOpen(false); setMode("all"); };
   const switchMode = (next: CatalogMode) => { select(); setMode(next); setPage(0); };
 
-  if (selected) return <PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={(returnTo === "profile" || returnTo === "cabinet") && selected.id === OWN_PROFILE_ID && !(hasCatalogPlacement(subscription) && isCatalogProfileReady(profile))} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else if (psyId) router.push("/catalog"); else setSelected(null); }} />;
+  if (selected) return <div data-wide><PsyDetailView psy={selected} prefs={prefs} invited={invited} pending={(returnTo === "profile" || returnTo === "cabinet") && selected.id === OWN_PROFILE_ID && !(hasCatalogPlacement(subscription) && isCatalogProfileReady(profile))} backLabel={RETURN_LABEL[returnTo ?? ""] ?? "вернуться в каталог"} onBack={() => { const to = RETURN_ROUTE[returnTo ?? ""]; if (to) router.push(to); else if (psyId) router.push("/catalog"); else setSelected(null); }} /></div>;
   // Анкета открыта своим адресом: пока она едет с сервера, список каталога
   // показывать нечестно — человек пришёл к конкретному специалисту.
-  if (psyId) return <div className="mt-2"><SkeletonCards count={1} /></div>;
+  if (psyId) return <div data-wide className="mt-2"><SkeletonCards count={1} /></div>;
 
   return (
-    <div className="-mx-4 -mt-6 @md:-mx-9">
+    // data-wide — просьба к оболочке дать широкую колонку под сетку карточек.
+    <div data-wide className="-mx-4 -mt-6 @md:-mx-9">
       <header className="px-4 pb-14 pt-8 @md:px-9" style={{ background: "var(--page)" }}>
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-[10px] font-black uppercase tracking-[.14em]">Психологи платформы</p><div className="mt-1 flex items-center gap-2.5"><span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-white"><Icon name="compass" width={22} weight="bold" color="var(--edge)" /></span><h1 className="font-tight text-[31px] font-black leading-none">Каталог</h1></div><p className="font-tight mt-2 max-w-[270px] text-[12px] font-bold leading-snug text-[var(--muted)]">Проверенные специалисты, которые подойдут именно вам</p></div>
