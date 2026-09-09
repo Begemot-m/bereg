@@ -21,6 +21,8 @@ import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon, type IconName } from "@/components/icons";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
+import { WebLogin } from "@/components/web-login";
+import { useAuth } from "@/lib/useAuth";
 import { Button, Disclosure, Input, Prose, SkeletonCards } from "@/components/ui";
 import { asset } from "@/lib/asset";
 import { listMyBookings } from "@/lib/clients";
@@ -231,7 +233,10 @@ export default function CatalogPage() {
           <div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--muted)]">{mode === "personal" ? "Персональная подборка" : catalogLoading && !catalog.length ? "Загружаем анкеты" : `${allFiltered.length} специалистов`}</p><h2 className="font-tight mt-0.5 text-[21px] font-black">{mode === "personal" ? "Специалисты для вас" : catalogLoading && !catalog.length ? "Каталог" : `Страница ${Math.min(page + 1, pageCount)} из ${pageCount}`}</h2></div>
         </div>
 
-        {catalogLoading && !catalog.length ? <SkeletonCards count={4} /> : visible.length ? <Stagger className="space-y-3">{visible.map((psy, index) => <StaggerItem key={psy.id}><PsyCard psy={psy} index={index} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} catalogEmpty={catalog.length === 0} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
+        {/* Витрина: на телефоне лента, на широком экране сетка. Одна колонка на
+            мониторе оставляла половину экрана пустой, а листать приходилось
+            вдвое дольше. */}
+        {catalogLoading && !catalog.length ? <SkeletonCards count={4} /> : visible.length ? <Stagger className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">{visible.map((psy, index) => <StaggerItem key={psy.id}><PsyCard psy={psy} index={index} onOpen={() => { tap(); setSelected(psy); }} /></StaggerItem>)}</Stagger> : <CatalogEmpty filters={filters} catalogEmpty={catalog.length === 0} onRelax={() => { setFilters({ ...filters, maxPrice: null, thisWeek: false }); setPage(0); }} />}
 
         {mode === "all" && allFiltered.length > 10 && <div className="mt-5 flex items-center justify-between gap-2"><Button variant="soft" disabled={page === 0} onClick={() => { setPage((value) => Math.max(0, value - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Предыдущие 10</Button><span className="tnum text-[11px] font-black text-[var(--muted)]">{page + 1}/{pageCount}</span><Button disabled={page + 1 >= pageCount} onClick={() => { setPage((value) => Math.min(pageCount - 1, value + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Следующие 10</Button></div>}
       </main>
@@ -987,6 +992,21 @@ function BookFlow({ psy, onDone }: { psy: Psy; onDone: () => void }) {
   const qc = useQueryClient();
   const [done, setDone] = useState<{ at: string; format: string } | null>(null);
   const { ask, askNode } = useConfirmAsk();
+  // Каталог открыт всем, а запись — нет: она заводится на аккаунт, к нему же
+  // приходят подтверждение и напоминания. Гостю показываем вход здесь, а не на
+  // входе в каталог: он уже выбрал специалиста, и войти теперь есть зачем.
+  const { state: authState } = useAuth();
+  const [login, setLogin] = useState(false);
+  if (authState === "anon") {
+    return (
+      <div className="card p-4 text-center">
+        <p className="t-head">Запись — после входа</p>
+        <p className="t-sub mx-auto mt-1 max-w-[320px]">Подтверждение и напоминания придут в Telegram, поэтому встреча заводится на аккаунт.</p>
+        <button onClick={() => { tap(); setLogin(true); }} className="btn btn-accent mt-3 px-5 py-2.5">Войти и записаться</button>
+        {login && <WebLogin onClose={() => setLogin(false)} />}
+      </div>
+    );
+  }
   const book = useMutation({ mutationFn: ({ iso, format }: { iso: string; format: "online" | "offline" }) => bookSlot(psy, iso, format), onSuccess: (booking) => { success(); setDone({ at: booking.startsAt, format: booking.format }); qc.invalidateQueries({ queryKey: ["my-bookings"] }); qc.invalidateQueries({ queryKey: ["slots"] }); qc.invalidateQueries({ queryKey: ["month-avail"] }); } });
   if (done) return <BookedNext psy={psy} at={done.at} format={done.format} onDone={onDone} />;
   return <>

@@ -17,6 +17,8 @@ import { startParam, target } from "@/components/start-route";
 const RoomTour = dynamic(() => import("@/components/room-tour").then((m) => m.RoomTour));
 // Лендинг видят только гости из браузера — в бандл вошедшего он не нужен.
 const WebLanding = dynamic(() => import("@/components/web-landing").then((m) => m.WebLanding));
+// Вход из шапки публичной страницы — тот же, что на лендинге.
+const WebLogin = dynamic(() => import("@/components/web-login").then((m) => m.WebLogin));
 // Экран приглашения видят только те, кто пришёл по ссылке специалиста.
 const InviteWelcome = dynamic(() => import("@/components/invite-welcome").then((m) => m.InviteWelcome));
 // Согласие и предложение знакомства нужны одному приходу из десяти — по ссылке
@@ -134,12 +136,44 @@ function InviteNote({ kind, onClose }: { kind: keyof typeof INVITE_NOTES; onClos
 }
 
 const isPublicDoc = (pathname: string) => pathname.startsWith("/docs") || pathname.startsWith("/policy");
+// Каталог открыт без входа: специалистов человек должен увидеть до регистрации,
+// и карта сайта давно зовёт сюда поисковик. Вход просим на записи, а не на
+// входной двери.
+const isPublicCatalog = (pathname: string) => pathname.startsWith("/catalog");
 
 /** Страница документа для гостя: без навигации приложения, просто текст. */
 function PublicPage({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-[100dvh] overflow-y-auto px-4 py-6" style={{ background: "var(--bg)", color: "var(--ink)" }}>
       <div className="mx-auto w-full max-w-2xl">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Оболочка публичной страницы для гостя: шапка со знаком и входом, широкая
+ * колонка под сетку карточек, подвал с документами. Навигации приложения тут
+ * нет — её разделы гостю всё равно закрыты.
+ */
+function GuestShell({ children }: { children: ReactNode }) {
+  const [login, setLogin] = useState(false);
+  return (
+    <div className="@container min-h-[100dvh] overflow-y-auto" style={{ background: "var(--page)", color: "var(--ink)" }}>
+      <header className="sticky top-0 z-30" style={{ background: "var(--surface)", borderBottom: "var(--bw) solid var(--stroke)" }}>
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 @md:px-8">
+          <Link href="/" onClick={select}><Wordmark /></Link>
+          <button onClick={() => { select(); setLogin(true); }} className="btn btn-accent px-4 py-2 text-[13px]">Войти</button>
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-5 @md:px-8 @md:pt-8">{children}</main>
+      <footer className="mx-auto w-full max-w-6xl px-4 pb-10 @md:px-8">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-5 text-[12px] font-bold" style={{ borderTop: "var(--bw) solid var(--stroke)", color: "var(--muted)" }}>
+          <Link href="/policy">Политика обработки данных</Link>
+          <Link href="/docs">Документы</Link>
+          <span className="ml-auto">{APP_NAME}</span>
+        </div>
+      </footer>
+      {login && <WebLogin onClose={() => setLogin(false)} />}
     </div>
   );
 }
@@ -449,6 +483,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Публичные документы открываются без входа: на них ведут ссылки из подвала
     // сайта, и вместо текста человек видел лендинг заново.
     if (isPublicDoc(pathname)) return <PublicPage>{children}</PublicPage>;
+    if (isPublicCatalog(pathname)) return <GuestShell>{children}</GuestShell>;
     return env === "desktop"
       ? <WebLanding />
       : <AuthGate env={env} reason={authReason} detail={authDetail} />;
@@ -538,7 +573,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Контент — единственная прокручиваемая область (отступы под чёлку и меню) */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="mx-auto w-full max-w-3xl px-4 pb-[104px] pt-[var(--top-pad)] @md:px-9 @md:pb-16 @md:pt-9">{children}</div>
+          {/* Ширина колонки — по разделу. Рабочие экраны читаются в одну
+              колонку (строка длиннее 75 знаков утомляет), а каталог — витрина:
+              ему нужна сетка, и в 768 px она встаёт в один столбец. */}
+          <div className={`mx-auto w-full ${isPublicCatalog(pathname) ? "max-w-6xl" : "max-w-3xl"} px-4 pb-[104px] pt-[var(--top-pad)] @md:px-9 @md:pb-16 @md:pt-9`}>{children}</div>
         </div>
 
         {/* Мобайл: нижние табы — плашка с обводкой; вокруг неё прозрачно (без заливки-полосы) */}
