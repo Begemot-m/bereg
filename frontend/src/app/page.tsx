@@ -17,12 +17,13 @@ import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { PsyGuide } from "@/components/psy-guide";
 import { WebDashboard } from "@/components/web-dashboard";
+import { Block, BlockTitle, INK, LINE, PAPER, pill, SUB, WebTitle } from "@/components/web-ui";
 import { WorkStats } from "@/components/work-stats";
 import { useWebMode } from "@/lib/web-mode";
 
 import { Stagger, StaggerItem } from "@/components/motion";
 import { awaitsConfirm, confirmAppointment, hasEnded, isAhead, isRunning, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
-import { listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
+import { listHomework, listMyBookings, type Mood, type MyBooking } from "@/lib/clients";
 import { tap } from "@/lib/haptics";
 import { displayName } from "@/lib/profile";
 import { useRole } from "@/lib/role";
@@ -114,6 +115,7 @@ function PsyHome() {
 
 function PersonHome({ guest }: { guest: boolean }) {
   const name = useName();
+  const web = useWebMode();
   const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings });
   const { data: therapy } = useQuery({ queryKey: ["my-therapy"], queryFn: getMyTherapy });
   const now = new Date();
@@ -142,6 +144,8 @@ function PersonHome({ guest }: { guest: boolean }) {
     [bookings, attached.list],
   );
 
+  if (web) return <WebPersonHome guest={guest} name={name} next={next} therapist={therapist} todayEntry={todayEntry} moods={therapy?.moods ?? []} now={now} />;
+
   return (
     <HomeFrame
       title={`${greeting()}${name && !guest ? `, ${name}` : ""}`}
@@ -169,6 +173,94 @@ function PersonHome({ guest }: { guest: boolean }) {
 
       {!guest && <InviteBanner variant="client" />}
     </HomeFrame>
+  );
+}
+
+// Главная клиента в браузере: ближайшая сессия, настроение дня и активные
+// задания — блоками. Ниже них нет каруселей и повторов «Терапии»: туда ведёт
+// сама карточка сессии.
+function WebPersonHome({ guest, name, next, therapist, todayEntry, moods, now }: { guest: boolean; name: string; next?: MyBooking; therapist: string | null; todayEntry?: Mood; moods: Mood[]; now: Date }) {
+  const qc = useQueryClient();
+  const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(1), enabled: !guest });
+  const { data: bookings = [] } = useQuery({ queryKey: ["my-bookings"], queryFn: listMyBookings, enabled: !guest });
+  const save = useMutation({ mutationFn: updateMyTherapy, onSuccess: (state) => qc.setQueryData(["my-therapy"], state) });
+  const [sheet, setSheet] = useState(false);
+  const plain = { background: PAPER, border: `1px solid ${LINE}` };
+  const open = homework.filter((h) => h.status !== "done").slice(0, 5);
+  const ahead = bookings.filter((b) => !hasEnded(b)).sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(1, 5);
+
+  return (
+    <div data-wide className="pb-4">
+      <WebTitle title={`${greeting()}${name && !guest ? `, ${name}` : ""}`} sub={guest ? "Начните с подходящего специалиста" : cap(dateF.format(now))} />
+
+      {guest ? (
+        <div className="max-w-[640px]"><GuestStart /></div>
+      ) : (
+        <>
+          <ClientConfirmWatch bookings={bookings} />
+          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="grid min-w-0 content-start gap-2.5">
+              <Block delay={0.02} className="rounded-[18px] p-4" style={{ background: "var(--purple-soft)" }}>
+                {next ? (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                    <PsyAvatar name={next.psyName} />
+                    <div className="mr-auto min-w-0">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.12em]" style={{ color: INK, opacity: 0.55 }}>{isRunning(next) ? "Сессия идёт" : "Ближайшая сессия"}</p>
+                      <p className="mt-1 truncate text-[18px] font-black leading-tight" style={{ color: INK }}>{next.psyName}</p>
+                      <p className="tnum mt-1.5 text-[12px] font-bold">{cap(dateTimeF.format(new Date(next.startsAt)))} · {formatLabel(next.format)}</p>
+                    </div>
+                    <Link href="/therapy?booking=1" onClick={tap} className={pill} style={{ background: INK }}>Управление записью</Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                    <FocusIcon icon={therapist ? "calendar" : "compass"} />
+                    <div className="mr-auto min-w-0">
+                      <p className="text-[16px] font-black leading-tight" style={{ color: INK }}>{therapist ? "Нет ближайших записей" : "Найти специалиста"}</p>
+                      <p className="mt-1 text-[11px] font-medium" style={{ color: SUB }}>{therapist ?? "В терапии пока никого не прикреплено"}</p>
+                    </div>
+                    <Link href={therapist ? "/therapy?booking=1" : "/catalog"} onClick={tap} className={pill} style={{ background: INK }}>{therapist ? "Записаться" : "В каталог"}</Link>
+                  </div>
+                )}
+              </Block>
+
+              <div className="grid min-w-0 gap-2.5 md:grid-cols-2">
+                <section className="min-w-0"><MoodHomeCard mood={todayEntry?.mood} moods={moods} onOpen={() => setSheet(true)} /></section>
+                <Block delay={0.06} className="min-w-0 rounded-[16px] p-4" style={{ background: "var(--tiffany-soft)" }}>
+                  <BlockTitle right={<Link href="/therapy" onClick={tap} className="text-[11px] font-bold underline-offset-2 hover:underline">Все</Link>}>Задания</BlockTitle>
+                  <div className="mt-3 grid gap-1.5">
+                    {open.length === 0 && <p className="text-[11px] font-medium" style={{ color: SUB }}>Активных заданий нет.</p>}
+                    {open.map((h) => (
+                      <Link key={h.id} href="/therapy" onClick={tap} className="dash-row block rounded-[12px] px-2.5 py-2 text-[11px] font-bold" style={{ background: "rgba(255,255,255,.55)" }}>
+                        <span className="line-clamp-2">{h.text}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </Block>
+              </div>
+
+              <InviteBanner variant="client" />
+            </div>
+
+            <aside className="grid min-w-0 content-start gap-2.5">
+              <Block delay={0.08} className="rounded-[16px] p-4" style={plain}>
+                <BlockTitle>Дальше в расписании</BlockTitle>
+                <div className="mt-3 grid gap-1.5">
+                  {ahead.length === 0 && <p className="text-[11px] font-medium" style={{ color: SUB }}>Других записей нет.</p>}
+                  {ahead.map((b) => (
+                    <Link key={b.id} href="/therapy?booking=1" onClick={tap} className="dash-row flex items-center justify-between gap-2 rounded-[12px] px-2.5 py-2" style={{ background: "var(--surface-2)" }}>
+                      <span className="min-w-0 truncate text-[11px] font-bold">{b.psyName}</span>
+                      <span className="tnum shrink-0 text-[10px] font-semibold" style={{ color: SUB }}>{cap(dateTimeF.format(new Date(b.startsAt)))}</span>
+                    </Link>
+                  ))}
+                </div>
+              </Block>
+            </aside>
+          </div>
+        </>
+      )}
+
+      <MoodSheet open={sheet} mood={todayEntry?.mood} emotions={todayEntry?.emotions} onClose={() => setSheet(false)} onSave={(mood, emotions) => save.mutate({ mood, emotions })} />
+    </div>
   );
 }
 

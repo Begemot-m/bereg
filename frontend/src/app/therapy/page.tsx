@@ -15,13 +15,15 @@ import { Icon } from "@/components/icons";
 import { InviteButton } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { moodColor } from "@/components/mood-egg";
-import { TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";
+import { ClientHomeworkDetail, TherapistBoard, WorkWithSpecialist } from "@/components/therapy-work";
+import { Block, BlockTitle, LINE, PAPER, WebTitle } from "@/components/web-ui";
+import { useWebMode } from "@/lib/web-mode";
 import { ClientProgress } from "@/components/client-progress";
 import { MoodStats } from "@/components/mood-stats";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { BookingRow } from "@/components/my-bookings";
 import { SessionCheckin } from "@/components/session-checkin";
-import { ClientSessionJourney } from "@/components/session-reflections";
+import { ClientNotesDetail, ClientSessionJourney } from "@/components/session-reflections";
 import { SlotPicker } from "@/components/slot-picker";
 import { Disclosure, SkeletonCards } from "@/components/ui";
 import { hasEnded } from "@/lib/appointments";
@@ -124,11 +126,95 @@ function TherapyDashboard({ therapists, next, bookings, therapy, reflectionSavin
   }, [bookings, therapists.active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: homework = [] } = useQuery({ queryKey: ["my-homework"], queryFn: () => listHomework(ME) });
+  const qc = useQueryClient();
+  const web = useWebMode();
   // День берём по локальной зоне, как на главной: по UTC отметка «сегодня»
   // не находилась и заливка блока не подхватывала цвет настроения.
   const todayKey = ymdLocal(new Date());
   const todayEntry = [...therapy.moods].reverse().find((e) => ymdLocal(new Date(e.date)) === todayKey);
   const startFlow = () => { tap(); setShowGuide(!therapy.tutorialSeen); setFlowOpen(true); };
+
+  const sheets = (
+    <>
+      <MoodSheet open={moodSheet} mood={todayEntry?.mood} emotions={todayEntry?.emotions} onClose={() => setMoodSheet(false)} onSave={onMood} />
+      {flowOpen && <WheelFlow guide={showGuide} onClose={() => setFlowOpen(false)} onGuideSeen={onGuideSeen} onSave={onWheel} locked={false} />}
+    </>
+  );
+
+  // В браузере терапия — дашборд: задания и заметки о встречах здесь же
+  // блоками, специалист и запись — колонкой справа.
+  if (web) {
+    const plain = { background: PAPER, border: `1px solid ${LINE}` };
+    return (
+      <div data-wide className="pb-4">
+        <WebTitle
+          title="Терапия"
+          sub="Ваш путь между сессиями"
+          right={therapists.list.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {therapists.list.map((name) => {
+                const on = name === therapist;
+                const psy = therapistCard(name);
+                return (
+                  <button key={name} onClick={() => therapists.setActive(name)} className="inline-flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-[11px] font-bold transition-colors" style={{ background: on ? "var(--purple)" : "var(--surface)", border: `1px solid ${on ? "var(--purple-edge)" : LINE}` }}>
+                    <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-[var(--purple-soft)] text-[9px] font-black">{psy ? <Image src={asset(psy.portrait)} alt="" width={20} height={20} className="h-5 w-5 object-cover" unoptimized={/^(data:|blob:)/i.test(asset(psy.portrait))} /> : name.charAt(0)}</span>
+                    {name.split(" ")[0]}
+                  </button>
+                );
+              })}
+              <Link href="/catalog" onClick={tap} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface)", border: `1px solid ${LINE}`, color: "var(--purple-edge)" }} aria-label="Добавить терапевта">
+                <Icon name="plus" width={13} weight="bold" color="currentColor" />
+              </Link>
+            </div>
+          ) : undefined}
+        />
+
+        <SessionCheckin bookings={bookings} />
+
+        <div className="mt-2.5 grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid min-w-0 content-start gap-2.5">
+            <div className="grid min-w-0 gap-2.5 md:grid-cols-2">
+              <section className="min-w-0 overflow-hidden rounded-[16px]" style={{ background: todayEntry?.mood ? `${moodColor(todayEntry.mood)}2e` : "var(--head-soft)" }}>
+                <MoodHomeCard embedded mood={todayEntry?.mood} moods={therapy.moods} onOpen={() => setMoodSheet(true)} />
+              </section>
+              <div className="min-w-0"><ClientProgress moods={therapy.moods} meetings={bookings} homework={homework} /></div>
+            </div>
+
+            <Block delay={0.08} className="rounded-[16px] p-4" style={plain}>
+              <BlockTitle>Задания</BlockTitle>
+              <div className="mt-3"><ClientHomeworkDetail homework={homework} onChanged={() => void qc.invalidateQueries({ queryKey: ["my-homework"] })} /></div>
+            </Block>
+
+            <Block delay={0.1} className="rounded-[16px] p-4" style={plain}>
+              <BlockTitle>Заметки о встречах</BlockTitle>
+              <div className="mt-3">
+                <ClientNotesDetail meetings={bookings} reflections={therapy.reflections} module={therapy.notesModule} saving={reflectionSaving} onSave={onReflection} onModuleChange={onNotesModule} />
+              </div>
+            </Block>
+
+            <div className="grid min-w-0 gap-2.5 md:grid-cols-2">
+              <div className="min-w-0"><TherapistBoard value={therapy.board} onSave={onBoard} /></div>
+              <div className="min-w-0"><WellbeingCard wheel={therapy.wheel} onStart={startFlow} subtitle="видно вашему терапевту" /></div>
+            </div>
+
+            {therapy.moods.length > 0 && (
+              <Block delay={0.12} className="min-w-0 rounded-[16px] p-4" style={plain}>
+                <MoodStats moods={therapy.moods} title="Динамика настроения" />
+              </Block>
+            )}
+          </div>
+
+          <aside className="grid min-w-0 content-start gap-2.5">
+            {therapists.list.length === 0
+              ? <FindTherapistBlock />
+              : therapist && <TherapistCard name={therapist} next={next} bookings={bookings} defaultOpen onRemove={() => therapists.remove(therapist)} />}
+            <InviteTherapistBlock />
+          </aside>
+        </div>
+        {sheets}
+      </div>
+    );
+  }
 
   return (
     <div className="-mx-4 -mt-2 @md:-mx-9">

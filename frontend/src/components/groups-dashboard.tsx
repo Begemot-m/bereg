@@ -34,7 +34,7 @@ import {
 import { plural } from "@/lib/daily";
 import { tap } from "@/lib/haptics";
 
-export function GroupsDashboard() {
+export function GroupsDashboard({ web = false }: { web?: boolean }) {
   const groups = useQuery({ queryKey: ["groups"], queryFn: listGroups });
   const [adding, setAdding] = useState(false);
 
@@ -61,9 +61,7 @@ export function GroupsDashboard() {
   const moodPoints = moodTrend(moodRows, 6);
   const moodLast = [...moodPoints].reverse().find((p) => p.avg !== null)?.avg ?? null;
 
-  return (
-    <>
-      {unmarked && (
+  const unmarkedRow = unmarked ? (
         <Reveal y={8}>
           <Link
             href={`/groups/?id=${unmarked.g.id}`}
@@ -83,9 +81,9 @@ export function GroupsDashboard() {
             <ArrowGlyph size={13} />
           </Link>
         </Reveal>
-      )}
+  ) : null;
 
-      {upcoming && (
+  const upcomingCard = upcoming ? (
         <Reveal y={8}>
           <Link
             href={`/groups/?id=${upcoming.g.id}`}
@@ -129,9 +127,9 @@ export function GroupsDashboard() {
             </span>
           </Link>
         </Reveal>
-      )}
+  ) : null;
 
-      {(stats.held > 0 || moodLast !== null) && (
+  const statsCard = (stats.held > 0 || moodLast !== null) ? (
         <Reveal y={8}>
           <div className="mt-2.5 rounded-[19px] bg-white p-4" style={{ border: `var(--bw) solid ${EDGE}` }}>
             {stats.held > 0 && (
@@ -171,9 +169,11 @@ export function GroupsDashboard() {
             )}
           </div>
         </Reveal>
-      )}
+  ) : null;
 
-      <div className="mb-2 mt-6 flex items-center justify-between gap-2">
+  const groupsList = (
+    <>
+      <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Мои группы</p>
         {list.length > 0 && (
           <button onClick={() => { tap(); setAdding(true); }} className="inline-flex min-h-9 items-center gap-1.5 text-[12px] font-black" style={{ color: EDGE }}>
@@ -193,8 +193,35 @@ export function GroupsDashboard() {
       ) : (
         <EmptyGroups onAdd={() => setAdding(true)} />
       )}
+    </>
+  );
 
-      <NewGroupSheet open={adding} onClose={() => setAdding(false)} />
+  const sheet = <NewGroupSheet open={adding} onClose={() => setAdding(false)} />;
+
+  // В браузере то же самое ложится в две колонки: ближайшая встреча и список
+  // групп слева, сводка и отметка посещаемости справа.
+  if (web) {
+    return (
+      <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid min-w-0 content-start gap-2.5">
+          {upcomingCard}
+          <div>{groupsList}</div>
+        </div>
+        <aside className="grid min-w-0 content-start gap-2.5">
+          {unmarkedRow}
+          {statsCard}
+        </aside>
+        {sheet}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {unmarkedRow}
+      {upcomingCard}
+      <div className="mt-6">{groupsList}</div>
+      {sheet}
     </>
   );
 }

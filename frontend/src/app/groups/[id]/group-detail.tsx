@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -32,6 +33,8 @@ import {
 import { Icon } from "@/components/icons";
 import { InviteShare } from "@/components/invite-share";
 import { Reveal } from "@/components/motion";
+import { WebTitle } from "@/components/web-ui";
+import { useWebMode } from "@/lib/web-mode";
 import {
   FORMAT_LABEL,
   KIND_LABEL,
@@ -108,6 +111,7 @@ function GroupDetailInner() {
   const id = Number(search.get("id") ?? params.id);
   const { ask, askNode } = useConfirmAsk();
 
+  const web = useWebMode();
   const [tab, setTab] = useState<Tab>("meetings");
   const [picking, setPicking] = useState(false);
   const [planning, setPlanning] = useState(false);
@@ -120,7 +124,7 @@ function GroupDetailInner() {
   const group = useQuery({ queryKey: ["group", id], queryFn: () => getGroup(id), enabled: Number.isFinite(id) });
   const g = group.data;
   // Динамика нужна только на вкладке состава — раньше её не тянем.
-  const moods = useQuery({ queryKey: ["group-mood", id], queryFn: () => groupMoods(id), enabled: Number.isFinite(id) && tab === "members" });
+  const moods = useQuery({ queryKey: ["group-mood", id], queryFn: () => groupMoods(id), enabled: Number.isFinite(id) && (web || tab === "members") });
 
   const refresh = (next?: Group) => {
     if (next) qc.setQueryData(["group", id], next);
@@ -167,14 +171,23 @@ function GroupDetailInner() {
 
   return (
     <div>
-      <PageHead
-        title={g?.title ?? "Группа"}
-        icon="users"
-        back="/groups"
-        sub={g ? `${KIND_LABEL[g.kind]} · ${members.length} из ${g.capacity}` : undefined}
-      />
+      {web ? (
+        <div className="max-w-[900px]">
+          <Link href="/groups" className="inline-flex items-center gap-1 text-[12px] font-bold" style={{ color: "var(--muted)" }}>← Все группы</Link>
+          <div className="mt-3">
+            <WebTitle title={g?.title ?? "Группа"} sub={g ? `${KIND_LABEL[g.kind]} · ${members.length} из ${g.capacity}` : undefined} />
+          </div>
+        </div>
+      ) : (
+        <PageHead
+          title={g?.title ?? "Группа"}
+          icon="users"
+          back="/groups"
+          sub={g ? `${KIND_LABEL[g.kind]} · ${members.length} из ${g.capacity}` : undefined}
+        />
+      )}
       <Reveal y={10}>
-        <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+        <div className={web ? "max-w-[900px] pb-6" : "-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9"} style={web ? undefined : { background: "var(--surface)" }}>
           {!g ? null : (
             <>
               {/* Сводка: всё, что нужно знать перед встречей, без прокрутки. */}
@@ -277,7 +290,9 @@ function GroupDetailInner() {
                 </div>
               )}
 
-              <div className="mt-4">
+              {/* В браузере вкладок нет: разделы карточки помещаются блоками
+                  на одной странице, переключать нечего. */}
+              <div className={web ? "hidden" : "mt-4"}>
                 <Tabs
                   value={tab}
                   onChange={setTab}
@@ -291,7 +306,7 @@ function GroupDetailInner() {
                 />
               </div>
 
-              {tab === "meetings" && (
+              {(web || tab === "meetings") && (
                 <>
                   <div className="mb-2 mt-4 flex items-center justify-between gap-2">
                     <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Расписание</p>
@@ -339,7 +354,7 @@ function GroupDetailInner() {
                 </>
               )}
 
-              {tab === "feed" && (
+              {(web || tab === "feed") && (
                 <div className="mt-4">
                   <Feed
                     posts={g.posts}
@@ -351,7 +366,7 @@ function GroupDetailInner() {
                 </div>
               )}
 
-              {tab === "members" && (
+              {(web || tab === "members") && (
                 <>
                   <div className="mb-2 mt-4 flex items-center justify-between gap-2">
                     <p className="text-[12px] font-black uppercase tracking-[.08em] text-[var(--muted)]">Как идут дела</p>
@@ -413,7 +428,7 @@ function GroupDetailInner() {
                 </>
               )}
 
-              {tab === "tasks" && (
+              {(web || tab === "tasks") && (
                 <div className="mt-4 space-y-4">
                   {/* Тот же порядок, что в заданиях клиента: сверху отправка,
                       ниже активные, историю показываем только когда она есть. */}
@@ -455,7 +470,7 @@ function GroupDetailInner() {
                 </div>
               )}
 
-              {tab === "info" && (
+              {(web || tab === "info") && (
                 <div className="mt-4">
                   <GroupInfo
                     group={g}
