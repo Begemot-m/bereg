@@ -138,7 +138,7 @@ function HomeworkBoard({ clients }: { clients: Client[] }) {
     .slice(0, 6);
 
   return (
-    <Block delay={0.18} className="rounded-[16px] p-4" style={{ background: PAPER, border: `1px solid ${LINE}` }}>
+    <Block delay={0.18} className="rounded-[16px] p-4" style={{ background: "var(--tiffany-soft)" }}>
       <CardTitle>Задания в работе:</CardTitle>
       <div className="mt-3 grid gap-1.5">
         {items.length === 0 && (
@@ -147,9 +147,9 @@ function HomeworkBoard({ clients }: { clients: Client[] }) {
         {items.map(({ hw, client }) => (
           <Link
             key={hw.id}
-            href={`/clients?id=${client.id}`}
+            href={`/clients/homework?id=${client.id}`}
             className="flex items-center gap-2.5 rounded-[14px] px-2.5 py-2"
-            style={{ background: MUTED_CARD }}
+            style={{ background: "rgba(255,255,255,.55)" }}
           >
             <ClientAvatar name={client.name} photo={client.photo} className="h-7 w-7 shrink-0 text-[10px]" />
             <span className="min-w-0 flex-1">

@@ -216,6 +216,22 @@
   --top-pad: 0px;
 }
 
+/* На мониторе кнопка во всю ширину читается как полоса, а не как кнопка:
+   в вебе она занимает свой естественный размер. `w-full` в разметке рассчитан
+   на телефон, поэтому перебиваем его здесь, а не правим сотню мест. */
+[data-web] .btn {
+  width: auto !important;
+  align-self: flex-start;
+  padding-inline: 18px;
+}
+
+/* Кнопка внутри сетки-строки не должна распирать ячейку. */
+[data-web] .btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 /* Полотно веба: контент занимает экран, а не стоит колонкой по центру.
    48rem из мини-приложения на мониторе читались как телефон посередине. */
 [data-web] .app-col {
@@ -326,6 +342,9 @@
   pointer-events: none;
 }
 
+/* Уголки перелива: квадрат цвета полотна, из которого вырезана четверть круга.
+   Раньше здесь стоял box-shadow с разбросом — он рисовал прямоугольник целиком
+   и торчал над бегунком заметной ступенькой. */
 [data-web] .nav-indicator::before,
 [data-web] .nav-indicator::after {
   content: "";
@@ -333,19 +352,19 @@
   right: 0;
   width: 14px;
   height: 14px;
-  background: transparent;
+  background: var(--bg);
 }
 
 [data-web] .nav-indicator::before {
   top: -14px;
-  border-bottom-right-radius: 14px;
-  box-shadow: 0 7px 0 7px var(--bg);
+  -webkit-mask: radial-gradient(circle 14px at 0 0, transparent 0 14px, #000 14px);
+  mask: radial-gradient(circle 14px at 0 0, transparent 0 14px, #000 14px);
 }
 
 [data-web] .nav-indicator::after {
   bottom: -14px;
-  border-top-right-radius: 14px;
-  box-shadow: 0 -7px 0 7px var(--bg);
+  -webkit-mask: radial-gradient(circle 14px at 0 100%, transparent 0 14px, #000 14px);
+  mask: radial-gradient(circle 14px at 0 100%, transparent 0 14px, #000 14px);
 }
 
 /* В мини-приложении капля остаётся прежней плашкой в тоне раздела. */
