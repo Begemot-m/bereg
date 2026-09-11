@@ -16,11 +16,13 @@ import { bookingInviteUrl } from "@/components/session-invite";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Icon } from "@/components/icons";
 import { Disclosure, Input, SkeletonCards } from "@/components/ui";
-import { chatLink, createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
+import { byAppointments, contactHref, createClient, derivedStatus, listClients, STATUS_LABEL, type Client, type ClientStatus } from "@/lib/clients";
 import { select, success, tap } from "@/lib/haptics";
 import { useMe } from "@/lib/me";
 import { getSubscription, isPro, FREE_CLIENT_LIMIT } from "@/lib/subscription";
 import { ProPaywall } from "@/components/pro-sell";
+import { WebClients } from "@/components/web-clients";
+import { useWebMode } from "@/lib/web-mode";
 
 import { zoneDayDiff, zoneFormat } from "@/lib/zone";
 
@@ -40,16 +42,6 @@ const FILTERS: { key: ClientStatus | "all"; label: string }[] = [
 const nextF = zoneFormat({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const timeF = zoneFormat({ hour: "2-digit", minute: "2-digit" });
 
-// Быстрое сообщение: телеграм подключённого клиента или @ник из контакта,
-// иначе звонок по номеру.
-function contactHref(c: Pick<Client, "tg" | "contact">): string | null {
-  const chat = chatLink(c);
-  if (chat) return chat;
-  const v = (c.contact ?? "").trim();
-  if (v && /^\+?[\d\s()-]{6,}$/.test(v)) return `tel:${v.replace(/[^\d+]/g, "")}`;
-  return null;
-}
-
 function relDay(iso: string): string {
   const d = new Date(iso);
   const diff = zoneDayDiff(new Date(), d);
@@ -59,27 +51,17 @@ function relDay(iso: string): string {
   return nextF.format(d);
 }
 
-// Порядок списка — по записям, а не по статусу: сверху те, к кому встреча
-// ближе всего, за ними те, кто был недавно (свежая встреча выше), в конце —
-// карточки без единой записи, по алфавиту.
-function byAppointments(a: Client, b: Client): number {
-  if (a.nextAt && b.nextAt) return a.nextAt.localeCompare(b.nextAt);
-  if (a.nextAt !== b.nextAt && (a.nextAt || b.nextAt)) return a.nextAt ? -1 : 1;
-  if (a.lastAt && b.lastAt) return b.lastAt.localeCompare(a.lastAt);
-  if (a.lastAt !== b.lastAt && (a.lastAt || b.lastAt)) return a.lastAt ? -1 : 1;
-  return a.name.localeCompare(b.name, "ru");
-}
-
 // Длинный список утомляет и в нём теряются свежие карточки: показываем
 // десяток, остальные — страницами.
 const PER_PAGE = 10;
 
 export default function ClientsPage() {
   const search = useSearchParams();
+  const web = useWebMode();
   // Карточка клиента, созданного в демо, открывается здесь же по ?id —
   // статический экспорт не собирает страницы под новые идентификаторы.
   if (search.get("id")) return <ClientDetail />;
-  return <ClientsList />;
+  return web ? <WebClients /> : <ClientsList />;
 }
 
 function ClientsList() {

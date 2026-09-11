@@ -106,6 +106,27 @@ export function chatLink(c: Pick<Client, "tg" | "contact">): string | null {
   return `https://t.me/${nick.replace(/^@/, "")}`;
 }
 
+// Быстрое сообщение: телеграм подключённого клиента или @ник из контакта,
+// иначе звонок по номеру.
+export function contactHref(c: Pick<Client, "tg" | "contact">): string | null {
+  const chat = chatLink(c);
+  if (chat) return chat;
+  const v = (c.contact ?? "").trim();
+  if (v && /^\+?[\d\s()-]{6,}$/.test(v)) return `tel:${v.replace(/[^\d+]/g, "")}`;
+  return null;
+}
+
+// Порядок списка — по записям, а не по статусу: сверху те, к кому встреча
+// ближе всего, за ними те, кто был недавно (свежая встреча выше), в конце —
+// карточки без единой записи, по алфавиту.
+export function byAppointments(a: Client, b: Client): number {
+  if (a.nextAt && b.nextAt) return a.nextAt.localeCompare(b.nextAt);
+  if (a.nextAt !== b.nextAt && (a.nextAt || b.nextAt)) return a.nextAt ? -1 : 1;
+  if (a.lastAt && b.lastAt) return b.lastAt.localeCompare(a.lastAt);
+  if (a.lastAt !== b.lastAt && (a.lastAt || b.lastAt)) return a.lastAt ? -1 : 1;
+  return a.name.localeCompare(b.name, "ru");
+}
+
 export function formatContact(contact: string): string {
   const c = contact.trim();
   if (!c) return c;
