@@ -138,18 +138,19 @@ function HomeworkBoard({ clients }: { clients: Client[] }) {
     .slice(0, 6);
 
   return (
-    <Block delay={0.18} className="rounded-[16px] p-4" style={{ background: "var(--tiffany-soft)" }}>
+    <Block delay={0.18} className="relative overflow-hidden rounded-[16px] p-4" style={{ background: "var(--tiffany-soft)" }}>
+      <Decor kind="burst" />
       <CardTitle>Задания в работе:</CardTitle>
-      <div className="mt-3 grid gap-1.5">
+      <div className="relative mt-3 grid gap-1.5">
         {items.length === 0 && (
           <p className="text-[11px] font-medium" style={{ color: SUB }}>Активных заданий нет.</p>
         )}
-        {items.map(({ hw, client }) => (
+        {items.map(({ hw, client }, i) => (
           <Link
             key={hw.id}
             href={`/clients/homework?id=${client.id}`}
-            className="flex items-center gap-2.5 rounded-[14px] px-2.5 py-2"
-            style={{ background: "rgba(255,255,255,.55)" }}
+            className="dash-row flex items-center gap-2.5 rounded-[14px] px-2.5 py-2"
+            style={{ background: "rgba(255,255,255,.55)", "--i": i } as CSSProperties}
           >
             <ClientAvatar name={client.name} photo={client.photo} className="h-7 w-7 shrink-0 text-[10px]" />
             <span className="min-w-0 flex-1">
@@ -207,8 +208,8 @@ function SectionCarousel() {
   );
 }
 
-/** Блок дашборда: появляется снизу с задержкой по очереди и подаётся вверх
- *  под курсором. Тень не трогаем — её в этой системе нет. */
+/** Блок дашборда: появляется снизу с задержкой по очереди и дальше стоит на
+ *  месте. Под курсором оживает содержимое — `.dash-*` в globals.css. */
 function Block({
   children,
   className,
@@ -225,8 +226,7 @@ function Block({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.45, ease: EASE }}
-      whileHover={{ y: -3 }}
-      className={className}
+      className={`dash-block ${className ?? ""}`}
       style={style}
     >
       {children}
@@ -289,11 +289,12 @@ function WeekStats({ appts }: { appts: Appointment[] }) {
         {week.map((d, i) => (
           <span key={i} className="flex flex-1 flex-col items-center gap-1.5">
             <span
-              className="w-full rounded-[3px]"
+              className="dash-bar w-full rounded-[3px]"
               style={{
                 height: `${Math.max(6, (d.count / peak) * 44)}px`,
                 background: sameDay(d.date, new Date()) ? INK : "rgba(17,17,17,.35)",
-              }}
+                "--i": i,
+              } as CSSProperties}
             />
             <span className="text-[7px] font-bold uppercase tracking-[0.1em]" style={{ color: INK, opacity: 0.55 }}>
               {WEEKDAYS[(d.date.getDay() + 6) % 7]}
@@ -325,8 +326,8 @@ function ClientsCard({ clients }: { clients: Client[] }) {
         {[therapy, fresh, paused].map((v, i) => (
           <span
             key={i}
-            className="flex-1 rounded-[3px]"
-            style={{ height: `${Math.max(8, (v / top) * 100)}%`, background: i === 0 ? INK : "var(--amber-edge)" }}
+            className="dash-bar flex-1 rounded-[3px]"
+            style={{ height: `${Math.max(8, (v / top) * 100)}%`, background: i === 0 ? INK : "var(--amber-edge)", "--i": i } as CSSProperties}
           />
         ))}
       </div>
@@ -343,15 +344,15 @@ function Decor({ kind }: { kind: "plus" | "heart" | "triangle" | "burst" }) {
     pointerEvents: "none" as const,
   };
   if (kind === "plus") {
-    return <svg width="88" height="88" viewBox="0 0 24 24" fill={INK} style={style}><path d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z" /></svg>;
+    return <svg className="dash-decor" data-kind={kind} width="88" height="88" viewBox="0 0 24 24" fill={INK} style={style}><path d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z" /></svg>;
   }
   if (kind === "heart") {
-    return <svg width="120" height="120" viewBox="0 0 24 24" fill={INK} style={style}><path d="M12 21s-8-5.3-8-11a4.6 4.6 0 018-3 4.6 4.6 0 018 3c0 5.7-8 11-8 11z" /></svg>;
+    return <svg className="dash-decor" data-kind={kind} width="120" height="120" viewBox="0 0 24 24" fill={INK} style={style}><path d="M12 21s-8-5.3-8-11a4.6 4.6 0 018-3 4.6 4.6 0 018 3c0 5.7-8 11-8 11z" /></svg>;
   }
   if (kind === "triangle") {
-    return <svg width="72" height="72" viewBox="0 0 24 24" fill={INK} style={{ ...style, top: -6 }}><path d="M12 3l9 18H3z" /></svg>;
+    return <svg className="dash-decor" data-kind={kind} width="72" height="72" viewBox="0 0 24 24" fill={INK} style={{ ...style, top: -6 }}><path d="M12 3l9 18H3z" /></svg>;
   }
-  return <svg width="72" height="72" viewBox="0 0 24 24" fill={INK} style={{ ...style, top: -6 }}><path d="M12 2l2.4 6.3L21 6l-3.3 6L21 18l-6.6-2.3L12 22l-2.4-6.3L3 18l3.3-6L3 6l6.6 2.3z" /></svg>;
+  return <svg className="dash-decor" data-kind={kind} width="72" height="72" viewBox="0 0 24 24" fill={INK} style={{ ...style, top: -6 }}><path d="M12 2l2.4 6.3L21 6l-3.3 6L21 18l-6.6-2.3L12 22l-2.4-6.3L3 18l3.3-6L3 6l6.6 2.3z" /></svg>;
 }
 
 function tone(format: string) {
@@ -385,16 +386,16 @@ function NextAppointments({ items }: { items: Appointment[] }) {
         {shown.length === 0 && (
           <p className="text-[11px] font-medium" style={{ color: SUB }}>Записей впереди нет.</p>
         )}
-        {shown.map((a) => (
+        {shown.map((a, i) => (
           <Link
             key={a.id}
             href={`/clients?id=${a.client.id}`}
-            className="flex h-[39px] items-center gap-2.5 rounded-[14px] px-2.5"
-            style={{ background: MUTED_CARD }}
+            className="dash-row flex h-[39px] items-center gap-2.5 rounded-[14px] px-2.5"
+            style={{ background: MUTED_CARD, "--i": i } as CSSProperties}
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: tone(a.format) }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round">
-                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+                <circle cx="12" cy="12" r="9" /><path className="dash-hand" d="M12 7v5l3 2" />
               </svg>
             </span>
             <span className="min-w-0 flex-1">

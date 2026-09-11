@@ -305,7 +305,7 @@ export function WebSessions({ scheduleTail, renderQuickAdd }: { scheduleTail: Re
   };
 
   return (
-    <div data-wide className="pb-4">
+    <div data-wide data-full className="pb-4">
       <div className="mb-4 flex flex-wrap items-end gap-x-4 gap-y-3">
         <div className="mr-auto">
           <h1 className="text-[28px] font-[650] leading-none tracking-tight">Сессии</h1>
@@ -326,9 +326,9 @@ export function WebSessions({ scheduleTail, renderQuickAdd }: { scheduleTail: Re
         </div>
       </div>
 
-      <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_252px]">
+      <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_240px]">
         <div className="overflow-x-auto rounded-[18px]" style={{ background: "var(--surface)", border: `1px solid ${LINE}` }}>
-          <div className="min-w-[640px]">
+          <div className="min-w-[840px]">
             <div className="grid" style={{ gridTemplateColumns: `${GUT}px repeat(7, minmax(0, 1fr))`, borderBottom: `1px solid ${LINE}` }}>
               <span />
               {days.map((ymd, i) => {
@@ -428,7 +428,7 @@ export function WebSessions({ scheduleTail, renderQuickAdd }: { scheduleTail: Re
         {scheduleOpen && (
           <Pop key="schedule" wide onClose={() => setScheduleOpen(false)}>
             <PopHead title="График" sub="Рабочие часы недели" onClose={() => setScheduleOpen(false)} />
-            <WorkHoursEditor onSaved={() => setScheduleOpen(false)} tail={scheduleTail} />
+            <WorkHoursEditor split onSaved={() => setScheduleOpen(false)} tail={scheduleTail} />
           </Pop>
         )}
         {invite && <ClientInviteSheet onClose={() => setInvite(false)} start="schedule" />}
@@ -687,7 +687,7 @@ function Pop({ onClose, children, wide = false }: { onClose: () => void; childre
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ duration: 0.22, ease: EASE }}
         onClick={(e) => e.stopPropagation()}
-        className={`max-h-[88dvh] w-full overflow-y-auto rounded-[18px] p-4 ${wide ? "max-w-[760px]" : "max-w-[420px]"}`}
+        className={`max-h-[88dvh] w-full overflow-y-auto rounded-[18px] p-4 ${wide ? "max-w-[880px]" : "max-w-[420px]"}`}
         style={{ background: "var(--surface)", border: `1px solid ${LINE}` }}
       >
         {children}

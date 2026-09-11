@@ -495,6 +495,33 @@ h1, h2, h3, .font-tight {
    `data-wide` на свой корень, и колонка раздвигается под сетку карточек. */
 .app-col { max-width: 48rem; }
 .app-col:has([data-wide]) { max-width: 72rem; }
+/* Неделя сеткой: семь столбцов в 72rem выходят по ~115px, запись в них не читается. */
+[data-web] .app-col:has([data-full]) { max-width: 1680px; }
+
+/* Дашборд: блок стоит на месте, под курсором оживает содержимое —
+   столбики подрастают волной, фигура в углу поворачивается, строки
+   по очереди подаются вправо, стрелки часов делают круг. */
+.dash-bar { transform-origin: bottom; }
+.dash-block:hover .dash-bar { animation: dash-rise .6s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes dash-rise { 0% { transform: scaleY(.2); } 65% { transform: scaleY(1.08); } 100% { transform: scaleY(1); } }
+
+.dash-decor { transition: transform .8s cubic-bezier(.22,1,.36,1); }
+.dash-block:hover .dash-decor[data-kind="plus"] { transform: rotate(90deg) scale(1.08); }
+.dash-block:hover .dash-decor[data-kind="burst"] { transform: rotate(60deg) scale(1.12); }
+.dash-block:hover .dash-decor[data-kind="triangle"] { transform: rotate(-12deg) scale(1.1); }
+.dash-block:hover .dash-decor[data-kind="heart"] { animation: dash-beat 1.1s ease-in-out infinite; }
+@keyframes dash-beat { 0%, 100% { transform: scale(1); } 20% { transform: scale(1.1); } 40% { transform: scale(.98); } 60% { transform: scale(1.06); } }
+
+.dash-block:hover .dash-row { animation: dash-nudge .55s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@keyframes dash-nudge { 0%, 100% { transform: translateX(0); } 45% { transform: translateX(4px); } }
+.dash-hand { transform-origin: 12px 12px; transition: transform .7s cubic-bezier(.22,1,.36,1); }
+.dash-row:hover .dash-hand { transform: rotate(360deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-block:hover .dash-bar,
+  .dash-block:hover .dash-row,
+  .dash-block:hover .dash-decor { animation: none; transform: none; }
+}
 
 /* Шкала текста: семь ступеней вместо тридцати четырёх. Размеры взяты по
    фактическим пикам в коде (10/11/12/13 мелкое, 14 текст, 16/20/24 заголовки).

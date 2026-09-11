@@ -53,8 +53,17 @@ function resolveTouch(mins: number, dur: number, others: Span[]): number {
 }
 
 // tail — что показать перед кнопкой сохранения (правила приёма живут там же).
-export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?: React.ReactNode }) {
+// split — веб: слева шкала дня, справа настройки, всё в одно окно без прокрутки.
+export function WorkHoursEditor({ onSaved, tail, split }: { onSaved?: () => void; tail?: React.ReactNode; split?: boolean }) {
   const qc = useQueryClient();
+  const [vh, setVh] = useState(900);
+  useEffect(() => {
+    if (!split) return;
+    const on = () => setVh(window.innerHeight);
+    on();
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [split]);
   const { data, isLoading } = useQuery({ queryKey: ["work-hours"], queryFn: getWorkHours });
   const [draft, setDraft] = useState<WorkHours | null>(null);
   const [day, setDay] = useState(0);
@@ -91,7 +100,9 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
   const len = draft.sessionMinutes;
   const start = from * 60;
   const end = to * 60;
-  const railH = Math.max(1, to - from) * PXH;
+  // В вебе шкала сжимается под высоту окна: над ней только дни и действия.
+  const pxh = split ? clamp(Math.floor((vh * 0.88 - 200) / Math.max(1, to - from)), 22, PXH) : PXH;
+  const railH = Math.max(1, to - from) * pxh;
   const slots = [...(draft.hours[day] ?? [])].sort((a, b) => a.t.localeCompare(b.t));
   const setSlots = (arr: WorkSlot[]) => setDraft({ ...draft, hours: { ...draft.hours, [day]: [...arr].sort((a, b) => a.t.localeCompare(b.t)) } });
   const overlaps = (mins: number, dur: number, others: Span[]) => others.some((o) => mins < o.e && o.s < mins + dur);
@@ -101,7 +112,7 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
     const rect = rail.getBoundingClientRect();
     const others = slots.map((s) => ({ s: toMin(s.t), e: toMin(s.t) + s.d }));
     // Сначала — ровное деление сетки. Прилипание к соседу только если на сетке занято.
-    let mins = clamp(snapMin(start + ((clientY - rect.top) / PXH) * 60), start, end - len);
+    let mins = clamp(snapMin(start + ((clientY - rect.top) / pxh) * 60), start, end - len);
     if (overlaps(mins, len, others)) {
       mins = clamp(snapMin(resolveTouch(mins, len, others)), start, end - len);
       if (overlaps(mins, len, others)) { select(); return; }
@@ -118,7 +129,7 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
   const removeAt = (t: string) => { select(); setSlots(slots.filter((s) => s.t !== t)); };
   const commitMove = (s: WorkSlot, dyPx: number) => {
     const others = slots.filter((x) => x.t !== s.t).map((x) => ({ s: toMin(x.t), e: toMin(x.t) + x.d }));
-    let mins = clamp(snapMin(toMin(s.t) + (dyPx / PXH) * 60), start, end - s.d);
+    let mins = clamp(snapMin(toMin(s.t) + (dyPx / pxh) * 60), start, end - s.d);
     if (overlaps(mins, s.d, others)) mins = clamp(snapMin(resolveTouch(mins, s.d, others)), start, end - s.d);
     if (overlaps(mins, s.d, others) || mins === toMin(s.t)) { if (mins !== toMin(s.t)) select(); return; }
     success();
@@ -127,8 +138,8 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
   const copyTo = (days: number[]) => { select(); const next = { ...draft.hours }; for (const d of days) next[d] = slots.map((x) => ({ ...x })); setDraft({ ...draft, hours: next }); };
   const clearDay = () => { if (slots.length === 0) return; success(); setSlots([]); };
 
-  return (
-    <div className="space-y-3.5">
+  const head = (
+    <>
       {/* Интервал работы */}
       <div className="flex items-center gap-2">
         <span className="text-[12px] font-bold text-[var(--muted)]">Работаю</span>
@@ -141,7 +152,11 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
         <span className="text-[12px] font-bold text-[var(--muted)]">Длина новой сессии</span>
         <MinuteSlider value={len} onChange={(v) => setDraft({ ...draft, sessionMinutes: v })} />
       </div>
+    </>
+  );
 
+  const chart = (
+    <>
       {/* Дни недели */}
       <div className="flex gap-1.5">
         {WEEKDAYS.map((label, wd) => {
@@ -169,17 +184,17 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
         <div className="flex gap-2">
           <div className="relative w-9 shrink-0" style={{ height: railH }}>
             {Array.from({ length: to - from + 1 }, (_, i) => (
-              <span key={i} className="absolute right-1 -translate-y-1/2 text-[10px] font-bold text-[var(--muted-2)] tnum" style={{ top: i * PXH }}>{pad(from + i)}:00</span>
+              <span key={i} className="absolute right-1 -translate-y-1/2 text-[10px] font-bold text-[var(--muted-2)] tnum" style={{ top: i * pxh }}>{pad(from + i)}:00</span>
             ))}
           </div>
           <div ref={railRef} onClick={(e) => placeAt(e.clientY)} className="relative flex-1 overflow-hidden rounded-[13px] stroke-lg" style={{ height: railH, background: "#fff" }}>
             {/* Часы — сплошной линией, получасы — пунктиром: видно, куда встанет окно. */}
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
-              <div key={`h${i}`} className="absolute inset-x-0" style={{ top: (i + 1) * PXH, borderTop: "1px solid var(--edge-neutral)" }} />
+              <div key={`h${i}`} className="absolute inset-x-0" style={{ top: (i + 1) * pxh, borderTop: "1px solid var(--edge-neutral)" }} />
             ))}
             {/* Получасы — пунктиром; четверти остаются только магнитными якорями. */}
             {Array.from({ length: Math.max(0, to - from) }, (_, i) => (
-              <div key={`h${i}-half`} className="absolute inset-x-0" style={{ top: (i + 0.5) * PXH, borderTop: "1px dashed var(--edge-neutral)", opacity: 0.7 }} />
+              <div key={`h${i}-half`} className="absolute inset-x-0" style={{ top: (i + 0.5) * pxh, borderTop: "1px dashed var(--edge-neutral)", opacity: 0.7 }} />
             ))}
             <AnimatePresence>
               {slots.map((s) => (
@@ -188,19 +203,23 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
                   label={`${s.t}–${hhmm(toMin(s.t) + s.d)}`}
                   hour={Math.floor(toMin(s.t) / 60)}
                   fmt={s.fmt}
-                  top={((toMin(s.t) - start) / 60) * PXH}
-                  height={(s.d / 60) * PXH - 3}
+                  top={((toMin(s.t) - start) / 60) * pxh}
+                  height={(s.d / 60) * pxh - 3}
                   onRemove={() => removeAt(s.t)}
                   onToggleFmt={() => toggleFmt(s.t)}
                   onCommit={(dy) => commitMove(s, dy)}
                 />
               ))}
             </AnimatePresence>
-            {slots.length === 0 && <span className="pointer-events-none absolute inset-x-0 px-4 text-center text-[12px] font-semibold text-[var(--muted-2)]" style={{ top: PXH * 0.5 - 8 }}>Нажми, чтобы добавить сессию</span>}
+            {slots.length === 0 && <span className="pointer-events-none absolute inset-x-0 px-4 text-center text-[12px] font-semibold text-[var(--muted-2)]" style={{ top: pxh * 0.5 - 8 }}>Нажми, чтобы добавить сессию</span>}
           </div>
         </div>
       </div>
+    </>
+  );
 
+  const rest = (
+    <>
       <WeekMini hours={draft.hours} from={from} to={to} day={day} onPick={(d) => { select(); setDay(d); }} />
 
       {tail}
@@ -208,8 +227,18 @@ export function WorkHoursEditor({ onSaved, tail }: { onSaved?: () => void; tail?
       <button disabled={save.isPending} onClick={() => save.mutate()} className="btn w-full py-3 text-[14px]">
         {save.isSuccess ? "Сохранено ✓" : "Сохранить расписание"}
       </button>
-    </div>
+    </>
   );
+
+  if (split) {
+    return (
+      <div className="grid gap-x-6 gap-y-3.5 md:grid-cols-2">
+        <div className="space-y-3">{chart}</div>
+        <div className="space-y-3.5">{head}{rest}</div>
+      </div>
+    );
+  }
+  return <div className="space-y-3.5">{head}{chart}{rest}</div>;
 }
 
 function ActionChip({ icon, tone = "neutral", disabled, onClick, children }: { icon: IconName; tone?: "neutral" | "salmon"; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
