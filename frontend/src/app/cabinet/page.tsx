@@ -16,7 +16,10 @@ import { Onboarding } from "@/components/onboarding";
 import { ProfileEditor } from "@/components/profile-editor";
 import { RemindersModule } from "@/components/reminders";
 import { SubscriptionBanner } from "@/components/subscription-block";
+import { CatalogVerification } from "@/components/psy-verification";
 import { Button, Card, Input } from "@/components/ui";
+import { Block, BlockTitle, Decor, INK, LINE, PAPER, pill, SUB, WebTitle } from "@/components/web-ui";
+import { useWebMode } from "@/lib/web-mode";
 import { bindAccountEmail, confirmAccountEmail, getAccountEmail, isEmail, unbindAccountEmail } from "@/lib/account";
 import { apiFetch } from "@/lib/api";
 import { asset } from "@/lib/asset";
@@ -50,6 +53,17 @@ export default function CabinetPage() {
   // ролей, будто он тут впервые.
   const [intro, setIntro] = useState(false);
   const [invite, setInvite] = useState(false);
+  const web = useWebMode();
+
+  if (web) {
+    return (
+      <>
+        {intro && <Onboarding startRole={role} preview onClose={() => setIntro(false)} />}
+        <AnimatePresence>{invite && <ClientInviteSheet onClose={() => setInvite(false)} />}</AnimatePresence>
+        <WebCabinet role={role} psy={psy} onSwitch={switchRole} onIntro={() => setIntro(true)} onInvite={() => setInvite(true)} />
+      </>
+    );
+  }
 
   return (
     <div className="stroke-mid">
@@ -172,6 +186,107 @@ export default function CabinetPage() {
   );
 }
 
+// Кабинет в браузере — плитками. Верификация здесь же блоком: форма
+// помещается в экран, и отдельная страница ради неё не нужна. Ярлыка на
+// рабочий стол нет — это про телефон.
+function WebCabinet({ role, psy, onSwitch, onIntro, onInvite }: { role: Role; psy: boolean; onSwitch: (r: Role) => void; onIntro: () => void; onInvite: () => void }) {
+  const verification = useVerification();
+  const approved = verification.data?.status === "approved";
+  const plain = { background: PAPER, border: `1px solid ${LINE}` };
+  const textLink = "inline-flex items-center gap-1.5 text-[12px] font-bold underline-offset-2 hover:underline";
+
+  return (
+    <div data-wide className="pb-4">
+      <WebTitle title="Кабинет" />
+
+      <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid min-w-0 content-start gap-2.5">
+          <Block delay={0.02} className="rounded-[18px] p-4" style={plain}>
+            <ProfileEditor key={role} embedded professional={psy} hideVerification={psy && !approved} roleControl={<RoleControl role={role} onSwitch={onSwitch} />} />
+          </Block>
+
+          <div className="grid gap-2.5 md:grid-cols-2">
+            {psy ? (
+              <div className="min-w-0"><SubscriptionBanner /></div>
+            ) : (
+              <Block delay={0.06} className="relative overflow-hidden rounded-[16px] p-4" style={{ background: "var(--purple-soft)" }}>
+                <Decor kind="burst" />
+                <BlockTitle>Хроника PRO</BlockTitle>
+                <p className="relative mt-2 max-w-[360px] text-[11px] font-medium leading-snug" style={{ color: SUB }}>Скоро появятся расширенные инструменты для самостоятельной работы по подписке PRO.</p>
+              </Block>
+            )}
+
+            {psy ? (
+              <Block delay={0.08} className="relative overflow-hidden rounded-[16px] p-4" style={{ background: "var(--raspberry-soft)" }}>
+                <Decor kind="plus" />
+                <BlockTitle>Пригласить клиента</BlockTitle>
+                <p className="relative mt-2 max-w-[340px] text-[11px] font-medium leading-snug" style={{ color: SUB }}>Текст со свободными окнами или афиша расписания картинкой.</p>
+                <button onClick={() => { tap(); onInvite(); }} className={`${pill} relative mt-3`} style={{ background: INK }}>
+                  <Icon name="telegram" width={12} color="#fff" /> Пригласить
+                </button>
+              </Block>
+            ) : (
+              <Block delay={0.08} className="rounded-[16px] p-4" style={plain}>
+                <BlockTitle>Напоминания о сессиях</BlockTitle>
+                <div className="mt-3"><RemindersModule /></div>
+              </Block>
+            )}
+
+            {psy && !approved && (
+              <Block delay={0.1} className="rounded-[16px] p-4 md:col-span-2" style={plain}>
+                <BlockTitle>Верификация</BlockTitle>
+                <div className="mt-3"><CatalogVerification /></div>
+              </Block>
+            )}
+
+            <div className="min-w-0"><InviteBanner variant={psy ? "psy" : "client"} /></div>
+            <div className="min-w-0"><CareModule /></div>
+            <div className="min-w-0 md:col-span-2"><PsyRoleRequest /></div>
+          </div>
+        </div>
+
+        <aside className="grid content-start gap-2.5">
+          <Block delay={0.12} className="relative overflow-hidden rounded-[16px] p-4" style={{ background: "var(--tiffany-soft)" }}>
+            <Decor kind="triangle" />
+            <BlockTitle>Конфиденциальность</BlockTitle>
+            <p className="relative mt-2 text-[11px] font-medium leading-snug" style={{ color: SUB }}>
+              Настроение, заметки, задания и переписка хранятся в зашифрованном виде. Мы их не читаем, не передаём третьим лицам и не обучаем на них модели. Доступ есть у вас и у специалиста, которого вы выбрали сами.
+            </p>
+            <div className="relative mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+              <button onClick={() => { tap(); onIntro(); }} className={textLink}>Знакомство заново</button>
+              <WipeDataRow asLink />
+            </div>
+          </Block>
+
+          <Block delay={0.15} className="rounded-[16px] p-4" style={plain}>
+            <BlockTitle>Документы</BlockTitle>
+            <div className="mt-3 grid gap-1.5">
+              <Link href="/policy" onClick={tap} className={textLink}><Icon name="book" width={13} /> Политика обработки данных</Link>
+              <Link href="/docs" onClick={tap} className={textLink}><Icon name="book" width={13} /> Документы</Link>
+            </div>
+          </Block>
+
+          <Block delay={0.18} className="rounded-[16px] p-4" style={{ background: "var(--surface-2)" }}>
+            <span className="flex items-start gap-3">
+              <Icon name="angel" width={22} weight="fill" color="var(--ink)" className="mt-0.5 shrink-0" />
+              <span className="min-w-0">
+                <span className="block text-[12px] font-bold leading-snug">Платформа создана центром «Амур и Психея»</span>
+                <span className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] font-bold" style={{ color: "var(--purple-edge)" }}>
+                  <a href={CENTER_URL} target="_blank" rel="noopener noreferrer" onClick={tap} className="underline-offset-2 hover:underline">{CENTER_SITE}</a>
+                  <button type="button" onClick={() => { tap(); openTelegramLink(AUTHOR_TG_URL); }} className="underline-offset-2 hover:underline">{AUTHOR_TG}</button>
+                </span>
+                <span className="tnum mt-1 block text-[10px] font-bold" style={{ color: "var(--muted-2)" }}>Версия {versionLabel()}</span>
+              </span>
+            </span>
+          </Block>
+
+          <AdminEntry />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 // Иконка мини-приложения на рабочем столе телефона.
 //
 // Положить ярлык сам умеет только Telegram для Android (Bot API 8.0). На iPhone
@@ -282,7 +397,7 @@ function HomeScreenCard() {
 // Удаление сведений о себе. Доступ при этом остаётся: закрывать человеку вход
 // в его же кабинет за то, что он попросил стереть данные, — не то, о чём он
 // просил. Карточки клиентов, записи на приём и подписка не трогаются.
-function WipeDataRow() {
+function WipeDataRow({ asLink = false }: { asLink?: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -303,12 +418,18 @@ function WipeDataRow() {
 
   return (
     <>
-      <ActionRow
-        icon="gear"
-        title={busy ? "Удаляем…" : "Удалить мои данные"}
-        danger
-        onClick={() => { tap(); setConfirming(true); }}
-      />
+      {asLink ? (
+        <button onClick={() => { tap(); setConfirming(true); }} className="text-[12px] font-bold underline-offset-2 hover:underline" style={{ color: "var(--salmon-edge)" }}>
+          {busy ? "Удаляем…" : "Удалить мои данные"}
+        </button>
+      ) : (
+        <ActionRow
+          icon="gear"
+          title={busy ? "Удаляем…" : "Удалить мои данные"}
+          danger
+          onClick={() => { tap(); setConfirming(true); }}
+        />
+      )}
       <WipeConfirm
         open={confirming}
         busy={busy}

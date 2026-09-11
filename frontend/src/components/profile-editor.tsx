@@ -54,7 +54,7 @@ const STEPS: StepDefinition[] = [
   { id: "preview", title: "Предпросмотр", short: "Как профиль увидит клиент", icon: "check", tone: "var(--purple-soft)" },
 ];
 
-export function ProfileEditor({ embedded = false, professional = true, roleControl }: { embedded?: boolean; professional?: boolean; roleControl?: ReactNode }) {
+export function ProfileEditor({ embedded = false, professional = true, roleControl, hideVerification = false }: { embedded?: boolean; professional?: boolean; roleControl?: ReactNode; hideVerification?: boolean }) {
   const profile = useProfile();
   const router = useRouter();
   const verification = useVerification();
@@ -91,7 +91,7 @@ export function ProfileEditor({ embedded = false, professional = true, roleContr
         </div>
       </div>
       {roleControl}
-      {professional && <VerificationPrompt />}
+      {professional && !hideVerification && <VerificationPrompt />}
       {professional && <ProfileProgress profile={profile} onContinue={openEditor} />}
       {professional && (profileCompletionPercent(profile) === 100
         ? <NextSteps />

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
@@ -15,39 +14,18 @@ const TechniqueRunner = dynamic(() => import("@/components/techniques").then((m)
 // Тест тянет за собой банк из 300 вопросов и тексты отчёта — грузим только по нажатию.
 const TraitTest = dynamic(() => import("@/components/trait-test").then((m) => m.TraitTest));
 import { ModulesShelf } from "@/components/pro-modules";
+import { CLIENT_PRACTICES, FillGlyph, WebTools } from "@/components/web-tools";
 import { asset } from "@/lib/asset";
 import { tap } from "@/lib/haptics";
 import { useRole } from "@/lib/role";
-// Интерактивные клиентские практики.
-const CLIENT_PRACTICES: { tech: TechKey; title: string; desc: string; time: string; image: string; bg: string; edge: string; soon?: boolean }[] = [
-  { tech: "breathing", title: "Спокойное дыхание", desc: "Снизить напряжение здесь и сейчас", time: "1–5 мин", image: "/practices/breathing-practice.webp", bg: "#d9edf3", edge: "#5f95ab" },
-  { tech: "thought", title: "Дневник мыслей", desc: "Отслеживать негативные убеждения и переформулировать их по методу КПТ", time: "2–7 мин", image: "/practices/automatic-thoughts.webp", bg: "var(--purple-soft)", edge: "var(--purple-edge)", soon: true },
-];
-
-// Пять дорожек, которые заполняются по очереди — «тест проходят прямо сейчас».
-function FillGlyph() {
-  const reduce = useReducedMotion();
-  return (
-    <span aria-hidden className="flex w-[44px] shrink-0 flex-col gap-[5px]">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <span key={i} className="block h-[6px] overflow-hidden rounded-full" style={{ background: "#efeae2" }}>
-          <motion.span
-            className="block h-full rounded-full"
-            style={{ background: "var(--purple-edge)" }}
-            initial={{ width: reduce ? "60%" : "0%" }}
-            animate={reduce ? undefined : { width: ["0%", "100%", "100%", "0%"] }}
-            transition={{ duration: 3.6, times: [0, 0.34, 0.74, 1], repeat: Infinity, delay: i * 0.16, ease: "easeInOut" }}
-          />
-        </span>
-      ))}
-    </span>
-  );
-}
+import { useWebMode } from "@/lib/web-mode";
 
 export default function ToolsPage() {
   // Практики у обеих ролей общие, а модули из подписки — только у специалиста.
   const [role] = useRole();
-  return <ClientTools psy={role === "psychologist"} />;
+  const web = useWebMode();
+  const psy = role === "psychologist";
+  return web ? <WebTools psy={psy} /> : <ClientTools psy={psy} />;
 }
 
 function ClientTools({ psy = false }: { psy?: boolean }) {

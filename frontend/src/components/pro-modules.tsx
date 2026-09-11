@@ -44,7 +44,7 @@ export const findModule = (id: string) => PRO_MODULES.find((m) => m.id === id)!;
  * Фон карточки модуля. Картинки для групп нет, и рисовать её незачем: круги
  * участников вокруг ведущего читаются с одного взгляда и живут в тоне раздела.
  */
-function GroupsArt({ edge, soft }: { edge: string; soft: string }) {
+export function GroupsArt({ edge, soft }: { edge: string; soft: string }) {
   const dot = (size: number, opacity: number) => (
     <span className="keep-style flex shrink-0 items-center justify-center rounded-full" style={{ width: size, height: size, background: "#fff", opacity, border: `2px solid ${edge}` }}>
       <Icon name="user" width={size * 0.5} weight="bold" color={edge} />

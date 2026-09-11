@@ -7,6 +7,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 import { ClientAvatar } from "@/components/client-avatar";
 import { Icon, type IconName } from "@/components/icons";
+import { Block, Decor } from "@/components/web-ui";
 import { hasEnded, isAhead, listAppointments, type Appointment } from "@/lib/appointments";
 import { HW_LABEL, listClients, listHomework, type Client } from "@/lib/clients";
 import { displayName } from "@/lib/profile";
@@ -148,7 +149,7 @@ function HomeworkBoard({ clients }: { clients: Client[] }) {
         {items.map(({ hw, client }, i) => (
           <Link
             key={hw.id}
-            href={`/clients/homework?id=${client.id}`}
+            href={`/clients/?id=${client.id}`}
             className="dash-row flex items-center gap-2.5 rounded-[14px] px-2.5 py-2"
             style={{ background: "rgba(255,255,255,.55)", "--i": i } as CSSProperties}
           >
@@ -205,32 +206,6 @@ function SectionCarousel() {
         </motion.div>
       ))}
     </div>
-  );
-}
-
-/** Блок дашборда: появляется снизу с задержкой по очереди и дальше стоит на
- *  месте. Под курсором оживает содержимое — `.dash-*` в globals.css. */
-function Block({
-  children,
-  className,
-  style,
-  delay = 0,
-}: {
-  children: ReactNode;
-  className?: string;
-  style?: CSSProperties;
-  delay?: number;
-}) {
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.45, ease: EASE }}
-      className={`dash-block ${className ?? ""}`}
-      style={style}
-    >
-      {children}
-    </motion.section>
   );
 }
 
@@ -333,26 +308,6 @@ function ClientsCard({ clients }: { clients: Client[] }) {
       </div>
     </Block>
   );
-}
-
-function Decor({ kind }: { kind: "plus" | "heart" | "triangle" | "burst" }) {
-  const style = {
-    position: "absolute" as const,
-    right: -10,
-    top: -10,
-    opacity: kind === "plus" || kind === "heart" ? 0.12 : 0.16,
-    pointerEvents: "none" as const,
-  };
-  if (kind === "plus") {
-    return <svg className="dash-decor" data-kind={kind} width="88" height="88" viewBox="0 0 24 24" fill={INK} style={style}><path d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z" /></svg>;
-  }
-  if (kind === "heart") {
-    return <svg className="dash-decor" data-kind={kind} width="120" height="120" viewBox="0 0 24 24" fill={INK} style={style}><path d="M12 21s-8-5.3-8-11a4.6 4.6 0 018-3 4.6 4.6 0 018 3c0 5.7-8 11-8 11z" /></svg>;
-  }
-  if (kind === "triangle") {
-    return <svg className="dash-decor" data-kind={kind} width="72" height="72" viewBox="0 0 24 24" fill={INK} style={{ ...style, top: -6 }}><path d="M12 3l9 18H3z" /></svg>;
-  }
-  return <svg className="dash-decor" data-kind={kind} width="72" height="72" viewBox="0 0 24 24" fill={INK} style={{ ...style, top: -6 }}><path d="M12 2l2.4 6.3L21 6l-3.3 6L21 18l-6.6-2.3L12 22l-2.4-6.3L3 18l3.3-6L3 6l6.6 2.3z" /></svg>;
 }
 
 function tone(format: string) {

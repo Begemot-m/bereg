@@ -12,8 +12,10 @@ import { ClientGroups } from "@/components/client-groups";
 import { useConfirmAsk } from "@/components/confirm-ask";
 import { Icon } from "@/components/icons";
 import { EmotionChips, MoodStats, topEmotions } from "@/components/mood-stats";
-import { PsychologistHomeworkPreview } from "@/components/psychologist-homework";
-import { PsychologistSessionJourney } from "@/components/session-reflections";
+import { PsychologistHomeworkDetail, PsychologistHomeworkPreview } from "@/components/psychologist-homework";
+import { PsychologistNotesDetail, PsychologistSessionJourney } from "@/components/session-reflections";
+import { Block, BlockTitle, INK, LINE, PAPER, pill, SUB } from "@/components/web-ui";
+import { useWebMode } from "@/lib/web-mode";
 import { TherapistBoardView } from "@/components/therapy-work";
 import { WellbeingCard } from "@/components/wellbeing-card";
 import { SlotPicker } from "@/components/slot-picker";
@@ -64,6 +66,7 @@ export function ClientDetail() {
   const search = useSearchParams();
   const id = Number(search.get("id") ?? params.id);
   const qc = useQueryClient();
+  const web = useWebMode();
   const inv = () => {
     qc.invalidateQueries({ queryKey: ["client", id] });
     qc.invalidateQueries({ queryKey: ["clients"] });
@@ -107,7 +110,7 @@ export function ClientDetail() {
   // Считается это на сервере за 60 дней вперёд — самый дорогой запрос карточки,
   // а нужен он только после нажатия «Записать на окно». SlotPicker внутри
   // спрашивает тот же ключ, так что запрос не добавляется, а переносится.
-  const { data: avail } = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability(), enabled: bookOpen });
+  const { data: avail } = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability(), enabled: bookOpen || web });
   const firstFree = useMemo(() => {
     if (!avail) return undefined;
     const today = ymdLocal(new Date());
@@ -154,6 +157,181 @@ export function ClientDetail() {
   // «Написать» ведёт в личный чат Telegram: ник подключённого аккаунта, а если
   // клиент не подключён — username из контакта.
   const tgLink = chatLink(client);
+
+  // В браузере карточка — дашборд: задания и заметки о встречах живут блоками
+  // здесь же, а не отдельными страницами; запись в окно всегда открыта справа.
+  if (web) {
+    const plain = { background: PAPER, border: `1px solid ${LINE}` };
+    const hwDone = homework.filter((h) => h.status === "done").length;
+    const stats: { value: string; caption: string; bg: string }[] = [
+      { value: String(held), caption: "встреч проведено", bg: "var(--green-soft)" },
+      { value: `${client.hoursDone} ч`, caption: "в работе", bg: "var(--raspberry-soft)" },
+      { value: `${hwDone}/${homework.length}`, caption: "заданий сделано", bg: "var(--tiffany-soft)" },
+      { value: String(moods.length), caption: plural(moods.length, "отметка настроения", "отметки настроения", "отметок настроения"), bg: "var(--amber-soft)" },
+    ];
+    return (
+      <div data-wide className="pb-4">
+        <Link href="/clients" onClick={tap} className="inline-flex items-center gap-1 text-[12px] font-bold" style={{ color: SUB }}>
+          <span className="inline-block rotate-180"><ArrowGlyph size={11} /></span> Все клиенты
+        </Link>
+
+        <div className="mb-4 mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
+          <ClientAvatar name={client.name} photo={client.photo} className="h-16 w-16 shrink-0 rounded-[18px] text-[24px] font-black" style={{ background: `var(--${st}-soft)` }} />
+          <div className="mr-auto min-w-0">
+            <h1 className="break-words text-[28px] font-[650] leading-none tracking-tight">{client.name}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold" style={{ color: SUB }}>
+              <span className="rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em]" style={{ background: `var(--${st})`, color: INK }}>{STATUS_LABEL[dstatus]}</span>
+              <span>{client.link === "joined" ? "профиль подключён" : client.link === "invited" ? "приглашение отправлено" : "не подключён"}</span>
+              <span>{client.contact ? formatContact(client.contact) : "контакт не указан"}</span>
+              {client.demo && <span>демо-карточка, место в тарифе не занимает</span>}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {client.link !== "joined" && (
+              <button onClick={() => { tap(); setEditOpen((v) => !v); }} className="text-[12px] font-bold underline-offset-2 hover:underline" aria-expanded={editOpen}>Редактировать</button>
+            )}
+            {tgLink && (
+              <a href={tgLink} target="_blank" rel="noopener noreferrer" onClick={tap} className={pill} style={{ background: INK }}>
+                <Icon name="telegram" width={12} color="#fff" /> Написать
+              </a>
+            )}
+          </div>
+        </div>
+
+        {editOpen && <div className="mb-2.5 max-w-[520px]"><ClientEdit client={client} onChanged={inv} onClose={() => setEditOpen(false)} /></div>}
+
+        {client.joinedName && client.joinedName !== client.name && (
+          <div className="mb-2.5 flex flex-wrap items-center gap-3 rounded-[14px] px-3.5 py-2.5" style={{ background: "var(--green-soft)" }}>
+            <p className="mr-auto text-[12px] font-bold">При синхронизации клиент указал имя «{client.joinedName}»</p>
+            <button onClick={() => { tap(); patch.mutate({ name: client.joinedName as string, joinedName: null }); }} className={pill} style={{ background: INK }}>Заменить</button>
+            <button onClick={() => { tap(); patch.mutate({ joinedName: null }); }} className="text-[12px] font-bold underline-offset-2 hover:underline">Оставить своё</button>
+          </div>
+        )}
+
+        <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid min-w-0 content-start gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {stats.map((s, i) => (
+                <Block key={s.caption} delay={0.03 * i} className="flex h-[74px] flex-col justify-between rounded-[16px] p-3" style={{ background: s.bg }}>
+                  <span className="tnum text-[22px] font-black leading-none" style={{ color: INK }}>{s.value}</span>
+                  <span className="text-[8px] font-bold uppercase tracking-[0.12em]" style={{ color: INK, opacity: 0.55 }}>{s.caption}</span>
+                </Block>
+              ))}
+            </div>
+
+            <Block delay={0.1} className="rounded-[16px] p-4" style={plain}>
+              <BlockTitle>Задания</BlockTitle>
+              <div className="mt-3">
+                <PsychologistHomeworkDetail clientId={id} items={homework} onChanged={() => void qc.invalidateQueries({ queryKey: ["homework", id] })} />
+              </div>
+            </Block>
+
+            <div className="grid min-w-0 gap-2.5 xl:grid-cols-2">
+              <div className="min-w-0">
+                {moods.length > 0
+                  ? <MoodStats moods={moods} title="Настроение клиента" />
+                  : <Block delay={0.12} className="rounded-[16px] p-4" style={plain}><BlockTitle>Настроение клиента</BlockTitle><p className="mt-2 text-[11px] font-medium" style={{ color: SUB }}>Отметок пока нет.</p></Block>}
+              </div>
+              <div className="min-w-0"><WellbeingCard wheel={therapy?.wheel ?? null} subtitle="самооценка клиента · последние две недели" /></div>
+            </div>
+
+            {therapy && <TherapistBoardView value={therapy.board} name={client.name} />}
+
+            {therapy && (
+              <Block delay={0.14} className="rounded-[16px] p-4" style={plain}>
+                <BlockTitle>Заметки о встречах</BlockTitle>
+                <div className="mt-3">
+                  <PsychologistNotesDetail meetings={appts} reflections={therapy.reflections} module={therapy.notesModule} saving={notesModule.isPending} onToggle={() => notesModule.mutate(!therapy.notesModule.psychologistEnabled)} />
+                </div>
+              </Block>
+            )}
+
+            <Block delay={0.16} className="rounded-[16px] p-4" style={plain}>
+              <BlockTitle right={<span className="text-[10px] font-bold" style={{ color: SUB }}>проведено: {held}</span>}>История встреч</BlockTitle>
+              <div className="mt-3">
+                {appts.length === 0 ? (
+                  <p className="text-[11px] font-medium" style={{ color: SUB }}>Встреч пока не было.</p>
+                ) : (
+                  <MeetingHistory appts={appts} onReschedule={(apptId, iso, format, from) => ask({
+                    title: "Перенести встречу?",
+                    when: dtf.format(new Date(iso)),
+                    note: `Сейчас встреча стоит на ${dtf.format(new Date(from))}. ${client.name} получит уведомление о новом времени.`,
+                    confirm: "Перенести",
+                    tone: "accent",
+                    icon: "swap",
+                    run: () => { void updateAppointment(apptId, { startsAt: iso, format }).then(() => { success(); inv(); }); },
+                  })} />
+                )}
+              </div>
+            </Block>
+          </div>
+
+          <aside className="grid min-w-0 content-start gap-2.5">
+            <Block delay={0.06} className="rounded-[16px] p-4" style={plain}>
+              <BlockTitle>{nextAppt ? "Перезаписать" : "Записать на окно"}</BlockTitle>
+              <p className="mt-1.5 text-[11px] font-semibold" style={{ color: nextAppt ? INK : SUB }}>
+                {nextAppt ? `Сейчас: ${dtf.format(new Date(nextAppt.startsAt))} · ${nextAppt.format === "online" ? "онлайн" : "очно"}` : "Встреча пока не назначена"}
+              </p>
+              <div className="mt-3">
+                {booked ? (
+                  <div>
+                    <p className="inline-flex items-center gap-1.5 text-[12px] font-bold">
+                      <Icon name="check" width={13} weight="bold" color="var(--green-edge)" />
+                      {client.name} {verbEnding(client.name, "записан")}
+                    </p>
+                    <p className="tnum mt-1 text-[11px] font-semibold first-letter:uppercase" style={{ color: SUB }}>{dtf.format(new Date(booked.at))} · {booked.format === "online" ? "онлайн" : "очно"}</p>
+                    <button onClick={() => { tap(); setBooked(null); }} className={`${pill} mt-2.5`} style={{ background: INK }}>Готово</button>
+                  </div>
+                ) : (
+                  <>
+                    <SlotPicker variant="calendar" showAvail startDay={apptDay ?? firstFree} appts={appts} onDayChange={setPickDay} onPick={(iso, format) => ask({
+                      title: nextAppt ? "Перенести встречу?" : "Записать на встречу?",
+                      when: dtf.format(new Date(iso)),
+                      note: nextAppt
+                        ? `Текущая запись на ${dtf.format(new Date(nextAppt.startsAt))} освободится, ${client.name} получит уведомление о новом времени.`
+                        : `${client.name} увидит встречу в своём расписании и получит напоминание перед началом.`,
+                      confirm: nextAppt ? "Перенести" : "Записать",
+                      tone: nextAppt ? "accent" : "green",
+                      icon: nextAppt ? "swap" : "check",
+                      run: () => book.mutate({ iso, format }),
+                    })} />
+                    <ClientDayTools day={pickDay ?? apptDay ?? firstFree ?? todayY} clientId={client.id} />
+                  </>
+                )}
+              </div>
+            </Block>
+
+            {client.link !== "joined" && (
+              <Block delay={0.09} className="rounded-[16px] p-4" style={{ background: "var(--raspberry-soft)" }}>
+                <BlockTitle>Пригласить в приложение</BlockTitle>
+                <ClientConnect client={client} onChanged={inv} />
+              </Block>
+            )}
+
+            <ClientGroups clientId={id} />
+
+            <Block delay={0.12} className="rounded-[16px] p-4" style={{ background: "var(--amber-soft)" }}>
+              <BlockTitle>Приватные заметки</BlockTitle>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={5}
+                placeholder="Видите только вы"
+                className="mt-3 w-full resize-y rounded-[12px] px-3 py-2 text-[12px] font-medium outline-none"
+                style={{ background: "var(--surface)" }}
+              />
+              <button onClick={() => { tap(); patch.mutate({ note }); }} disabled={note === client.note} className={`${pill} mt-2`} style={{ background: INK }}>
+                {patch.isSuccess && note === client.note ? "Сохранено" : "Сохранить"}
+              </button>
+            </Block>
+
+            <RemoveClient client={client} />
+          </aside>
+        </div>
+        {askNode}
+      </div>
+    );
+  }
 
   return (
     <div className="-mx-4 -mt-6 @md:-mx-9">
