@@ -194,10 +194,10 @@ function accentFor(pathname: string) {
 function Wordmark({ small }: { small?: boolean }) {
   return (
     <Link href="/" className="inline-flex items-center gap-2">
-      <span className="flex h-8 w-8 items-center justify-center rounded-[9px] text-[16px] font-black text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
+      <span className="wordmark-badge flex h-8 w-8 items-center justify-center rounded-[9px] text-[16px] font-black text-[var(--bg)] stroke" style={{ background: "var(--ink)" }}>
         {APP_NAME.charAt(0)}
       </span>
-      <span className={`font-tight font-extrabold ${small ? "text-lg" : "text-xl"}`}>{APP_NAME}</span>
+      <span className={`wordmark-text font-tight font-extrabold ${small ? "text-lg" : "text-xl"}`}>{APP_NAME}</span>
     </Link>
   );
 }
@@ -233,6 +233,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const items = NAV[role];
   const cabinetActive = pathname.startsWith("/cabinet");
   const accent = accentFor(pathname);
+  const activeIndex = items.findIndex((it) => isActive(pathname, it.href));
 
   // Посещаемость: раздел отмечается на каждом переходе, не чаще раза в пять
   // минут на раздел. Сводку читает админка.
@@ -527,10 +528,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       )}
       {/* Десктоп: сайдбар */}
-      <aside className="fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
+      <aside className="app-side fixed left-0 top-0 z-30 hidden h-full w-[248px] flex-col justify-between px-4 py-6 @md:flex" style={{ borderRight: "var(--bw) solid var(--stroke)", background: "var(--surface)" }}>
         <div>
           <div className="px-1"><Wordmark /></div>
-          <nav className="mt-8 flex flex-col gap-2">
+          {/* Индикатор один на всю колонку и ездит по ней сдвигом: так перелив
+              в рабочую область не зависит от замеров разметки и не может
+              разъехаться, как это делала капля с общим layoutId. Шаг — высота
+              пункта (44) плюс зазор (8). */}
+          <nav className="relative mt-8 flex flex-col gap-2">
+            {activeIndex >= 0 && (
+              <span
+                aria-hidden
+                className="nav-indicator"
+                style={{ transform: `translateY(${activeIndex * 52}px)` }}
+              />
+            )}
             {items.map((it) => {
               const active = isActive(pathname, it.href);
               return (
@@ -539,11 +551,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={it.href}
                   onClick={select}
                   data-tour={`nav-${it.href === "/" ? "home" : it.href.slice(1)}`}
-                  className="flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
-                  style={active ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
+                  data-active={active ? "1" : undefined}
+                  className="nav-item relative flex h-11 items-center gap-3 rounded-[13px] px-3 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
                 >
+                  {active && <span className="nav-blob" />}
                   <NavIcon icon={it.icon} active={active} size={19} weight="regular" />
-                  {it.label}
+                  <span className="relative">{it.label}</span>
                 </Link>
               );
             })}
@@ -553,9 +566,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           href="/cabinet"
           onClick={select}
           data-tour="nav-cabinet"
-          className="flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
-          style={cabinetActive ? { background: "var(--head)", border: "var(--bw) solid var(--edge)" } : { color: "var(--muted)" }}
+          data-active={cabinetActive ? "1" : undefined}
+          className="nav-item relative flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-sm font-bold transition-transform duration-150 active:scale-[0.98]"
         >
+          {cabinetActive && <span className="nav-blob" />}
           <span className="flex h-8 w-8 items-center justify-center rounded-full stroke" style={{ background: "#fff" }}>
             <Icon name="user" width={16} />
           </span>

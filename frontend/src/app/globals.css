@@ -46,6 +46,11 @@
   --salmon-edge: #d1725b;
   --pink: #f1b3aa;
   --sky: #a7cfdf;
+  /* Малина — те же три ступени, что у остальных тонов: фоновый лёгкий,
+     средний, акцентный. */
+  --raspberry-soft: #f9e0e9;
+  --raspberry: #eeafc8;
+  --raspberry-edge: #b2526f;
   /* Устаревшие имена зелёного. Раньше это была отдельная олива. */
   --olive: var(--green);
   --olive-soft: var(--green-soft);
@@ -115,10 +120,257 @@
 [data-accent="salmon"] { --head: var(--salmon); --head-soft: var(--salmon-soft); --accent: var(--salmon); --edge: var(--salmon-edge); --page: color-mix(in srgb, var(--salmon) 44%, #fbf7ee); }
 [data-accent="tiffany"] { --head: var(--tiffany); --head-soft: var(--tiffany-soft); --accent: var(--tiffany); --edge: var(--tiffany-edge); --page: color-mix(in srgb, var(--tiffany) 42%, #f8fcfa); }
 [data-accent="peach"]  { --head: var(--peach);  --head-soft: var(--peach-soft);  --accent: var(--peach);  --edge: var(--peach-edge);  --page: color-mix(in srgb, var(--peach) 46%, #fbf7ee); }
+[data-accent="raspberry"] { --head: var(--raspberry); --head-soft: var(--raspberry-soft); --accent: var(--raspberry); --edge: var(--raspberry-edge); --page: color-mix(in srgb, var(--raspberry) 42%, #fbf7f2); }
 :root { --head: var(--amber); --head-soft: var(--amber-soft); --accent: var(--amber); --edge: var(--amber-edge); --page: color-mix(in srgb, var(--amber) 46%, #fbf7ee); }
 /* --stroke переопределяем здесь же: var() считается на элементе, где объявлен,
    поэтому в :root он бы навсегда застыл янтарным и наследовался вниз. */
 [data-accent] { --stroke: var(--edge); }
+
+/* Пункт бокового меню. Цвет неактивного задаётся здесь, а не в разметке:
+   в вебе сайдбар чёрный и цвет другой. */
+.nav-item:not([data-active="1"]) {
+  color: var(--muted);
+}
+
+/* Веб-версия. В браузере интерфейс говорит языком лендинга, а не
+   мини-приложения: вместо жирной обводки в тоне раздела — волосяная линия,
+   радиусы крупнее, у белых блоков мягкая тень. Разметка и данные общие с
+   мини-приложением — меняется только то, как это нарисовано.
+   Флаг ставится на <html>, поэтому достаёт и до окон, которые рисуются
+   порталом в body. Селектор с потомком нужен, чтобы перебить
+   `[data-accent] { --stroke: var(--edge) }` выше: он объявлен на вложенном
+   элементе и иначе вернул бы рамку в тоне раздела. */
+[data-web] {
+  /* Цвета остаются наши — те же, что в бою. Из эталона взята геометрия:
+     волосяная линия вместо обводки, плотные радиусы, отсутствие теней. */
+  --surface-2: #f1ece2;
+  --shadow: none;
+  --shadow-lift: none;
+
+  /* Сайдбар — тёмная колонка в наших чернилах. */
+  --side-bg: var(--ink);
+  --side-fg: #ffffff;
+  --side-muted: rgba(255, 255, 255, 0.45);
+  --side-mark: var(--raspberry);
+}
+
+/* Геометрия эталона: волосяная линия вместо обводки, плотные радиусы, тени
+   выключены совсем. Селектор с потомком перебивает `[data-accent]` выше —
+   он объявлен на вложенном элементе и вернул бы рамку в тоне раздела. */
+[data-web],
+[data-web][data-accent],
+[data-web] [data-accent] {
+  --bw: 1px;
+  --bw-lg: 1px;
+  --stroke: var(--hairline);
+  --edge-neutral: var(--hairline);
+  --r-block: 18px;
+  --r-sm: 13px;
+  --page: var(--bg);
+}
+
+/* Знакомство на компьютере — альбомное: текст слева, макет справа, всё в один
+   экран без прокрутки. На узком окне остаётся прежняя колонка. */
+@media (min-width: 900px) {
+  [data-web] .onb-root {
+    overflow: hidden;
+  }
+
+  [data-web] .onb-wrap {
+    max-width: 1120px;
+    height: 100%;
+    padding-top: 26px;
+    padding-bottom: 26px;
+  }
+
+  [data-web] .onb-step {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 56px;
+  }
+
+  [data-web] .onb-art {
+    min-height: 0;
+    height: 100%;
+    padding: 0;
+  }
+
+  /* Приветствие и последний шаг остаются одной колонкой: там форма и согласие,
+     растянутые на весь монитор они читаются хуже. */
+  [data-web] .onb-solo {
+    max-width: 620px;
+    margin-inline: auto;
+    width: 100%;
+  }
+}
+
+/* Шапка раздела в вебе — без собственной заливки: непрозрачная плашка во всю
+   ширину накрывала содержимое, которое выезжает снизу на появлении. */
+[data-web] [data-page-head] {
+  background: transparent !important;
+}
+
+/* Полоса под чёлку Telegram в браузере не нужна. */
+[data-web] {
+  --top-pad: 0px;
+}
+
+/* Полотно веба: контент занимает экран, а не стоит колонкой по центру.
+   48rem из мини-приложения на мониторе читались как телефон посередине. */
+[data-web] .app-col {
+  max-width: 1200px;
+}
+
+[data-web] .card,
+[data-web] .panel,
+[data-web] .card-alt-line,
+[data-web] .tf {
+  border-color: var(--hairline);
+}
+
+[data-web] .chunk,
+[data-web] .card,
+[data-web] .panel,
+[data-web] .sheet {
+  box-shadow: none;
+}
+
+/* Сайдбар — чёрная колонка. Активный раздел: белый текст и розовая полоска
+   слева, без подложки и рамки. */
+[data-web] .app-side {
+  /* Инлайновые стили оболочки перебиваются намеренно: цвет сайдбара в вебе —
+     не тон раздела, а чёрный, и правится он здесь, а не в разметке. */
+  background: var(--side-bg) !important;
+  border-right: 0 !important;
+  border-radius: 18px;
+  margin: 10px 0 10px 10px;
+  height: calc(100% - 20px);
+  width: 190px;
+}
+
+[data-web] .app-side .nav-item,
+[data-web] .app-side a {
+  color: var(--side-fg);
+}
+
+[data-web] .app-side .nav-item:not([data-active="1"]) {
+  color: var(--side-muted) !important;
+}
+
+[data-web] .nav-item {
+  position: relative;
+  border-color: transparent;
+  border-radius: 12px;
+  background: transparent !important;
+}
+
+/* Активный раздел вытекает из меню в полотно: та же заливка, что у страницы,
+   скругление только слева, а на стыке сверху и снизу — вогнутые уголки.
+   Рисуются они так: пустой квадрат со скруглением одного угла, а заливку
+   вокруг него даёт box-shadow с разбросом — обычный приём для «перелива».
+   Сама заливка живёт отдельным слоем (.nav-blob) с общим layoutId, поэтому
+   при смене раздела она перетекает каплей, а не перекрашивается рывком. */
+/* Вылет за правый край — у всех пунктов, а не только у активного. Иначе
+   капля с общим layoutId меряет старую позицию по расширенному пункту, а новую
+   по обычному, и на переходе уезжает мимо. */
+[data-web] .app-side .nav-item {
+  margin-right: -16px;
+  padding-right: 20px;
+}
+
+[data-web] .app-side .nav-item[data-active="1"] {
+  color: var(--ink) !important;
+}
+
+/* Знак на тёмной колонке: плашка светлая, буква тёмная — иначе чёрное на
+   чёрном, как было видно на скриншоте. */
+[data-web] .app-side .wordmark-badge {
+  background: var(--bg) !important;
+  color: var(--ink) !important;
+  border-color: transparent !important;
+}
+
+[data-web] .app-side .wordmark-text {
+  color: #fff;
+}
+
+[data-web] .app-side .nav-item > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* В вебе заливку рисует бегунок на всю колонку, а плашка внутри пункта не
+   нужна — иначе они дублируют друг друга. */
+[data-web] .app-side .nav-blob {
+  display: none;
+}
+
+/* Бегунок: высота пункта, вылет вправо до рабочей области, скругление слева и
+   вогнутые уголки на стыке. Едет сдвигом — отсюда плавный перелив. */
+.nav-indicator {
+  display: none;
+}
+
+[data-web] .nav-indicator {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: -16px;
+  height: 44px;
+  z-index: 0;
+  background: var(--bg);
+  border-radius: 14px 0 0 14px;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.28, 1);
+  pointer-events: none;
+}
+
+[data-web] .nav-indicator::before,
+[data-web] .nav-indicator::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  background: transparent;
+}
+
+[data-web] .nav-indicator::before {
+  top: -14px;
+  border-bottom-right-radius: 14px;
+  box-shadow: 0 7px 0 7px var(--bg);
+}
+
+[data-web] .nav-indicator::after {
+  bottom: -14px;
+  border-top-right-radius: 14px;
+  box-shadow: 0 -7px 0 7px var(--bg);
+}
+
+/* В мини-приложении капля остаётся прежней плашкой в тоне раздела. */
+.nav-blob {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 13px;
+  background: var(--head);
+  border: var(--bw) solid var(--edge);
+}
+
+.nav-item > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Кнопка с обводкой в вебе становится мягкой пилюлей: рамок у кнопок здесь
+   нет вообще, их роль играет заливка (как `SoftButton` на лендинге). */
+[data-web] .btn-outline,
+[data-web] .btn-soft,
+[data-web] .btn-white {
+  background: rgba(32, 28, 24, 0.07);
+  border-color: transparent;
+}
 
 /* Совместимость со старыми токенами — плоский bold-стиль */
 :root {

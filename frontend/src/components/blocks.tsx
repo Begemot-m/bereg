@@ -14,6 +14,7 @@ export function PageHead({ title, sub, subIcon, icon, back, backLight, right, ch
   const reduce = useReducedMotion();
   return (
     <div
+      data-page-head
       className="mb-5 -mx-4 px-5 pb-3 pt-1 @md:mx-0 @md:px-1 @md:pt-4"
       style={{ background: "var(--page)" }}
     >

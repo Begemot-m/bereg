@@ -203,7 +203,7 @@ export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; 
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 overflow-y-auto"
+      className="onb-root fixed inset-0 z-50 overflow-y-auto"
       data-accent="purple"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -222,7 +222,7 @@ export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; 
         </>
       )}
 
-      <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col px-4 pb-[calc(var(--safe-bottom)+18px)] pt-[var(--top-pad)] min-[360px]:px-5 min-[390px]:px-6 md:pt-8">
+      <div className="onb-wrap relative mx-auto flex min-h-full w-full max-w-md flex-col px-4 pb-[calc(var(--safe-bottom)+18px)] pt-[var(--top-pad)] min-[360px]:px-5 min-[390px]:px-6 md:pt-8">
         {/* Верх: прогресс по ветке роли + пропустить */}
         <div className="flex items-center gap-3">
           <div className="flex flex-1 gap-1.5">
@@ -241,7 +241,7 @@ export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -26 }}
             transition={{ duration: 0.28, ease: EASE }}
-            className="relative flex min-h-0 flex-1 flex-col touch-pan-y"
+            className={`relative flex min-h-0 flex-1 flex-col touch-pan-y${isWelcome || isFinish ? " onb-solo" : ""}`}
             onPointerDown={(event) => { if (cur) swipeX.current = event.clientX; }}
             onPointerUp={(event) => endSwipe(event.clientX)}
             onPointerCancel={() => { swipeX.current = null; }}
@@ -259,22 +259,24 @@ export function Onboarding({ startRole, preview, onClose }: { startRole?: Role; 
                 return picked === "psychologist" ? <PsySell {...consent} /> : <ClientFinish {...consent} />;
               })()
             ) : cur ? (
-              <div className="flex flex-1 flex-col">
-                <span className="mt-[clamp(12px,3vh,24px)] inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
-                <h1 className="font-tight mt-3 text-[clamp(23px,7vw,27px)] font-black leading-[1.08]">
-                  {cur.title}
-                  {cur.titleAccent && <><br /><span style={{ color: cur.tone }}>{cur.titleAccent}</span></>}
-                </h1>
-                <ul className="mt-3 space-y-1.5 min-[390px]:mt-4 min-[390px]:space-y-2">
-                  {cur.points.map((p, i) => (
-                    <motion.li key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: `1.5px solid ${cur.tone}` }}><Icon name="check" width={12} weight="bold" color={cur.tone} /></span>
-                      {p}
-                    </motion.li>
-                  ))}
-                </ul>
+              <div className="onb-step flex flex-1 flex-col">
+                <div className="onb-text flex flex-col">
+                  <span className="mt-[clamp(12px,3vh,24px)] inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: cur.tone, border: `1.5px solid ${cur.tone}` }}>{cur.kicker}</span>
+                  <h1 className="font-tight mt-3 text-[clamp(23px,7vw,27px)] font-black leading-[1.08]">
+                    {cur.title}
+                    {cur.titleAccent && <><br /><span style={{ color: cur.tone }}>{cur.titleAccent}</span></>}
+                  </h1>
+                  <ul className="mt-3 space-y-1.5 min-[390px]:mt-4 min-[390px]:space-y-2">
+                    {cur.points.map((p, i) => (
+                      <motion.li key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.06 }} className="flex items-start gap-2.5 text-[13.5px] font-bold leading-snug">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white" style={{ border: `1.5px solid ${cur.tone}` }}><Icon name="check" width={12} weight="bold" color={cur.tone} /></span>
+                        {p}
+                      </motion.li>
+                    ))}
+                  </ul>
+                </div>
                 {/* «Арт»-зона: макет элемента приложения на мягкой цветной подложке */}
-                <div className="relative flex min-h-[238px] flex-1 items-center justify-center py-3">
+                <div className="onb-art relative flex min-h-[238px] flex-1 items-center justify-center py-3">
                   <span aria-hidden className="pointer-events-none absolute h-[min(300px,82vw)] w-[min(300px,82vw)] rounded-full" style={{ background: cur.soft, opacity: 0.75 }} />
                   <span aria-hidden className="pointer-events-none absolute bottom-2 h-24 w-52 rounded-full blur-2xl" style={{ background: cur.tone, opacity: 0.25 }} />
                   <Shot tone={cur.tone}>{cur.mock}</Shot>

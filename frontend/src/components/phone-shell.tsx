@@ -35,7 +35,14 @@ export function PhoneShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (DEMO) return;
     let stopped = false;
-    const measure = () => setFramed(isTelegramMiniApp() && window.innerWidth >= WIDE_FROM);
+    const measure = () => {
+      const tma = isTelegramMiniApp();
+      setFramed(tma && window.innerWidth >= WIDE_FROM);
+      // Веб-слой стилей: в браузере интерфейс рисуется языком лендинга.
+      // Флаг на <html> — его видят и окна, уходящие порталом в body.
+      if (tma) delete document.documentElement.dataset.web;
+      else document.documentElement.dataset.web = "1";
+    };
     // До telegram-web-app.js мини-приложение выглядит обычным браузером, так
     // что ждём его короткими попытками, а не одной проверкой.
     // Прежние 24 попытки по 40 мс — меньше секунды. На компьютере скрипт часто

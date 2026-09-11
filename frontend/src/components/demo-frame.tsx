@@ -12,8 +12,15 @@ import { APP_NAME } from "@/lib/brand";
 // На мобильном — на весь экран. На главной вокруг рамки разворачивается лендинг:
 // приложение при этом монтируется один раз, лендинг просто скрыт на мобильном
 // через CSS — иначе получили бы две копии всего дерева.
+const FRAME_KEY = "psy_demo_frame";
+
 export function DemoFrame({ children }: { children: ReactNode }) {
   const [inTelegram, setInTelegram] = useState(false);
+  // На десктопе демо показывает сайт — то же, что увидит человек в браузере.
+  // Рамка телефона (как выглядит мини-приложение) остаётся под флажком:
+  // `?frame=1` или ссылка в углу. Параметр `web` тут не годится — им в demo.ts
+  // переключается гость, а это другое.
+  const [framed, setFramed] = useState(false);
   // В статике лендинг должен попасть в HTML (иначе его не увидит поисковик),
   // поэтому первый рендер всегда с ним, а на узком экране он снимается сразу
   // после гидратации — чтобы телефон не тащил лишние два десятка карточек.
@@ -21,36 +28,65 @@ export function DemoFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   useEffect(() => { const id = window.setTimeout(() => setInTelegram(isTelegram()), 400); return () => window.clearTimeout(id); }, []);
   useEffect(() => { setWide(window.matchMedia("(min-width: 768px)").matches); }, []);
+  useEffect(() => {
+    // useSearchParams в этом месте ломает статический экспорт, поэтому адрес
+    // разбираем руками.
+    const forced = new URLSearchParams(window.location.search).get("frame");
+    if (forced !== null) localStorage.setItem(FRAME_KEY, forced === "0" ? "" : "1");
+    setFramed(localStorage.getItem(FRAME_KEY) === "1");
+  }, []);
   const landing = (pathname === "/" || pathname === "") && wide;
+  const asWeb = !framed && wide;
+  // Веб-слой стилей висит на <html>: так он достаёт и до окон, которые
+  // рисуются порталом мимо этого дерева.
+  useEffect(() => {
+    const web = asWeb && !inTelegram;
+    if (web) document.documentElement.dataset.web = "1";
+    else delete document.documentElement.dataset.web;
+  }, [asWeb, inTelegram]);
+  const panel = (
+    <div className={`fixed left-4 z-50 hidden items-center gap-3 md:flex ${asWeb ? "bottom-4" : "top-4"}`}>
+      <span
+        className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]"
+        style={{ border: "1px solid var(--hairline)" }}
+      >
+        <span className="sheen-fill h-1.5 w-1.5 rounded-full" />
+        Демо · тестовые данные
+      </span>
+      <button
+        onClick={() => {
+          // Чистим по префиксу, а не по списку: ключ базы версионный
+          // (psy_demo_db_v10), и перечисление тут разъезжалось при каждом бампе.
+          for (const key of Object.keys(localStorage)) {
+            if (key === FRAME_KEY) continue;
+            if (key.startsWith("psy_demo") || key.startsWith("bereg")) localStorage.removeItem(key);
+          }
+          location.reload();
+        }}
+        className="rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]"
+        style={{ border: "1px solid var(--hairline)" }}
+      >
+        Сброс
+      </button>
+      <button
+        onClick={() => {
+          localStorage.setItem(FRAME_KEY, framed ? "" : "1");
+          location.reload();
+        }}
+        className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted-2)] underline underline-offset-4 transition-colors hover:text-[var(--ink)]"
+      >
+        {framed ? "Веб-версия" : "В телефоне"}
+      </button>
+    </div>
+  );
   if (inTelegram) return <>{children}</>;
+  if (asWeb) return <>{panel}{children}</>;
   return (
     <div
       className={landing ? "" : "md:flex md:min-h-[100dvh] md:items-center md:justify-center md:p-8"}
       style={{ background: "radial-gradient(120% 80% at 50% -10%, #ffffff 0%, var(--bg) 55%)" }}
     >
-      <div className="fixed left-4 top-4 z-50 hidden items-center gap-3 md:flex">
-        <span
-          className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]"
-          style={{ border: "1px solid var(--hairline)" }}
-        >
-          <span className="sheen-fill h-1.5 w-1.5 rounded-full" />
-          Демо · тестовые данные
-        </span>
-        <button
-          onClick={() => {
-            // Чистим по префиксу, а не по списку: ключ базы версионный
-            // (psy_demo_db_v10), и перечисление тут разъезжалось при каждом бампе.
-            for (const key of Object.keys(localStorage)) {
-              if (key.startsWith("psy_demo") || key.startsWith("bereg")) localStorage.removeItem(key);
-            }
-            location.reload();
-          }}
-          className="rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]"
-          style={{ border: "1px solid var(--hairline)" }}
-        >
-          Сброс
-        </button>
-      </div>
+      {panel}
 
       <div className={landing ? "md:mx-auto md:grid md:max-w-[1180px] md:grid-cols-[minmax(0,1fr)_425px] md:items-start md:gap-14 md:px-8 md:pb-8 md:pt-20" : "contents"}>
       {landing && <DesktopLandingIntro />}

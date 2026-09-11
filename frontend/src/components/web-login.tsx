@@ -8,8 +8,10 @@ import { isEmail } from "@/lib/account";
 import { loginWithEmail, qrLoginStatus, requestEmailCode, startQrLogin, type QrState } from "@/lib/api";
 import { APP_NAME, BOT_NAME, botDeepLink } from "@/lib/brand";
 import { DEMO, DEMO_EMAIL_CODE, leaveDemoWebGuest } from "@/lib/demo";
+import { completeOnboarding } from "@/lib/profile";
+import { setRole } from "@/lib/role";
 
-type Step = "qr" | "email" | "code";
+type Step = "qr" | "email" | "code" | "demo";
 
 /**
  * Вход с компьютера. Почта — второй ключ к тому же аккаунту: сервер не заводит
@@ -20,7 +22,9 @@ type Step = "qr" | "email" | "code";
 export function WebLogin({ onClose }: { onClose: () => void }) {
   // Telegram — главный вход: аккаунт живёт там, и подтверждение занимает один
   // тап. Почта остаётся вторым ключом к той же учётной записи.
-  const [step, setStep] = useState<Step>(DEMO ? "email" : "qr");
+  // В демо аккаунта нет и проверять нечего: вход пускает внутрь сразу. Путь с
+  // почтой остаётся рядом — на нём смотрят, как вход выглядит в бою.
+  const [step, setStep] = useState<Step>(DEMO ? "demo" : "qr");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -107,6 +111,17 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
     }
   };
 
+  // В демо вход не проверяет ничего и не ведёт через знакомство: человек
+  // смотрит веб-версию, а не заводит аккаунт. Поэтому сразу готовый специалист
+  // с пройденным онбордингом — иначе после входа открывался бы мобильный
+  // экран знакомства вместо платформы.
+  const enterDemo = () => {
+    leaveDemoWebGuest();
+    setRole("psychologist");
+    completeOnboarding();
+    window.location.replace(window.location.pathname);
+  };
+
   const submitCode = async () => {
     if (code.length !== 6 || busy) return;
     setBusy(true);
@@ -141,17 +156,28 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
         </div>
 
         <h2 className="font-tight mt-4 text-[24px] font-black leading-tight">
-          {step === "qr" ? "Вход через Telegram" : step === "email" ? "Вход по почте" : "Код из письма"}
+          {step === "demo" ? "Вход" : step === "qr" ? "Вход через Telegram" : step === "email" ? "Вход по почте" : "Код из письма"}
         </h2>
         <p className="t-sub mt-1.5">
-          {step === "qr"
+          {step === "demo"
+            ? "Демо: аккаунт учебный, данные тестовые."
+            : step === "qr"
             ? "Наведите камеру телефона на код — откроется чат с ботом. Подтвердите вход кнопкой, и страница откроется сама."
             : step === "email"
               ? `Работает та почта, которую вы привязали в ${APP_NAME} внутри Telegram: кабинет → «Почта для входа».`
               : `Отправили шестизначный код на ${email.trim()}. Письмо приходит за минуту, иногда попадает в «Промоакции».`}
         </p>
 
-        {step === "qr" ? (
+        {step === "demo" ? (
+          <>
+            <button onClick={enterDemo} className="btn btn-accent mt-5 w-full py-3.5">
+              Войти
+            </button>
+            <button onClick={() => { setStep("email"); setError(""); }} className="mt-3 w-full py-2 text-[13px] font-bold text-[var(--muted)]">
+              Вход по почте
+            </button>
+          </>
+        ) : step === "qr" ? (
           <>
             <div className="mt-5 flex flex-col items-center">
               <div className="relative flex h-[240px] w-[240px] items-center justify-center rounded-[20px] bg-white p-3 stroke">
@@ -209,11 +235,12 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
             <button onClick={() => void sendCode()} disabled={!isEmail(email) || busy} className="btn btn-accent mt-3 w-full py-3.5">
               {busy ? "Отправляем…" : "Получить код"}
             </button>
-            {!DEMO && (
-              <button onClick={() => { setStep("qr"); setError(""); }} className="mt-3 w-full py-2 text-[13px] font-bold text-[var(--muted)]">
-                Войти через Telegram
-              </button>
-            )}
+            <button
+              onClick={() => { setStep(DEMO ? "demo" : "qr"); setError(""); }}
+              className="mt-3 w-full py-2 text-[13px] font-bold text-[var(--muted)]"
+            >
+              {DEMO ? "Назад" : "Войти через Telegram"}
+            </button>
           </>
         ) : (
           <>
@@ -250,10 +277,12 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
 
         {error && <p className="mt-3 text-[13px] font-bold" style={{ color: "var(--danger)" }}>{error}</p>}
 
-        <p className="t-cap mt-5 leading-snug opacity-70">
-          Ещё нет аккаунта? Он заводится в Telegram — <a href={botDeepLink("login")} target="_blank" rel="noreferrer" className="font-black underline">t.me/{BOT_NAME}</a>.
-          Там же в кабинете привязывается почта.
-        </p>
+        {step !== "demo" && (
+          <p className="t-cap mt-5 leading-snug opacity-70">
+            Ещё нет аккаунта? Он заводится в Telegram — <a href={botDeepLink("login")} target="_blank" rel="noreferrer" className="font-black underline">t.me/{BOT_NAME}</a>.
+            Там же в кабинете привязывается почта.
+          </p>
+        )}
       </motion.div>
     </div>
   );

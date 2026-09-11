@@ -16,7 +16,9 @@ import { Icon, type IconName } from "@/components/icons";
 import { InviteBanner } from "@/components/invite";
 import { MoodHomeCard, MoodSheet } from "@/components/mood-dial";
 import { PsyGuide } from "@/components/psy-guide";
+import { WebDashboard } from "@/components/web-dashboard";
 import { WorkStats } from "@/components/work-stats";
+import { useWebMode } from "@/lib/web-mode";
 
 import { Stagger, StaggerItem } from "@/components/motion";
 import { awaitsConfirm, confirmAppointment, hasEnded, isAhead, isRunning, listAppointments, updateAppointment, type Appointment } from "@/lib/appointments";
@@ -49,7 +51,11 @@ function useName(): string {
 
 export default function Home() {
   const [role] = useRole();
-  return role === "psychologist" ? <PsyHome /> : <PersonHome guest={role === "guest"} />;
+  // В браузере у специалиста своя главная — дашборд. Это не та же страница в
+  // широкой колонке: раскладка, плитки и правая колонка есть только здесь.
+  const web = useWebMode();
+  if (role === "psychologist") return web ? <WebDashboard /> : <PsyHome />;
+  return <PersonHome guest={role === "guest"} />;
 }
 
 function PsyHome() {
