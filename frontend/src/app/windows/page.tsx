@@ -50,7 +50,8 @@ export default function WindowsPage() {
   const bookHref = `/catalog?psy=${id ?? (own ? OWN_PROFILE_ID : 0)}&book=1`;
 
   return (
-    <div className="pb-4">
+    // Афиша — вертикальная карточка: на мониторе её незачем растягивать.
+    <div className="mx-auto max-w-[560px] pb-4">
       <header className="pb-4 pt-2">
         <p className="t-micro">Приглашение на встречу</p>
         <h1 className="t-display mt-1">Свободные окна</h1>

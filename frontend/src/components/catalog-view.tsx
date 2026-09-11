@@ -23,6 +23,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SlotPicker } from "@/components/slot-picker";
 import { WebLogin } from "@/components/web-login";
 import { useAuth } from "@/lib/useAuth";
+import { useWebMode } from "@/lib/web-mode";
 import { Button, Disclosure, Input, Prose, SkeletonCards } from "@/components/ui";
 import { asset } from "@/lib/asset";
 import { listMyBookings } from "@/lib/clients";
@@ -378,12 +379,63 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
   const restTopics = psy.topics.filter((topic) => !topTopics.includes(topic));
   const photos = psy.photos?.length ? psy.photos : psy.portrait ? [psy.portrait] : [];
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);
+  const web = useWebMode();
   const closePhoto = useCallback(() => setPhotoIndex(null), []);
   // Полоска Telegram — в цвет шапки специалиста, на выходе возвращаем тон раздела.
   useEffect(() => { syncTelegramChrome(tone.soft); return () => syncTelegramChrome(); }, [tone.soft]);
 
+  // Цена и запись — то, ради чего анкету открыли: в браузере они стоят
+  // отдельной колонкой справа и не уезжают под длинное описание.
+  const bookingPart = <>
+    <PricePoster psy={psy} />
+    <BookingMini psy={psy} tone={tone} onDone={onBack} />
+  </>;
+
+  const infoPart = <>
+      {/* Почему предложен именно этому пользователю */}
+      {reasons.length > 0 && <Section title="Почему подходит именно вам"><ul className="space-y-2">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></Section>}
+
+      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">
+        {topTopics.map((topic) => <span key={topic} className="chip inline-flex items-center gap-1 font-black" style={{ background: tone.soft, borderColor: "var(--edge)" }}><Icon name="star" width={11} weight="fill" color="var(--edge)" />{topic}</span>)}
+        {restTopics.map((topic) => <span key={topic} className="chip" style={{ background: tone.soft }}>{topic}</span>)}
+      </div></Section>
+
+      {/* Как проходит первая встреча */}
+      <Section title="Как проходит первая встреча"><Prose text={firstSession} className="t-body" /></Section>
+
+      {/* Голосовое приветствие (демо-слот) */}
+      <VoiceGreeting />
+
+      {/* Подход и пример работы — без обещаний результата */}
+      {psy.about && <Section title="Как я работаю"><Prose text={psy.about} className="t-body" /></Section>}
+      <MethodList psy={psy} />
+
+      {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} onOpen={(index) => { tap(); setPhotoIndex(index); }} />}
+
+      <LocationBlock psy={psy} details={details} />
+
+      {/* Образование с раскрываемой проверкой документов */}
+      {psy.education.length > 0 && <EducationBlock psy={psy} />}
+
+      {/* Сайт и соцсети из анкеты: специалист их заполняет, а карточка раньше
+          молчала — ссылки видел только он сам в предпросмотре. */}
+      <LinksBlock psy={psy} />
+
+      {/* Темы, с которыми специалист не работает */}
+      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="chip" style={{ background: "var(--surface-2)" }}>{topic}</span>)}</div><p className="t-cap mt-2.5">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></Section>}
+
+      {/* Отзывы — только после подтверждённых встреч */}
+      <RatingBlock psy={psy} canRate={wasInTherapy} />
+
+      {/* Правила отмены и связи между сессиями */}
+      <RulesSection psy={psy} />
+
+      {/* Постоянная запись */}
+      <TelegramPoster psy={psy} />
+  </>;
+
   return <div>
-    <div className="-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9" style={{ background: tone.soft }}>
+    <div className={web ? "rounded-[20px] px-5 py-4" : "-mx-4 -mt-2 px-4 pb-16 pt-2 @md:-mx-9 @md:px-9"} style={{ background: tone.soft }}>
       {/* Предпросмотр своей анкеты: карточка настоящая, но в каталоге её ещё нет. */}
       {pending && (
         <div className="card-plain mb-3 mt-3 flex items-center gap-2.5 p-3">
@@ -435,52 +487,17 @@ function PsyDetailView({ psy, prefs, invited = false, pending = false, backLabel
       </div>
     </div>
 
-    <div className="-mx-4 -mt-9 space-y-5 rounded-t-[27px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
-      {/* Постер встречи и запись — первое, что нужно решить */}
-      <PricePoster psy={psy} />
-      <BookingMini psy={psy} tone={tone} onDone={onBack} />
-
-      {/* Почему предложен именно этому пользователю */}
-      {reasons.length > 0 && <Section title="Почему подходит именно вам"><ul className="space-y-2">{reasons.map((reason) => <li key={reason} className="t-body flex items-start gap-2"><Icon name="check" width={14} weight="bold" color="var(--edge)" className="mt-0.5 shrink-0" />{reason}</li>)}</ul></Section>}
-
-      <Section title="Особенно хорошо помогает"><div className="flex flex-wrap gap-1.5">
-        {topTopics.map((topic) => <span key={topic} className="chip inline-flex items-center gap-1 font-black" style={{ background: tone.soft, borderColor: "var(--edge)" }}><Icon name="star" width={11} weight="fill" color="var(--edge)" />{topic}</span>)}
-        {restTopics.map((topic) => <span key={topic} className="chip" style={{ background: tone.soft }}>{topic}</span>)}
-      </div></Section>
-
-      {/* Как проходит первая встреча */}
-      <Section title="Как проходит первая встреча"><Prose text={firstSession} className="t-body" /></Section>
-
-      {/* Голосовое приветствие (демо-слот) */}
-      <VoiceGreeting />
-
-      {/* Подход и пример работы — без обещаний результата */}
-      {psy.about && <Section title="Как я работаю"><Prose text={psy.about} className="t-body" /></Section>}
-      <MethodList psy={psy} />
-
-      {(psy.photos?.length ?? 0) > 1 && <PhotoGallery psy={psy} onOpen={(index) => { tap(); setPhotoIndex(index); }} />}
-
-      <LocationBlock psy={psy} details={details} />
-
-      {/* Образование с раскрываемой проверкой документов */}
-      {psy.education.length > 0 && <EducationBlock psy={psy} />}
-
-      {/* Сайт и соцсети из анкеты: специалист их заполняет, а карточка раньше
-          молчала — ссылки видел только он сам в предпросмотре. */}
-      <LinksBlock psy={psy} />
-
-      {/* Темы, с которыми специалист не работает */}
-      {(psy.avoids?.length ?? 0) > 0 && <Section title="С чем не работает"><div className="flex flex-wrap gap-1.5">{psy.avoids!.map((topic) => <span key={topic} className="chip" style={{ background: "var(--surface-2)" }}>{topic}</span>)}</div><p className="t-cap mt-2.5">Если ваш запрос из этого списка — специалист подскажет, к кому обратиться.</p></Section>}
-
-      {/* Отзывы — только после подтверждённых встреч */}
-      <RatingBlock psy={psy} canRate={wasInTherapy} />
-
-      {/* Правила отмены и связи между сессиями */}
-      <RulesSection psy={psy} />
-
-      {/* Постоянная запись */}
-      <TelegramPoster psy={psy} />
-    </div>
+    {web ? (
+      <div className="mt-2.5 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="order-2 min-w-0 space-y-5 lg:order-1">{infoPart}</div>
+        <aside className="order-1 space-y-2.5 lg:order-2 lg:sticky lg:top-4">{bookingPart}</aside>
+      </div>
+    ) : (
+      <div className="-mx-4 -mt-9 space-y-5 rounded-t-[27px] px-4 pb-10 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+        {bookingPart}
+        {infoPart}
+      </div>
+    )}
 
     <PhotoLightbox photos={photos} name={psy.name} index={photoIndex} onIndex={setPhotoIndex} onClose={closePhoto} />
   </div>;
