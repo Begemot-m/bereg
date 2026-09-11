@@ -21,6 +21,8 @@ import { Icon } from "@/components/icons";
 import { SlotPicker } from "@/components/slot-picker";
 import { WeekStrip } from "@/components/week-strip";
 import { DayAgenda, WeekWindows } from "@/components/week-windows";
+import { WebSessions } from "@/components/web-sessions";
+import { useWebMode } from "@/lib/web-mode";
 // Редактор графика — самый тяжёлый компонент раздела: перетаскивание,
 // пружины, мини-неделя. В начальный бандл «Сессий» ему попадать незачем,
 // его открывают редко и осознанно.
@@ -48,6 +50,7 @@ const SESSIONS_HELP_KEY = "bereg:sessions-help-hint:v1";
 export default function SessionsPage() {
   const [role, , roleReady] = useRole();
   const router = useRouter();
+  const web = useWebMode();
   // Раздел «Мои сессии» у клиента убран — запись живёт в Терапии. Ждём, пока
   // роль прочитается: до этого она числится клиентской у всех подряд, и
   // психолога вышвыривало из собственных сессий.
@@ -55,6 +58,20 @@ export default function SessionsPage() {
     if (roleReady && role !== "psychologist") router.replace("/therapy");
   }, [roleReady, role, router]);
   if (!roleReady || role !== "psychologist") return null;
+  // В браузере — неделя сеткой, как в Google Календаре; данные и действия те же.
+  if (web) {
+    return (
+      <WebSessions
+        scheduleTail={
+          <div className="space-y-3 pt-1" style={{ borderTop: "1px solid var(--edge-neutral)", paddingTop: 14 }}>
+            <CancelLockRow />
+            <LeadDaysRow />
+          </div>
+        }
+        renderQuickAdd={(open, close) => <QuickAddBooking open={open} onClose={close} />}
+      />
+    );
+  }
   return <PsySessions />;
 }
 

@@ -232,7 +232,7 @@ function CloseRound({ onClick, size = 30 }: { onClick: () => void; size?: number
 
 // Клиента выбираем в модалке, а не поиском внутри плитки: поле ввода в сетке
 // дня тянуло клавиатуру и перерисовывало всю ленту окон на каждую букву.
-function PickClient({ onPick }: { onPick: (id: number) => void }) {
+export function PickClient({ onPick }: { onPick: (id: number) => void }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -531,7 +531,7 @@ export function SlotCell({ slot, active, onTap, onClose }: { slot: Slot; active:
 }
 
 // Начинка раскрытого окна: свободное — запись/закрыть; занятое — перенос/отмена.
-function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
+export function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const qc = useQueryClient();
   const inv = () => { for (const k of ["appointments", "slots", "month-avail", "overrides"]) qc.invalidateQueries({ queryKey: [k] }); };
   const [resch, setResch] = useState(false);
@@ -543,7 +543,7 @@ function SlotBody({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const apptClient = clients.find((c) => c.id === slot.appt?.client.id) ?? null;
   const tgLink = apptClient ? chatLink(apptClient) : null;
 
-  const book = useMutation({ mutationFn: ({ clientId, format }: { clientId: number; format: ApptFormat }) => createAppointment({ clientId, startsAt: slot.iso, format }), onSuccess: () => { success(); onClose(); inv(); } });
+  const book = useMutation({ mutationFn: ({ clientId, format }: { clientId: number; format: ApptFormat }) => createAppointment({ clientId, startsAt: slot.iso, format, durationMin: slot.dur }), onSuccess: () => { success(); onClose(); inv(); } });
   const setFmt = useMutation({ mutationFn: async (format: ApptFormat) => { if (slot.appt) await updateAppointment(slot.appt.id, { format }); else await setOverride(slot.iso, { fmt: format }); }, onSuccess: () => { select(); inv(); } });
   const cancel = useMutation({ mutationFn: () => updateAppointment(slot.appt!.id, { status: "cancelled" }), onSuccess: () => { onClose(); inv(); } });
   // Отказ по лимиту показываем предложением PRO, а не молчанием: кнопка

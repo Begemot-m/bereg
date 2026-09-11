@@ -423,7 +423,7 @@ function MiniCalendar({ day, onPick, appts }: { day: string; onPick: (ymd: strin
   const first = (view.getDay() + 6) % 7;
   const days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
 
-  const { data: avail = {} } = useQuery({ queryKey: ["month-availability"], queryFn: () => getMonthAvailability() });
+  const { data: avail = {} } = useQuery({ queryKey: ["month-avail", null], queryFn: () => getMonthAvailability() });
 
   const booked = useMemo(() => {
     const set = new Set<string>();

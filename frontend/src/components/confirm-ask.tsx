@@ -21,6 +21,7 @@ export type AskSpec = {
   tone?: "danger" | "green" | "accent";
   icon?: IconName;
   run: () => void;
+  onCancel?: () => void;
 };
 
 const TONE: Record<NonNullable<AskSpec["tone"]>, string> = {
@@ -42,7 +43,7 @@ export function ConfirmAsk({ spec, onClose }: { spec: AskSpec | null; onClose: (
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={() => { tap(); onClose(); }}
+          onClick={() => { tap(); spec.onCancel?.(); onClose(); }}
           className="fixed inset-0 z-[85] flex items-end justify-center p-3"
           style={{ background: "rgba(32,28,24,.44)", backdropFilter: "blur(2px)" }}
         >
@@ -71,7 +72,7 @@ export function ConfirmAsk({ spec, onClose }: { spec: AskSpec | null; onClose: (
               </div>
             </div>
             <div className="mt-4 flex gap-2">
-              <button onClick={() => { tap(); onClose(); }} className="btn btn-white flex-1 py-2.5">Не сейчас</button>
+              <button onClick={() => { tap(); spec.onCancel?.(); onClose(); }} className="btn btn-white flex-1 py-2.5">Не сейчас</button>
               <button
                 onClick={() => { tap(); spec.run(); onClose(); }}
                 className="btn flex-1 py-2.5"
