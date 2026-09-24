@@ -60,7 +60,8 @@ export default function AdminPage() {
     <div>
       <PageHead title="Админка" sub="Платформа целиком" icon="gear" back="/cabinet" />
 
-      <div className="sheet space-y-6">
+      {/* Админке ширина нужна: очередь анкет, графики и журнал — таблицы. */}
+      <div data-wide className="sheet space-y-6">
         {/* Верификация — первое, что должен видеть владелец: пока анкета висит,
             психолог не в каталоге и не может брать клиентов. */}
         <section>
