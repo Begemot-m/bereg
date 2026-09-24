@@ -87,6 +87,22 @@ bot.command("start", async (ctx) => {
       return;
     }
 
+    // Аккаунт заводится знакомством в приложении, а не входом с сайта. Новичку,
+    // который отсканировал QR первым делом, подтверждать нечего: раньше он
+    // упирался в «Аккаунт недоступен» и оставался без объяснения.
+    const known = await prisma.user.findUnique({ where: { telegramId: BigInt(ctx.from?.id ?? 0) }, select: { id: true } });
+    if (!known) {
+      await ctx.reply(
+        [
+          "Похоже, вы у нас впервые — аккаунта ещё нет, и подтверждать нечего.",
+          "",
+          "Откройте приложение, знакомство займёт минуту. Потом вернитесь к компьютеру, обновите QR-код и войдите.",
+        ].join("\n"),
+        { reply_markup: new InlineKeyboard().webApp("Открыть приложение", appLink("/")) },
+      );
+      return;
+    }
+
     await ctx.reply(
       [
         "🔐 Запрос на вход в «Хронику» с компьютера.",
@@ -188,7 +204,16 @@ bot.callbackQuery(/^login:(ok|no):([A-Za-z0-9]{16,40})$/, async (ctx) => {
   }
 
   const user = await prisma.user.findUnique({ where: { telegramId: BigInt(from?.id ?? 0) } });
-  if (!user || user.deletedAt || user.blockedAt) {
+  if (!user) {
+    // Успел удалить и завести заново, пока висела кнопка. Подсказываем выход,
+    // а не отмахиваемся коротким «недоступен».
+    await ctx.answerCallbackQuery({ text: "Аккаунта ещё нет", show_alert: true });
+    await ctx.reply("Сначала знакомство в приложении — потом обновите QR-код на компьютере.", {
+      reply_markup: new InlineKeyboard().webApp("Открыть приложение", appLink("/")),
+    });
+    return;
+  }
+  if (user.deletedAt || user.blockedAt) {
     await ctx.answerCallbackQuery({ text: "Аккаунт недоступен", show_alert: true });
     return;
   }

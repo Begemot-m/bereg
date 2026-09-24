@@ -65,13 +65,12 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
         tick = setInterval(() => setLeft(Math.max(0, Math.round((deadline - Date.now()) / 1000))), 1000);
 
         poll = setInterval(() => {
-          void qrLoginStatus(started.code).then((state) => {
+          // Сеть в браузере рвётся чаще, чем в вебвью: без catch первая же
+          // неудача опроса роняла бы промис, а окно продолжало ждать молча.
+          void qrLoginStatus(started.code).catch(() => "pending" as QrState).then((state) => {
             if (!alive) return;
             setQrState(state);
-            if (state === "approved") {
-              // Сессия уже в куках — поднимаем приложение обычным путём.
-              window.location.replace(window.location.pathname);
-            }
+            if (state === "approved") backToPage();
             if (state !== "pending") {
               clearInterval(poll);
               clearInterval(tick);
@@ -96,6 +95,20 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
 
   const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+  /**
+   * Возврат после входа. Перезагрузка — самый честный способ подняться: сессия
+   * уже в куках, приложение стартует обычным путём. Адрес сохраняем целиком:
+   * человек приходит по ссылке специалиста (`/catalog?psy=42&book=1`), и
+   * прежний `pathname` без параметров выбрасывал его в пустой каталог — мимо
+   * анкеты и мимо записи, ради которой он и входил. `web=1` снимаем: в демо
+   * этот параметр заново включает гостя, и вход отменял бы сам себя.
+   */
+  const backToPage = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("web");
+    window.location.replace(`${url.pathname}${url.search}${url.hash}`);
+  };
+
   const sendCode = async () => {
     if (!isEmail(email) || busy) return;
     setBusy(true);
@@ -119,7 +132,7 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
     leaveDemoWebGuest();
     setRole("psychologist");
     completeOnboarding();
-    window.location.replace(window.location.pathname);
+    backToPage();
   };
 
   const submitCode = async () => {
@@ -128,10 +141,8 @@ export function WebLogin({ onClose }: { onClose: () => void }) {
     setError("");
     try {
       await loginWithEmail(email.trim(), code);
-      // Сессия лежит в куках. Перезагрузка — самый честный способ войти:
-      // приложение поднимется обычным путём, а не с половиной состояния.
       if (DEMO) leaveDemoWebGuest();
-      window.location.replace(window.location.pathname);
+      backToPage();
     } catch (e) {
       setError(message(e));
       setBusy(false);
