@@ -247,8 +247,7 @@
 
 [data-web] .chunk,
 [data-web] .card,
-[data-web] .panel,
-[data-web] .sheet {
+[data-web] .panel {
   box-shadow: none;
 }
 
@@ -256,6 +255,7 @@
    такой страницы нет, есть блок на полотне. Правим здесь, а не ветками в
    разметке: разделы со своей веб-версией `.sheet` уже не рендерят. */
 [data-web] .sheet {
+  box-shadow: none;
   margin-inline: 0;
   min-height: 0;
   border-radius: 18px;
@@ -510,6 +510,9 @@ h1, h2, h3, .font-tight {
    `data-wide` на свой корень, и колонка раздвигается под сетку карточек. */
 .app-col { max-width: 48rem; }
 .app-col:has([data-wide]) { max-width: 72rem; }
+/* В вебе колонка и без флага шире (1200px), а 72rem — это 1152: без этой строки
+   `data-wide` сужал витрину на 48px вместо того, чтобы её расширить. */
+[data-web] .app-col:has([data-wide]) { max-width: 1200px; }
 /* Неделя сеткой: семь столбцов в 72rem выходят по ~115px, запись в них не читается. */
 [data-web] .app-col:has([data-full]) { max-width: 1680px; }
 
