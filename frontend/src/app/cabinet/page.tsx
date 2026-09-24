@@ -79,7 +79,7 @@ export default function CabinetPage() {
       </PageHead>
 
       <Reveal y={10}>
-      <div className="-mx-4 min-h-[64vh] space-y-6 rounded-t-[27px] px-4 pb-6 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+      <div className="sheet space-y-6">
 
         {/* Управление — под роль */}
         <div className="space-y-3">

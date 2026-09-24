@@ -51,7 +51,7 @@ function GroupsHome() {
     <div>
       <PageHead title={MOD.title} icon={MOD.icon} back="/tools" sub="Модуль для работы с несколькими пользователями" />
       <Reveal y={10}>
-        <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+        <div className="sheet">
           {/* Модуль ещё не открыт — ни дашборда, ни витрины подписки: по прямой
               ссылке сюда попадают и в обход «Инструментов». */}
           {body}

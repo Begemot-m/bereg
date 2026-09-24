@@ -37,7 +37,7 @@ function ClientTools({ psy = false }: { psy?: boolean }) {
       <PageHead title="Инструменты" icon="tools" />
 
       <Reveal y={10}>
-        <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+        <div className="sheet">
           <section className="overflow-hidden rounded-[20px] bg-[var(--ink)] text-white">
             <div className="flex items-start gap-3 p-4">
               <div className="min-w-0 flex-1">

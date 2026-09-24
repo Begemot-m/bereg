@@ -94,7 +94,7 @@ export function GroupDetail() {
     return (
       <div>
         <PageHead title={MOD.title} icon={MOD.icon} back="/tools" sub="Модуль PRO" />
-        <div className="-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9" style={{ background: "var(--surface)" }}>
+        <div className="sheet">
           <ModuleSoon mod={MOD} />
         </div>
       </div>
@@ -187,7 +187,7 @@ function GroupDetailInner() {
         />
       )}
       <Reveal y={10}>
-        <div className={web ? "max-w-[900px] pb-6" : "-mx-4 min-h-[64vh] rounded-t-[27px] px-4 pb-8 pt-5 @md:-mx-9 @md:px-9"} style={web ? undefined : { background: "var(--surface)" }}>
+        <div className={web ? "max-w-[900px] pb-6" : "sheet"}>
           {!g ? null : (
             <>
               {/* Сводка: всё, что нужно знать перед встречей, без прокрутки. */}
