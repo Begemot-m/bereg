@@ -40,8 +40,13 @@ export function PhoneShell({ children }: { children: ReactNode }) {
       setFramed(tma && window.innerWidth >= WIDE_FROM);
       // Веб-слой стилей: в браузере интерфейс рисуется языком лендинга.
       // Флаг на <html> — его видят и окна, уходящие порталом в body.
-      if (tma) delete document.documentElement.dataset.web;
-      else document.documentElement.dataset.web = "1";
+      if (tma) {
+        delete document.documentElement.dataset.web;
+        // Ответ этой загрузки — подсказка следующей: инлайн-скрипт в layout
+        // читает метку и не включает веб-слой в мини-приложении, даже если
+        // перезагрузка пришла без метки Telegram в адресе.
+        try { sessionStorage.setItem("bereg_tma", "1"); } catch { /* приватный режим */ }
+      } else document.documentElement.dataset.web = "1";
     };
     // До telegram-web-app.js мини-приложение выглядит обычным браузером, так
     // что ждём его короткими попытками, а не одной проверкой.

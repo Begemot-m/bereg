@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * Открыто ли приложение в браузере, а не в мини-приложении. Флаг ставят
@@ -8,15 +8,16 @@ import { useEffect, useState } from "react";
  * после того, как дождутся telegram-web-app.js. Поэтому не разовая проверка, а
  * подписка: иначе первый рендер решал бы за всю сессию.
  */
+function subscribe(onChange: () => void): () => void {
+  const mo = new MutationObserver(onChange);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-web"] });
+  return () => mo.disconnect();
+}
+
 export function useWebMode(): boolean {
-  const [web, setWeb] = useState(false);
-  useEffect(() => {
-    const el = document.documentElement;
-    const read = () => setWeb(el.dataset.web === "1");
-    read();
-    const mo = new MutationObserver(read);
-    mo.observe(el, { attributes: true, attributeFilter: ["data-web"] });
-    return () => mo.disconnect();
-  }, []);
-  return web;
+  // Через useSyncExternalStore, а не эффектом: флаг ставит инлайн-скрипт в
+  // layout ещё до гидрации, и подписка читает его в первом же клиентском
+  // рендере. Эффект давал лишний кадр телефонной вёрстки. Серверный снимок —
+  // всегда false: в статическом HTML лежит мобильная разметка.
+  return useSyncExternalStore(subscribe, () => document.documentElement.dataset.web === "1", () => false);
 }

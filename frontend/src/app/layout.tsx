@@ -30,6 +30,17 @@ const body = Golos_Text({ subsets: ["latin", "cyrillic"], weight: ["400", "500",
 // поисковик увидит два одинаковых сайта и размажет позиции между ними.
 const INDEXABLE = !DEMO;
 
+// Демо на узком экране и под `?frame=1` показывает телефон в рамке — там
+// веб-слой не нужен. Ключ рамки тот же, что в `demo-frame.tsx`.
+const webFlagScript = `(function(){try{
+  var h=location.href;
+  if(/[?&#]tgWebApp/.test(h)||window.TelegramWebviewProxy||sessionStorage.getItem("bereg_tma")==="1")return;
+  ${DEMO ? `var f=new URLSearchParams(location.search).get("frame");
+  var framed=f!==null?f!=="0":localStorage.getItem("psy_demo_frame")==="1";
+  if(framed||!matchMedia("(min-width: 768px)").matches)return;` : ""}
+  document.documentElement.dataset.web="1";
+}catch(e){}})();`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -93,6 +104,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             теги в head). */}
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
+        {/* Веб-слой стилей до гидрации. Оболочки (`phone-shell`, `demo-frame`)
+            ставят тот же флаг, но только из эффекта — и страница успевала
+            моргнуть телефонной геометрией. Здесь решаем по тому, что видно
+            синхронно: метка мини-приложения в адресе, мост вебвью, ответ
+            прошлой загрузки. Ошиблись — оболочка поправит, как и раньше. */}
+        <script dangerouslySetInnerHTML={{ __html: webFlagScript }} />
         {/* afterInteractive: скрипт Telegram навешивает стили на <html> ПОСЛЕ гидрации,
             иначе получаем hydration mismatch и падение при переходах. */}
         <SeoJsonLd />
