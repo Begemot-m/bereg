@@ -30,14 +30,17 @@ const body = Golos_Text({ subsets: ["latin", "cyrillic"], weight: ["400", "500",
 // поисковик увидит два одинаковых сайта и размажет позиции между ними.
 const INDEXABLE = !DEMO;
 
-// Демо на узком экране и под `?frame=1` показывает телефон в рамке — там
-// веб-слой не нужен. Ключ рамки тот же, что в `demo-frame.tsx`.
+// Веб-слой — для экрана от 768px: у него недельная сетка на 840, таблица
+// клиентов и дашборд в две колонки. На телефоне в браузере работает обычная
+// мобильная разметка. Демо вдобавок показывает телефон в рамке под `?frame=1`,
+// ключ рамки тот же, что в `demo-frame.tsx`.
 const webFlagScript = `(function(){try{
   var h=location.href;
   if(/[?&#]tgWebApp/.test(h)||window.TelegramWebviewProxy||sessionStorage.getItem("bereg_tma")==="1")return;
   ${DEMO ? `var f=new URLSearchParams(location.search).get("frame");
   var framed=f!==null?f!=="0":localStorage.getItem("psy_demo_frame")==="1";
-  if(framed||!matchMedia("(min-width: 768px)").matches)return;` : ""}
+  if(framed)return;` : ""}
+  if(!matchMedia("(min-width: 768px)").matches)return;
   document.documentElement.dataset.web="1";
 }catch(e){}})();`;
 

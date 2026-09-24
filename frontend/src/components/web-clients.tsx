@@ -192,13 +192,15 @@ function Row({ c, i }: { c: Client; i: number }) {
       </span>
 
       <span className="pointer-events-none relative hidden justify-end md:flex">
+        {/* Без курсора кнопка не только невидима, но и не ловит нажатие: на
+            планшете прозрачная «Написать» перехватывала тап по строке. */}
         {href && (
           <a
             href={href}
             target="_blank"
             rel="noreferrer"
             onClick={() => tap()}
-            className="pointer-events-auto flex h-7 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+            className="pointer-events-none flex h-7 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
             style={{ background: "var(--ink)", color: "#fff" }}
           >
             <Icon name="telegram" width={12} color="#fff" /> Написать

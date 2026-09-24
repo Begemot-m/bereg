@@ -141,15 +141,6 @@ const isPublicDoc = (pathname: string) => pathname.startsWith("/docs") || pathna
 // входной двери.
 const isPublicCatalog = (pathname: string) => pathname.startsWith("/catalog");
 
-/** Страница документа для гостя: без навигации приложения, просто текст. */
-function PublicPage({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-[100dvh] overflow-y-auto px-4 py-6" style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <div className="mx-auto w-full max-w-2xl">{children}</div>
-    </div>
-  );
-}
-
 /**
  * Оболочка публичной страницы для гостя: шапка со знаком и входом, широкая
  * колонка под сетку карточек, подвал с документами. Навигации приложения тут
@@ -158,7 +149,7 @@ function PublicPage({ children }: { children: ReactNode }) {
 function GuestShell({ children }: { children: ReactNode }) {
   const [login, setLogin] = useState(false);
   return (
-    <div className="@container min-h-[100dvh] overflow-y-auto" style={{ background: "var(--page)", color: "var(--ink)" }}>
+    <div data-guest className="@container min-h-[100dvh] overflow-y-auto" style={{ background: "var(--page)", color: "var(--ink)" }}>
       <header className="sticky top-0 z-30" style={{ background: "var(--surface)", borderBottom: "var(--bw) solid var(--stroke)" }}>
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 @md:px-8">
           <Link href="/" onClick={select}><Wordmark /></Link>
@@ -483,8 +474,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (authState === "anon" && !fastEntry) {
     // Публичные документы открываются без входа: на них ведут ссылки из подвала
     // сайта, и вместо текста человек видел лендинг заново.
-    if (isPublicDoc(pathname)) return <PublicPage>{children}</PublicPage>;
-    if (isPublicCatalog(pathname)) return <GuestShell>{children}</GuestShell>;
+    if (isPublicDoc(pathname) || isPublicCatalog(pathname)) return <GuestShell>{children}</GuestShell>;
     return env === "desktop"
       ? <WebLanding />
       : <AuthGate env={env} reason={authReason} detail={authDetail} />;

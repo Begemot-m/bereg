@@ -27,7 +27,16 @@ export function DemoFrame({ children }: { children: ReactNode }) {
   const [wide, setWide] = useState(true);
   const pathname = usePathname();
   useEffect(() => { const id = window.setTimeout(() => setInTelegram(isTelegram()), 400); return () => window.clearTimeout(id); }, []);
-  useEffect(() => { setWide(window.matchMedia("(min-width: 768px)").matches); }, []);
+  // Ширину слушаем, а не меряем один раз: поворот планшета и перетаскивание
+  // окна меняют версию интерфейса, и без подписки страница до перезагрузки
+  // оставалась в той, что была при открытии.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setWide(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   useEffect(() => {
     // useSearchParams в этом месте ломает статический экспорт, поэтому адрес
     // разбираем руками.
