@@ -44,8 +44,8 @@ export function ConfirmAsk({ spec, onClose }: { spec: AskSpec | null; onClose: (
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => { tap(); spec.onCancel?.(); onClose(); }}
-          className="fixed inset-0 z-[85] flex items-end justify-center p-3"
-          style={{ background: "rgba(32,28,24,.44)", backdropFilter: "blur(2px)" }}
+          className="veil fixed inset-0 z-[85] flex items-end justify-center p-3 md:items-center"
+          style={{ background: "rgba(32,28,24,.44)" }}
         >
           <motion.div
             initial={{ y: 42 }}

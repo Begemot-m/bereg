@@ -101,7 +101,7 @@ function SessionInviteSheet({ onClose }: { onClose: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 backdrop-blur-[2px] @md:items-center"
+      className="veil fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(32,28,24,.46)] p-3 @md:items-center"
       onClick={onClose}
     >
       <motion.div

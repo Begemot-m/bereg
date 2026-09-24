@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
+import { Block, WebTitle } from "@/components/web-ui";
+import { useWebMode } from "@/lib/web-mode";
 
 export function TherapyDetailShell({ backHref, backLabel, title, subtitle, icon, accent = "tiffany", children }: {
   backHref: string;
@@ -13,6 +17,15 @@ export function TherapyDetailShell({ backHref, backLabel, title, subtitle, icon,
   accent?: "tiffany" | "purple";
   children: ReactNode;
 }) {
+  const web = useWebMode();
+  if (web)
+    return (
+      <div data-accent={accent}>
+        <Link href={backHref} className="back-link mb-3">{backLabel}</Link>
+        <WebTitle title={title} sub={subtitle} />
+        <Block className="rounded-[18px] p-5" style={{ background: "var(--surface)" }}>{children}</Block>
+      </div>
+    );
   return (
     <div data-accent={accent} className="-mx-4 -mt-6 min-h-full @md:-mx-9" style={{ background: "var(--page)" }}>
       <header className="px-4 pb-14 pt-4 @md:px-9">
